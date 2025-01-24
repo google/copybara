@@ -272,6 +272,44 @@ public class GitOrigin implements Origin<GitRevision> {
     return resolveStringRef(ref, fetchTags, fetchHeads);
   }
 
+  @Override
+  public GitRevision resolveAncestorRef(String ancestorRef, GitRevision descendantRev)
+      throws ValidationException, RepoException {
+    return resolveAncestorRef(this, this.getRepository(), ancestorRef, descendantRev);
+  }
+
+  /**
+   * Resolves a reference into a revision, but only if the provided descendantRev is an ancestor of
+   * ancestorRef.
+   *
+   * @param gitOrigin the Git origin to check.
+   * @param gitRepository the Git repository to check.
+   * @param ancestorRef The ancestor reference.
+   * @param descendantRev The descendant {@link R}.
+   * @return A {@link R} that represents the ancestor reference.
+   * @throws ValidationException If descendantRev is not a descendant of ancestorRef, or this
+   *     operation is unsupported by the origin.
+   * @throws RepoException If there is an error that occurs during the resolve operation.
+   */
+  public static GitRevision resolveAncestorRef(
+      Origin<GitRevision> gitOrigin,
+      GitRepository gitRepository,
+      String ancestorRef,
+      GitRevision descendantRev)
+      throws RepoException, ValidationException {
+    if (!gitRepository.isAncestor(ancestorRef, descendantRev.fixedReference())) {
+      throw new ValidationException(
+          String.format("%s is not an ancestor of %s.", ancestorRef, descendantRev.asString()));
+    }
+
+    GitRevision resolvedRev = gitOrigin.resolve(ancestorRef);
+    if (!Strings.isNullOrEmpty(descendantRev.contextReference())) {
+      resolvedRev = resolvedRev.withContextReference(descendantRev.contextReference());
+    }
+
+    return resolvedRev;
+  }
+
   private ImmutableList<Refspec> getVersionSelectorRefspec(GitRepository repository)
       throws ValidationException {
     checkNotNull(versionSelector, "version selector presence should be checked outside of"
@@ -308,7 +346,7 @@ public class GitOrigin implements Origin<GitRevision> {
             ? getRepository().describeExactMatch(gitRevision)
             : null;
     return gitRevision.contextReference() == null
-        ? getRepository().addDescribeVersion(gitRevision).withTagReference(describeAsTag)
+        ? getRepository().addDescribeVersion(gitRevision).withContextReference(describeAsTag)
         : getRepository().addDescribeVersion(gitRevision);
   }
 

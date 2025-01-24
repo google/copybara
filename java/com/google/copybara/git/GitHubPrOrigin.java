@@ -253,6 +253,12 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
   }
 
   @Override
+  public GitRevision resolveAncestorRef(String ancestorRef, GitRevision descendantRev)
+      throws ValidationException, RepoException {
+    return GitOrigin.resolveAncestorRef(this, getRepository(), ancestorRef, descendantRev);
+  }
+
+  @Override
   @Nullable
   public String showDiff(GitRevision revisionFrom, GitRevision revisionTo) throws RepoException {
     return getRepository().showDiff(

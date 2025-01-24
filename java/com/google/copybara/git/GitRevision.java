@@ -335,7 +335,7 @@ public final class GitRevision implements Revision {
         ImmutableListMultimap.copyOf(associatedLabels), url);
   }
 
-  GitRevision withTagReference(String tag) {
+  GitRevision withContextReference(String tag) {
     return new GitRevision(
         repository,
         sha1,

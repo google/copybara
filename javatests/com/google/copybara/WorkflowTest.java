@@ -431,6 +431,48 @@ public class WorkflowTest {
   }
 
   @Test
+  public void pinnedFixedRef() throws Exception {
+    options.workflowOptions.pinnedFixedRef = "0";
+    origin.addSimpleChangeWithContextReference(1, "ancestor"); // has a ref of 0
+    origin.addSimpleChangeWithContextReference(2, "descendant"); // has a ref of 1
+    transformations = ImmutableList.of();
+    Workflow<?, ?> workflow = skylarkWorkflow("default", SQUASH);
+
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+    assertThat(destination.processed).isNotEmpty();
+    assertThat(Iterables.getOnlyElement(destination.processed).getOriginRef())
+        .isEqualTo(origin.resolve("0"));
+  }
+
+  @Test
+  public void pinnedFixedRef_ancestorIsSameAsDescendant() throws Exception {
+    options.workflowOptions.pinnedFixedRef = "1";
+    origin.addSimpleChangeWithContextReference(1, "ancestor"); // has a ref of 0
+    origin.addSimpleChangeWithContextReference(2, "descendant"); // has a ref of 1
+    transformations = ImmutableList.of();
+    Workflow<?, ?> workflow = skylarkWorkflow("default", SQUASH);
+
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+    assertThat(destination.processed).isNotEmpty();
+    assertThat(Iterables.getOnlyElement(destination.processed).getOriginRef())
+        .isEqualTo(origin.resolve("1"));
+  }
+
+  @Test
+  public void pinnedFixedRef_notAncestor() throws Exception {
+    options.workflowOptions.pinnedFixedRef = "1";
+    origin.addSimpleChangeWithContextReference(1, "ancestor"); // has a ref of 0
+    origin.addSimpleChangeWithContextReference(2, "descendant"); // has a ref of 1
+    transformations = ImmutableList.of();
+    Workflow<?, ?> workflow = skylarkWorkflow("default", SQUASH);
+
+    EmptyChangeException e =
+        assertThrows(
+            EmptyChangeException.class, () -> workflow.run(workdir, ImmutableList.of("0")));
+    assertThat(e).hasMessageThat().contains("Ref 1 is not an ancestor of ref 0");
+  }
+
+  @Test
   public void contextReferenceAsLabel() throws Exception {
     origin.addSimpleChange(/*timestamp*/ 1);
     transformations = ImmutableList.of(

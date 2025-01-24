@@ -448,6 +448,70 @@ public class GitOriginTest {
   }
 
   @Test
+  public void testResolveAncestorRef() throws Exception {
+    repo.branch("my_branch").run();
+    repo.forceCheckout("my_branch");
+    writeFile(remote, "test.txt", "initial");
+    repo.add().files("test.txt").run();
+    git("commit", "-m", "ancestor commit");
+    String ancestorSha1 = repo.resolveReference("HEAD").getSha1();
+    writeFile(remote, "test.txt", "changed");
+    repo.add().files("test.txt").run();
+    git("commit", "-m", "random commit");
+    writeFile(remote, "test.txt", "changed-again");
+    repo.add().files("test.txt").run();
+    git("commit", "-m", "descendant commit");
+    String descendantRef = repo.resolveReference("HEAD").getSha1();
+    newReader().checkout(origin.resolve("my_branch"), checkoutDir);
+    GitRevision descendantRev = origin.resolve("my_branch");
+
+    assertThat(descendantRef).isEqualTo(descendantRev.fixedReference());
+    GitRevision ancestorRev = origin().resolveAncestorRef(ancestorSha1, descendantRev);
+    assertThat(ancestorRev.getSha1()).isEqualTo(ancestorSha1);
+    assertThat(ancestorRev.contextReference()).isEqualTo("my_branch");
+  }
+
+  @Test
+  public void testResolveAncestorRef_ancestorEqualsDescendant() throws Exception {
+    repo.branch("my_branch").run();
+    repo.forceCheckout("my_branch");
+    writeFile(remote, "test.txt", "initial");
+    repo.add().files("test.txt").run();
+    git("commit", "-m", "ancestor commit");
+    String ancestorSha1 = repo.resolveReference("HEAD").getSha1();
+    String descendantRef = repo.resolveReference("HEAD").getSha1();
+    newReader().checkout(origin.resolve("my_branch"), checkoutDir);
+    GitRevision descendantRev = origin.resolve("my_branch");
+
+    GitRevision ancestorRev = origin().resolveAncestorRef(ancestorSha1, descendantRev);
+    assertThat(ancestorRev.getSha1()).isEqualTo(descendantRef);
+    assertThat(ancestorRev.contextReference()).isEqualTo("my_branch");
+  }
+
+  @Test
+  public void testResolveAncestorRef_notAncestor() throws Exception {
+    repo.branch("my_branch").run();
+    repo.forceCheckout("my_branch");
+    writeFile(remote, "test.txt", "initial");
+    repo.add().files("test.txt").run();
+    git("commit", "-m", "older commit");
+    newReader().checkout(origin.resolve("my_branch"), checkoutDir);
+    GitRevision olderRev = origin.resolve("my_branch");
+    writeFile(remote, "test.txt", "changed");
+    repo.add().files("test.txt").run();
+    git("commit", "-m", "newer commit");
+    String newerSha1 = repo.resolveReference("HEAD").getSha1();
+    newReader().checkout(origin.resolve("my_branch"), checkoutDir);
+
+    ValidationException e =
+        assertThrows(
+            ValidationException.class, () -> origin().resolveAncestorRef(newerSha1, olderRev));
+    assertThat(e)
+        .hasMessageThat()
+        .contains(String.format("%s is not an ancestor of %s", newerSha1, olderRev.asString()));
+  }
+
+  @Test
   public void testCheckout() throws Exception {
     // Check that we get can checkout a branch
     newReader().checkout(origin.resolve(defaultBranch), checkoutDir);

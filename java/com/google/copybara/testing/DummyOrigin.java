@@ -34,6 +34,7 @@ import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.revision.Change;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
@@ -232,6 +233,32 @@ public class DummyOrigin implements Origin<DummyRevision> {
           + ". Only " + changes.size() + " changes exist");
     }
     return changes.get(idx);
+  }
+
+  @Override
+  public DummyRevision resolveAncestorRef(String ancestorRef, DummyRevision descendantRev)
+      throws ValidationException, RepoException {
+    int descendantIdx = 0;
+    int ancestorIdx = 0;
+    DummyRevision ancestorRev;
+    try {
+      ancestorRev = resolve(ancestorRef);
+      descendantIdx = changes.indexOf(descendantRev);
+      ancestorIdx = changes.indexOf(ancestorRev);
+    } catch (CannotResolveRevisionException e) {
+      throw new ValidationException(
+          String.format("Ancestor ref %s can't be resolved", ancestorRef), e);
+    }
+
+    if (descendantIdx < ancestorIdx) {
+      throw new ValidationException(
+          String.format(
+              "Ref %s is not an ancestor of ref %s", ancestorRef, descendantRev.asString()));
+    }
+
+    return descendantRev.contextReference() != null
+        ? ancestorRev.withContextReference(descendantRev.contextReference())
+        : ancestorRev;
   }
 
   private class ReaderImpl implements Reader<DummyRevision> {

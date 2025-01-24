@@ -127,6 +127,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
   @Nullable String consistencyFilePath;
   @Nullable private final String expectedFixedRef;
+  @Nullable private final String pinnedFixedRef;
 
   public Workflow(
       String name,
@@ -161,7 +162,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       @Nullable String customRevId,
       boolean checkout,
       @Nullable String consistencyFilePath,
-      @Nullable String expectedFixedRef) {
+      @Nullable String expectedFixedRef,
+      @Nullable String pinnedFixedRef) {
     this.name = Preconditions.checkNotNull(name);
     this.description = description;
     this.origin = Preconditions.checkNotNull(origin);
@@ -199,6 +201,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     this.migrateNoopChanges = migrateNoopChanges;
     this.consistencyFilePath = consistencyFilePath;
     this.expectedFixedRef = expectedFixedRef;
+    this.pinnedFixedRef = pinnedFixedRef;
   }
 
   @Override
@@ -287,13 +290,17 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       O resolvedRef = generalOptions.repoTask("origin.resolve_source_ref",
           () -> origin.resolve(sourceRef));
 
-      if (!Strings.isNullOrEmpty(expectedFixedRef)
-          && !Strings.isNullOrEmpty(resolvedRef.fixedReference())
-          && !resolvedRef.fixedReference().equals(expectedFixedRef)) {
-        throw new EmptyChangeException(
-            String.format(
-                "Not migrating ref %s, its fixed ref %s did not match the expected fixed ref %s.",
-                resolvedRef.asString(), resolvedRef.fixedReference(), expectedFixedRef));
+      if (!Strings.isNullOrEmpty(expectedFixedRef) && !Strings.isNullOrEmpty(pinnedFixedRef)) {
+        throw new CommandLineException(
+            "Using --expected-fixed-ref and --pinned-fixed-ref together is not supported.");
+      }
+
+      if (!Strings.isNullOrEmpty(expectedFixedRef)) {
+        validateExpectedFixedRef(resolvedRef);
+      }
+
+      if (!Strings.isNullOrEmpty(pinnedFixedRef)) {
+        resolvedRef = handlePinnedFixedRef(resolvedRef, pinnedFixedRef);
       }
 
       logger.atInfo().log(
@@ -327,6 +334,27 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
           }
         }
       }
+    }
+  }
+
+  private void validateExpectedFixedRef(O resolvedRef) throws EmptyChangeException {
+    if (!Strings.isNullOrEmpty(expectedFixedRef)
+        && !Strings.isNullOrEmpty(resolvedRef.fixedReference())
+        && !resolvedRef.fixedReference().equals(expectedFixedRef)) {
+      throw new EmptyChangeException(
+          String.format(
+              "Not migrating ref %s, its fixed ref %s did not match the expected fixed ref %s.",
+              resolvedRef.asString(), resolvedRef.fixedReference(), expectedFixedRef));
+    }
+  }
+
+  private O handlePinnedFixedRef(O resolvedRef, String pinnedFixedRef)
+      throws ValidationException, RepoException {
+    try {
+      return origin.resolveAncestorRef(pinnedFixedRef, resolvedRef);
+    } catch (ValidationException e) {
+      throw new EmptyChangeException(
+          e, String.format("Could not enforce --pinned-fixed-ref. Cause: %s", e.getMessage()));
     }
   }
 
@@ -766,5 +794,10 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   @Nullable
   public String getExpectedFixedRef() {
     return expectedFixedRef;
+  }
+
+  @Nullable
+  public String getPinnedFixedRef() {
+    return pinnedFixedRef;
   }
 }

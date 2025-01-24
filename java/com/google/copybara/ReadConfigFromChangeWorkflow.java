@@ -98,7 +98,8 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
         workflow.customRevId(),
         workflow.isCheckout(),
         workflow.getConsistencyFilePath(),
-        workflow.getExpectedFixedRef());
+        workflow.getExpectedFixedRef(),
+        workflow.getPinnedFixedRef());
     this.configLoader = checkNotNull(configLoader, "configLoaderProvider");
     this.configValidator = checkNotNull(configValidator, "configValidator");
   }

@@ -2865,7 +2865,7 @@ public class GitRepository {
         String tagString = includeTags ? getField(fields, TAG_FIELD) : null;
         GitRevision tag =
             tagString != null
-                ? repo.createReferenceFromCompleteSha1(commit).withTagReference(tagString)
+                ? repo.createReferenceFromCompleteSha1(commit).withContextReference(tagString)
                 : null;
 
         try {

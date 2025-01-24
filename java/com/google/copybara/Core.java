@@ -685,7 +685,8 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             customRevId,
             checkout,
             consistencyFilePath,
-            workflowOptions.expectedFixedRef);
+            workflowOptions.expectedFixedRef,
+            workflowOptions.pinnedFixedRef);
     Module module = Module.ofInnermostEnclosingStarlarkFunction(thread);
     registerGlobalMigration(workflowName, workflow, module);
   }

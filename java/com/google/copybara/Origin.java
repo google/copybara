@@ -77,6 +77,22 @@ public interface Origin<R extends Revision> extends ConfigItemDescription, Starl
   }
 
   /**
+   * Resolves a reference into a revision, but only if the provided descendantRev is an ancestor of
+   * ancestorRef.
+   *
+   * @param ancestorRef The ancestor reference.
+   * @param descendantRev The descendant {@link R}.
+   * @return A {@link R} that represents the ancestor reference.
+   * @throws ValidationException If descendantRev is not a descendant of ancestorRef, or this
+   *     operation is unsupported by the origin.
+   * @throws RepoException If there is an error that occurs during the resolve operation.
+   */
+  default R resolveAncestorRef(String ancestorRef, R descendantRev)
+      throws ValidationException, RepoException {
+    throw new ValidationException("Pinning to an ancestor ref is unsupported by this origin.");
+  }
+
+  /**
    * Show different changes between two references. Returns null if the origin doesn't
    * support generating differences.
    *

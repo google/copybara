@@ -73,6 +73,17 @@ public class WorkflowOptions implements Option {
   public String expectedFixedRef = null;
 
   @Parameter(
+      names = "--pinned-fixed-ref",
+      description =
+          "The fixed reference that we pin the migration to. The reference passed in should resolve"
+              + " to this SHA1, or the commit referenced by this SHA1 should be an ancestor of the"
+              + " provided reference. If this is not the case, the tool will exit with a NOOP"
+              + " status.",
+      hidden = true)
+  @Nullable
+  public String pinnedFixedRef = null;
+
+  @Parameter(
       names = "--same-version",
       description =
           "Re-import the last version imported. This is useful for example to check that"
@@ -209,6 +220,7 @@ public class WorkflowOptions implements Option {
     this.forcedAuthor = other.forcedAuthor;
     this.diffInOrigin = other.diffInOrigin;
     this.expectedFixedRef = other.expectedFixedRef;
+    this.pinnedFixedRef = other.pinnedFixedRef;
   }
 
   public boolean canUseSmartPrune() {
