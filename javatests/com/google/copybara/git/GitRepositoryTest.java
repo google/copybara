@@ -47,6 +47,7 @@ import com.google.copybara.git.GitRepository.StatusFile;
 import com.google.copybara.git.GitRepository.TreeElement;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.CommandOutput;
+import com.google.copybara.util.Glob;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -1043,6 +1044,21 @@ public class GitRepositoryTest {
   }
 
   @Test
+  // Test the checkout used for destination reader
+  public void testCheckoutSymlink() throws Exception {
+    Files.write(workdir.resolve("target"), "target".getBytes(UTF_8));
+    Files.createSymbolicLink(workdir.resolve("symlink"), workdir.resolve("target"));
+
+    repository.simpleCommand("add", ".");
+    repository.simpleCommand("commit", "-m", "create symlink");
+    GitRevision rev = repository.getHeadRef();
+
+    Path tempDir = Files.createTempDirectory("testDestination");
+    repository.checkout(Glob.ALL_FILES, tempDir, rev);
+    assertThat(Files.isSymbolicLink(tempDir.resolve("symlink"))).isTrue();
+  }
+
+  @Test
   public void validateUrl() throws Exception {
     doValidateUrl("ssh://git@github.com:foo/foo.git");
     doValidateUrl("https://github.com/foo/foo");
@@ -1502,7 +1518,11 @@ public class GitRepositoryTest {
   public void testReadFileBytes() throws Exception {
     Files.write(workdir.resolve("foo.txt"), "foo".getBytes(UTF_8));
     singleFileCommit("test", "foo.txt", "Hello");
-    assertThat(new String(repository.readFileBytes("refs/heads/" + defaultBranch, "foo.txt"), StandardCharsets.UTF_8)).isEqualTo("Hello");
+    assertThat(
+            new String(
+                repository.readFileBytes("refs/heads/" + defaultBranch, "foo.txt"),
+                StandardCharsets.UTF_8))
+        .isEqualTo("Hello");
   }
 
   @Test

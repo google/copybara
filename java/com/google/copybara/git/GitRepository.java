@@ -1499,13 +1499,13 @@ public class GitRepository {
       if (!matcher.matches()) {
         throw new RepoException("Unexpected format for ls-tree output: " + line);
       }
-      // We ignore the mode for now
+      String mode = matcher.group(1);
       GitObjectType objectType =
           GitObjectType.valueOf(matcher.group(2).toUpperCase(Locale.getDefault()));
       String sha1 = matcher.group(3);
       String path = matcher.group(4);
 
-      result.add(new TreeElement(objectType, sha1, path));
+      result.add(new TreeElement(objectType, sha1, path, mode));
     }
     return result.build();
   }
@@ -1905,6 +1905,11 @@ public class GitRepository {
     return new String(readFileBytes(revision, path), StandardCharsets.UTF_8);
   }
 
+  public Path readSymlink(String revision, String path) throws RepoException {
+    String symlinkContents = readFile(revision, path);
+    return Path.of(symlinkContents);
+  }
+
   /** Returns the commit hash at which the given file was last modified. */
   public String lastModified(String revision, String path) throws RepoException {
     CommandOutputWithStatus result =
@@ -1924,17 +1929,37 @@ public class GitRepository {
   public void checkout(Glob glob, Path destRoot, GitRevision rev) throws RepoException {
     ImmutableList<TreeElement> treeElements = lsTree(rev, null, true, true);
     PathMatcher pathMatcher = glob.relativeTo(destRoot);
+
+    ImmutableMap.Builder<Path, Path> symlinks = ImmutableMap.builder();
+
     for (TreeElement file : treeElements) {
       Path path = destRoot.resolve(file.getPath());
       if (pathMatcher.matches(path)) {
         try {
-          Files.write(
-              path, readFile(rev.getSha1(), file.getPath()).getBytes(StandardCharsets.UTF_8));
+          if (file.mode.equals(TreeElement.SYMLINK_MODE)) {
+            Path target = readSymlink(rev.getSha1(), file.getPath());
+            symlinks.put(path, target);
+          } else {
+            Files.writeString(path, readFile(rev.getSha1(), file.getPath()));
+          }
         } catch (IOException e) {
           throw new RepoException(String
               .format("Cannot write '%s' from reference '%s' into '%s'", file.getPath(), rev,
                   path), e);
         }
+      }
+    }
+
+    // write symlinks after files to make sure targets exist
+    for (Map.Entry<Path, Path> symlinkEntry : symlinks.buildKeepingLast().entrySet()) {
+      try {
+        Files.createSymbolicLink(symlinkEntry.getKey(), symlinkEntry.getValue());
+      } catch (IOException e) {
+        throw new RepoException(
+            String.format(
+                "Cannot write symlink '%s' pointing to '%s'",
+                symlinkEntry.getKey(), symlinkEntry.getValue()),
+            e);
       }
     }
   }
@@ -2026,11 +2051,13 @@ public class GitRepository {
     private final GitObjectType type;
     private final String ref;
     private final String path;
+    private final String mode;
 
-    private TreeElement(GitObjectType type, String ref, String path) {
+    private TreeElement(GitObjectType type, String ref, String path, String mode) {
       this.type = checkNotNull(type);
       this.ref = checkNotNull(ref);
       this.path = checkNotNull(path);
+      this.mode = checkNotNull(mode);
     }
 
     GitObjectType getType() {
@@ -2045,12 +2072,19 @@ public class GitRepository {
       return path;
     }
 
+    public String getMode() {
+      return mode;
+    }
+
+    public static final String SYMLINK_MODE = "120000";
+
     @Override
     public String toString() {
       return MoreObjects.toStringHelper(this)
           .add("type", type)
           .add("ref", ref)
           .add("file", path)
+          .add("mode", mode)
           .toString();
     }
   }
