@@ -49,21 +49,12 @@ public final class MainArguments {
 
   public static final String COPYBARA_SKYLARK_CONFIG_FILENAME = "copy.bara.sky";
 
-  // TODO(danielromero): Annotate the subcommands with the documentation and generate this
-  // automatically.
   @Parameter(description =
       ""
-          + "[subcommand] [config_path [migration_name [source_ref]...]]\n"
+          + "[config_path [migration_name [source_ref]...]]\n"
           + "\n"
-          + (""
-          + "subcommand: Optional, defaults to 'migrate'. The type of task to be performed by "
-          + "Copybara. Available subcommands:\n"
-          + "  - help: Shows the help.\n"
-          + "  - info: Reads the last migrated revision in the origin and destination.\n"
-          + "  - migrate: Executes the migration for the given config.\n"
-          + "  - validate: Validates that the configuration is correct.\n"
-          + "  - version: Shows the version of Copybara.\n"
-          + "")
+          + "command: Optional, defaults to 'migrate'. The type of task to be performed by "
+          + "Copybara. See list of available commands at the bottom of this help message.\n"
           + "\n"
           + "config_path: Required. Relative or absolute path to the main Copybara config file.\n"
           + "\n"

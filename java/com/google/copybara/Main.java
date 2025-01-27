@@ -540,7 +540,7 @@ public class Main {
     fullUsage
         .append("\n")
         .append("Example:\n")
-        .append("  copybara ").append(COPYBARA_SKYLARK_CONFIG_FILENAME).append(" origin/master\n");
+        .append("  copybara ").append(COPYBARA_SKYLARK_CONFIG_FILENAME).append(" origin/main\n");
     return fullUsage.toString();
   }
 
