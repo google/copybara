@@ -20,7 +20,7 @@ def _doc_generator_impl(ctx):
     for target in ctx.attr.targets:
         for jar in target[JavaInfo].transitive_source_jars.to_list():
             # This is a hack to only include copybara jars and not all dependencies
-            if jar.path.find("copybara") != -1:
+            if jar.path.find("copybara") != -1 or jar.path.find("starlark") != -1:
                 jars.append(jar)
     ctx.actions.run(
         inputs = jars + ctx.files.template_file,

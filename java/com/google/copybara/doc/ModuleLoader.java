@@ -90,21 +90,27 @@ public final class ModuleLoader {
 
         getAnnotation(cls, Library.class)
             .ifPresent(library -> docModule.functions.addAll(processFunctions(cls, null)));
+        Optional<StarlarkBuiltin> starlarkBuiltin = getAnnotation(cls, StarlarkBuiltin.class);
+        if (starlarkBuiltin.isPresent()) {
+          StarlarkBuiltin library = starlarkBuiltin.get();
 
-        getAnnotation(cls, StarlarkBuiltin.class)
-            .ifPresent(
-                library -> {
-                  if (!library.documented()) {
-                    return;
-                  }
-                  DocSignaturePrefix prefixAnn = cls.getAnnotation(DocSignaturePrefix.class);
-                  String prefix = prefixAnn != null ? prefixAnn.value() : library.name();
-                  DocModule mod = new DocModule(library.name(), library.doc());
-                  mod.functions.addAll(processFunctions(cls, prefix));
-                  mod.fields.addAll(processFields(cls));
-                  mod.flags.addAll(generateFlagsInfo(cls));
-                  modules.add(mod);
-                });
+          if (!library.documented()) {
+            continue;
+          }
+          DocSignaturePrefix prefixAnn = cls.getAnnotation(DocSignaturePrefix.class);
+          String prefix = prefixAnn != null ? prefixAnn.value() : library.name();
+          DocModule mod = new DocModule(library.name(), library.doc());
+          mod.functions.addAll(processFunctions(cls, prefix));
+          mod.fields.addAll(processFields(cls));
+          mod.flags.addAll(generateFlagsInfo(cls));
+          modules.add(mod);
+          continue;
+        }
+        // Globals-only library
+        if (stream(cls.getMethods())
+            .anyMatch(m -> getAnnotation(m, StarlarkMethod.class).isPresent())) {
+          docModule.functions.addAll(processFunctions(cls, null));
+        }
 
       } catch (ClassNotFoundException e) {
         throw new IllegalStateException("Cannot generate documentation for " + clsName, e);
