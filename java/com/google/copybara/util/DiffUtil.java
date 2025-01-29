@@ -395,7 +395,7 @@ public class DiffUtil {
         params.add("-");
       }
       Command cmd =
-          new Command(params.toArray(new String[] {}), ImmutableMap.of(), applyDirectory.toFile());
+          new Command(params.toArray(new String[] {}), gitEnv.getEnvironment(), applyDirectory.toFile());
       try {
         CommandRunner runner = new CommandRunner(cmd).withVerbose(true);
         if (patchBytes != null) {
