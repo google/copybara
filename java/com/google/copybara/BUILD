@@ -63,9 +63,23 @@ java_library(
     ],
 )
 
+BAZEL_BUILTIN_CLASSES = [
+    "net.starlark.java.eval.Dict",
+    "net.starlark.java.eval.MethodLibrary",
+    "net.starlark.java.eval.NoneType",
+    "net.starlark.java.eval.StarlarkFloat",
+    "net.starlark.java.eval.StarlarkFunction",
+    "net.starlark.java.eval.StarlarkInt",
+    "net.starlark.java.eval.StarlarkList",
+    "net.starlark.java.eval.StarlarkSet",
+    "net.starlark.java.eval.StringModule",
+    "net.starlark.java.eval.Tuple",
+]
+
 copybara_reference(
     name = "generate_reference",
     out = "reference.md",
+    generator_flags = ["--extraClass=" + ",".join(BAZEL_BUILTIN_CLASSES)],
     libraries = ["//java/com/google/copybara:copybara_main"],
 )
 

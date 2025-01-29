@@ -16,15 +16,16 @@
 
 package com.google.copybara.doc;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Arrays.stream;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.doc.DocBase.DocModule;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Given a file with list of classes, an output file, and an optional template file, generates a
@@ -33,27 +34,42 @@ import java.util.List;
 public final class Generator {
 
   private static final String TEMPLATE_REPLACEMENT = "<!-- Generated reference here -->";
+  public static final String EXTRA_CLASS = "--extraClass=";
+  public static final String TEMPLATE = "--template=";
 
   private Generator() {}
 
   public static void main(String[] args) throws IOException {
 
+    ImmutableList<String> additionalClasses =
+        stream(args)
+            .filter(a -> a.startsWith(EXTRA_CLASS))
+            .map(a -> a.replaceFirst(EXTRA_CLASS, ""))
+            .map(s -> Splitter.on(',').splitToList(s))
+            .map(ImmutableList::copyOf)
+            .findFirst()
+            .orElse(ImmutableList.of());
+    Optional<String> templateFile =
+        stream(args)
+            .filter(a -> a.startsWith(TEMPLATE))
+            .map(a -> a.replaceFirst(TEMPLATE, ""))
+            .findFirst();
     List<String> jarNames = Splitter.on(",").omitEmptyStrings().splitToList(args[0]);
 
-    ImmutableList<DocModule> modules = new ModuleLoader().load(jarNames, ImmutableList.of());
+    ImmutableList<DocModule> modules = new ModuleLoader().load(jarNames, additionalClasses);
     CharSequence markdown =
         new MarkdownRenderer().render(modules, /* includeFlagAggregate= */ true);
 
     String outputFile = args[1];
 
     String template =
-        args.length > 2
-            ? new String(Files.readAllBytes(Paths.get(args[2])), UTF_8)
+        templateFile.isPresent()
+            ? Files.readString(Path.of(templateFile.get()))
             : TEMPLATE_REPLACEMENT;
 
     String output = template.replace(TEMPLATE_REPLACEMENT, TEMPLATE_REPLACEMENT + "\n" + markdown);
 
-    Files.write(Paths.get(outputFile), ImmutableList.of(output));
+    Files.write(Path.of(outputFile), ImmutableList.of(output));
   }
 
 

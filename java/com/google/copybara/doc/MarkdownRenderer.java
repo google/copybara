@@ -232,7 +232,20 @@ final class MarkdownRenderer {
       }
       sb.append(flags(func.flags));
     }
-    return sb;
+    return fixUpBazelDoc(sb);
+  }
+
+  // Bazel has some html that assumes a different context, hacky best effort correction
+  private String fixUpBazelDoc(StringBuilder doc) {
+    String bazelDoc = doc.toString();
+    bazelDoc = bazelDoc.replace("../core/set.html", "#set-2");
+    bazelDoc = bazelDoc.replace("../globals/all.html", "");
+    bazelDoc =
+        bazelDoc.replaceAll("(?sm)(?<!(?:</li>|<ol>|<ul>))\\s*(<li>|</ol>|</ul>)", "</li>$1");
+    bazelDoc = bazelDoc.replaceAll("(?sm)</li>(\\s*)</li>", "</li>$1");
+    bazelDoc = bazelDoc.replaceAll("(?sm)(<[ou]l>)(\\s*)</li>", "$1$2");
+
+    return bazelDoc;
   }
 
   private String title(int level, String name) {

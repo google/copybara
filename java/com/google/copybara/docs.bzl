@@ -29,7 +29,7 @@ def _doc_generator_impl(ctx):
         arguments = [
             ",".join([j.path for j in jars]),
             ctx.outputs.out.path,
-        ] + [f.path for f in ctx.files.template_file] + ctx.attr.generator_flags,
+        ] + ["--template=" + f.path for f in ctx.files.template_file] + ctx.attr.generator_flags,
     )
 
 # Generates documentation by scanning the transitive set of dependencies of a Java binary.

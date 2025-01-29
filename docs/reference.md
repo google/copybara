@@ -71,6 +71,16 @@
     - [destination_reader.file_exists](#destination_readerfile_exists)
     - [destination_reader.read_file](#destination_readerread_file)
   - [destination_ref](#destination_ref)
+  - [dict](#dict)
+    - [dict.clear](#dictclear)
+    - [dict.get](#dictget)
+    - [dict.items](#dictitems)
+    - [dict.keys](#dictkeys)
+    - [dict.pop](#dictpop)
+    - [dict.popitem](#dictpopitem)
+    - [dict.setdefault](#dictsetdefault)
+    - [dict.update](#dictupdate)
+    - [dict.values](#dictvalues)
   - [dynamic.action_result](#dynamicaction_result)
   - [endpoint](#endpoint)
     - [endpoint.new_destination_ref](#endpointnew_destination_ref)
@@ -88,11 +98,13 @@
   - [feedback.revision_context](#feedbackrevision_context)
     - [feedback.revision_context.fill_template](#feedbackrevision_contextfill_template)
   - [filter_replace](#filter_replace)
+  - [float](#float)
   - [folder](#folder)
     - [folder.destination](#folderdestination)
     - [folder.origin](#folderorigin)
   - [format](#format)
     - [format.buildifier](#formatbuildifier)
+  - [function](#function)
   - [gerrit_api_obj](#gerrit_api_obj)
     - [gerrit_api_obj.abandon_change](#gerrit_api_objabandon_change)
     - [gerrit_api_obj.delete_vote](#gerrit_api_objdelete_vote)
@@ -196,9 +208,36 @@
   - [github_release_obj](#github_release_obj)
   - [glob](#glob)
   - [Globals](#globals)
+    - [abs](#abs)
+    - [all](#all)
+    - [any](#any)
+    - [bool](#bool)
+    - [dict](#dict)
+    - [dir](#dir)
+    - [enumerate](#enumerate)
+    - [fail](#fail)
+    - [float](#float)
+    - [getattr](#getattr)
     - [glob](#glob)
+    - [hasattr](#hasattr)
+    - [hash](#hash)
+    - [int](#int)
+    - [len](#len)
+    - [list](#list)
+    - [max](#max)
+    - [min](#min)
     - [new_author](#new_author)
     - [parse_message](#parse_message)
+    - [print](#print)
+    - [range](#range)
+    - [repr](#repr)
+    - [reversed](#reversed)
+    - [set](#set)
+    - [sorted](#sorted)
+    - [str](#str)
+    - [tuple](#tuple)
+    - [type](#type)
+    - [zip](#zip)
   - [go](#go)
     - [go.go_proxy_resolver](#gogo_proxy_resolver)
     - [go.go_proxy_version_list](#gogo_proxy_version_list)
@@ -239,7 +278,16 @@
     - [http_response.download](#http_responsedownload)
     - [http_response.header](#http_responseheader)
     - [http_response.status](#http_responsestatus)
+  - [int](#int)
   - [Issue](#issue)
+  - [list](#list)
+    - [list.append](#listappend)
+    - [list.clear](#listclear)
+    - [list.extend](#listextend)
+    - [list.index](#listindex)
+    - [list.insert](#listinsert)
+    - [list.pop](#listpop)
+    - [list.remove](#listremove)
   - [mapping_function](#mapping_function)
   - [metadata](#metadata)
     - [metadata.add_header](#metadataadd_header)
@@ -293,10 +341,60 @@
     - [remotefiles.origin](#remotefilesorigin)
   - [rust_version_requirement](#rust_version_requirement)
     - [rust_version_requirement.fulfills](#rust_version_requirementfulfills)
+  - [set](#set)
+    - [set.add](#setadd)
+    - [set.clear](#setclear)
+    - [set.difference](#setdifference)
+    - [set.difference_update](#setdifference_update)
+    - [set.discard](#setdiscard)
+    - [set.intersection](#setintersection)
+    - [set.intersection_update](#setintersection_update)
+    - [set.isdisjoint](#setisdisjoint)
+    - [set.issubset](#setissubset)
+    - [set.issuperset](#setissuperset)
+    - [set.pop](#setpop)
+    - [set.remove](#setremove)
+    - [set.symmetric_difference](#setsymmetric_difference)
+    - [set.symmetric_difference_update](#setsymmetric_difference_update)
+    - [set.union](#setunion)
+    - [set.update](#setupdate)
   - [SetReviewInput](#setreviewinput)
   - [StarlarkDateTime](#starlarkdatetime)
     - [StarlarkDateTime.in_epoch_seconds](#starlarkdatetimein_epoch_seconds)
     - [StarlarkDateTime.strftime](#starlarkdatetimestrftime)
+  - [string](#string)
+    - [string.capitalize](#stringcapitalize)
+    - [string.count](#stringcount)
+    - [string.elems](#stringelems)
+    - [string.endswith](#stringendswith)
+    - [string.find](#stringfind)
+    - [string.format](#stringformat)
+    - [string.index](#stringindex)
+    - [string.isalnum](#stringisalnum)
+    - [string.isalpha](#stringisalpha)
+    - [string.isdigit](#stringisdigit)
+    - [string.islower](#stringislower)
+    - [string.isspace](#stringisspace)
+    - [string.istitle](#stringistitle)
+    - [string.isupper](#stringisupper)
+    - [string.join](#stringjoin)
+    - [string.lower](#stringlower)
+    - [string.lstrip](#stringlstrip)
+    - [string.partition](#stringpartition)
+    - [string.removeprefix](#stringremoveprefix)
+    - [string.removesuffix](#stringremovesuffix)
+    - [string.replace](#stringreplace)
+    - [string.rfind](#stringrfind)
+    - [string.rindex](#stringrindex)
+    - [string.rpartition](#stringrpartition)
+    - [string.rsplit](#stringrsplit)
+    - [string.rstrip](#stringrstrip)
+    - [string.split](#stringsplit)
+    - [string.splitlines](#stringsplitlines)
+    - [string.startswith](#stringstartswith)
+    - [string.strip](#stringstrip)
+    - [string.title](#stringtitle)
+    - [string.upper](#stringupper)
   - [struct](#struct)
     - [struct](#struct)
   - [time_delta](#time_delta)
@@ -333,6 +431,7 @@
     - [ctx.set_message](#ctxset_message)
     - [ctx.success](#ctxsuccess)
     - [ctx.write_path](#ctxwrite_path)
+  - [tuple](#tuple)
   - [VersionSelector](#versionselector)
   - [xml](#xml)
     - [xml.xpath](#xmlxpath)
@@ -357,7 +456,7 @@ Extract the contents of the archive to a path.
 Parameter | Description
 --------- | -----------
 <span id=archive.extract.archive href=#archive.extract.archive>archive</span> | <code><a href="#path">Path</a></code><br><p>The path to the archive file.</p>
-<span id=archive.extract.type href=#archive.extract.type>type</span> | <code>string</code><br><p>The archive type. Supported types: AUTO, JAR, ZIP, TAR, and TAR_GZ. AUTO will try to infer the archive type automatically.</p>
+<span id=archive.extract.type href=#archive.extract.type>type</span> | <code><a href="#string">string</a></code><br><p>The archive type. Supported types: AUTO, JAR, ZIP, TAR, and TAR_GZ. AUTO will try to infer the archive type automatically.</p>
 <span id=archive.extract.destination_folder href=#archive.extract.destination_folder>destination_folder</span> | <code><a href="#path">Path</a></code> or <code>NoneType</code><br><p>The path to extract the archive to. This defaults to the directory where the archive is located.</p>
 <span id=archive.extract.paths href=#archive.extract.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>NoneType</code><br><p>An optional glob that is used to filter the files extracted from the archive.</p>
 
@@ -372,8 +471,8 @@ Represents the author of a change
 
 Name | Description
 ---- | -----------
-email | <code>string</code><br><p>The email of the author</p>
-name | <code>string</code><br><p>The name of the author</p>
+email | <code><a href="#string">string</a></code><br><p>The email of the author</p>
+name | <code><a href="#string">string</a></code><br><p>The name of the author</p>
 
 
 <h4 id="returned_by.author">Returned By:</h4>
@@ -401,8 +500,8 @@ Create a list for an individual or team contributing code.
 
 Parameter | Description
 --------- | -----------
-<span id=authoring.allowed.default href=#authoring.allowed.default>default</span> | <code>string</code><br><p>The default author for commits in the destination. This is used in squash mode workflows or when users are not on the list.</p>
-<span id=authoring.allowed.allowlist href=#authoring.allowed.allowlist>allowlist</span> | <code>sequence of string</code><br><p>List of  authors in the origin that are allowed to contribute code. The authors must be unique</p>
+<span id=authoring.allowed.default href=#authoring.allowed.default>default</span> | <code><a href="#string">string</a></code><br><p>The default author for commits in the destination. This is used in squash mode workflows or when users are not on the list.</p>
+<span id=authoring.allowed.allowlist href=#authoring.allowed.allowlist>allowlist</span> | <code>sequence of <a href="#string">string</a></code><br><p>List of  authors in the origin that are allowed to contribute code. The authors must be unique</p>
 
 
 <h4 id="example.authoring.allowed">Examples:</h4>
@@ -452,7 +551,7 @@ Use the default author for all the submits in the destination. Note that some de
 
 Parameter | Description
 --------- | -----------
-<span id=authoring.overwrite.default href=#authoring.overwrite.default>default</span> | <code>string</code><br><p>The default author for commits in the destination</p>
+<span id=authoring.overwrite.default href=#authoring.overwrite.default>default</span> | <code><a href="#string">string</a></code><br><p>The default author for commits in the destination</p>
 
 
 <h4 id="example.authoring.overwrite">Example:</h4>
@@ -479,7 +578,7 @@ Use the origin author as the author in the destination, no filtering.
 
 Parameter | Description
 --------- | -----------
-<span id=authoring.pass_thru.default href=#authoring.pass_thru.default>default</span> | <code>string</code><br><p>The default author for commits in the destination. This is used in squash mode workflows or if author cannot be determined.</p>
+<span id=authoring.pass_thru.default href=#authoring.pass_thru.default>default</span> | <code><a href="#string">string</a></code><br><p>The default author for commits in the destination. This is used in squash mode workflows or if author cannot be determined.</p>
 
 
 <h4 id="example.authoring.pass_thru">Example:</h4>
@@ -526,8 +625,8 @@ Creates a Buildozer command. You can specify the reversal with the 'reverse' arg
 
 Parameter | Description
 --------- | -----------
-<span id=buildozer.cmd.forward href=#buildozer.cmd.forward>forward</span> | <code>string</code><br><p>Specifies the Buildozer command, e.g. 'replace deps :foo :bar'</p>
-<span id=buildozer.cmd.reverse href=#buildozer.cmd.reverse>reverse</span> | <code>string</code> or <code>NoneType</code><br><p>The reverse of the command. This is only required if the given command cannot be reversed automatically and the reversal of this command is required by some workflow or Copybara check. The following commands are automatically reversible:<br><ul><li>add</li><li>remove (when used to remove element from list i.e. 'remove srcs foo.cc'</li><li>replace</li></ul></p>
+<span id=buildozer.cmd.forward href=#buildozer.cmd.forward>forward</span> | <code><a href="#string">string</a></code><br><p>Specifies the Buildozer command, e.g. 'replace deps :foo :bar'</p>
+<span id=buildozer.cmd.reverse href=#buildozer.cmd.reverse>reverse</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>The reverse of the command. This is only required if the given command cannot be reversed automatically and the reversal of this command is required by some workflow or Copybara check. The following commands are automatically reversible:<br><ul><li>add</li><li>remove (when used to remove element from list i.e. 'remove srcs foo.cc'</li><li>replace</li></ul></p>
 
 <a id="buildozer.create" aria-hidden="true"></a>
 ### buildozer.create
@@ -541,11 +640,11 @@ A transformation which creates a new build target and populates its attributes. 
 
 Parameter | Description
 --------- | -----------
-<span id=buildozer.create.target href=#buildozer.create.target>target</span> | <code>string</code><br><p>Target to create, including the package, e.g. 'foo:bar'. The package can be '.' for the root BUILD file.</p>
-<span id=buildozer.create.rule_type href=#buildozer.create.rule_type>rule_type</span> | <code>string</code><br><p>Type of this rule, for instance, java_library.</p>
-<span id=buildozer.create.commands href=#buildozer.create.commands>commands</span> | <code>sequence of string</code> or <code>sequence of <a href="#command">Command</a></code><br><p>Commands to populate attributes of the target after creating it. Elements can be strings such as 'add deps :foo' or objects returned by buildozer.cmd.</p>
-<span id=buildozer.create.before href=#buildozer.create.before>before</span> | <code>string</code><br><p>When supplied, causes this target to be created *before* the target named by 'before'</p>
-<span id=buildozer.create.after href=#buildozer.create.after>after</span> | <code>string</code><br><p>When supplied, causes this target to be created *after* the target named by 'after'</p>
+<span id=buildozer.create.target href=#buildozer.create.target>target</span> | <code><a href="#string">string</a></code><br><p>Target to create, including the package, e.g. 'foo:bar'. The package can be '.' for the root BUILD file.</p>
+<span id=buildozer.create.rule_type href=#buildozer.create.rule_type>rule_type</span> | <code><a href="#string">string</a></code><br><p>Type of this rule, for instance, java_library.</p>
+<span id=buildozer.create.commands href=#buildozer.create.commands>commands</span> | <code>sequence of <a href="#string">string</a></code> or <code>sequence of <a href="#command">Command</a></code><br><p>Commands to populate attributes of the target after creating it. Elements can be strings such as 'add deps :foo' or objects returned by buildozer.cmd.</p>
+<span id=buildozer.create.before href=#buildozer.create.before>before</span> | <code><a href="#string">string</a></code><br><p>When supplied, causes this target to be created *before* the target named by 'before'</p>
+<span id=buildozer.create.after href=#buildozer.create.after>after</span> | <code><a href="#string">string</a></code><br><p>When supplied, causes this target to be created *after* the target named by 'after'</p>
 
 <a id="buildozer.delete" aria-hidden="true"></a>
 ### buildozer.delete
@@ -559,11 +658,11 @@ A transformation which is the opposite of creating a build target. When run norm
 
 Parameter | Description
 --------- | -----------
-<span id=buildozer.delete.target href=#buildozer.delete.target>target</span> | <code>string</code><br><p>Target to delete, including the package, e.g. 'foo:bar'</p>
-<span id=buildozer.delete.rule_type href=#buildozer.delete.rule_type>rule_type</span> | <code>string</code><br><p>Type of this rule, for instance, java_library. Supplying this will cause this transformation to be reversible.</p>
-<span id=buildozer.delete.recreate_commands href=#buildozer.delete.recreate_commands>recreate_commands</span> | <code>sequence of string</code> or <code>sequence of <a href="#command">Command</a></code><br><p>Commands to populate attributes of the target after creating it. Elements can be strings such as 'add deps :foo' or objects returned by buildozer.cmd.</p>
-<span id=buildozer.delete.before href=#buildozer.delete.before>before</span> | <code>string</code><br><p>When supplied with rule_type and the transformation is reversed, causes this target to be created *before* the target named by 'before'</p>
-<span id=buildozer.delete.after href=#buildozer.delete.after>after</span> | <code>string</code><br><p>When supplied with rule_type and the transformation is reversed, causes this target to be created *after* the target named by 'after'</p>
+<span id=buildozer.delete.target href=#buildozer.delete.target>target</span> | <code><a href="#string">string</a></code><br><p>Target to delete, including the package, e.g. 'foo:bar'</p>
+<span id=buildozer.delete.rule_type href=#buildozer.delete.rule_type>rule_type</span> | <code><a href="#string">string</a></code><br><p>Type of this rule, for instance, java_library. Supplying this will cause this transformation to be reversible.</p>
+<span id=buildozer.delete.recreate_commands href=#buildozer.delete.recreate_commands>recreate_commands</span> | <code>sequence of <a href="#string">string</a></code> or <code>sequence of <a href="#command">Command</a></code><br><p>Commands to populate attributes of the target after creating it. Elements can be strings such as 'add deps :foo' or objects returned by buildozer.cmd.</p>
+<span id=buildozer.delete.before href=#buildozer.delete.before>before</span> | <code><a href="#string">string</a></code><br><p>When supplied with rule_type and the transformation is reversed, causes this target to be created *before* the target named by 'before'</p>
+<span id=buildozer.delete.after href=#buildozer.delete.after>after</span> | <code><a href="#string">string</a></code><br><p>When supplied with rule_type and the transformation is reversed, causes this target to be created *after* the target named by 'after'</p>
 
 <a id="buildozer.modify" aria-hidden="true"></a>
 ### buildozer.modify
@@ -577,8 +676,8 @@ A transformation which runs one or more Buildozer commands against a single targ
 
 Parameter | Description
 --------- | -----------
-<span id=buildozer.modify.target href=#buildozer.modify.target>target</span> | <code>string</code> or <code>sequence of string</code><br><p>Specifies the target(s) against which to apply the commands. Can be a list.</p>
-<span id=buildozer.modify.commands href=#buildozer.modify.commands>commands</span> | <code>sequence of string</code> or <code>sequence of <a href="#command">Command</a></code><br><p>Commands to apply to the target(s) specified. Elements can be strings such as 'add deps :foo' or objects returned by buildozer.cmd.</p>
+<span id=buildozer.modify.target href=#buildozer.modify.target>target</span> | <code><a href="#string">string</a></code> or <code>sequence of <a href="#string">string</a></code><br><p>Specifies the target(s) against which to apply the commands. Can be a list.</p>
+<span id=buildozer.modify.commands href=#buildozer.modify.commands>commands</span> | <code>sequence of <a href="#string">string</a></code> or <code>sequence of <a href="#command">Command</a></code><br><p>Commands to apply to the target(s) specified. Elements can be strings such as 'add deps :foo' or objects returned by buildozer.cmd.</p>
 
 
 <h4 id="example.buildozer.modify">Examples:</h4>
@@ -617,7 +716,7 @@ buildozer.modify(
 
 Executes a buildozer print command and returns the output. This is designed to be used in the context of a transform
 
-<code>string</code> <code>buildozer.print(<a href=#buildozer.print.ctx>ctx</a>, <a href=#buildozer.print.attr>attr</a>, <a href=#buildozer.print.target>target</a>)</code>
+<code><a href="#string">string</a></code> <code>buildozer.print(<a href=#buildozer.print.ctx>ctx</a>, <a href=#buildozer.print.attr>attr</a>, <a href=#buildozer.print.target>target</a>)</code>
 
 
 <h4 id="parameters.buildozer.print">Parameters:</h4>
@@ -625,8 +724,8 @@ Executes a buildozer print command and returns the output. This is designed to b
 Parameter | Description
 --------- | -----------
 <span id=buildozer.print.ctx href=#buildozer.print.ctx>ctx</span> | <code><a href="#transformwork">TransformWork</a></code><br><p>The TransformWork object</p>
-<span id=buildozer.print.attr href=#buildozer.print.attr>attr</span> | <code>string</code><br><p>The attribute from the target rule to print.</p>
-<span id=buildozer.print.target href=#buildozer.print.target>target</span> | <code>string</code><br><p>The target to print from.</p>
+<span id=buildozer.print.attr href=#buildozer.print.attr>attr</span> | <code><a href="#string">string</a></code><br><p>The attribute from the target rule to print.</p>
+<span id=buildozer.print.target href=#buildozer.print.target>target</span> | <code><a href="#string">string</a></code><br><p>The target to print from.</p>
 
 
 
@@ -640,14 +739,14 @@ A change metadata. Contains information like author, change message or detected 
 Name | Description
 ---- | -----------
 author | <code><a href="#author">author</a></code><br><p>The author of the change</p>
-date_time_iso_offset | <code>string</code><br><p>Return a ISO offset date time. Example:  2011-12-03T10:15:30+01:00'</p>
-first_line_message | <code>string</code><br><p>The message of the change</p>
-labels | <code>dict[string, string]</code><br><p>A dictionary with the labels detected for the change. If the label is present multiple times it returns the last value. Note that this is a heuristic and it could include things that are not labels.</p>
-labels_all_values | <code>dict[string, list of string]</code><br><p>A dictionary with the labels detected for the change. Note that the value is a collection of the values for each time the label was found. Use 'labels' instead if you are only interested in the last value. Note that this is a heuristic and it could include things that are not labels.</p>
-merge | <code>bool</code><br><p>Returns true if the change represents a merge</p>
-message | <code>string</code><br><p>The message of the change</p>
+date_time_iso_offset | <code><a href="#string">string</a></code><br><p>Return a ISO offset date time. Example:  2011-12-03T10:15:30+01:00'</p>
+first_line_message | <code><a href="#string">string</a></code><br><p>The message of the change</p>
+labels | <code>dict[<a href="#string">string</a>, <a href="#string">string</a>]</code><br><p>A dictionary with the labels detected for the change. If the label is present multiple times it returns the last value. Note that this is a heuristic and it could include things that are not labels.</p>
+labels_all_values | <code>dict[<a href="#string">string</a>, list of string]</code><br><p>A dictionary with the labels detected for the change. Note that the value is a collection of the values for each time the label was found. Use 'labels' instead if you are only interested in the last value. Note that this is a heuristic and it could include things that are not labels.</p>
+merge | <code><a href="#bool">bool</a></code><br><p>Returns true if the change represents a merge</p>
+message | <code><a href="#string">string</a></code><br><p>The message of the change</p>
 original_author | <code><a href="#author">author</a></code><br><p>The author of the change before any mapping</p>
-ref | <code>string</code><br><p>Origin reference ref</p>
+ref | <code><a href="#string">string</a></code><br><p>Origin reference ref</p>
 
 
 
@@ -660,8 +759,8 @@ Represents a well formed parsed change message with its associated labels.
 
 Name | Description
 ---- | -----------
-first_line | <code>string</code><br><p>First line of this message</p>
-text | <code>string</code><br><p>The text description this message, not including the labels.</p>
+first_line | <code><a href="#string">string</a></code><br><p>First line of this message</p>
+text | <code><a href="#string">string</a></code><br><p>The text description this message, not including the labels.</p>
 
 
 <h4 id="returned_by.ChangeMessage">Returned By:</h4>
@@ -680,7 +779,7 @@ Returns a list of values associated with the label name.
 
 Parameter | Description
 --------- | -----------
-<span id=message.label_values.label_name href=#message.label_values.label_name>label_name</span> | <code>string</code><br><p>The label name.</p>
+<span id=message.label_values.label_name href=#message.label_values.label_name>label_name</span> | <code><a href="#string">string</a></code><br><p>The label name.</p>
 
 
 
@@ -763,7 +862,7 @@ Show an error in the log. Note that this will stop Copybara execution.
 
 Parameter | Description
 --------- | -----------
-<span id=console.error.message href=#console.error.message>message</span> | <code>string</code><br><p>message to log</p>
+<span id=console.error.message href=#console.error.message>message</span> | <code><a href="#string">string</a></code><br><p>message to log</p>
 
 <a id="console.info" aria-hidden="true"></a>
 ### console.info
@@ -777,7 +876,7 @@ Show an info message in the console
 
 Parameter | Description
 --------- | -----------
-<span id=console.info.message href=#console.info.message>message</span> | <code>string</code><br><p>message to log</p>
+<span id=console.info.message href=#console.info.message>message</span> | <code><a href="#string">string</a></code><br><p>message to log</p>
 
 <a id="console.progress" aria-hidden="true"></a>
 ### console.progress
@@ -791,7 +890,7 @@ Show a progress message in the console
 
 Parameter | Description
 --------- | -----------
-<span id=console.progress.message href=#console.progress.message>message</span> | <code>string</code><br><p>message to log</p>
+<span id=console.progress.message href=#console.progress.message>message</span> | <code><a href="#string">string</a></code><br><p>message to log</p>
 
 <a id="console.verbose" aria-hidden="true"></a>
 ### console.verbose
@@ -805,7 +904,7 @@ Show an info message in the console if verbose logging is enabled.
 
 Parameter | Description
 --------- | -----------
-<span id=console.verbose.message href=#console.verbose.message>message</span> | <code>string</code><br><p>message to log</p>
+<span id=console.verbose.message href=#console.verbose.message>message</span> | <code><a href="#string">string</a></code><br><p>message to log</p>
 
 <a id="console.warn" aria-hidden="true"></a>
 ### console.warn
@@ -819,7 +918,7 @@ Show a warning in the console
 
 Parameter | Description
 --------- | -----------
-<span id=console.warn.message href=#console.warn.message>message</span> | <code>string</code><br><p>message to log</p>
+<span id=console.warn.message href=#console.warn.message>message</span> | <code><a href="#string">string</a></code><br><p>message to log</p>
 
 
 
@@ -833,7 +932,7 @@ Core functionality for creating migrations, and basic transformations.
 Name | Description
 ---- | -----------
 console | <code><a href="#console">Console</a></code><br><p>Returns a handle to the console object.</p>
-main_config_path | <code>string</code><br><p>Location of the config file. This is subject to change</p>
+main_config_path | <code><a href="#string">string</a></code><br><p>Location of the config file. This is subject to change</p>
 
 
 
@@ -880,7 +979,7 @@ Create a dynamic Skylark action. This should only be used by libraries developer
 Parameter | Description
 --------- | -----------
 <span id=core.action.impl href=#core.action.impl>impl</span> | <code>callable</code><br><p>The Skylark function to call</p>
-<span id=core.action.params href=#core.action.params>params</span> | <code>dict</code><br><p>The parameters to the function. Will be available under ctx.params</p>
+<span id=core.action.params href=#core.action.params>params</span> | <code><a href="#dict">dict</a></code><br><p>The parameters to the function. Will be available under ctx.params</p>
 
 <a id="core.action_migration" aria-hidden="true"></a>
 ### core.action_migration
@@ -888,9 +987,9 @@ Parameter | Description
 Defines a migration that is more flexible/less-opinionated migration than `core.workflow`. Most of the users should not use this migration and instead use `core.workflow` for moving code. In particular `core.workflow` provides many helping functionality like version handling, ITERATIVE/SQUASH/CHANGE_REQUEST modes, --read-config-from-change dynamic config, etc.
 
 These are the features that raw_migration provides:<ul>
-   <li>Support for migrations that don't move source code (similar to feedback)</li>
-   <li>Support for migrations that talk to more than one origin/destination endpoits (Feature still in progress)</li>
-  <li>Custom management of versioning: For example moving non-linear/multiple  versions (Instead of `core.workflow`, that moves source code in relation to the previous migrated code and is able to only track one branch).</li>
+<li>Support for migrations that don't move source code (similar to feedback)</li>
+<li>Support for migrations that talk to more than one origin/destination endpoits (Feature still in progress)</li>
+<li>Custom management of versioning: For example moving non-linear/multiple  versions (Instead of `core.workflow`, that moves source code in relation to the previous migrated code and is able to only track one branch).</li>
 </ul>
 
 
@@ -901,12 +1000,12 @@ These are the features that raw_migration provides:<ul>
 
 Parameter | Description
 --------- | -----------
-<span id=core.action_migration.name href=#core.action_migration.name>name</span> | <code>string</code><br><p>The name of the migration.</p>
+<span id=core.action_migration.name href=#core.action_migration.name>name</span> | <code><a href="#string">string</a></code><br><p>The name of the migration.</p>
 <span id=core.action_migration.origin href=#core.action_migration.origin>origin</span> | <code>trigger</code><br><p>The trigger endpoint of the migration. Accessible as `ctx.origin`</p>
 <span id=core.action_migration.endpoints href=#core.action_migration.endpoints>endpoints</span> | <code>structure</code><br><p>Zero or more endpoints that the migration will have access for read and/or  write. This is a field that should be defined as:<br>```<br>  endpoint = struct(<br>     some_endpoint = foo.foo_api(...configuration...),<br>     other_endpoint = baz.baz_api(...configuration...),<br>  )<br>```<br>Then they will be accessible in the action as `ctx.endpoints.some_endpoint` and `ctx.endpoints.other_endpoint`</p>
 <span id=core.action_migration.action href=#core.action_migration.action>action</span> | <code>unknown</code><br><p>The action to execute when the migration is triggered.<br></p>
-<span id=core.action_migration.description href=#core.action_migration.description>description</span> | <code>string</code> or <code>NoneType</code><br><p>A description of what this workflow achieves</p>
-<span id=core.action_migration.filesystem href=#core.action_migration.filesystem>filesystem</span> | <code>bool</code><br><p>If true, the migration provide access to the filesystem to the endpoints</p>
+<span id=core.action_migration.description href=#core.action_migration.description>description</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>A description of what this workflow achieves</p>
+<span id=core.action_migration.filesystem href=#core.action_migration.filesystem>filesystem</span> | <code><a href="#bool">bool</a></code><br><p>If true, the migration provide access to the filesystem to the endpoints</p>
 
 <a id="core.autopatch_config" aria-hidden="true"></a>
 ### core.autopatch_config
@@ -920,13 +1019,13 @@ Describes in the configuration for automatic patch file generation
 
 Parameter | Description
 --------- | -----------
-<span id=core.autopatch_config.header href=#core.autopatch_config.header>header</span> | <code>string</code> or <code>NoneType</code><br><p>A string to include at the beginning of each patch file</p>
-<span id=core.autopatch_config.suffix href=#core.autopatch_config.suffix>suffix</span> | <code>string</code><br><p>Suffix to use when saving patch files</p>
-<span id=core.autopatch_config.directory_prefix href=#core.autopatch_config.directory_prefix>directory_prefix</span> | <code>string</code> or <code>NoneType</code><br><p>Directory prefix used to relativize filenames when writing patch files. E.g. if filename is third_party/foo/bar/bar.go and we want to write third_party/foo/AUTOPATCHES/bar/bar.go, the value for this field would be 'third_party/foo'</p>
-<span id=core.autopatch_config.directory href=#core.autopatch_config.directory>directory</span> | <code>string</code> or <code>NoneType</code><br><p>Directory in which to save the patch files.</p>
-<span id=core.autopatch_config.strip_file_names_and_line_numbers href=#core.autopatch_config.strip_file_names_and_line_numbers>strip_file_names_and_line_numbers</span> | <code>bool</code><br><p>When true, strip filenames and line numbers from patch files</p>
-<span id=core.autopatch_config.strip_file_names href=#core.autopatch_config.strip_file_names>strip_file_names</span> | <code>bool</code><br><p>When true, strip filenames from patch files</p>
-<span id=core.autopatch_config.strip_line_numbers href=#core.autopatch_config.strip_line_numbers>strip_line_numbers</span> | <code>bool</code><br><p>When true, strip line numbers from patch files</p>
+<span id=core.autopatch_config.header href=#core.autopatch_config.header>header</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>A string to include at the beginning of each patch file</p>
+<span id=core.autopatch_config.suffix href=#core.autopatch_config.suffix>suffix</span> | <code><a href="#string">string</a></code><br><p>Suffix to use when saving patch files</p>
+<span id=core.autopatch_config.directory_prefix href=#core.autopatch_config.directory_prefix>directory_prefix</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>Directory prefix used to relativize filenames when writing patch files. E.g. if filename is third_party/foo/bar/bar.go and we want to write third_party/foo/AUTOPATCHES/bar/bar.go, the value for this field would be 'third_party/foo'</p>
+<span id=core.autopatch_config.directory href=#core.autopatch_config.directory>directory</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>Directory in which to save the patch files.</p>
+<span id=core.autopatch_config.strip_file_names_and_line_numbers href=#core.autopatch_config.strip_file_names_and_line_numbers>strip_file_names_and_line_numbers</span> | <code><a href="#bool">bool</a></code><br><p>When true, strip filenames and line numbers from patch files</p>
+<span id=core.autopatch_config.strip_file_names href=#core.autopatch_config.strip_file_names>strip_file_names</span> | <code><a href="#bool">bool</a></code><br><p>When true, strip filenames from patch files</p>
+<span id=core.autopatch_config.strip_line_numbers href=#core.autopatch_config.strip_line_numbers>strip_line_numbers</span> | <code><a href="#bool">bool</a></code><br><p>When true, strip line numbers from patch files</p>
 <span id=core.autopatch_config.paths href=#core.autopatch_config.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>Only create patch files that match glob. Default is to match all files</p>
 
 <a id="core.convert_encoding" aria-hidden="true"></a>
@@ -941,8 +1040,8 @@ Change the encoding for a set of files
 
 Parameter | Description
 --------- | -----------
-<span id=core.convert_encoding.before href=#core.convert_encoding.before>before</span> | <code>string</code><br><p>The expected encoding of the files before transformation. Charset should be in the format expected by https://docs.oracle.com/javase/8/docs/api/java/nio/charset/Charset.html</p>
-<span id=core.convert_encoding.after href=#core.convert_encoding.after>after</span> | <code>string</code><br><p>The encoding to convert to. Same format as 'before'</p>
+<span id=core.convert_encoding.before href=#core.convert_encoding.before>before</span> | <code><a href="#string">string</a></code><br><p>The expected encoding of the files before transformation. Charset should be in the format expected by https://docs.oracle.com/javase/8/docs/api/java/nio/charset/Charset.html</p>
+<span id=core.convert_encoding.after href=#core.convert_encoding.after>after</span> | <code><a href="#string">string</a></code><br><p>The encoding to convert to. Same format as 'before'</p>
 <span id=core.convert_encoding.paths href=#core.convert_encoding.paths>paths</span> | <code><a href="#glob">glob</a></code><br><p>The files to be deleted</p>
 
 
@@ -976,11 +1075,11 @@ Copy files between directories and renames files
 
 Parameter | Description
 --------- | -----------
-<span id=core.copy.before href=#core.copy.before>before</span> | <code>string</code><br><p>The name of the file or directory to copy. If this is the empty string and 'after' is a directory, then all files in the workdir will be copied to the sub directory specified by 'after', maintaining the directory tree.</p>
-<span id=core.copy.after href=#core.copy.after>after</span> | <code>string</code><br><p>The name of the file or directory destination. If this is the empty string and 'before' is a directory, then all files in 'before' will be copied to the repo root, maintaining the directory tree inside 'before'.</p>
+<span id=core.copy.before href=#core.copy.before>before</span> | <code><a href="#string">string</a></code><br><p>The name of the file or directory to copy. If this is the empty string and 'after' is a directory, then all files in the workdir will be copied to the sub directory specified by 'after', maintaining the directory tree.</p>
+<span id=core.copy.after href=#core.copy.after>after</span> | <code><a href="#string">string</a></code><br><p>The name of the file or directory destination. If this is the empty string and 'before' is a directory, then all files in 'before' will be copied to the repo root, maintaining the directory tree inside 'before'.</p>
 <span id=core.copy.paths href=#core.copy.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>A glob expression relative to 'before' if it represents a directory. Only files matching the expression will be copied. For example, glob(["**.java"]), matches all java files recursively inside 'before' folder. Defaults to match all the files recursively.</p>
-<span id=core.copy.overwrite href=#core.copy.overwrite>overwrite</span> | <code>bool</code><br><p>Overwrite destination files if they already exist. Note that this makes the transformation non-reversible, since there is no way to know if the file was overwritten or not in the reverse workflow.</p>
-<span id=core.copy.regex_groups href=#core.copy.regex_groups>regex_groups</span> | <code>dict</code><br><p>A set of named regexes that can be used to match part of the file name. Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. For example {"x": "[A-Za-z]+"}</p>
+<span id=core.copy.overwrite href=#core.copy.overwrite>overwrite</span> | <code><a href="#bool">bool</a></code><br><p>Overwrite destination files if they already exist. Note that this makes the transformation non-reversible, since there is no way to know if the file was overwritten or not in the reverse workflow.</p>
+<span id=core.copy.regex_groups href=#core.copy.regex_groups>regex_groups</span> | <code><a href="#dict">dict</a></code><br><p>A set of named regexes that can be used to match part of the file name. Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. For example {"x": "[A-Za-z]+"}</p>
 
 
 <h4 id="example.core.copy">Examples:</h4>
@@ -1033,7 +1132,7 @@ Create a dynamic Skylark feedback migration. This should only be used by librari
 Parameter | Description
 --------- | -----------
 <span id=core.dynamic_feedback.impl href=#core.dynamic_feedback.impl>impl</span> | <code>callable</code><br><p>The Skylark function to call</p>
-<span id=core.dynamic_feedback.params href=#core.dynamic_feedback.params>params</span> | <code>dict</code><br><p>The parameters to the function. Will be available under ctx.params</p>
+<span id=core.dynamic_feedback.params href=#core.dynamic_feedback.params>params</span> | <code><a href="#dict">dict</a></code><br><p>The parameters to the function. Will be available under ctx.params</p>
 
 <a id="core.dynamic_transform" aria-hidden="true"></a>
 ### core.dynamic_transform
@@ -1048,7 +1147,7 @@ Create a dynamic Skylark transformation. This should only be used by libraries d
 Parameter | Description
 --------- | -----------
 <span id=core.dynamic_transform.impl href=#core.dynamic_transform.impl>impl</span> | <code>callable</code><br><p>The Skylark function to call</p>
-<span id=core.dynamic_transform.params href=#core.dynamic_transform.params>params</span> | <code>dict</code><br><p>The parameters to the function. Will be available under ctx.params</p>
+<span id=core.dynamic_transform.params href=#core.dynamic_transform.params>params</span> | <code><a href="#dict">dict</a></code><br><p>The parameters to the function. Will be available under ctx.params</p>
 
 
 <h4 id="example.core.dynamic_transform">Examples:</h4>
@@ -1094,7 +1193,7 @@ If invoked, it will fail the current migration as a noop
 
 Parameter | Description
 --------- | -----------
-<span id=core.fail_with_noop.msg href=#core.fail_with_noop.msg>msg</span> | <code>string</code><br><p>The noop message</p>
+<span id=core.fail_with_noop.msg href=#core.fail_with_noop.msg>msg</span> | <code><a href="#string">string</a></code><br><p>The noop message</p>
 
 <a id="core.feedback" aria-hidden="true"></a>
 ### core.feedback
@@ -1103,8 +1202,8 @@ Defines a migration of changes' metadata, that can be invoked via the Copybara c
 
 It is considered change metadata any information associated with a change (pending or submitted) that is not core to the change itself. A few examples:
 <ul>
-  <li> Comments: Present in any code review system. Examples: GitHub PRs or Gerrit     code reviews.</li>
-  <li> Labels: Used in code review systems for approvals and/or CI results.     Examples: GitHub labels, Gerrit code review labels.</li>
+<li> Comments: Present in any code review system. Examples: GitHub PRs or Gerrit     code reviews.</li>
+<li> Labels: Used in code review systems for approvals and/or CI results.     Examples: GitHub labels, Gerrit code review labels.</li>
 </ul>
 For the purpose of this workflow, it is not considered metadata the commit message in Git, or any of the contents of the file tree.
 
@@ -1117,12 +1216,12 @@ For the purpose of this workflow, it is not considered metadata the commit messa
 
 Parameter | Description
 --------- | -----------
-<span id=core.feedback.name href=#core.feedback.name>name</span> | <code>string</code><br><p>The name of the feedback workflow.</p>
+<span id=core.feedback.name href=#core.feedback.name>name</span> | <code><a href="#string">string</a></code><br><p>The name of the feedback workflow.</p>
 <span id=core.feedback.origin href=#core.feedback.origin>origin</span> | <code>trigger</code><br><p>The trigger of a feedback migration.</p>
 <span id=core.feedback.destination href=#core.feedback.destination>destination</span> | <code>endpoint_provider</code><br><p>Where to write change metadata to. This is usually a code review system like Gerrit or GitHub PR.</p>
 <span id=core.feedback.actions href=#core.feedback.actions>actions</span> | <code>sequence</code><br><p>DEPRECATED: **DO NOT USE**<br>A list of feedback actions to perform, with the following semantics:<br>  - There is no guarantee of the order of execution.<br>  - Actions need to be independent from each other.<br>  - Failure in one action might prevent other actions from executing.<br></p>
 <span id=core.feedback.action href=#core.feedback.action>action</span> | <code>unknown</code><br><p>An action to execute when the migration is triggered</p>
-<span id=core.feedback.description href=#core.feedback.description>description</span> | <code>string</code> or <code>NoneType</code><br><p>A description of what this workflow achieves</p>
+<span id=core.feedback.description href=#core.feedback.description>description</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>A description of what this workflow achieves</p>
 
 <a id="core.filter_replace" aria-hidden="true"></a>
 ### core.filter_replace
@@ -1136,11 +1235,11 @@ Applies an initial filtering to find a substring to be replaced and then applies
 
 Parameter | Description
 --------- | -----------
-<span id=core.filter_replace.regex href=#core.filter_replace.regex>regex</span> | <code>string</code><br><p>A re2 regex to match a substring of the file</p>
+<span id=core.filter_replace.regex href=#core.filter_replace.regex>regex</span> | <code><a href="#string">string</a></code><br><p>A re2 regex to match a substring of the file</p>
 <span id=core.filter_replace.mapping href=#core.filter_replace.mapping>mapping</span> | <code>unknown</code><br><p>A mapping function like core.replace_mapper or a dict with mapping values.</p>
-<span id=core.filter_replace.group href=#core.filter_replace.group>group</span> | <code>int</code> or <code>NoneType</code><br><p>Extract a regex group from the matching text and pass this as parameter to the mapping instead of the whole matching text.</p>
+<span id=core.filter_replace.group href=#core.filter_replace.group>group</span> | <code><a href="#int">int</a></code> or <code>NoneType</code><br><p>Extract a regex group from the matching text and pass this as parameter to the mapping instead of the whole matching text.</p>
 <span id=core.filter_replace.paths href=#core.filter_replace.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
-<span id=core.filter_replace.reverse href=#core.filter_replace.reverse>reverse</span> | <code>string</code> or <code>NoneType</code><br><p>A re2 regex used as reverse transformation</p>
+<span id=core.filter_replace.reverse href=#core.filter_replace.reverse>reverse</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>A re2 regex used as reverse transformation</p>
 
 
 <h4 id="example.core.filter_replace">Examples:</h4>
@@ -1192,14 +1291,14 @@ core.filter_replace(
 
 Formats a String using Java's <a href='https://docs.oracle.com/javase/8/docs/api/java/lang/String.html#format-java.lang.String-java.lang.Object...-'><code>String.format</code></a>.
 
-<code>string</code> <code>core.format(<a href=#core.format.format>format</a>, <a href=#core.format.args>args</a>)</code>
+<code><a href="#string">string</a></code> <code>core.format(<a href=#core.format.format>format</a>, <a href=#core.format.args>args</a>)</code>
 
 
 <h4 id="parameters.core.format">Parameters:</h4>
 
 Parameter | Description
 --------- | -----------
-<span id=core.format.format href=#core.format.format>format</span> | <code>string</code><br><p>The format string</p>
+<span id=core.format.format href=#core.format.format>format</span> | <code><a href="#string">string</a></code><br><p>The format string</p>
 <span id=core.format.args href=#core.format.args>args</span> | <code>sequence</code><br><p>The arguments to format</p>
 
 <a id="core.latest_version" aria-hidden="true"></a>
@@ -1214,8 +1313,8 @@ Selects the latest version that matches the format.  Using --force in the CLI wi
 
 Parameter | Description
 --------- | -----------
-<span id=core.latest_version.format href=#core.latest_version.format>format</span> | <code>string</code><br><p>The format of the version. If using it for git, it has to use the completerefspec (e.g. 'refs/tags/${n0}.${n1}.${n2}')</p>
-<span id=core.latest_version.regex_groups href=#core.latest_version.regex_groups>regex_groups</span> | <code>dict</code><br><p>A set of named regexes that can be used to match part of the versions. Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. Use the following nomenclature n0, n1, n2 for the version part (will use numeric sorting) or s0, s1, s2 (alphabetic sorting). Note that there can be mixed but the numbers cannot be repeated. In other words n0, s1, n2 is valid but not n0, s0, n1. n0 has more priority than n1. If there are fields where order is not important, use s(N+1) where N ist he latest sorted field. Example {"n0": "[0-9]+", "s1": "[a-z]+"}</p>
+<span id=core.latest_version.format href=#core.latest_version.format>format</span> | <code><a href="#string">string</a></code><br><p>The format of the version. If using it for git, it has to use the completerefspec (e.g. 'refs/tags/${n0}.${n1}.${n2}')</p>
+<span id=core.latest_version.regex_groups href=#core.latest_version.regex_groups>regex_groups</span> | <code><a href="#dict">dict</a></code><br><p>A set of named regexes that can be used to match part of the versions. Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. Use the following nomenclature n0, n1, n2 for the version part (will use numeric sorting) or s0, s1, s2 (alphabetic sorting). Note that there can be mixed but the numbers cannot be repeated. In other words n0, s1, n2 is valid but not n0, s0, n1. n0 has more priority than n1. If there are fields where order is not important, use s(N+1) where N ist he latest sorted field. Example {"n0": "[0-9]+", "s1": "[a-z]+"}</p>
 
 
 <h4 id="example.core.latest_version">Examples:</h4>
@@ -1255,10 +1354,10 @@ Describes which paths merge_import mode should be applied
 
 Parameter | Description
 --------- | -----------
-<span id=core.merge_import_config.package_path href=#core.merge_import_config.package_path>package_path</span> | <code>string</code><br><p>Package location (ex. 'google3/third_party/java/foo').</p>
+<span id=core.merge_import_config.package_path href=#core.merge_import_config.package_path>package_path</span> | <code><a href="#string">string</a></code><br><p>Package location (ex. 'google3/third_party/java/foo').</p>
 <span id=core.merge_import_config.paths href=#core.merge_import_config.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>Glob of paths to apply merge_import mode, relative to package_path</p>
-<span id=core.merge_import_config.use_consistency_file href=#core.merge_import_config.use_consistency_file>use_consistency_file</span> | <code>bool</code><br><p>When merging, if a consistency file exists, use it to construct the center of the 3-way merge. This can result in a more accurate merge in some cases, such as when the config file has changed since the last import.</p>
-<span id=core.merge_import_config.merge_strategy href=#core.merge_import_config.merge_strategy>merge_strategy</span> | <code>string</code><br><p>The strategy to use for merging files. DIFF3 shells out to diff3 with the -m flag to perform a 3-way merge. PATCH_MERGE creates a patch file by diffing the baseline and destination files, and then applies the patch to the origin file.</p>
+<span id=core.merge_import_config.use_consistency_file href=#core.merge_import_config.use_consistency_file>use_consistency_file</span> | <code><a href="#bool">bool</a></code><br><p>When merging, if a consistency file exists, use it to construct the center of the 3-way merge. This can result in a more accurate merge in some cases, such as when the config file has changed since the last import.</p>
+<span id=core.merge_import_config.merge_strategy href=#core.merge_import_config.merge_strategy>merge_strategy</span> | <code><a href="#string">string</a></code><br><p>The strategy to use for merging files. DIFF3 shells out to diff3 with the -m flag to perform a 3-way merge. PATCH_MERGE creates a patch file by diffing the baseline and destination files, and then applies the patch to the origin file.</p>
 
 <a id="core.move" aria-hidden="true"></a>
 ### core.move
@@ -1272,11 +1371,11 @@ Moves files between directories and renames files
 
 Parameter | Description
 --------- | -----------
-<span id=core.move.before href=#core.move.before>before</span> | <code>string</code><br><p>The name of the file or directory before moving. If this is the empty string and 'after' is a directory, then all files in the workdir will be moved to the sub directory specified by 'after', maintaining the directory tree.</p>
-<span id=core.move.after href=#core.move.after>after</span> | <code>string</code><br><p>The name of the file or directory after moving. If this is the empty string and 'before' is a directory, then all files in 'before' will be moved to the repo root, maintaining the directory tree inside 'before'.</p>
+<span id=core.move.before href=#core.move.before>before</span> | <code><a href="#string">string</a></code><br><p>The name of the file or directory before moving. If this is the empty string and 'after' is a directory, then all files in the workdir will be moved to the sub directory specified by 'after', maintaining the directory tree.</p>
+<span id=core.move.after href=#core.move.after>after</span> | <code><a href="#string">string</a></code><br><p>The name of the file or directory after moving. If this is the empty string and 'before' is a directory, then all files in 'before' will be moved to the repo root, maintaining the directory tree inside 'before'.</p>
 <span id=core.move.paths href=#core.move.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>A glob expression relative to 'before' if it represents a directory. Only files matching the expression will be moved. For example, glob(["**.java"]), matches all java files recursively inside 'before' folder. Defaults to match all the files recursively.</p>
-<span id=core.move.overwrite href=#core.move.overwrite>overwrite</span> | <code>bool</code><br><p>Overwrite destination files if they already exist. Note that this makes the transformation non-reversible, since there is no way to know if the file was overwritten or not in the reverse workflow.</p>
-<span id=core.move.regex_groups href=#core.move.regex_groups>regex_groups</span> | <code>dict</code><br><p>A set of named regexes that can be used to match part of the file name. Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. For example {"x": "[A-Za-z]+"}</p>
+<span id=core.move.overwrite href=#core.move.overwrite>overwrite</span> | <code><a href="#bool">bool</a></code><br><p>Overwrite destination files if they already exist. Note that this makes the transformation non-reversible, since there is no way to know if the file was overwritten or not in the reverse workflow.</p>
+<span id=core.move.regex_groups href=#core.move.regex_groups>regex_groups</span> | <code><a href="#dict">dict</a></code><br><p>A set of named regexes that can be used to match part of the file name. Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. For example {"x": "[A-Za-z]+"}</p>
 
 
 <h4 id="example.core.move">Examples:</h4>
@@ -1381,11 +1480,11 @@ A transformation for renaming several filenames in the working directory. This i
 
 Parameter | Description
 --------- | -----------
-<span id=core.rename.before href=#core.rename.before>before</span> | <code>string</code><br><p>The filepath or suffix to change</p>
-<span id=core.rename.after href=#core.rename.after>after</span> | <code>string</code><br><p>A filepath or suffix to use as replacement</p>
+<span id=core.rename.before href=#core.rename.before>before</span> | <code><a href="#string">string</a></code><br><p>The filepath or suffix to change</p>
+<span id=core.rename.after href=#core.rename.after>after</span> | <code><a href="#string">string</a></code><br><p>A filepath or suffix to use as replacement</p>
 <span id=core.rename.paths href=#core.rename.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>A glob expression relative to 'before' if it represents a directory. Only files matching the expression will be renamed. For example, glob(["**.java"]), matches all java files recursively inside 'before' folder. Defaults to match all the files recursively. Note that if reversible transformation is needed, the glob should match the filenames too in that case (or alternatively use an explicit reversal by using `core.transformation()`.</p>
-<span id=core.rename.overwrite href=#core.rename.overwrite>overwrite</span> | <code>bool</code><br><p>Overwrite destination files if they already exist. Note that this makes the transformation non-reversible, since there is no way to know if the file was overwritten or not in the reverse workflow.</p>
-<span id=core.rename.suffix href=#core.rename.suffix>suffix</span> | <code>bool</code><br><p>By default before/after match whole path segments. e.g. before = "FOO" wouldn't match `example/barFOO`. Sometimes only part of the path name needs to be replaced, e.g. renaming extensions. When `suffix` is set to true, it will match partial parts of the path string.</p>
+<span id=core.rename.overwrite href=#core.rename.overwrite>overwrite</span> | <code><a href="#bool">bool</a></code><br><p>Overwrite destination files if they already exist. Note that this makes the transformation non-reversible, since there is no way to know if the file was overwritten or not in the reverse workflow.</p>
+<span id=core.rename.suffix href=#core.rename.suffix>suffix</span> | <code><a href="#bool">bool</a></code><br><p>By default before/after match whole path segments. e.g. before = "FOO" wouldn't match `example/barFOO`. Sometimes only part of the path name needs to be replaced, e.g. renaming extensions. When `suffix` is set to true, it will match partial parts of the path string.</p>
 
 
 <h4 id="example.core.rename">Examples:</h4>
@@ -1436,13 +1535,13 @@ Replace a text with another text using optional regex groups. This transformatio
 
 Parameter | Description
 --------- | -----------
-<span id=core.replace.before href=#core.replace.before>before</span> | <code>string</code><br><p>The text before the transformation. Can contain references to regex groups. For example "foo${x}text".<p>`before` can only contain 1 reference to each unique `regex_group`. If you require multiple references to the same `regex_group`, add `repeated_groups: True`.<p>If '$' literal character needs to be matched, '`$$`' should be used. For example '`$$FOO`' would match the literal '$FOO'. [Note this argument is a string. If you want to match a regular expression it must be encoded as a regex_group.]</p>
-<span id=core.replace.after href=#core.replace.after>after</span> | <code>string</code><br><p>The text after the transformation. It can also contain references to regex groups, like 'before' field.</p>
-<span id=core.replace.regex_groups href=#core.replace.regex_groups>regex_groups</span> | <code>dict</code><br><p>A set of named regexes that can be used to match part of the replaced text.Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. For example {"x": "[A-Za-z]+"}</p>
+<span id=core.replace.before href=#core.replace.before>before</span> | <code><a href="#string">string</a></code><br><p>The text before the transformation. Can contain references to regex groups. For example "foo${x}text".<p>`before` can only contain 1 reference to each unique `regex_group`. If you require multiple references to the same `regex_group`, add `repeated_groups: True`.<p>If '$' literal character needs to be matched, '`$$`' should be used. For example '`$$FOO`' would match the literal '$FOO'. [Note this argument is a string. If you want to match a regular expression it must be encoded as a regex_group.]</p>
+<span id=core.replace.after href=#core.replace.after>after</span> | <code><a href="#string">string</a></code><br><p>The text after the transformation. It can also contain references to regex groups, like 'before' field.</p>
+<span id=core.replace.regex_groups href=#core.replace.regex_groups>regex_groups</span> | <code><a href="#dict">dict</a></code><br><p>A set of named regexes that can be used to match part of the replaced text.Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. For example {"x": "[A-Za-z]+"}</p>
 <span id=core.replace.paths href=#core.replace.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
-<span id=core.replace.first_only href=#core.replace.first_only>first_only</span> | <code>bool</code><br><p>If true, only replaces the first instance rather than all. In single line mode, replaces the first instance on each line. In multiline mode, replaces the first instance in each file.</p>
-<span id=core.replace.multiline href=#core.replace.multiline>multiline</span> | <code>bool</code><br><p>Whether to replace text that spans more than one line.</p>
-<span id=core.replace.repeated_groups href=#core.replace.repeated_groups>repeated_groups</span> | <code>bool</code><br><p>Allow to use a group multiple times. For example foo${repeated}/${repeated}. Note that this won't match "fooX/Y". This mechanism doesn't use backtracking. In other words, the group instances are treated as different groups in regex construction and then a validation is done after that.</p>
+<span id=core.replace.first_only href=#core.replace.first_only>first_only</span> | <code><a href="#bool">bool</a></code><br><p>If true, only replaces the first instance rather than all. In single line mode, replaces the first instance on each line. In multiline mode, replaces the first instance in each file.</p>
+<span id=core.replace.multiline href=#core.replace.multiline>multiline</span> | <code><a href="#bool">bool</a></code><br><p>Whether to replace text that spans more than one line.</p>
+<span id=core.replace.repeated_groups href=#core.replace.repeated_groups>repeated_groups</span> | <code><a href="#bool">bool</a></code><br><p>Allow to use a group multiple times. For example foo${repeated}/${repeated}. Note that this won't match "fooX/Y". This mechanism doesn't use backtracking. In other words, the group instances are treated as different groups in regex construction and then a validation is done after that.</p>
 <span id=core.replace.ignore href=#core.replace.ignore>ignore</span> | <code>sequence</code><br><p>A set of regexes. If the entire content of any line (or file, if `multiline` is enabled) matches any expression in this set, then Copybara will not apply this transformation to any text there. Because `ignore` is matched against the entire line (or entire file under `multiline`), not just the parts that match `before`, the `ignore` regex can refer to text outside the span that would be replaced.</p>
 
 
@@ -1620,7 +1719,7 @@ A mapping function that applies a list of replaces until one replaces the text (
 Parameter | Description
 --------- | -----------
 <span id=core.replace_mapper.mapping href=#core.replace_mapper.mapping>mapping</span> | <code>sequence of <a href="#transformation">transformation</a></code><br><p>The list of core.replace transformations</p>
-<span id=core.replace_mapper.all href=#core.replace_mapper.all>all</span> | <code>bool</code><br><p>Run all the mappings despite a replace happens.</p>
+<span id=core.replace_mapper.all href=#core.replace_mapper.all>all</span> | <code><a href="#bool">bool</a></code><br><p>Run all the mappings despite a replace happens.</p>
 
 <a id="core.reverse" aria-hidden="true"></a>
 ### core.reverse
@@ -1648,12 +1747,12 @@ Replace Google style TODOs. For example `TODO(username, othername)`.
 
 Parameter | Description
 --------- | -----------
-<span id=core.todo_replace.tags href=#core.todo_replace.tags>tags</span> | <code>sequence of string</code><br><p>Prefix tag to look for</p>
-<span id=core.todo_replace.mapping href=#core.todo_replace.mapping>mapping</span> | <code>dict</code><br><p>Mapping of users/strings</p>
-<span id=core.todo_replace.mode href=#core.todo_replace.mode>mode</span> | <code>string</code><br><p>Mode for the replace:<ul><li>'MAP_OR_FAIL': Try to use the mapping and if not found fail.</li><li>'MAP_OR_IGNORE': Try to use the mapping but ignore if no mapping found.</li><li>'MAP_OR_DEFAULT': Try to use the mapping and use the default if not found.</li><li>'SCRUB_NAMES': Scrub all names from TODOs. Transforms 'TODO(foo)' to 'TODO'</li><li>'USE_DEFAULT': Replace any TODO(foo, bar) with TODO(default_string)</li></ul></p>
+<span id=core.todo_replace.tags href=#core.todo_replace.tags>tags</span> | <code>sequence of <a href="#string">string</a></code><br><p>Prefix tag to look for</p>
+<span id=core.todo_replace.mapping href=#core.todo_replace.mapping>mapping</span> | <code><a href="#dict">dict</a></code><br><p>Mapping of users/strings</p>
+<span id=core.todo_replace.mode href=#core.todo_replace.mode>mode</span> | <code><a href="#string">string</a></code><br><p>Mode for the replace:<ul><li>'MAP_OR_FAIL': Try to use the mapping and if not found fail.</li><li>'MAP_OR_IGNORE': Try to use the mapping but ignore if no mapping found.</li><li>'MAP_OR_DEFAULT': Try to use the mapping and use the default if not found.</li><li>'SCRUB_NAMES': Scrub all names from TODOs. Transforms 'TODO(foo)' to 'TODO'</li><li>'USE_DEFAULT': Replace any TODO(foo, bar) with TODO(default_string)</li></ul></p>
 <span id=core.todo_replace.paths href=#core.todo_replace.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
-<span id=core.todo_replace.default href=#core.todo_replace.default>default</span> | <code>string</code> or <code>NoneType</code><br><p>Default value if mapping not found. Only valid for 'MAP_OR_DEFAULT' or 'USE_DEFAULT' modes</p>
-<span id=core.todo_replace.ignore href=#core.todo_replace.ignore>ignore</span> | <code>string</code> or <code>NoneType</code><br><p>If set, elements within TODO (with usernames) that match the regex will be ignored. For example ignore = "foo" would ignore "foo" in "TODO(foo,bar)" but not "bar".</p>
+<span id=core.todo_replace.default href=#core.todo_replace.default>default</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>Default value if mapping not found. Only valid for 'MAP_OR_DEFAULT' or 'USE_DEFAULT' modes</p>
+<span id=core.todo_replace.ignore href=#core.todo_replace.ignore>ignore</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>If set, elements within TODO (with usernames) that match the regex will be ignored. For example ignore = "foo" would ignore "foo" in "TODO(foo,bar)" but not "bar".</p>
 
 
 <h4 id="example.core.todo_replace">Examples:</h4>
@@ -1716,8 +1815,8 @@ Parameter | Description
 --------- | -----------
 <span id=core.transform.transformations href=#core.transform.transformations>transformations</span> | <code>sequence of <a href="#transformation">transformation</a></code><br><p>The list of transformations to run as a result of running this transformation.</p>
 <span id=core.transform.reversal href=#core.transform.reversal>reversal</span> | <code>sequence of <a href="#transformation">transformation</a></code> or <code>NoneType</code><br><p>The list of transformations to run as a result of running this transformation in reverse.</p>
-<span id=core.transform.ignore_noop href=#core.transform.ignore_noop>ignore_noop</span> | <code>bool</code> or <code>NoneType</code><br><p>WARNING: Deprecated. Use `noop_behavior` instead.<br>In case a noop error happens in the group of transformations (Both forward and reverse), it will be ignored, but the rest of the transformations in the group will still be executed. If ignore_noop is not set, we will apply the closest parent's ignore_noop.</p>
-<span id=core.transform.noop_behavior href=#core.transform.noop_behavior>noop_behavior</span> | <code>string</code> or <code>NoneType</code><br><p>How to handle no-op transformations:<br><ul> <li><b>'IGNORE_NOOP'</b>: Any no-ops among the wrapped transformations are ignored.</li> <li><b>'NOOP_IF_ANY_NOOP'</b>: Throws an exception as soon as a single wrapped transformation is a no-op.</li> <li><b>'NOOP_IF_ALL_NOOP'</b>: Ignores no-ops from the wrapped transformations unless they all no-op, in which case an exception is thrown.</li></ul></p>
+<span id=core.transform.ignore_noop href=#core.transform.ignore_noop>ignore_noop</span> | <code><a href="#bool">bool</a></code> or <code>NoneType</code><br><p>WARNING: Deprecated. Use `noop_behavior` instead.<br>In case a noop error happens in the group of transformations (Both forward and reverse), it will be ignored, but the rest of the transformations in the group will still be executed. If ignore_noop is not set, we will apply the closest parent's ignore_noop.</p>
+<span id=core.transform.noop_behavior href=#core.transform.noop_behavior>noop_behavior</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>How to handle no-op transformations:<br><ul> <li><b>'IGNORE_NOOP'</b>: Any no-ops among the wrapped transformations are ignored.</li> <li><b>'NOOP_IF_ANY_NOOP'</b>: Throws an exception as soon as a single wrapped transformation is a no-op.</li> <li><b>'NOOP_IF_ALL_NOOP'</b>: Ignores no-ops from the wrapped transformations unless they all no-op, in which case an exception is thrown.</li></ul></p>
 
 <a id="core.verify_match" aria-hidden="true"></a>
 ### core.verify_match
@@ -1731,10 +1830,10 @@ Verifies that a RegEx matches (or not matches) the specified files. Does not tra
 
 Parameter | Description
 --------- | -----------
-<span id=core.verify_match.regex href=#core.verify_match.regex>regex</span> | <code>string</code><br><p>The regex pattern to verify. To satisfy the validation, there has to be atleast one (or no matches if verify_no_match) match in each of the files included in paths. The re2j pattern will be applied in multiline mode, i.e. '^' refers to the beginning of a file and '$' to its end. Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax.</p>
+<span id=core.verify_match.regex href=#core.verify_match.regex>regex</span> | <code><a href="#string">string</a></code><br><p>The regex pattern to verify. To satisfy the validation, there has to be atleast one (or no matches if verify_no_match) match in each of the files included in paths. The re2j pattern will be applied in multiline mode, i.e. '^' refers to the beginning of a file and '$' to its end. Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax.</p>
 <span id=core.verify_match.paths href=#core.verify_match.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
-<span id=core.verify_match.verify_no_match href=#core.verify_match.verify_no_match>verify_no_match</span> | <code>bool</code><br><p>If true, the transformation will verify that the RegEx does not match.</p>
-<span id=core.verify_match.also_on_reversal href=#core.verify_match.also_on_reversal>also_on_reversal</span> | <code>bool</code><br><p>If true, the check will also apply on the reversal. The default behavior is to not verify the pattern on reversal.</p>
+<span id=core.verify_match.verify_no_match href=#core.verify_match.verify_no_match>verify_no_match</span> | <code><a href="#bool">bool</a></code><br><p>If true, the transformation will verify that the RegEx does not match.</p>
+<span id=core.verify_match.also_on_reversal href=#core.verify_match.also_on_reversal>also_on_reversal</span> | <code><a href="#bool">bool</a></code><br><p>If true, the check will also apply on the reversal. The default behavior is to not verify the pattern on reversal.</p>
 <span id=core.verify_match.failure_message href=#core.verify_match.failure_message>failure_message</span> | <code>unknown</code><br><p>Optional string that will be included in the failure message.</p>
 
 <a id="core.workflow" aria-hidden="true"></a>
@@ -1760,33 +1859,33 @@ Implicit labels that can be used/exposed:
 
 Parameter | Description
 --------- | -----------
-<span id=core.workflow.name href=#core.workflow.name>name</span> | <code>string</code><br><p>The name of the workflow.</p>
+<span id=core.workflow.name href=#core.workflow.name>name</span> | <code><a href="#string">string</a></code><br><p>The name of the workflow.</p>
 <span id=core.workflow.origin href=#core.workflow.origin>origin</span> | <code><a href="#origin">origin</a></code><br><p>Where to read from the code to be migrated, before applying the transformations. This is usually a VCS like Git, but can also be a local folder or even a pending change in a code review system like Gerrit.</p>
 <span id=core.workflow.destination href=#core.workflow.destination>destination</span> | <code><a href="#destination">destination</a></code><br><p>Where to write to the code being migrated, after applying the transformations. This is usually a VCS like Git, but can also be a local folder or even a pending change in a code review system like Gerrit.</p>
 <span id=core.workflow.authoring href=#core.workflow.authoring>authoring</span> | <code><a href="#authoring_class">authoring_class</a></code><br><p>The author mapping configuration from origin to destination.</p>
 <span id=core.workflow.transformations href=#core.workflow.transformations>transformations</span> | <code>sequence</code><br><p>The transformations to be run for this workflow. They will run in sequence.</p>
 <span id=core.workflow.origin_files href=#core.workflow.origin_files>origin_files</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>A glob or list of files relative to the workdir that will be read from the origin during the import. For example glob(["**.java"]), all java files, recursively, which excludes all other file types, or ['foo.java'] for a specific file.</p>
 <span id=core.workflow.destination_files href=#core.workflow.destination_files>destination_files</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>A glob relative to the root of the destination repository that matches files that are part of the migration. Files NOT matching this glob will never be removed, even if the file does not exist in the source. For example glob(['**'], exclude = ['**/BUILD']) keeps all BUILD files in destination when the origin does not have any BUILD files. You can also use this to limit the migration to a subdirectory of the destination, e.g. glob(['java/src/**'], exclude = ['**/BUILD']) to only affect non-BUILD files in java/src.</p>
-<span id=core.workflow.mode href=#core.workflow.mode>mode</span> | <code>string</code><br><p>Workflow mode. Currently we support four modes:<br><ul><li><b>'SQUASH'</b>: Create a single commit in the destination with new tree state.</li><li><b>'ITERATIVE'</b>: Import each origin change individually.</li><li><b>'CHANGE_REQUEST'</b>: Import a pending change to the Source-of-Truth. This could be a GH Pull Request, a Gerrit Change, etc. The final intention should be to submit the change in the SoT (destination in this case).</li><li><b>'CHANGE_REQUEST_FROM_SOT'</b>: Import a pending change **from** the Source-of-Truth. This mode is useful when, despite the pending change being already in the SoT, the users want to review the code on a different system. The final intention should never be to submit in the destination, but just review or test</li></ul></p>
-<span id=core.workflow.reversible_check href=#core.workflow.reversible_check>reversible_check</span> | <code>bool</code> or <code>NoneType</code><br><p>Indicates if the tool should try to to reverse all the transformations at the end to check that they are reversible.<br/>The default value is True for 'CHANGE_REQUEST' mode. False otherwise</p>
-<span id=core.workflow.check_last_rev_state href=#core.workflow.check_last_rev_state>check_last_rev_state</span> | <code>bool</code><br><p>If set to true, Copybara will validate that the destination didn't change since last-rev import for destination_files. Note that this flag doesn't work for CHANGE_REQUEST mode.</p>
-<span id=core.workflow.ask_for_confirmation href=#core.workflow.ask_for_confirmation>ask_for_confirmation</span> | <code>bool</code><br><p>Indicates that the tool should show the diff and require user's confirmation before making a change in the destination.</p>
-<span id=core.workflow.dry_run href=#core.workflow.dry_run>dry_run</span> | <code>bool</code><br><p>Run the migration in dry-run mode. Some destination implementations might have some side effects (like creating a code review), but never submit to a main branch.</p>
+<span id=core.workflow.mode href=#core.workflow.mode>mode</span> | <code><a href="#string">string</a></code><br><p>Workflow mode. Currently we support four modes:<br><ul><li><b>'SQUASH'</b>: Create a single commit in the destination with new tree state.</li><li><b>'ITERATIVE'</b>: Import each origin change individually.</li><li><b>'CHANGE_REQUEST'</b>: Import a pending change to the Source-of-Truth. This could be a GH Pull Request, a Gerrit Change, etc. The final intention should be to submit the change in the SoT (destination in this case).</li><li><b>'CHANGE_REQUEST_FROM_SOT'</b>: Import a pending change **from** the Source-of-Truth. This mode is useful when, despite the pending change being already in the SoT, the users want to review the code on a different system. The final intention should never be to submit in the destination, but just review or test</li></ul></p>
+<span id=core.workflow.reversible_check href=#core.workflow.reversible_check>reversible_check</span> | <code><a href="#bool">bool</a></code> or <code>NoneType</code><br><p>Indicates if the tool should try to to reverse all the transformations at the end to check that they are reversible.<br/>The default value is True for 'CHANGE_REQUEST' mode. False otherwise</p>
+<span id=core.workflow.check_last_rev_state href=#core.workflow.check_last_rev_state>check_last_rev_state</span> | <code><a href="#bool">bool</a></code><br><p>If set to true, Copybara will validate that the destination didn't change since last-rev import for destination_files. Note that this flag doesn't work for CHANGE_REQUEST mode.</p>
+<span id=core.workflow.ask_for_confirmation href=#core.workflow.ask_for_confirmation>ask_for_confirmation</span> | <code><a href="#bool">bool</a></code><br><p>Indicates that the tool should show the diff and require user's confirmation before making a change in the destination.</p>
+<span id=core.workflow.dry_run href=#core.workflow.dry_run>dry_run</span> | <code><a href="#bool">bool</a></code><br><p>Run the migration in dry-run mode. Some destination implementations might have some side effects (like creating a code review), but never submit to a main branch.</p>
 <span id=core.workflow.after_migration href=#core.workflow.after_migration>after_migration</span> | <code>sequence</code><br><p>Run a feedback workflow after one migration happens. This runs once per change in `ITERATIVE` mode and only once for `SQUASH`.</p>
 <span id=core.workflow.after_workflow href=#core.workflow.after_workflow>after_workflow</span> | <code>sequence</code><br><p>Run a feedback workflow after all the changes for this workflow run are migrated. Prefer `after_migration` as it is executed per change (in ITERATIVE mode). Tasks in this hook shouldn't be critical to execute. These actions shouldn't record effects (They'll be ignored).</p>
-<span id=core.workflow.change_identity href=#core.workflow.change_identity>change_identity</span> | <code>string</code> or <code>NoneType</code><br><p>By default, Copybara hashes several fields so that each change has an unique identifier that at the same time reuses the generated destination change. This allows to customize the identity hash generation so that the same identity is used in several workflows. At least ${copybara_config_path} has to be present. Current user is added to the hash automatically.<br><br>Available variables:<ul>  <li>${copybara_config_path}: Main config file path</li>  <li>${copybara_workflow_name}: The name of the workflow being run</li>  <li>${copybara_reference}: The requested reference. In general Copybara tries its best to give a repetable reference. For example Gerrit change number or change-id or GitHub Pull Request number. If it cannot find a context reference it uses the resolved revision.</li>  <li>${label:label_name}: A label present for the current change. Exposed in the message or not.</li></ul>If any of the labels cannot be found it defaults to the default identity (The effect would be no reuse of destination change between workflows)</p>
-<span id=core.workflow.set_rev_id href=#core.workflow.set_rev_id>set_rev_id</span> | <code>bool</code><br><p>Copybara adds labels like 'GitOrigin-RevId' in the destination in order to track what was the latest change imported. For `CHANGE_REQUEST` workflows it is not used and is purely informational. This field allows to disable it for that mode. Destinations might ignore the flag.</p>
-<span id=core.workflow.smart_prune href=#core.workflow.smart_prune>smart_prune</span> | <code>bool</code><br><p>By default CHANGE_REQUEST workflows cannot restore scrubbed files. This flag does a best-effort approach in restoring the non-affected snippets. For now we only revert the non-affected files. This only works for CHANGE_REQUEST mode.</p>
-<span id=core.workflow.merge_import href=#core.workflow.merge_import>merge_import</span> | <code>bool</code> or <code><a href="#coremerge_import_config">core.merge_import_config</a></code> or <code>NoneType</code><br><p>A migration mode that shells out to a diffing tool (default is diff3) to merge all files. The inputs to the diffing tool are (1) origin file (2) baseline file (3) destination file. This can be used to perpetuate destination-only changes in non source of truth repositories.</p>
+<span id=core.workflow.change_identity href=#core.workflow.change_identity>change_identity</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>By default, Copybara hashes several fields so that each change has an unique identifier that at the same time reuses the generated destination change. This allows to customize the identity hash generation so that the same identity is used in several workflows. At least ${copybara_config_path} has to be present. Current user is added to the hash automatically.<br><br>Available variables:<ul> <li>${copybara_config_path}: Main config file path</li> <li>${copybara_workflow_name}: The name of the workflow being run</li> <li>${copybara_reference}: The requested reference. In general Copybara tries its best to give a repetable reference. For example Gerrit change number or change-id or GitHub Pull Request number. If it cannot find a context reference it uses the resolved revision.</li> <li>${label:label_name}: A label present for the current change. Exposed in the message or not.</li></ul>If any of the labels cannot be found it defaults to the default identity (The effect would be no reuse of destination change between workflows)</p>
+<span id=core.workflow.set_rev_id href=#core.workflow.set_rev_id>set_rev_id</span> | <code><a href="#bool">bool</a></code><br><p>Copybara adds labels like 'GitOrigin-RevId' in the destination in order to track what was the latest change imported. For `CHANGE_REQUEST` workflows it is not used and is purely informational. This field allows to disable it for that mode. Destinations might ignore the flag.</p>
+<span id=core.workflow.smart_prune href=#core.workflow.smart_prune>smart_prune</span> | <code><a href="#bool">bool</a></code><br><p>By default CHANGE_REQUEST workflows cannot restore scrubbed files. This flag does a best-effort approach in restoring the non-affected snippets. For now we only revert the non-affected files. This only works for CHANGE_REQUEST mode.</p>
+<span id=core.workflow.merge_import href=#core.workflow.merge_import>merge_import</span> | <code><a href="#bool">bool</a></code> or <code><a href="#coremerge_import_config">core.merge_import_config</a></code> or <code>NoneType</code><br><p>A migration mode that shells out to a diffing tool (default is diff3) to merge all files. The inputs to the diffing tool are (1) origin file (2) baseline file (3) destination file. This can be used to perpetuate destination-only changes in non source of truth repositories.</p>
 <span id=core.workflow.autopatch_config href=#core.workflow.autopatch_config>autopatch_config</span> | <code><a href="#coreautopatch_config">core.autopatch_config</a></code> or <code>NoneType</code><br><p>Configuration that describes the setting for automatic patch file generation</p>
 <span id=core.workflow.after_merge_transformations href=#core.workflow.after_merge_transformations>after_merge_transformations</span> | <code>sequence</code><br><p>Perform these transformations after merge_import, but before Copybara writes to the destination. Ex: any BUILD file generations that rely on the results of merge_import</p>
-<span id=core.workflow.migrate_noop_changes href=#core.workflow.migrate_noop_changes>migrate_noop_changes</span> | <code>bool</code><br><p>By default, Copybara tries to only migrate changes that affect origin_files or config files. This flag allows to include all the changes. Note that it might generate more empty changes errors. In `ITERATIVE` mode it might fail if some transformation is validating the message (Like has to contain 'PUBLIC' and the change doesn't contain it because it is internal).</p>
-<span id=core.workflow.experimental_custom_rev_id href=#core.workflow.experimental_custom_rev_id>experimental_custom_rev_id</span> | <code>string</code> or <code>NoneType</code><br><p>DEPRECATED(Remove by 2024/01/01: Use . Use this label name instead of the one provided by the origin.</p>
-<span id=core.workflow.custom_rev_id href=#core.workflow.custom_rev_id>custom_rev_id</span> | <code>string</code> or <code>NoneType</code><br><p>If the destination uses labels to mark the last change migrated, use this label name instead of the one provided by the origin. This allows to to have two migrations to the same destination without the other migration changes interfering this migration. I can also serve to clearly state where the change is coming from.</p>
-<span id=core.workflow.description href=#core.workflow.description>description</span> | <code>string</code> or <code>NoneType</code><br><p>A description of what this workflow achieves</p>
-<span id=core.workflow.checkout href=#core.workflow.checkout>checkout</span> | <code>bool</code><br><p>Allows disabling the checkout. The usage of this feature is rare. This could be used to update a file of your own repo when a dependant repo version changes and you are not interested on the files of the dependant repo, just the new version.</p>
+<span id=core.workflow.migrate_noop_changes href=#core.workflow.migrate_noop_changes>migrate_noop_changes</span> | <code><a href="#bool">bool</a></code><br><p>By default, Copybara tries to only migrate changes that affect origin_files or config files. This flag allows to include all the changes. Note that it might generate more empty changes errors. In `ITERATIVE` mode it might fail if some transformation is validating the message (Like has to contain 'PUBLIC' and the change doesn't contain it because it is internal).</p>
+<span id=core.workflow.experimental_custom_rev_id href=#core.workflow.experimental_custom_rev_id>experimental_custom_rev_id</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>DEPRECATED(Remove by 2024/01/01: Use . Use this label name instead of the one provided by the origin.</p>
+<span id=core.workflow.custom_rev_id href=#core.workflow.custom_rev_id>custom_rev_id</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>If the destination uses labels to mark the last change migrated, use this label name instead of the one provided by the origin. This allows to to have two migrations to the same destination without the other migration changes interfering this migration. I can also serve to clearly state where the change is coming from.</p>
+<span id=core.workflow.description href=#core.workflow.description>description</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>A description of what this workflow achieves</p>
+<span id=core.workflow.checkout href=#core.workflow.checkout>checkout</span> | <code><a href="#bool">bool</a></code><br><p>Allows disabling the checkout. The usage of this feature is rare. This could be used to update a file of your own repo when a dependant repo version changes and you are not interested on the files of the dependant repo, just the new version.</p>
 <span id=core.workflow.reversible_check_ignore_files href=#core.workflow.reversible_check_ignore_files>reversible_check_ignore_files</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>Ignore the files matching the glob in the reversible check</p>
-<span id=core.workflow.consistency_file_path href=#core.workflow.consistency_file_path>consistency_file_path</span> | <code>string</code> or <code>NoneType</code><br><p>Under development. Must end with .bara.consistency</p>
+<span id=core.workflow.consistency_file_path href=#core.workflow.consistency_file_path>consistency_file_path</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>Under development. Must end with .bara.consistency</p>
 
 
 
@@ -1854,8 +1953,8 @@ Holder for secrets that can be in plaintext within the config.
 
 Parameter | Description
 --------- | -----------
-<span id=credentials.static_secret.name href=#credentials.static_secret.name>name</span> | <code>string</code><br><p>A name for this secret.</p>
-<span id=credentials.static_secret.secret href=#credentials.static_secret.secret>secret</span> | <code>string</code><br><p>The secret value.</p>
+<span id=credentials.static_secret.name href=#credentials.static_secret.name>name</span> | <code><a href="#string">string</a></code><br><p>A name for this secret.</p>
+<span id=credentials.static_secret.secret href=#credentials.static_secret.secret>secret</span> | <code><a href="#string">string</a></code><br><p>The secret value.</p>
 
 <a id="credentials.static_value" aria-hidden="true"></a>
 ### credentials.static_value
@@ -1869,7 +1968,7 @@ Holder for credentials that are safe to read/log (e.g. 'x-access-token') .
 
 Parameter | Description
 --------- | -----------
-<span id=credentials.static_value.value href=#credentials.static_value.value>value</span> | <code>string</code><br><p>The open value.</p>
+<span id=credentials.static_value.value href=#credentials.static_value.value>value</span> | <code><a href="#string">string</a></code><br><p>The open value.</p>
 
 <a id="credentials.toml_key_source" aria-hidden="true"></a>
 ### credentials.toml_key_source
@@ -1883,7 +1982,7 @@ Supply an authentication credential from the file pointed to by the --http-crede
 
 Parameter | Description
 --------- | -----------
-<span id=credentials.toml_key_source.dot_path href=#credentials.toml_key_source.dot_path>dot_path</span> | <code>string</code><br><p>Dot path to the data field containing the credential.</p>
+<span id=credentials.toml_key_source.dot_path href=#credentials.toml_key_source.dot_path>dot_path</span> | <code><a href="#string">string</a></code><br><p>Dot path to the data field containing the credential.</p>
 
 <a id="credentials.username_password" aria-hidden="true"></a>
 ### credentials.username_password
@@ -1918,8 +2017,8 @@ Returns a starlark_datetime object representation of the epoch time. The object 
 
 Parameter | Description
 --------- | -----------
-<span id=datetime.fromtimestamp.timestamp href=#datetime.fromtimestamp.timestamp>timestamp</span> | <code>int</code><br><p>Epoch time in seconds.</p>
-<span id=datetime.fromtimestamp.tz href=#datetime.fromtimestamp.tz>tz</span> | <code>string</code><br><p>The timezone. E.g. America/New_York, Asia/Tokyo, Europe/Rome, etc.</p>
+<span id=datetime.fromtimestamp.timestamp href=#datetime.fromtimestamp.timestamp>timestamp</span> | <code><a href="#int">int</a></code><br><p>Epoch time in seconds.</p>
+<span id=datetime.fromtimestamp.tz href=#datetime.fromtimestamp.tz>tz</span> | <code><a href="#string">string</a></code><br><p>The timezone. E.g. America/New_York, Asia/Tokyo, Europe/Rome, etc.</p>
 
 <a id="datetime.now" aria-hidden="true"></a>
 ### datetime.now
@@ -1933,7 +2032,7 @@ Returns a starlark_datetime object. The object is timezone aware.
 
 Parameter | Description
 --------- | -----------
-<span id=datetime.now.tz href=#datetime.now.tz>tz</span> | <code>string</code><br><p>The timezone. E.g. America/New_York, Asia/Tokyo, Europe/Rome</p>
+<span id=datetime.now.tz href=#datetime.now.tz>tz</span> | <code><a href="#string">string</a></code><br><p>The timezone. E.g. America/New_York, Asia/Tokyo, Europe/Rome</p>
 
 
 
@@ -1969,8 +2068,8 @@ Name | Description
 destination_ref | <code><a href="#destination_ref">destination_ref</a></code><br><p>Destination reference updated/created. Might be null if there was no effect. Might be set even if the type is error (For example a synchronous presubmit test failed but a review was created).</p>
 errors | <code>list of string</code><br><p>List of errors that happened during the migration</p>
 origin_refs | <code>list of origin_ref</code><br><p>List of origin changes that were included in this migration</p>
-summary | <code>string</code><br><p>Textual summary of what happened. Users of this class should not try to parse this field.</p>
-type | <code>string</code><br><p>Return the type of effect that happened: CREATED, UPDATED, NOOP, INSUFFICIENT_APPROVALS or ERROR</p>
+summary | <code><a href="#string">string</a></code><br><p>Textual summary of what happened. Users of this class should not try to parse this field.</p>
+type | <code><a href="#string">string</a></code><br><p>Return the type of effect that happened: CREATED, UPDATED, NOOP, INSUFFICIENT_APPROVALS or ERROR</p>
 
 
 
@@ -2022,28 +2121,28 @@ Would copy all files in path/to/ from the destination baseline to the copybara w
 
 Checks whether a given file exists in the destination.
 
-<code>bool</code> <code>destination_reader.file_exists(<a href=#destination_reader.file_exists.path>path</a>)</code>
+<code><a href="#bool">bool</a></code> <code>destination_reader.file_exists(<a href=#destination_reader.file_exists.path>path</a>)</code>
 
 
 <h4 id="parameters.destination_reader.file_exists">Parameters:</h4>
 
 Parameter | Description
 --------- | -----------
-<span id=destination_reader.file_exists.path href=#destination_reader.file_exists.path>path</span> | <code>string</code><br><p>Path to the file.</p>
+<span id=destination_reader.file_exists.path href=#destination_reader.file_exists.path>path</span> | <code><a href="#string">string</a></code><br><p>Path to the file.</p>
 
 <a id="destination_reader.read_file" aria-hidden="true"></a>
 ### destination_reader.read_file
 
 Read a file from the destination.
 
-<code>string</code> <code>destination_reader.read_file(<a href=#destination_reader.read_file.path>path</a>)</code>
+<code><a href="#string">string</a></code> <code>destination_reader.read_file(<a href=#destination_reader.read_file.path>path</a>)</code>
 
 
 <h4 id="parameters.destination_reader.read_file">Parameters:</h4>
 
 Parameter | Description
 --------- | -----------
-<span id=destination_reader.read_file.path href=#destination_reader.read_file.path>path</span> | <code>string</code><br><p>Path to the file.</p>
+<span id=destination_reader.read_file.path href=#destination_reader.read_file.path>path</span> | <code><a href="#string">string</a></code><br><p>Path to the file.</p>
 
 
 <h4 id="example.destination_reader.read_file">Example:</h4>
@@ -2076,9 +2175,9 @@ Reference to the change/review created/updated on the destination.
 
 Name | Description
 ---- | -----------
-id | <code>string</code><br><p>Destination reference id</p>
-type | <code>string</code><br><p>Type of reference created. Each destination defines its own and guarantees to be more stable than urls/ids</p>
-url | <code>string</code><br><p>Url, if any, of the destination change</p>
+id | <code><a href="#string">string</a></code><br><p>Destination reference id</p>
+type | <code><a href="#string">string</a></code><br><p>Type of reference created. Each destination defines its own and guarantees to be more stable than urls/ids</p>
+url | <code><a href="#string">string</a></code><br><p>Url, if any, of the destination change</p>
 
 
 <h4 id="returned_by.destination_ref">Returned By:</h4>
@@ -2087,6 +2186,139 @@ url | <code>string</code><br><p>Url, if any, of the destination change</p>
 <h4 id="consumed_by.destination_ref">Consumed By:</h4>
 
 <ul><li><a href="#feedback.context.record_effect">feedback.context.record_effect</a></li><li><a href="#feedback.finish_hook_context.record_effect">feedback.finish_hook_context.record_effect</a></li><li><a href="#git.mirrorContext.record_effect">git.mirrorContext.record_effect</a></li></ul>
+
+
+
+## dict
+
+dict is a built-in type representing an associative mapping or <i>dictionary</i>. A dictionary supports indexing using <code>d[k]</code> and key membership testing using <code>k in d</code>; both operations take constant time. Unfrozen dictionaries are mutable, and may be updated by assigning to <code>d[k]</code> or by calling certain methods. Dictionaries are iterable; iteration yields the sequence of keys in insertion order. Iteration order is unaffected by updating the value associated with an existing key, but is affected by removing then reinserting a key.
+<pre>d = {0: "x", 2: "z", 1: "y"}
+[k for k in d]  # [0, 2, 1]
+d.pop(2)
+d[0], d[2] = "a", "b"
+0 in d, "a" in d  # (True, False)
+[(k, v) for k, v in d.items()]  # [(0, "a"), (1, "y"), (2, "b")]
+</pre>
+<p>There are four ways to construct a dictionary:
+<ol>
+<li>A dictionary expression <code>{k: v, ...}</code> yields a new dictionary with the specified key/value entries, inserted in the order they appear in the expression. Evaluation fails if any two key expressions yield the same value.</li><li>A dictionary comprehension <code>{k: v for vars in seq}</code> yields a new dictionary into which each key/value pair is inserted in loop iteration order. Duplicates are permitted: the first insertion of a given key determines its position in the sequence, and the last determines its associated value.
+<pre class="language-python">
+{k: v for k, v in (("a", 0), ("b", 1), ("a", 2))}  # {"a": 2, "b": 1}
+{i: 2*i for i in range(3)}  # {0: 0, 1: 2, 2: 4}
+</pre></li><li>A call to the built-in <a href="#dict">dict</a> function returns a dictionary containing the specified entries, which are inserted in argument order, positional arguments before named. As with comprehensions, duplicate keys are permitted.</li><li>The union expression <code>x | y</code> yields a new dictionary by combining two existing dictionaries. If the two dictionaries have a key <code>k</code> in common, the right hand side dictionary's value of the key (in other words, <code>y[k]</code>) wins. The <code>|=</code> variant of the union operator modifies a dictionary in-place. Example:<br><pre class=language-python>d = {"foo": "FOO", "bar": "BAR"} | {"foo": "FOO2", "baz": "BAZ"}
+# d == {"foo": "FOO2", "bar": "BAR", "baz": "BAZ"}
+d = {"a": 1, "b": 2}
+d |= {"b": 3, "c": 4}
+# d == {"a": 1, "b": 3, "c": 4}</pre></li></ol>
+
+
+<h4 id="returned_by.dict">Returned By:</h4>
+
+<ul><li><a href="#dict">dict</a></li></ul>
+<h4 id="consumed_by.dict">Consumed By:</h4>
+
+<ul><li><a href="#core.action">core.action</a></li><li><a href="#core.copy">core.copy</a></li><li><a href="#core.dynamic_feedback">core.dynamic_feedback</a></li><li><a href="#core.dynamic_transform">core.dynamic_transform</a></li><li><a href="#core.latest_version">core.latest_version</a></li><li><a href="#core.move">core.move</a></li><li><a href="#core.replace">core.replace</a></li><li><a href="#core.todo_replace">core.todo_replace</a></li><li><a href="#dict.update">dict.update</a></li><li><a href="#git.latest_version">git.latest_version</a></li><li><a href="#git.review_input">git.review_input</a></li><li><a href="#dict">dict</a></li><li><a href="#http.endpoint">http.endpoint</a></li><li><a href="#http.trigger">http.trigger</a></li><li><a href="#http.urlencoded_form">http.urlencoded_form</a></li><li><a href="#http_endpoint.delete">http_endpoint.delete</a></li><li><a href="#http_endpoint.get">http_endpoint.get</a></li><li><a href="#http_endpoint.post">http_endpoint.post</a></li><li><a href="#metadata.map_author">metadata.map_author</a></li><li><a href="#metadata.map_references">metadata.map_references</a></li><li><a href="#string.format">string.format</a></li><li><a href="#struct">struct</a></li></ul>
+
+<a id="dict.clear" aria-hidden="true"></a>
+### dict.clear
+
+Remove all items from the dictionary.
+
+<code>dict.clear()</code>
+
+<a id="dict.get" aria-hidden="true"></a>
+### dict.get
+
+Returns the value for <code>key</code> if <code>key</code> is in the dictionary, else <code>default</code>. If <code>default</code> is not given, it defaults to <code>None</code>, so that this method never throws an error.
+
+<code>unknown</code> <code>dict.get(<a href=#dict.get.key>key</a>, <a href=#dict.get.default>default</a>=None)</code>
+
+
+<h4 id="parameters.dict.get">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=dict.get.key href=#dict.get.key>key</span> | <code>unknown</code><br><p>The key to look for.</p>
+<span id=dict.get.default href=#dict.get.default>default</span> | <code>unknown</code><br><p>The default value to use (instead of None) if the key is not found.</p>
+
+<a id="dict.items" aria-hidden="true"></a>
+### dict.items
+
+Returns the list of key-value tuples:<pre class="language-python">{2: "a", 4: "b", 1: "c"}.items() == [(2, "a"), (4, "b"), (1, "c")]</pre>
+
+
+<code>sequence</code> <code>dict.items()</code>
+
+<a id="dict.keys" aria-hidden="true"></a>
+### dict.keys
+
+Returns the list of keys:<pre class="language-python">{2: "a", 4: "b", 1: "c"}.keys() == [2, 4, 1]</pre>
+
+
+<code>sequence</code> <code>dict.keys()</code>
+
+<a id="dict.pop" aria-hidden="true"></a>
+### dict.pop
+
+Removes a <code>key</code> from the dict, and returns the associated value. If no entry with that key was found, remove nothing and return the specified <code>default</code> value; if no default value was specified, fail instead.
+
+<code>unknown</code> <code>dict.pop(<a href=#dict.pop.key>key</a>, <a href=#dict.pop.default>default</a>=unbound)</code>
+
+
+<h4 id="parameters.dict.pop">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=dict.pop.key href=#dict.pop.key>key</span> | <code>unknown</code><br><p>The key.</p>
+<span id=dict.pop.default href=#dict.pop.default>default</span> | <code>unknown</code><br><p>a default value if the key is absent.</p>
+
+<a id="dict.popitem" aria-hidden="true"></a>
+### dict.popitem
+
+Remove and return the first <code>(key, value)</code> pair from the dictionary. <code>popitem</code> is useful to destructively iterate over a dictionary, as often used in set algorithms. If the dictionary is empty, the <code>popitem</code> call fails.
+
+<code><a href="#tuple">tuple</a></code> <code>dict.popitem()</code>
+
+<a id="dict.setdefault" aria-hidden="true"></a>
+### dict.setdefault
+
+If <code>key</code> is in the dictionary, return its value. If not, insert key with a value of <code>default</code> and return <code>default</code>. <code>default</code> defaults to <code>None</code>.
+
+<code>?</code> <code>dict.setdefault(<a href=#dict.setdefault.key>key</a>, <a href=#dict.setdefault.default>default</a>=None)</code>
+
+
+<h4 id="parameters.dict.setdefault">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=dict.setdefault.key href=#dict.setdefault.key>key</span> | <code>?</code><br><p>The key.</p>
+<span id=dict.setdefault.default href=#dict.setdefault.default>default</span> | <code>?</code><br><p>a default value if the key is absent.</p>
+
+<a id="dict.update" aria-hidden="true"></a>
+### dict.update
+
+Updates the dictionary first with the optional positional argument, <code>pairs</code>,  then with the optional keyword arguments
+If the positional argument is present, it must be a dict, iterable, or None.
+If it is a dict, then its key/value pairs are inserted into this dict. If it is an iterable, it must provide a sequence of pairs (or other iterables of length 2), each of which is treated as a key/value pair to be inserted.
+Each keyword argument <code>name=value</code> causes the name/value pair to be inserted into this dict.
+
+<code>dict.update(<a href=#dict.update.pairs>pairs</a>=[], <a href=#dict.update.kwargs>kwargs</a>)</code>
+
+
+<h4 id="parameters.dict.update">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=dict.update.pairs href=#dict.update.pairs>pairs</span> | <code>unknown</code><br><p>Either a dictionary or a list of entries. Entries must be tuples or lists with exactly two elements: key, value.</p>
+<span id=dict.update.kwargs href=#dict.update.kwargs>kwargs</span> | <code><a href="#dict">dict</a></code><br><p>Dictionary of additional entries.</p>
+
+<a id="dict.values" aria-hidden="true"></a>
+### dict.values
+
+Returns the list of values:<pre class="language-python">{2: "a", 4: "b", 1: "c"}.values() == ["a", "b", "c"]</pre>
+
+
+<code>sequence</code> <code>dict.values()</code>
 
 
 
@@ -2099,8 +2331,8 @@ Result objects created by actions to tell Copybara what happened.
 
 Name | Description
 ---- | -----------
-msg | <code>string</code><br><p>The message associated with the result</p>
-result | <code>string</code><br><p>The result of this action</p>
+msg | <code><a href="#string">string</a></code><br><p>The message associated with the result</p>
+result | <code><a href="#string">string</a></code><br><p>The result of this action</p>
 
 
 <h4 id="returned_by.dynamic.action_result">Returned By:</h4>
@@ -2118,7 +2350,7 @@ An origin or destination API in a feedback migration.
 
 Name | Description
 ---- | -----------
-url | <code>string</code><br><p>Return the URL of this endpoint.</p>
+url | <code><a href="#string">string</a></code><br><p>Return the URL of this endpoint.</p>
 
 
 <h4 id="returned_by.endpoint">Returned By:</h4>
@@ -2137,9 +2369,9 @@ Creates a new destination reference out of this endpoint.
 
 Parameter | Description
 --------- | -----------
-<span id=endpoint.new_destination_ref.ref href=#endpoint.new_destination_ref.ref>ref</span> | <code>string</code><br><p>The reference.</p>
-<span id=endpoint.new_destination_ref.type href=#endpoint.new_destination_ref.type>type</span> | <code>string</code><br><p>The type of this reference.</p>
-<span id=endpoint.new_destination_ref.url href=#endpoint.new_destination_ref.url>url</span> | <code>string</code> or <code>NoneType</code><br><p>The url associated with this reference, if any.</p>
+<span id=endpoint.new_destination_ref.ref href=#endpoint.new_destination_ref.ref>ref</span> | <code><a href="#string">string</a></code><br><p>The reference.</p>
+<span id=endpoint.new_destination_ref.type href=#endpoint.new_destination_ref.type>type</span> | <code><a href="#string">string</a></code><br><p>The type of this reference.</p>
+<span id=endpoint.new_destination_ref.url href=#endpoint.new_destination_ref.url>url</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>The url associated with this reference, if any.</p>
 
 <a id="endpoint.new_origin_ref" aria-hidden="true"></a>
 ### endpoint.new_origin_ref
@@ -2153,7 +2385,7 @@ Creates a new origin reference out of this endpoint.
 
 Parameter | Description
 --------- | -----------
-<span id=endpoint.new_origin_ref.ref href=#endpoint.new_origin_ref.ref>ref</span> | <code>string</code><br><p>The reference.</p>
+<span id=endpoint.new_origin_ref.ref href=#endpoint.new_origin_ref.ref>ref</span> | <code><a href="#string">string</a></code><br><p>The reference.</p>
 
 
 
@@ -2166,16 +2398,16 @@ Gives access to the feedback migration information and utilities. This context i
 
 Name | Description
 ---- | -----------
-action_name | <code>string</code><br><p>The name of the current action.</p>
-cli_labels | <code>dict[string, string]</code><br><p>Access labels that a user passes through flag '--labels'. For example: --labels=foo:value1,bar:value2. Then it can access in this way:cli_labels['foo'].</p>
+action_name | <code><a href="#string">string</a></code><br><p>The name of the current action.</p>
+cli_labels | <code>dict[<a href="#string">string</a>, <a href="#string">string</a>]</code><br><p>Access labels that a user passes through flag '--labels'. For example: --labels=foo:value1,bar:value2. Then it can access in this way:cli_labels['foo'].</p>
 console | <code><a href="#console">Console</a></code><br><p>Get an instance of the console to report errors or warnings</p>
 destination | <code><a href="#endpoint">endpoint</a></code><br><p>An object representing the destination. Can be used to query or modify the destination state</p>
 endpoints | <code>structure</code><br><p>An object that gives access to the API of the configured endpoints</p>
-feedback_name | <code>string</code><br><p>DEPRECATED: The name of the Feedback migration calling this action. Use migration_name instead.</p>
+feedback_name | <code><a href="#string">string</a></code><br><p>DEPRECATED: The name of the Feedback migration calling this action. Use migration_name instead.</p>
 fs | <code>action.filesystem</code><br><p>If a migration of type `core.action_migration` sets `filesystem = True`, it gives access to the underlying migration filesystem to manipulate files.</p>
-migration_name | <code>string</code><br><p>The name of the migration calling this action.</p>
+migration_name | <code><a href="#string">string</a></code><br><p>The name of the migration calling this action.</p>
 origin | <code><a href="#endpoint">endpoint</a></code><br><p>An object representing the origin. Can be used to query about the ref or modifying the origin state</p>
-params | <code>dict</code><br><p>Parameters for the function if created with core.action</p>
+params | <code><a href="#dict">dict</a></code><br><p>Parameters for the function if created with core.action</p>
 refs | <code>list of string</code><br><p>A list containing string representations of the entities that triggered the event</p>
 
 <a id="feedback.context.error" aria-hidden="true"></a>
@@ -2190,7 +2422,7 @@ Returns an error action result.
 
 Parameter | Description
 --------- | -----------
-<span id=feedback.context.error.msg href=#feedback.context.error.msg>msg</span> | <code>string</code><br><p>The error message</p>
+<span id=feedback.context.error.msg href=#feedback.context.error.msg>msg</span> | <code><a href="#string">string</a></code><br><p>The error message</p>
 
 <a id="feedback.context.noop" aria-hidden="true"></a>
 ### feedback.context.noop
@@ -2204,7 +2436,7 @@ Returns a no op action result with an optional message.
 
 Parameter | Description
 --------- | -----------
-<span id=feedback.context.noop.msg href=#feedback.context.noop.msg>msg</span> | <code>string</code> or <code>NoneType</code><br><p>The no op message</p>
+<span id=feedback.context.noop.msg href=#feedback.context.noop.msg>msg</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>The no op message</p>
 
 <a id="feedback.context.record_effect" aria-hidden="true"></a>
 ### feedback.context.record_effect
@@ -2218,11 +2450,11 @@ Records an effect of the current action.
 
 Parameter | Description
 --------- | -----------
-<span id=feedback.context.record_effect.summary href=#feedback.context.record_effect.summary>summary</span> | <code>string</code><br><p>The summary of this effect</p>
+<span id=feedback.context.record_effect.summary href=#feedback.context.record_effect.summary>summary</span> | <code><a href="#string">string</a></code><br><p>The summary of this effect</p>
 <span id=feedback.context.record_effect.origin_refs href=#feedback.context.record_effect.origin_refs>origin_refs</span> | <code>sequence of <a href="#origin_ref">origin_ref</a></code><br><p>The origin refs</p>
 <span id=feedback.context.record_effect.destination_ref href=#feedback.context.record_effect.destination_ref>destination_ref</span> | <code><a href="#destination_ref">destination_ref</a></code><br><p>The destination ref</p>
-<span id=feedback.context.record_effect.errors href=#feedback.context.record_effect.errors>errors</span> | <code>sequence of string</code><br><p>An optional list of errors</p>
-<span id=feedback.context.record_effect.type href=#feedback.context.record_effect.type>type</span> | <code>string</code><br><p>The type of migration effect:<br><ul><li><b>'CREATED'</b>: A new review or change was created.</li><li><b>'UPDATED'</b>: An existing review or change was updated.</li><li><b>'NOOP'</b>: The change was a noop.</li><li><b>'NOOP_AGAINST_PENDING_CHANGE'</b>: The change was a noop, relativeto an existing pending change.</li><li><b>'INSUFFICIENT_APPROVALS'</b>: The effect couldn't happen because the change doesn't have enough approvals.</li><li><b>'ERROR'</b>: A user attributable error happened that prevented the destination from creating/updating the change. <li><b>'STARTED'</b>: The initial effect of a migration that depends on a previous one. This allows to have 'dependant' migrations defined by users.<br>An example of this: a workflow migrates code from a Gerrit review to a GitHub PR, and a feedback migration migrates the test results from a CI in GitHub back to the Gerrit change.<br>This effect would be created on the former one.</li></ul></p>
+<span id=feedback.context.record_effect.errors href=#feedback.context.record_effect.errors>errors</span> | <code>sequence of <a href="#string">string</a></code><br><p>An optional list of errors</p>
+<span id=feedback.context.record_effect.type href=#feedback.context.record_effect.type>type</span> | <code><a href="#string">string</a></code><br><p>The type of migration effect:<br><ul><li><b>'CREATED'</b>: A new review or change was created.</li><li><b>'UPDATED'</b>: An existing review or change was updated.</li><li><b>'NOOP'</b>: The change was a noop.</li><li><b>'NOOP_AGAINST_PENDING_CHANGE'</b>: The change was a noop, relativeto an existing pending change.</li><li><b>'INSUFFICIENT_APPROVALS'</b>: The effect couldn't happen because the change doesn't have enough approvals.</li><li><b>'ERROR'</b>: A user attributable error happened that prevented the destination from creating/updating the change.</li><li><b>'STARTED'</b>: The initial effect of a migration that depends on a previous one. This allows to have 'dependant' migrations defined by users.<br>An example of this: a workflow migrates code from a Gerrit review to a GitHub PR, and a feedback migration migrates the test results from a CI in GitHub back to the Gerrit change.<br>This effect would be created on the former one.</li></ul></p>
 
 <a id="feedback.context.success" aria-hidden="true"></a>
 ### feedback.context.success
@@ -2242,13 +2474,13 @@ Gives access to the feedback migration information and utilities. This context i
 
 Name | Description
 ---- | -----------
-action_name | <code>string</code><br><p>The name of the current action.</p>
-cli_labels | <code>dict[string, string]</code><br><p>Access labels that a user passes through flag '--labels'. For example: --labels=foo:value1,bar:value2. Then it can access in this way:cli_labels['foo'].</p>
+action_name | <code><a href="#string">string</a></code><br><p>The name of the current action.</p>
+cli_labels | <code>dict[<a href="#string">string</a>, <a href="#string">string</a>]</code><br><p>Access labels that a user passes through flag '--labels'. For example: --labels=foo:value1,bar:value2. Then it can access in this way:cli_labels['foo'].</p>
 console | <code><a href="#console">Console</a></code><br><p>Get an instance of the console to report errors or warnings</p>
 destination | <code><a href="#endpoint">endpoint</a></code><br><p>An object representing the destination. Can be used to query or modify the destination state</p>
 effects | <code>list of destination_effect</code><br><p>The list of effects that happened in the destination</p>
 origin | <code><a href="#endpoint">endpoint</a></code><br><p>An object representing the origin. Can be used to query about the ref or modifying the origin state</p>
-params | <code>dict</code><br><p>Parameters for the function if created with core.action</p>
+params | <code><a href="#dict">dict</a></code><br><p>Parameters for the function if created with core.action</p>
 revision | <code><a href="#feedbackrevision_context">feedback.revision_context</a></code><br><p>Get the requested/resolved revision</p>
 
 <a id="feedback.finish_hook_context.error" aria-hidden="true"></a>
@@ -2263,7 +2495,7 @@ Returns an error action result.
 
 Parameter | Description
 --------- | -----------
-<span id=feedback.finish_hook_context.error.msg href=#feedback.finish_hook_context.error.msg>msg</span> | <code>string</code><br><p>The error message</p>
+<span id=feedback.finish_hook_context.error.msg href=#feedback.finish_hook_context.error.msg>msg</span> | <code><a href="#string">string</a></code><br><p>The error message</p>
 
 <a id="feedback.finish_hook_context.noop" aria-hidden="true"></a>
 ### feedback.finish_hook_context.noop
@@ -2277,7 +2509,7 @@ Returns a no op action result with an optional message.
 
 Parameter | Description
 --------- | -----------
-<span id=feedback.finish_hook_context.noop.msg href=#feedback.finish_hook_context.noop.msg>msg</span> | <code>string</code> or <code>NoneType</code><br><p>The no op message</p>
+<span id=feedback.finish_hook_context.noop.msg href=#feedback.finish_hook_context.noop.msg>msg</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>The no op message</p>
 
 <a id="feedback.finish_hook_context.record_effect" aria-hidden="true"></a>
 ### feedback.finish_hook_context.record_effect
@@ -2291,11 +2523,11 @@ Records an effect of the current action.
 
 Parameter | Description
 --------- | -----------
-<span id=feedback.finish_hook_context.record_effect.summary href=#feedback.finish_hook_context.record_effect.summary>summary</span> | <code>string</code><br><p>The summary of this effect</p>
+<span id=feedback.finish_hook_context.record_effect.summary href=#feedback.finish_hook_context.record_effect.summary>summary</span> | <code><a href="#string">string</a></code><br><p>The summary of this effect</p>
 <span id=feedback.finish_hook_context.record_effect.origin_refs href=#feedback.finish_hook_context.record_effect.origin_refs>origin_refs</span> | <code>sequence of <a href="#origin_ref">origin_ref</a></code><br><p>The origin refs</p>
 <span id=feedback.finish_hook_context.record_effect.destination_ref href=#feedback.finish_hook_context.record_effect.destination_ref>destination_ref</span> | <code><a href="#destination_ref">destination_ref</a></code><br><p>The destination ref</p>
-<span id=feedback.finish_hook_context.record_effect.errors href=#feedback.finish_hook_context.record_effect.errors>errors</span> | <code>sequence of string</code><br><p>An optional list of errors</p>
-<span id=feedback.finish_hook_context.record_effect.type href=#feedback.finish_hook_context.record_effect.type>type</span> | <code>string</code><br><p>The type of migration effect:<br><ul><li><b>'CREATED'</b>: A new review or change was created.</li><li><b>'UPDATED'</b>: An existing review or change was updated.</li><li><b>'NOOP'</b>: The change was a noop.</li><li><b>'NOOP_AGAINST_PENDING_CHANGE'</b>: The change was a noop, relativeto an existing pending change.</li><li><b>'INSUFFICIENT_APPROVALS'</b>: The effect couldn't happen because the change doesn't have enough approvals.</li><li><b>'ERROR'</b>: A user attributable error happened that prevented the destination from creating/updating the change. <li><b>'STARTED'</b>: The initial effect of a migration that depends on a previous one. This allows to have 'dependant' migrations defined by users.<br>An example of this: a workflow migrates code from a Gerrit review to a GitHub PR, and a feedback migration migrates the test results from a CI in GitHub back to the Gerrit change.<br>This effect would be created on the former one.</li></ul></p>
+<span id=feedback.finish_hook_context.record_effect.errors href=#feedback.finish_hook_context.record_effect.errors>errors</span> | <code>sequence of <a href="#string">string</a></code><br><p>An optional list of errors</p>
+<span id=feedback.finish_hook_context.record_effect.type href=#feedback.finish_hook_context.record_effect.type>type</span> | <code><a href="#string">string</a></code><br><p>The type of migration effect:<br><ul><li><b>'CREATED'</b>: A new review or change was created.</li><li><b>'UPDATED'</b>: An existing review or change was updated.</li><li><b>'NOOP'</b>: The change was a noop.</li><li><b>'NOOP_AGAINST_PENDING_CHANGE'</b>: The change was a noop, relativeto an existing pending change.</li><li><b>'INSUFFICIENT_APPROVALS'</b>: The effect couldn't happen because the change doesn't have enough approvals.</li><li><b>'ERROR'</b>: A user attributable error happened that prevented the destination from creating/updating the change.</li><li><b>'STARTED'</b>: The initial effect of a migration that depends on a previous one. This allows to have 'dependant' migrations defined by users.<br>An example of this: a workflow migrates code from a Gerrit review to a GitHub PR, and a feedback migration migrates the test results from a CI in GitHub back to the Gerrit change.<br>This effect would be created on the former one.</li></ul></p>
 
 <a id="feedback.finish_hook_context.success" aria-hidden="true"></a>
 ### feedback.finish_hook_context.success
@@ -2315,21 +2547,21 @@ Information about the revision request/resolved for the migration
 
 Name | Description
 ---- | -----------
-labels | <code>dict[string, list of string]</code><br><p>A dictionary with the labels detected for the requested/resolved revision.</p>
+labels | <code>dict[<a href="#string">string</a>, list of string]</code><br><p>A dictionary with the labels detected for the requested/resolved revision.</p>
 
 <a id="feedback.revision_context.fill_template" aria-hidden="true"></a>
 ### feedback.revision_context.fill_template
 
 Replaces variables in templates with the values from this revision.
 
-<code>string</code> <code>feedback.revision_context.fill_template(<a href=#feedback.revision_context.fill_template.template>template</a>)</code>
+<code><a href="#string">string</a></code> <code>feedback.revision_context.fill_template(<a href=#feedback.revision_context.fill_template.template>template</a>)</code>
 
 
 <h4 id="parameters.feedback.revision_context.fill_template">Parameters:</h4>
 
 Parameter | Description
 --------- | -----------
-<span id=feedback.revision_context.fill_template.template href=#feedback.revision_context.fill_template.template>template</span> | <code>string</code><br><p>The template to use</p>
+<span id=feedback.revision_context.fill_template.template href=#feedback.revision_context.fill_template.template>template</span> | <code><a href="#string">string</a></code><br><p>The template to use</p>
 
 
 <h4 id="example.feedback.revision_context.fill_template">Example:</h4>
@@ -2359,6 +2591,20 @@ A core.filter_replace transformation
 
 
 
+## float
+
+The type of floating-point numbers in Starlark.
+
+
+<h4 id="returned_by.float">Returned By:</h4>
+
+<ul><li><a href="#float">float</a></li></ul>
+<h4 id="consumed_by.float">Consumed By:</h4>
+
+<ul><li><a href="#abs">abs</a></li></ul>
+
+
+
 ## folder
 
 Module for dealing with local filesystem folders
@@ -2366,7 +2612,7 @@ Module for dealing with local filesystem folders
 <a id="folder.destination" aria-hidden="true"></a>
 ### folder.destination
 
-A folder destination is a destination that puts the output in a folder. It can be used both for testing or real production migrations.Given that folder destination does not support a lot of the features of real VCS, there are some limitations on how to use it:<ul><li>It requires passing a ref as an argument, as there is no way of calculating previous migrated changes. Alternatively, --last-rev can be used, which could migrate N changes.<li>Most likely, the workflow should use 'SQUASH' mode, as history is not supported.<li>If 'ITERATIVE' mode is used, a new temp directory will be created for each change migrated.</ul>
+A folder destination is a destination that puts the output in a folder. It can be used both for testing or real production migrations.Given that folder destination does not support a lot of the features of real VCS, there are some limitations on how to use it:<ul><li>It requires passing a ref as an argument, as there is no way of calculating previous migrated changes. Alternatively, --last-rev can be used, which could migrate N changes.</li><li>Most likely, the workflow should use 'SQUASH' mode, as history is not supported.</li><li>If 'ITERATIVE' mode is used, a new temp directory will be created for each change migrated.</li></ul>
 
 <code><a href="#destination">destination</a></code> <code>folder.destination()</code>
 
@@ -2390,7 +2636,7 @@ A folder origin is a origin that uses a folder as input. The folder is specified
 
 Parameter | Description
 --------- | -----------
-<span id=folder.origin.materialize_outside_symlinks href=#folder.origin.materialize_outside_symlinks>materialize_outside_symlinks</span> | <code>bool</code><br><p>By default folder.origin will refuse any symlink in the migration folder that is an absolute symlink or that refers to a file outside of the folder. If this flag is set, it will materialize those symlinks as regular files in the checkout directory.</p>
+<span id=folder.origin.materialize_outside_symlinks href=#folder.origin.materialize_outside_symlinks>materialize_outside_symlinks</span> | <code><a href="#bool">bool</a></code><br><p>By default folder.origin will refuse any symlink in the migration folder that is an absolute symlink or that refers to a file outside of the folder. If this flag is set, it will materialize those symlinks as regular files in the checkout directory.</p>
 
 
 
@@ -2422,9 +2668,9 @@ Formats the BUILD files using buildifier.
 Parameter | Description
 --------- | -----------
 <span id=format.buildifier.paths href=#format.buildifier.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>Paths of the files to format relative to the workdir.</p>
-<span id=format.buildifier.type href=#format.buildifier.type>type</span> | <code>string</code> or <code>NoneType</code><br><p>The type of the files. Can be 'auto', 'bzl', 'build' or 'workspace'. Note that this is not recommended to be set and might break in the future. The default is 'auto'. This mode formats as BUILD files "BUILD", "BUILD.bazel", "WORKSPACE" and "WORKSPACE.bazel" files. The rest as bzl files. Prefer to use those names for BUILD files instead of setting this flag.</p>
-<span id=format.buildifier.lint href=#format.buildifier.lint>lint</span> | <code>string</code> or <code>NoneType</code><br><p>If buildifier --lint should be used. This fixes several common issues. Note that this transformation is difficult to revert. For example if it removes a load statement because is not used after removing a rule, then the reverse workflow needs to add back the load statement (core.replace or similar).  Possible values: `OFF`, `FIX`. Default is `OFF`</p>
-<span id=format.buildifier.lint_warnings href=#format.buildifier.lint_warnings>lint_warnings</span> | <code>sequence of string</code><br><p>Warnings used in the lint mode. Default is buildifier default</p>
+<span id=format.buildifier.type href=#format.buildifier.type>type</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>The type of the files. Can be 'auto', 'bzl', 'build' or 'workspace'. Note that this is not recommended to be set and might break in the future. The default is 'auto'. This mode formats as BUILD files "BUILD", "BUILD.bazel", "WORKSPACE" and "WORKSPACE.bazel" files. The rest as bzl files. Prefer to use those names for BUILD files instead of setting this flag.</p>
+<span id=format.buildifier.lint href=#format.buildifier.lint>lint</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>If buildifier --lint should be used. This fixes several common issues. Note that this transformation is difficult to revert. For example if it removes a load statement because is not used after removing a rule, then the reverse workflow needs to add back the load statement (core.replace or similar).  Possible values: `OFF`, `FIX`. Default is `OFF`</p>
+<span id=format.buildifier.lint_warnings href=#format.buildifier.lint_warnings>lint_warnings</span> | <code>sequence of <a href="#string">string</a></code><br><p>Warnings used in the lint mode. Default is buildifier default</p>
 
 
 <h4 id="example.format.buildifier">Examples:</h4>
@@ -2471,6 +2717,12 @@ Name | Type | Description
 
 
 
+## function
+
+The type of functions declared in Starlark.
+
+
+
 ## gerrit_api_obj
 
 Gerrit API endpoint implementation for feedback migrations and after migration hooks.
@@ -2480,7 +2732,7 @@ Gerrit API endpoint implementation for feedback migrations and after migration h
 
 Name | Description
 ---- | -----------
-url | <code>string</code><br><p>Return the URL of this endpoint.</p>
+url | <code><a href="#string">string</a></code><br><p>Return the URL of this endpoint.</p>
 
 <a id="gerrit_api_obj.abandon_change" aria-hidden="true"></a>
 ### gerrit_api_obj.abandon_change
@@ -2494,7 +2746,7 @@ Abandon a Gerrit change.
 
 Parameter | Description
 --------- | -----------
-<span id=gerrit_api_obj.abandon_change.change_id href=#gerrit_api_obj.abandon_change.change_id>change_id</span> | <code>string</code><br><p>The Gerrit change id.</p>
+<span id=gerrit_api_obj.abandon_change.change_id href=#gerrit_api_obj.abandon_change.change_id>change_id</span> | <code><a href="#string">string</a></code><br><p>The Gerrit change id.</p>
 
 <a id="gerrit_api_obj.delete_vote" aria-hidden="true"></a>
 ### gerrit_api_obj.delete_vote
@@ -2509,24 +2761,24 @@ Delete a label vote from an account owner on a Gerrit change.
 
 Parameter | Description
 --------- | -----------
-<span id=gerrit_api_obj.delete_vote.change_id href=#gerrit_api_obj.delete_vote.change_id>change_id</span> | <code>string</code><br><p>The Gerrit change id.</p>
-<span id=gerrit_api_obj.delete_vote.account_id href=#gerrit_api_obj.delete_vote.account_id>account_id</span> | <code>string</code><br><p>The account owner who votes on label_id. Use 'me' or 'self' if the account owner makes this api call</p>
-<span id=gerrit_api_obj.delete_vote.label_id href=#gerrit_api_obj.delete_vote.label_id>label_id</span> | <code>string</code><br><p>The name of the label.</p>
+<span id=gerrit_api_obj.delete_vote.change_id href=#gerrit_api_obj.delete_vote.change_id>change_id</span> | <code><a href="#string">string</a></code><br><p>The Gerrit change id.</p>
+<span id=gerrit_api_obj.delete_vote.account_id href=#gerrit_api_obj.delete_vote.account_id>account_id</span> | <code><a href="#string">string</a></code><br><p>The account owner who votes on label_id. Use 'me' or 'self' if the account owner makes this api call</p>
+<span id=gerrit_api_obj.delete_vote.label_id href=#gerrit_api_obj.delete_vote.label_id>label_id</span> | <code><a href="#string">string</a></code><br><p>The name of the label.</p>
 
 <a id="gerrit_api_obj.get_actions" aria-hidden="true"></a>
 ### gerrit_api_obj.get_actions
 
 Retrieve the actions of a Gerrit change.
 
-<code>dict[string, <a href="#gerritapigetactioninfo">gerritapi.getActionInfo</a>]</code> <code>gerrit_api_obj.get_actions(<a href=#gerrit_api_obj.get_actions.id>id</a>, <a href=#gerrit_api_obj.get_actions.revision>revision</a>)</code>
+<code>dict[<a href="#string">string</a>, <a href="#gerritapigetactioninfo">gerritapi.getActionInfo</a>]</code> <code>gerrit_api_obj.get_actions(<a href=#gerrit_api_obj.get_actions.id>id</a>, <a href=#gerrit_api_obj.get_actions.revision>revision</a>)</code>
 
 
 <h4 id="parameters.gerrit_api_obj.get_actions">Parameters:</h4>
 
 Parameter | Description
 --------- | -----------
-<span id=gerrit_api_obj.get_actions.id href=#gerrit_api_obj.get_actions.id>id</span> | <code>string</code><br><p>The change id or change number.</p>
-<span id=gerrit_api_obj.get_actions.revision href=#gerrit_api_obj.get_actions.revision>revision</span> | <code>string</code><br><p>The revision of the change.</p>
+<span id=gerrit_api_obj.get_actions.id href=#gerrit_api_obj.get_actions.id>id</span> | <code><a href="#string">string</a></code><br><p>The change id or change number.</p>
+<span id=gerrit_api_obj.get_actions.revision href=#gerrit_api_obj.get_actions.revision>revision</span> | <code><a href="#string">string</a></code><br><p>The revision of the change.</p>
 
 <a id="gerrit_api_obj.get_change" aria-hidden="true"></a>
 ### gerrit_api_obj.get_change
@@ -2540,8 +2792,8 @@ Retrieve a Gerrit change.
 
 Parameter | Description
 --------- | -----------
-<span id=gerrit_api_obj.get_change.id href=#gerrit_api_obj.get_change.id>id</span> | <code>string</code><br><p>The change id or change number.</p>
-<span id=gerrit_api_obj.get_change.include_results href=#gerrit_api_obj.get_change.include_results>include_results</span> | <code>sequence of string</code><br><p>What to include in the response. See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#query-options</p>
+<span id=gerrit_api_obj.get_change.id href=#gerrit_api_obj.get_change.id>id</span> | <code><a href="#string">string</a></code><br><p>The change id or change number.</p>
+<span id=gerrit_api_obj.get_change.include_results href=#gerrit_api_obj.get_change.include_results>include_results</span> | <code>sequence of <a href="#string">string</a></code><br><p>What to include in the response. See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#query-options</p>
 
 <a id="gerrit_api_obj.list_changes" aria-hidden="true"></a>
 ### gerrit_api_obj.list_changes
@@ -2556,8 +2808,8 @@ Get changes from Gerrit based on a query. See https://gerrit-review.googlesource
 
 Parameter | Description
 --------- | -----------
-<span id=gerrit_api_obj.list_changes.query href=#gerrit_api_obj.list_changes.query>query</span> | <code>string</code><br><p>The query string to list changes by. See https://gerrit-review.googlesource.com/Documentation/user-search.html#_basic_change_search.</p>
-<span id=gerrit_api_obj.list_changes.include_results href=#gerrit_api_obj.list_changes.include_results>include_results</span> | <code>sequence of string</code><br><p>What to include in the response. See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#query-options</p>
+<span id=gerrit_api_obj.list_changes.query href=#gerrit_api_obj.list_changes.query>query</span> | <code><a href="#string">string</a></code><br><p>The query string to list changes by. See https://gerrit-review.googlesource.com/Documentation/user-search.html#_basic_change_search.</p>
+<span id=gerrit_api_obj.list_changes.include_results href=#gerrit_api_obj.list_changes.include_results>include_results</span> | <code>sequence of <a href="#string">string</a></code><br><p>What to include in the response. See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#query-options</p>
 
 <a id="gerrit_api_obj.new_destination_ref" aria-hidden="true"></a>
 ### gerrit_api_obj.new_destination_ref
@@ -2571,9 +2823,9 @@ Creates a new destination reference out of this endpoint.
 
 Parameter | Description
 --------- | -----------
-<span id=gerrit_api_obj.new_destination_ref.ref href=#gerrit_api_obj.new_destination_ref.ref>ref</span> | <code>string</code><br><p>The reference.</p>
-<span id=gerrit_api_obj.new_destination_ref.type href=#gerrit_api_obj.new_destination_ref.type>type</span> | <code>string</code><br><p>The type of this reference.</p>
-<span id=gerrit_api_obj.new_destination_ref.url href=#gerrit_api_obj.new_destination_ref.url>url</span> | <code>string</code> or <code>NoneType</code><br><p>The url associated with this reference, if any.</p>
+<span id=gerrit_api_obj.new_destination_ref.ref href=#gerrit_api_obj.new_destination_ref.ref>ref</span> | <code><a href="#string">string</a></code><br><p>The reference.</p>
+<span id=gerrit_api_obj.new_destination_ref.type href=#gerrit_api_obj.new_destination_ref.type>type</span> | <code><a href="#string">string</a></code><br><p>The type of this reference.</p>
+<span id=gerrit_api_obj.new_destination_ref.url href=#gerrit_api_obj.new_destination_ref.url>url</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>The url associated with this reference, if any.</p>
 
 <a id="gerrit_api_obj.new_origin_ref" aria-hidden="true"></a>
 ### gerrit_api_obj.new_origin_ref
@@ -2587,7 +2839,7 @@ Creates a new origin reference out of this endpoint.
 
 Parameter | Description
 --------- | -----------
-<span id=gerrit_api_obj.new_origin_ref.ref href=#gerrit_api_obj.new_origin_ref.ref>ref</span> | <code>string</code><br><p>The reference.</p>
+<span id=gerrit_api_obj.new_origin_ref.ref href=#gerrit_api_obj.new_origin_ref.ref>ref</span> | <code><a href="#string">string</a></code><br><p>The reference.</p>
 
 <a id="gerrit_api_obj.post_review" aria-hidden="true"></a>
 ### gerrit_api_obj.post_review
@@ -2602,8 +2854,8 @@ Post a review to a Gerrit change for a particular revision. The review will be a
 
 Parameter | Description
 --------- | -----------
-<span id=gerrit_api_obj.post_review.change_id href=#gerrit_api_obj.post_review.change_id>change_id</span> | <code>string</code><br><p>The Gerrit change id.</p>
-<span id=gerrit_api_obj.post_review.revision_id href=#gerrit_api_obj.post_review.revision_id>revision_id</span> | <code>string</code><br><p>The revision for which the comment will be posted.</p>
+<span id=gerrit_api_obj.post_review.change_id href=#gerrit_api_obj.post_review.change_id>change_id</span> | <code><a href="#string">string</a></code><br><p>The Gerrit change id.</p>
+<span id=gerrit_api_obj.post_review.revision_id href=#gerrit_api_obj.post_review.revision_id>revision_id</span> | <code><a href="#string">string</a></code><br><p>The revision for which the comment will be posted.</p>
 <span id=gerrit_api_obj.post_review.review_input href=#gerrit_api_obj.post_review.review_input>review_input</span> | <code><a href="#setreviewinput">SetReviewInput</a></code><br><p>The review to post to Gerrit.</p>
 
 <a id="gerrit_api_obj.submit_change" aria-hidden="true"></a>
@@ -2618,7 +2870,7 @@ Submit a Gerrit change
 
 Parameter | Description
 --------- | -----------
-<span id=gerrit_api_obj.submit_change.change_id href=#gerrit_api_obj.submit_change.change_id>change_id</span> | <code>string</code><br><p>The Gerrit change id.</p>
+<span id=gerrit_api_obj.submit_change.change_id href=#gerrit_api_obj.submit_change.change_id>change_id</span> | <code><a href="#string">string</a></code><br><p>The Gerrit change id.</p>
 
 
 
@@ -2631,11 +2883,11 @@ Gerrit account information.
 
 Name | Description
 ---- | -----------
-account_id | <code>string</code><br><p>The numeric ID of the account.</p>
-email | <code>string</code><br><p>The email address the user prefers to be contacted through.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and options DETAILS and ALL_EMAILS for account queries.</p>
-name | <code>string</code><br><p>The full name of the user.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and option DETAILS for account queries.</p>
+account_id | <code><a href="#string">string</a></code><br><p>The numeric ID of the account.</p>
+email | <code><a href="#string">string</a></code><br><p>The email address the user prefers to be contacted through.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and options DETAILS and ALL_EMAILS for account queries.</p>
+name | <code><a href="#string">string</a></code><br><p>The full name of the user.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and option DETAILS for account queries.</p>
 secondary_emails | <code>list of string</code><br><p>A list of the secondary email addresses of the user.<br>Only set for account queries when the ALL_EMAILS option or the suggest parameter is set.<br>Secondary emails are only included if the calling user has the Modify Account, and hence is allowed to see secondary emails of other users.</p>
-username | <code>string</code><br><p>The username of the user.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and option DETAILS for account queries.</p>
+username | <code><a href="#string">string</a></code><br><p>The username of the user.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and option DETAILS for account queries.</p>
 
 
 
@@ -2648,13 +2900,13 @@ Gerrit approval information.
 
 Name | Description
 ---- | -----------
-account_id | <code>string</code><br><p>The numeric ID of the account.</p>
-date | <code>string</code><br><p>The time and date describing when the approval was made.</p>
-email | <code>string</code><br><p>The email address the user prefers to be contacted through.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and options DETAILS and ALL_EMAILS for account queries.</p>
-name | <code>string</code><br><p>The full name of the user.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and option DETAILS for account queries.</p>
+account_id | <code><a href="#string">string</a></code><br><p>The numeric ID of the account.</p>
+date | <code><a href="#string">string</a></code><br><p>The time and date describing when the approval was made.</p>
+email | <code><a href="#string">string</a></code><br><p>The email address the user prefers to be contacted through.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and options DETAILS and ALL_EMAILS for account queries.</p>
+name | <code><a href="#string">string</a></code><br><p>The full name of the user.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and option DETAILS for account queries.</p>
 secondary_emails | <code>list of string</code><br><p>A list of the secondary email addresses of the user.<br>Only set for account queries when the ALL_EMAILS option or the suggest parameter is set.<br>Secondary emails are only included if the calling user has the Modify Account, and hence is allowed to see secondary emails of other users.</p>
-username | <code>string</code><br><p>The username of the user.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and option DETAILS for account queries.</p>
-value | <code>int</code><br><p>The vote that the user has given for the label. If present and zero, the user is permitted to vote on the label. If absent, the user is not permitted to vote on that label.</p>
+username | <code><a href="#string">string</a></code><br><p>The username of the user.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and option DETAILS for account queries.</p>
+value | <code><a href="#int">int</a></code><br><p>The vote that the user has given for the label. If present and zero, the user is permitted to vote on the label. If absent, the user is not permitted to vote on that label.</p>
 
 
 
@@ -2667,25 +2919,25 @@ Gerrit change information.
 
 Name | Description
 ---- | -----------
-branch | <code>string</code><br><p>The name of the target branch.<br>The refs/heads/ prefix is omitted.</p>
-change_id | <code>string</code><br><p>The Change-Id of the change.</p>
-created | <code>string</code><br><p>The timestamp of when the change was created.</p>
-current_revision | <code>string</code><br><p>The commit ID of the current patch set of this change.<br>Only set if the current revision is requested or if all revisions are requested.</p>
-id | <code>string</code><br><p>The ID of the change in the format "`<project>~<branch>~<Change-Id>`", where 'project', 'branch' and 'Change-Id' are URL encoded. For 'branch' the refs/heads/ prefix is omitted.</p>
-labels | <code>dict[string, <a href="#gerritapilabelinfo">gerritapi.LabelInfo</a>]</code><br><p>The labels of the change as a map that maps the label names to LabelInfo entries.<br>Only set if labels or detailed labels are requested.</p>
+branch | <code><a href="#string">string</a></code><br><p>The name of the target branch.<br>The refs/heads/ prefix is omitted.</p>
+change_id | <code><a href="#string">string</a></code><br><p>The Change-Id of the change.</p>
+created | <code><a href="#string">string</a></code><br><p>The timestamp of when the change was created.</p>
+current_revision | <code><a href="#string">string</a></code><br><p>The commit ID of the current patch set of this change.<br>Only set if the current revision is requested or if all revisions are requested.</p>
+id | <code><a href="#string">string</a></code><br><p>The ID of the change in the format "`<project>~<branch>~<Change-Id>`", where 'project', 'branch' and 'Change-Id' are URL encoded. For 'branch' the refs/heads/ prefix is omitted.</p>
+labels | <code>dict[<a href="#string">string</a>, <a href="#gerritapilabelinfo">gerritapi.LabelInfo</a>]</code><br><p>The labels of the change as a map that maps the label names to LabelInfo entries.<br>Only set if labels or detailed labels are requested.</p>
 messages | <code>list of gerritapi.ChangeMessageInfo</code><br><p>Messages associated with the change as a list of ChangeMessageInfo entities.<br>Only set if messages are requested.</p>
-number | <code>string</code><br><p>The legacy numeric ID of the change.</p>
+number | <code><a href="#string">string</a></code><br><p>The legacy numeric ID of the change.</p>
 owner | <code><a href="#gerritapiaccountinfo">gerritapi.AccountInfo</a></code><br><p>The owner of the change as an AccountInfo entity.</p>
-project | <code>string</code><br><p>The name of the project.</p>
-revisions | <code>dict[string, <a href="#gerritapirevisioninfo">gerritapi.RevisionInfo</a>]</code><br><p>All patch sets of this change as a map that maps the commit ID of the patch set to a RevisionInfo entity.<br>Only set if the current revision is requested (in which case it will only contain a key for the current revision) or if all revisions are requested.</p>
-status | <code>string</code><br><p>The status of the change (NEW, MERGED, ABANDONED).</p>
-subject | <code>string</code><br><p>The subject of the change (header line of the commit message).</p>
+project | <code><a href="#string">string</a></code><br><p>The name of the project.</p>
+revisions | <code>dict[<a href="#string">string</a>, <a href="#gerritapirevisioninfo">gerritapi.RevisionInfo</a>]</code><br><p>All patch sets of this change as a map that maps the commit ID of the patch set to a RevisionInfo entity.<br>Only set if the current revision is requested (in which case it will only contain a key for the current revision) or if all revisions are requested.</p>
+status | <code><a href="#string">string</a></code><br><p>The status of the change (NEW, MERGED, ABANDONED).</p>
+subject | <code><a href="#string">string</a></code><br><p>The subject of the change (header line of the commit message).</p>
 submit_requirements | <code>list of SubmitRequirementResultInfo</code><br><p>A list of the evaluated submit requirements for the change.</p>
-submittable | <code>bool</code><br><p>Whether the change has been approved by the project submit rules. Only set if requested via additional field SUBMITTABLE.</p>
-submitted | <code>string</code><br><p>The timestamp of when the change was submitted.</p>
-topic | <code>string</code><br><p>The topic to which this change belongs.</p>
-triplet_id | <code>string</code><br><p>The ID of the change in the format "'<project>~<branch>~<Change-Id>'", where 'project' and 'branch' are URL encoded. For 'branch' the refs/heads/ prefix is omitted.</p>
-updated | <code>string</code><br><p>The timestamp of when the change was last updated.</p>
+submittable | <code><a href="#bool">bool</a></code><br><p>Whether the change has been approved by the project submit rules. Only set if requested via additional field SUBMITTABLE.</p>
+submitted | <code><a href="#string">string</a></code><br><p>The timestamp of when the change was submitted.</p>
+topic | <code><a href="#string">string</a></code><br><p>The topic to which this change belongs.</p>
+triplet_id | <code><a href="#string">string</a></code><br><p>The ID of the change in the format "'<project>~<branch>~<Change-Id>'", where 'project' and 'branch' are URL encoded. For 'branch' the refs/heads/ prefix is omitted.</p>
+updated | <code><a href="#string">string</a></code><br><p>The timestamp of when the change was last updated.</p>
 
 
 <h4 id="returned_by.gerritapi.ChangeInfo">Returned By:</h4>
@@ -2704,12 +2956,12 @@ Gerrit change message information.
 Name | Description
 ---- | -----------
 author | <code><a href="#gerritapiaccountinfo">gerritapi.AccountInfo</a></code><br><p>Author of the message as an AccountInfo entity.<br>Unset if written by the Gerrit system.</p>
-date | <code>string</code><br><p>The timestamp of when this identity was constructed.</p>
-id | <code>string</code><br><p>The ID of the message.</p>
-message | <code>string</code><br><p>The text left by the user.</p>
+date | <code><a href="#string">string</a></code><br><p>The timestamp of when this identity was constructed.</p>
+id | <code><a href="#string">string</a></code><br><p>The ID of the message.</p>
+message | <code><a href="#string">string</a></code><br><p>The text left by the user.</p>
 real_author | <code><a href="#gerritapiaccountinfo">gerritapi.AccountInfo</a></code><br><p>Real author of the message as an AccountInfo entity.<br>Set if the message was posted on behalf of another user.</p>
-revision_number | <code>int</code><br><p>Which patchset (if any) generated this message.</p>
-tag | <code>string</code><br><p>Value of the tag field from ReviewInput set while posting the review. NOTE: To apply different tags on on different votes/comments multiple invocations of the REST call are required.</p>
+revision_number | <code><a href="#int">int</a></code><br><p>Which patchset (if any) generated this message.</p>
+tag | <code><a href="#string">string</a></code><br><p>Value of the tag field from ReviewInput set while posting the review. NOTE: To apply different tags on on different votes/comments multiple invocations of the REST call are required.</p>
 
 
 
@@ -2729,11 +2981,11 @@ Gerrit commit information.
 Name | Description
 ---- | -----------
 author | <code><a href="#gerritapigitpersoninfo">gerritapi.GitPersonInfo</a></code><br><p>The author of the commit as a GitPersonInfo entity.</p>
-commit | <code>string</code><br><p>The commit ID. Not set if included in a RevisionInfo entity that is contained in a map which has the commit ID as key.</p>
+commit | <code><a href="#string">string</a></code><br><p>The commit ID. Not set if included in a RevisionInfo entity that is contained in a map which has the commit ID as key.</p>
 committer | <code><a href="#gerritapigitpersoninfo">gerritapi.GitPersonInfo</a></code><br><p>The committer of the commit as a GitPersonInfo entity.</p>
-message | <code>string</code><br><p>The commit message.</p>
+message | <code><a href="#string">string</a></code><br><p>The commit message.</p>
 parents | <code>list of gerritapi.ParentCommitInfo</code><br><p>The parent commits of this commit as a list of CommitInfo entities. In each parent only the commit and subject fields are populated.</p>
-subject | <code>string</code><br><p>The subject of the commit (header line of the commit message).</p>
+subject | <code><a href="#string">string</a></code><br><p>The subject of the commit (header line of the commit message).</p>
 
 
 
@@ -2746,8 +2998,8 @@ Gerrit actions information.
 
 Name | Description
 ---- | -----------
-enabled | <code>bool</code><br><p>If true the action is permitted at this time and the caller is likely allowed to execute it.</p>
-label | <code>string</code><br><p>Short title to display to a user describing the action</p>
+enabled | <code><a href="#bool">bool</a></code><br><p>If true the action is permitted at this time and the caller is likely allowed to execute it.</p>
+label | <code><a href="#string">string</a></code><br><p>Short title to display to a user describing the action</p>
 
 
 <h4 id="returned_by.gerritapi.getActionInfo">Returned By:</h4>
@@ -2765,9 +3017,9 @@ Git person information.
 
 Name | Description
 ---- | -----------
-date | <code>string</code><br><p>The timestamp of when this identity was constructed.</p>
-email | <code>string</code><br><p>The email address of the author/committer.</p>
-name | <code>string</code><br><p>The name of the author/committer.</p>
+date | <code><a href="#string">string</a></code><br><p>The timestamp of when this identity was constructed.</p>
+email | <code><a href="#string">string</a></code><br><p>The email address of the author/committer.</p>
+name | <code><a href="#string">string</a></code><br><p>The name of the author/committer.</p>
 
 
 
@@ -2782,13 +3034,13 @@ Name | Description
 ---- | -----------
 all | <code>list of gerritapi.ApprovalInfo</code><br><p>List of all approvals for this label as a list of ApprovalInfo entities. Items in this list may not represent actual votes cast by users; if a user votes on any label, a corresponding ApprovalInfo will appear in this list for all labels.</p>
 approved | <code><a href="#gerritapiaccountinfo">gerritapi.AccountInfo</a></code><br><p>One user who approved this label on the change (voted the maximum value) as an AccountInfo entity.</p>
-blocking | <code>bool</code><br><p>If true, the label blocks submit operation. If not set, the default is false.</p>
-default_value | <code>int</code><br><p>The default voting value for the label. This value may be outside the range specified in permitted_labels.</p>
+blocking | <code><a href="#bool">bool</a></code><br><p>If true, the label blocks submit operation. If not set, the default is false.</p>
+default_value | <code><a href="#int">int</a></code><br><p>The default voting value for the label. This value may be outside the range specified in permitted_labels.</p>
 disliked | <code><a href="#gerritapiaccountinfo">gerritapi.AccountInfo</a></code><br><p>One user who disliked this label on the change (voted negatively, but not the minimum value) as an AccountInfo entity.</p>
 recommended | <code><a href="#gerritapiaccountinfo">gerritapi.AccountInfo</a></code><br><p>One user who recommended this label on the change (voted positively, but not the maximum value) as an AccountInfo entity.</p>
 rejected | <code><a href="#gerritapiaccountinfo">gerritapi.AccountInfo</a></code><br><p>One user who rejected this label on the change (voted the minimum value) as an AccountInfo entity.</p>
-value | <code>int</code><br><p>The voting value of the user who recommended/disliked this label on the change if it is not `"+1"`/`"-1"`.</p>
-values | <code>dict[string, string]</code><br><p>A map of all values that are allowed for this label. The map maps the values (`"-2"`, `"-1"`, `"0"`, `"+1"`, `"+2"`) to the value descriptions.</p>
+value | <code><a href="#int">int</a></code><br><p>The voting value of the user who recommended/disliked this label on the change if it is not `"+1"`/`"-1"`.</p>
+values | <code>dict[<a href="#string">string</a>, <a href="#string">string</a>]</code><br><p>A map of all values that are allowed for this label. The map maps the values (`"-2"`, `"-1"`, `"0"`, `"+1"`, `"+2"`) to the value descriptions.</p>
 
 
 
@@ -2801,8 +3053,8 @@ Gerrit parent commit information.
 
 Name | Description
 ---- | -----------
-commit | <code>string</code><br><p>The commit ID. Not set if included in a RevisionInfo entity that is contained in a map which has the commit ID as key.</p>
-subject | <code>string</code><br><p>The subject of the commit (header line of the commit message).</p>
+commit | <code><a href="#string">string</a></code><br><p>The commit ID. Not set if included in a RevisionInfo entity that is contained in a map which has the commit ID as key.</p>
+subject | <code><a href="#string">string</a></code><br><p>The subject of the commit (header line of the commit message).</p>
 
 
 
@@ -2815,8 +3067,8 @@ Gerrit review result.
 
 Name | Description
 ---- | -----------
-labels | <code>dict[string, int]</code><br><p>Map of labels to values after the review was posted.</p>
-ready | <code>bool</code><br><p>If true, the change was moved from WIP to ready for review as a result of this action. Not set if false.</p>
+labels | <code>dict[<a href="#string">string</a>, <a href="#int">int</a>]</code><br><p>Map of labels to values after the review was posted.</p>
+ready | <code><a href="#bool">bool</a></code><br><p>If true, the change was moved from WIP to ready for review as a result of this action. Not set if false.</p>
 
 
 <h4 id="returned_by.gerritapi.ReviewResult">Returned By:</h4>
@@ -2835,10 +3087,10 @@ Gerrit revision information.
 Name | Description
 ---- | -----------
 commit | <code><a href="#gerritapicommitinfo">gerritapi.CommitInfo</a></code><br><p>The commit of the patch set as CommitInfo entity.</p>
-created | <code>string</code><br><p>The timestamp of when the patch set was created.</p>
-kind | <code>string</code><br><p>The change kind. Valid values are REWORK, TRIVIAL_REBASE, MERGE_FIRST_PARENT_UPDATE, NO_CODE_CHANGE, and NO_CHANGE.</p>
-patchset_number | <code>int</code><br><p>The patch set number, or edit if the patch set is an edit.</p>
-ref | <code>string</code><br><p>The Git reference for the patch set.</p>
+created | <code><a href="#string">string</a></code><br><p>The timestamp of when the patch set was created.</p>
+kind | <code><a href="#string">string</a></code><br><p>The change kind. Valid values are REWORK, TRIVIAL_REBASE, MERGE_FIRST_PARENT_UPDATE, NO_CODE_CHANGE, and NO_CHANGE.</p>
+patchset_number | <code><a href="#int">int</a></code><br><p>The patch set number, or edit if the patch set is an edit.</p>
+ref | <code><a href="#string">string</a></code><br><p>The Git reference for the patch set.</p>
 uploader | <code><a href="#gerritapiaccountinfo">gerritapi.AccountInfo</a></code><br><p>The uploader of the patch set as an AccountInfo entity.</p>
 
 
@@ -2852,9 +3104,9 @@ Result of evaluating submit requirement expression
 
 Name | Description
 ---- | -----------
-expression | <code>string</code><br><p>The submit requirement expression as a string.</p>
-fulfilled | <code>bool</code><br><p>If true, this submit requirement result was created from a legacy SubmitRecord. Otherwise, it was created by evaluating a submit requirement.</p>
-status | <code>string</code><br><p>The status of the submit requirement evaluation.</p>
+expression | <code><a href="#string">string</a></code><br><p>The submit requirement expression as a string.</p>
+fulfilled | <code><a href="#bool">bool</a></code><br><p>If true, this submit requirement result was created from a legacy SubmitRecord. Otherwise, it was created by evaluating a submit requirement.</p>
+status | <code><a href="#string">string</a></code><br><p>The status of the submit requirement evaluation.</p>
 
 
 
@@ -2890,14 +3142,14 @@ Creates a commit in a git repository using the transformed worktree.<br><br>For 
 
 Parameter | Description
 --------- | -----------
-<span id=git.destination.url href=#git.destination.url>url</span> | <code>string</code><br><p>Indicates the URL to push to as well as the URL from which to get the parent commit</p>
-<span id=git.destination.push href=#git.destination.push>push</span> | <code>string</code><br><p>Reference to use for pushing the change, for example 'main'.</p>
-<span id=git.destination.tag_name href=#git.destination.tag_name>tag_name</span> | <code>string</code> or <code>NoneType</code><br><p>A template string that refers to a tag name. If tag_name exists, overwrite this tag only if flag git-tag-overwrite is set. Note that tag creation is best-effort and migration will succeed even if the tag cannot be created. Usage: Users can use a string or a string with a label. For instance ${label}_tag_name. And the value of label must be in changes' label list. Otherwise, tag won't be created.</p>
-<span id=git.destination.tag_msg href=#git.destination.tag_msg>tag_msg</span> | <code>string</code> or <code>NoneType</code><br><p>A template string that refers to the commit msg of a tag. If set, we will create an annotated tag when tag_name is set. Usage: Users can use a string or a string with a label. For instance ${label}_message. And the value of label must be in changes' label list. Otherwise, tag will be created with sha1's commit msg.</p>
-<span id=git.destination.fetch href=#git.destination.fetch>fetch</span> | <code>string</code> or <code>NoneType</code><br><p>Indicates the ref from which to get the parent commit. Defaults to push value if None</p>
-<span id=git.destination.partial_fetch href=#git.destination.partial_fetch>partial_fetch</span> | <code>bool</code><br><p>This is an experimental feature that only works for certain origin globs.</p>
+<span id=git.destination.url href=#git.destination.url>url</span> | <code><a href="#string">string</a></code><br><p>Indicates the URL to push to as well as the URL from which to get the parent commit</p>
+<span id=git.destination.push href=#git.destination.push>push</span> | <code><a href="#string">string</a></code><br><p>Reference to use for pushing the change, for example 'main'.</p>
+<span id=git.destination.tag_name href=#git.destination.tag_name>tag_name</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>A template string that refers to a tag name. If tag_name exists, overwrite this tag only if flag git-tag-overwrite is set. Note that tag creation is best-effort and migration will succeed even if the tag cannot be created. Usage: Users can use a string or a string with a label. For instance ${label}_tag_name. And the value of label must be in changes' label list. Otherwise, tag won't be created.</p>
+<span id=git.destination.tag_msg href=#git.destination.tag_msg>tag_msg</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>A template string that refers to the commit msg of a tag. If set, we will create an annotated tag when tag_name is set. Usage: Users can use a string or a string with a label. For instance ${label}_message. And the value of label must be in changes' label list. Otherwise, tag will be created with sha1's commit msg.</p>
+<span id=git.destination.fetch href=#git.destination.fetch>fetch</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>Indicates the ref from which to get the parent commit. Defaults to push value if None</p>
+<span id=git.destination.partial_fetch href=#git.destination.partial_fetch>partial_fetch</span> | <code><a href="#bool">bool</a></code><br><p>This is an experimental feature that only works for certain origin globs.</p>
 <span id=git.destination.integrates href=#git.destination.integrates>integrates</span> | <code>sequence of git_integrate</code> or <code>NoneType</code><br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
-<span id=git.destination.primary_branch_migration href=#git.destination.primary_branch_migration>primary_branch_migration</span> | <code>bool</code><br><p>When enabled, copybara will ignore the 'push' and 'fetch' params if either is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the param's declared value.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
+<span id=git.destination.primary_branch_migration href=#git.destination.primary_branch_migration>primary_branch_migration</span> | <code><a href="#bool">bool</a></code><br><p>When enabled, copybara will ignore the 'push' and 'fetch' params if either is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the param's declared value.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
 <span id=git.destination.checker href=#git.destination.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker that can check leaks or other checks in the commit created. </p>
 <span id=git.destination.credentials href=#git.destination.credentials>credentials</span> | <code>UsernamePasswordIssuer</code> or <code>NoneType</code><br><p>EXPERIMENTAL: Read credentials from config file to access the Git Repo. This expects a 'credentials.username_password' specifying the username to use for the remote git host and a password or token. This is gated by the '--use-credentials-from-config' flag</p>
 
@@ -2932,9 +3184,9 @@ Defines a feedback API endpoint for Gerrit, that exposes relevant Gerrit API ope
 
 Parameter | Description
 --------- | -----------
-<span id=git.gerrit_api.url href=#git.gerrit_api.url>url</span> | <code>string</code><br><p>Indicates the Gerrit repo URL.</p>
+<span id=git.gerrit_api.url href=#git.gerrit_api.url>url</span> | <code><a href="#string">string</a></code><br><p>Indicates the Gerrit repo URL.</p>
 <span id=git.gerrit_api.checker href=#git.gerrit_api.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker for the Gerrit API transport.</p>
-<span id=git.gerrit_api.allow_submit href=#git.gerrit_api.allow_submit>allow_submit</span> | <code>bool</code><br><p>Enable the submit_change method</p>
+<span id=git.gerrit_api.allow_submit href=#git.gerrit_api.allow_submit>allow_submit</span> | <code><a href="#bool">bool</a></code><br><p>Enable the submit_change method</p>
 
 
 
@@ -2959,22 +3211,22 @@ Creates a change in Gerrit using the transformed worktree. If this is used in it
 
 Parameter | Description
 --------- | -----------
-<span id=git.gerrit_destination.url href=#git.gerrit_destination.url>url</span> | <code>string</code><br><p>Indicates the URL to push to as well as the URL from which to get the parent commit</p>
-<span id=git.gerrit_destination.fetch href=#git.gerrit_destination.fetch>fetch</span> | <code>string</code><br><p>Indicates the ref from which to get the parent commit</p>
-<span id=git.gerrit_destination.push_to_refs_for href=#git.gerrit_destination.push_to_refs_for>push_to_refs_for</span> | <code>string</code> or <code>NoneType</code><br><p>Review branch to push the change to, for example setting this to 'feature_x' causes the destination to push to 'refs/for/feature_x'. It defaults to 'fetch' value.</p>
-<span id=git.gerrit_destination.submit href=#git.gerrit_destination.submit>submit</span> | <code>bool</code><br><p>If true, skip the push thru Gerrit refs/for/branch and directly push to branch. This is effectively a git.destination that sets a Change-Id</p>
-<span id=git.gerrit_destination.partial_fetch href=#git.gerrit_destination.partial_fetch>partial_fetch</span> | <code>bool</code><br><p>This is an experimental feature that only works for certain origin globs.</p>
-<span id=git.gerrit_destination.notify href=#git.gerrit_destination.notify>notify</span> | <code>string</code> or <code>NoneType</code><br><p>Type of Gerrit notify option (https://gerrit-review.googlesource.com/Documentation/user-upload.html#notify). Sends notifications by default.</p>
-<span id=git.gerrit_destination.change_id_policy href=#git.gerrit_destination.change_id_policy>change_id_policy</span> | <code>string</code><br><p>What to do in the presence or absent of Change-Id in message:<ul>  <li>`'REQUIRE'`: Require that the change_id is present in the message as a valid label</li>  <li>`'FAIL_IF_PRESENT'`: Fail if found in message</li>  <li>`'REUSE'`: Reuse if present. Otherwise generate a new one</li>  <li>`'REPLACE'`: Replace with a new one if found</li></ul></p>
-<span id=git.gerrit_destination.allow_empty_diff_patchset href=#git.gerrit_destination.allow_empty_diff_patchset>allow_empty_diff_patchset</span> | <code>bool</code><br><p>By default Copybara will upload a new PatchSet to Gerrit without checking the previous one. If this set to false, Copybara will download current PatchSet and check the diff against the new diff.</p>
+<span id=git.gerrit_destination.url href=#git.gerrit_destination.url>url</span> | <code><a href="#string">string</a></code><br><p>Indicates the URL to push to as well as the URL from which to get the parent commit</p>
+<span id=git.gerrit_destination.fetch href=#git.gerrit_destination.fetch>fetch</span> | <code><a href="#string">string</a></code><br><p>Indicates the ref from which to get the parent commit</p>
+<span id=git.gerrit_destination.push_to_refs_for href=#git.gerrit_destination.push_to_refs_for>push_to_refs_for</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>Review branch to push the change to, for example setting this to 'feature_x' causes the destination to push to 'refs/for/feature_x'. It defaults to 'fetch' value.</p>
+<span id=git.gerrit_destination.submit href=#git.gerrit_destination.submit>submit</span> | <code><a href="#bool">bool</a></code><br><p>If true, skip the push thru Gerrit refs/for/branch and directly push to branch. This is effectively a git.destination that sets a Change-Id</p>
+<span id=git.gerrit_destination.partial_fetch href=#git.gerrit_destination.partial_fetch>partial_fetch</span> | <code><a href="#bool">bool</a></code><br><p>This is an experimental feature that only works for certain origin globs.</p>
+<span id=git.gerrit_destination.notify href=#git.gerrit_destination.notify>notify</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>Type of Gerrit notify option (https://gerrit-review.googlesource.com/Documentation/user-upload.html#notify). Sends notifications by default.</p>
+<span id=git.gerrit_destination.change_id_policy href=#git.gerrit_destination.change_id_policy>change_id_policy</span> | <code><a href="#string">string</a></code><br><p>What to do in the presence or absent of Change-Id in message:<ul> <li>`'REQUIRE'`: Require that the change_id is present in the message as a valid label</li> <li>`'FAIL_IF_PRESENT'`: Fail if found in message</li> <li>`'REUSE'`: Reuse if present. Otherwise generate a new one</li> <li>`'REPLACE'`: Replace with a new one if found</li></ul></p>
+<span id=git.gerrit_destination.allow_empty_diff_patchset href=#git.gerrit_destination.allow_empty_diff_patchset>allow_empty_diff_patchset</span> | <code><a href="#bool">bool</a></code><br><p>By default Copybara will upload a new PatchSet to Gerrit without checking the previous one. If this set to false, Copybara will download current PatchSet and check the diff against the new diff.</p>
 <span id=git.gerrit_destination.reviewers href=#git.gerrit_destination.reviewers>reviewers</span> | <code>sequence</code><br><p>The list of the reviewers will be added to gerrit change reviewer listThe element in the list is: an email, for example: "foo@example.com" or label for example: ${SOME_GERRIT_REVIEWER}. These are under the condition of assuming that users have registered to gerrit repos</p>
 <span id=git.gerrit_destination.cc href=#git.gerrit_destination.cc>cc</span> | <code>sequence</code><br><p>The list of the email addresses or users that will be CCed in the review. Can use labels as the `reviewers` field.</p>
 <span id=git.gerrit_destination.labels href=#git.gerrit_destination.labels>labels</span> | <code>sequence</code><br><p>The list of labels to be pushed with the change. The format is the label along with the associated value. For example: Run-Presubmit+1</p>
 <span id=git.gerrit_destination.api_checker href=#git.gerrit_destination.api_checker>api_checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker for the Gerrit API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
 <span id=git.gerrit_destination.integrates href=#git.gerrit_destination.integrates>integrates</span> | <code>sequence of git_integrate</code> or <code>NoneType</code><br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
-<span id=git.gerrit_destination.topic href=#git.gerrit_destination.topic>topic</span> | <code>string</code> or <code>NoneType</code><br><p>Sets the topic of the Gerrit change created.<br><br>By default it sets no topic. This field accepts a template with labels. For example: `"topic_${CONTEXT_REFERENCE}"`</p>
-<span id=git.gerrit_destination.gerrit_submit href=#git.gerrit_destination.gerrit_submit>gerrit_submit</span> | <code>bool</code><br><p>By default, Copybara uses git commit/push to the main branch when submit = True.  If this flag is enabled, it will update the Gerrit change with the latest commit and submit using Gerrit.</p>
-<span id=git.gerrit_destination.primary_branch_migration href=#git.gerrit_destination.primary_branch_migration>primary_branch_migration</span> | <code>bool</code><br><p>When enabled, copybara will ignore the 'push_to_refs_for' and 'fetch' params if either is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the param's declared value.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
+<span id=git.gerrit_destination.topic href=#git.gerrit_destination.topic>topic</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>Sets the topic of the Gerrit change created.<br><br>By default it sets no topic. This field accepts a template with labels. For example: `"topic_${CONTEXT_REFERENCE}"`</p>
+<span id=git.gerrit_destination.gerrit_submit href=#git.gerrit_destination.gerrit_submit>gerrit_submit</span> | <code><a href="#bool">bool</a></code><br><p>By default, Copybara uses git commit/push to the main branch when submit = True.  If this flag is enabled, it will update the Gerrit change with the latest commit and submit using Gerrit.</p>
+<span id=git.gerrit_destination.primary_branch_migration href=#git.gerrit_destination.primary_branch_migration>primary_branch_migration</span> | <code><a href="#bool">bool</a></code><br><p>When enabled, copybara will ignore the 'push_to_refs_for' and 'fetch' params if either is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the param's declared value.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
 <span id=git.gerrit_destination.checker href=#git.gerrit_destination.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker that validates the commit files & message. If `api_checker` is not set, it will also be used for checking API calls. If only `api_checker`is used, that checker will only apply to API calls.</p>
 <span id=git.gerrit_destination.credentials href=#git.gerrit_destination.credentials>credentials</span> | <code>UsernamePasswordIssuer</code> or <code>NoneType</code><br><p>EXPERIMENTAL: Read credentials from config file to access the Git Repo. This expects a 'credentials.username_password' specifying the username to use for the remote git host and a password or token. This is gated by the '--use-credentials-from-config' flag</p>
 
@@ -3027,18 +3279,18 @@ Implicit labels that can be used/exposed:
 
 Parameter | Description
 --------- | -----------
-<span id=git.gerrit_origin.url href=#git.gerrit_origin.url>url</span> | <code>string</code><br><p>Indicates the URL of the git repository</p>
-<span id=git.gerrit_origin.ref href=#git.gerrit_origin.ref>ref</span> | <code>string</code> or <code>NoneType</code><br><p>DEPRECATED. Use git.origin for submitted branches.</p>
-<span id=git.gerrit_origin.submodules href=#git.gerrit_origin.submodules>submodules</span> | <code>string</code><br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
-<span id=git.gerrit_origin.excluded_submodules href=#git.gerrit_origin.excluded_submodules>excluded_submodules</span> | <code>sequence of string</code><br><p>A list of names (not paths, e.g. "foo" is the submodule name if [submodule "foo"] appears in the .gitmodules file) of submodules that will not be download even if 'submodules' is set to YES or RECURSIVE. </p>
-<span id=git.gerrit_origin.first_parent href=#git.gerrit_origin.first_parent>first_parent</span> | <code>bool</code><br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
-<span id=git.gerrit_origin.partial_fetch href=#git.gerrit_origin.partial_fetch>partial_fetch</span> | <code>bool</code><br><p>If true, partially fetch git repository by only fetching affected files.</p>
+<span id=git.gerrit_origin.url href=#git.gerrit_origin.url>url</span> | <code><a href="#string">string</a></code><br><p>Indicates the URL of the git repository</p>
+<span id=git.gerrit_origin.ref href=#git.gerrit_origin.ref>ref</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>DEPRECATED. Use git.origin for submitted branches.</p>
+<span id=git.gerrit_origin.submodules href=#git.gerrit_origin.submodules>submodules</span> | <code><a href="#string">string</a></code><br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
+<span id=git.gerrit_origin.excluded_submodules href=#git.gerrit_origin.excluded_submodules>excluded_submodules</span> | <code>sequence of <a href="#string">string</a></code><br><p>A list of names (not paths, e.g. "foo" is the submodule name if [submodule "foo"] appears in the .gitmodules file) of submodules that will not be download even if 'submodules' is set to YES or RECURSIVE. </p>
+<span id=git.gerrit_origin.first_parent href=#git.gerrit_origin.first_parent>first_parent</span> | <code><a href="#bool">bool</a></code><br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
+<span id=git.gerrit_origin.partial_fetch href=#git.gerrit_origin.partial_fetch>partial_fetch</span> | <code><a href="#bool">bool</a></code><br><p>If true, partially fetch git repository by only fetching affected files.</p>
 <span id=git.gerrit_origin.api_checker href=#git.gerrit_origin.api_checker>api_checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker for the Gerrit API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
 <span id=git.gerrit_origin.patch href=#git.gerrit_origin.patch>patch</span> | <code><a href="#transformation">transformation</a></code> or <code>NoneType</code><br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
-<span id=git.gerrit_origin.branch href=#git.gerrit_origin.branch>branch</span> | <code>string</code> or <code>NoneType</code><br><p>Limit the import to changes that are for this branch. By default imports everything.</p>
-<span id=git.gerrit_origin.describe_version href=#git.gerrit_origin.describe_version>describe_version</span> | <code>bool</code> or <code>NoneType</code><br><p>Download tags and use 'git describe' to create four labels with a meaningful version identifier:<br><br>  - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br> - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br>  -`GIT_DESCRIBE_FIRST_PARENT`: `git describe` for the first parent version.<br>  -`GIT_SEQUENTIAL_REVISION_NUMBER`: The sequential number of the commit. Falls back to the SHA1 if not applicable.<br></p>
-<span id=git.gerrit_origin.ignore_gerrit_noop href=#git.gerrit_origin.ignore_gerrit_noop>ignore_gerrit_noop</span> | <code>bool</code><br><p>Option to not migrate Gerrit changes that do not change origin_files</p>
-<span id=git.gerrit_origin.primary_branch_migration href=#git.gerrit_origin.primary_branch_migration>primary_branch_migration</span> | <code>bool</code><br><p>When enabled, copybara will ignore the 'ref' param if it is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the 'ref' param.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
+<span id=git.gerrit_origin.branch href=#git.gerrit_origin.branch>branch</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>Limit the import to changes that are for this branch. By default imports everything.</p>
+<span id=git.gerrit_origin.describe_version href=#git.gerrit_origin.describe_version>describe_version</span> | <code><a href="#bool">bool</a></code> or <code>NoneType</code><br><p>Download tags and use 'git describe' to create four labels with a meaningful version identifier:<br><br>  - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br> - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br>  -`GIT_DESCRIBE_FIRST_PARENT`: `git describe` for the first parent version.<br>  -`GIT_SEQUENTIAL_REVISION_NUMBER`: The sequential number of the commit. Falls back to the SHA1 if not applicable.<br></p>
+<span id=git.gerrit_origin.ignore_gerrit_noop href=#git.gerrit_origin.ignore_gerrit_noop>ignore_gerrit_noop</span> | <code><a href="#bool">bool</a></code><br><p>Option to not migrate Gerrit changes that do not change origin_files</p>
+<span id=git.gerrit_origin.primary_branch_migration href=#git.gerrit_origin.primary_branch_migration>primary_branch_migration</span> | <code><a href="#bool">bool</a></code><br><p>When enabled, copybara will ignore the 'ref' param if it is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the 'ref' param.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
 
 
 
@@ -3067,10 +3319,10 @@ Defines a feedback trigger based on updates on a Gerrit change.
 
 Parameter | Description
 --------- | -----------
-<span id=git.gerrit_trigger.url href=#git.gerrit_trigger.url>url</span> | <code>string</code><br><p>Indicates the Gerrit repo URL.</p>
+<span id=git.gerrit_trigger.url href=#git.gerrit_trigger.url>url</span> | <code><a href="#string">string</a></code><br><p>Indicates the Gerrit repo URL.</p>
 <span id=git.gerrit_trigger.checker href=#git.gerrit_trigger.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker for the Gerrit API transport provided by this trigger.</p>
-<span id=git.gerrit_trigger.events href=#git.gerrit_trigger.events>events</span> | <code>sequence of string</code> or <code>dict of sequence</code> or <code>NoneType</code><br><p>Types of events to monitor. Optional. Can either be a list of event types or a dict of event types to particular events of that type, e.g. `['LABELS']` or `{'LABELS': 'my_label_name'}`.<br>Valid values for event types are: `'LABELS'`, `'SUBMIT_REQUIREMENTS'`</p>
-<span id=git.gerrit_trigger.allow_submit href=#git.gerrit_trigger.allow_submit>allow_submit</span> | <code>bool</code><br><p>Enable the submit_change method in the endpoint provided</p>
+<span id=git.gerrit_trigger.events href=#git.gerrit_trigger.events>events</span> | <code>sequence of <a href="#string">string</a></code> or <code>dict of sequence</code> or <code>NoneType</code><br><p>Types of events to monitor. Optional. Can either be a list of event types or a dict of event types to particular events of that type, e.g. `['LABELS']` or `{'LABELS': 'my_label_name'}`.<br>Valid values for event types are: `'LABELS'`, `'SUBMIT_REQUIREMENTS'`</p>
+<span id=git.gerrit_trigger.allow_submit href=#git.gerrit_trigger.allow_submit>allow_submit</span> | <code><a href="#bool">bool</a></code><br><p>Enable the submit_change method in the endpoint provided</p>
 
 
 
@@ -3095,7 +3347,7 @@ Defines a feedback API endpoint for GitHub, that exposes relevant GitHub API ope
 
 Parameter | Description
 --------- | -----------
-<span id=git.github_api.url href=#git.github_api.url>url</span> | <code>string</code><br><p>Indicates the GitHub repo URL.</p>
+<span id=git.github_api.url href=#git.github_api.url>url</span> | <code><a href="#string">string</a></code><br><p>Indicates the GitHub repo URL.</p>
 <span id=git.github_api.checker href=#git.github_api.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker for the GitHub API transport.</p>
 <span id=git.github_api.credentials href=#git.github_api.credentials>credentials</span> | <code>UsernamePasswordIssuer</code> or <code>NoneType</code><br><p>EXPERIMENTAL: Read credentials from config file to access the Git Repo. This expects a 'credentials.username_password' specifying the username to use for the remote git host and a password or token. This is gated by the '--use-credentials-from-config' flag</p>
 
@@ -3122,20 +3374,20 @@ Creates a commit in a GitHub repository branch (for example master). For creatin
 
 Parameter | Description
 --------- | -----------
-<span id=git.github_destination.url href=#git.github_destination.url>url</span> | <code>string</code><br><p>Indicates the URL to push to as well as the URL from which to get the parent commit</p>
-<span id=git.github_destination.push href=#git.github_destination.push>push</span> | <code>string</code><br><p>Reference to use for pushing the change, for example 'main'.</p>
-<span id=git.github_destination.fetch href=#git.github_destination.fetch>fetch</span> | <code>string</code> or <code>NoneType</code><br><p>Indicates the ref from which to get the parent commit. Defaults to push value if None</p>
-<span id=git.github_destination.pr_branch_to_update href=#git.github_destination.pr_branch_to_update>pr_branch_to_update</span> | <code>string</code> or <code>NoneType</code><br><p>A template string that refers to a pull request branch in the same repository will be updated to current commit of this push branch only if pr_branch_to_update exists. The reason behind this field is that presubmiting changes creates and leaves a pull request open. By using this, we can automerge/close this type of pull requests. As a result, users will see this pr_branch_to_update as merged to this push branch. Usage: Users can use a string or a string with a label. For instance ${label}_pr_branch_name. And the value of label must be in changes' label list. Otherwise, nothing will happen.</p>
-<span id=git.github_destination.partial_fetch href=#git.github_destination.partial_fetch>partial_fetch</span> | <code>bool</code><br><p>This is an experimental feature that only works for certain origin globs.</p>
-<span id=git.github_destination.delete_pr_branch href=#git.github_destination.delete_pr_branch>delete_pr_branch</span> | <code>bool</code> or <code>NoneType</code><br><p>When `pr_branch_to_update` is enabled, it will delete the branch reference after the push to the branch and main branch (i.e master) happens. This allows to cleanup temporary branches created for testing.</p>
+<span id=git.github_destination.url href=#git.github_destination.url>url</span> | <code><a href="#string">string</a></code><br><p>Indicates the URL to push to as well as the URL from which to get the parent commit</p>
+<span id=git.github_destination.push href=#git.github_destination.push>push</span> | <code><a href="#string">string</a></code><br><p>Reference to use for pushing the change, for example 'main'.</p>
+<span id=git.github_destination.fetch href=#git.github_destination.fetch>fetch</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>Indicates the ref from which to get the parent commit. Defaults to push value if None</p>
+<span id=git.github_destination.pr_branch_to_update href=#git.github_destination.pr_branch_to_update>pr_branch_to_update</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>A template string that refers to a pull request branch in the same repository will be updated to current commit of this push branch only if pr_branch_to_update exists. The reason behind this field is that presubmiting changes creates and leaves a pull request open. By using this, we can automerge/close this type of pull requests. As a result, users will see this pr_branch_to_update as merged to this push branch. Usage: Users can use a string or a string with a label. For instance ${label}_pr_branch_name. And the value of label must be in changes' label list. Otherwise, nothing will happen.</p>
+<span id=git.github_destination.partial_fetch href=#git.github_destination.partial_fetch>partial_fetch</span> | <code><a href="#bool">bool</a></code><br><p>This is an experimental feature that only works for certain origin globs.</p>
+<span id=git.github_destination.delete_pr_branch href=#git.github_destination.delete_pr_branch>delete_pr_branch</span> | <code><a href="#bool">bool</a></code> or <code>NoneType</code><br><p>When `pr_branch_to_update` is enabled, it will delete the branch reference after the push to the branch and main branch (i.e master) happens. This allows to cleanup temporary branches created for testing.</p>
 <span id=git.github_destination.integrates href=#git.github_destination.integrates>integrates</span> | <code>sequence of git_integrate</code> or <code>NoneType</code><br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
 <span id=git.github_destination.api_checker href=#git.github_destination.api_checker>api_checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker for the Gerrit API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
-<span id=git.github_destination.primary_branch_migration href=#git.github_destination.primary_branch_migration>primary_branch_migration</span> | <code>bool</code><br><p>When enabled, copybara will ignore the 'push' and 'fetch' params if either is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the param's declared value.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
-<span id=git.github_destination.tag_name href=#git.github_destination.tag_name>tag_name</span> | <code>string</code> or <code>NoneType</code><br><p>A template string that specifies to a tag name. If the tag already exists, copybara will only overwrite it if the --git-tag-overwrite flag is set.<br>Note that tag creation is best-effort and the migration will succeed even if the tag cannot be created. Usage: Users can use a string or a string with a label. For instance ${label}_tag_name. And the value of label must be in changes' label list. Otherwise, tag won't be created.</p>
-<span id=git.github_destination.tag_msg href=#git.github_destination.tag_msg>tag_msg</span> | <code>string</code> or <code>NoneType</code><br><p>A template string that refers to the commit msg for a tag. If set, copybara willcreate an annotated tag with this custom message<br>Usage: Labels in the string will be resolved. E.g. .${label}_message.By default, the tag will be created with the labeled commit's message.</p>
+<span id=git.github_destination.primary_branch_migration href=#git.github_destination.primary_branch_migration>primary_branch_migration</span> | <code><a href="#bool">bool</a></code><br><p>When enabled, copybara will ignore the 'push' and 'fetch' params if either is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the param's declared value.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
+<span id=git.github_destination.tag_name href=#git.github_destination.tag_name>tag_name</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>A template string that specifies to a tag name. If the tag already exists, copybara will only overwrite it if the --git-tag-overwrite flag is set.<br>Note that tag creation is best-effort and the migration will succeed even if the tag cannot be created. Usage: Users can use a string or a string with a label. For instance ${label}_tag_name. And the value of label must be in changes' label list. Otherwise, tag won't be created.</p>
+<span id=git.github_destination.tag_msg href=#git.github_destination.tag_msg>tag_msg</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>A template string that refers to the commit msg for a tag. If set, copybara willcreate an annotated tag with this custom message<br>Usage: Labels in the string will be resolved. E.g. .${label}_message.By default, the tag will be created with the labeled commit's message.</p>
 <span id=git.github_destination.checker href=#git.github_destination.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker that validates the commit files & message. If `api_checker` is not set, it will also be used for checking API calls. If only `api_checker`is used, that checker will only apply to API calls.</p>
 <span id=git.github_destination.credentials href=#git.github_destination.credentials>credentials</span> | <code>UsernamePasswordIssuer</code> or <code>NoneType</code><br><p>EXPERIMENTAL: Read credentials from config file to access the Git Repo. This expects a 'credentials.username_password' specifying the username to use for the remote git host and a password or token. This is gated by the '--use-credentials-from-config' flag</p>
-<span id=git.github_destination.push_to_fork href=#git.github_destination.push_to_fork>push_to_fork</span> | <code>bool</code><br><p></p>
+<span id=git.github_destination.push_to_fork href=#git.github_destination.push_to_fork>push_to_fork</span> | <code><a href="#bool">bool</a></code><br><p></p>
 
 
 
@@ -3172,17 +3424,17 @@ Defines a Git origin for a Github repository. This origin should be used for pub
 
 Parameter | Description
 --------- | -----------
-<span id=git.github_origin.url href=#git.github_origin.url>url</span> | <code>string</code><br><p>Indicates the URL of the git repository</p>
-<span id=git.github_origin.ref href=#git.github_origin.ref>ref</span> | <code>string</code> or <code>NoneType</code><br><p>Represents the default reference that will be used for reading the revision from the git repository. For example: 'master'</p>
-<span id=git.github_origin.submodules href=#git.github_origin.submodules>submodules</span> | <code>string</code><br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
-<span id=git.github_origin.excluded_submodules href=#git.github_origin.excluded_submodules>excluded_submodules</span> | <code>sequence of string</code><br><p>A list of names (not paths, e.g. "foo" is the submodule name if [submodule "foo"] appears in the .gitmodules file) of submodules that will not be download even if 'submodules' is set to YES or RECURSIVE. </p>
-<span id=git.github_origin.first_parent href=#git.github_origin.first_parent>first_parent</span> | <code>bool</code><br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
-<span id=git.github_origin.partial_fetch href=#git.github_origin.partial_fetch>partial_fetch</span> | <code>bool</code><br><p>If true, partially fetch git repository by only fetching affected files.</p>
+<span id=git.github_origin.url href=#git.github_origin.url>url</span> | <code><a href="#string">string</a></code><br><p>Indicates the URL of the git repository</p>
+<span id=git.github_origin.ref href=#git.github_origin.ref>ref</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>Represents the default reference that will be used for reading the revision from the git repository. For example: 'master'</p>
+<span id=git.github_origin.submodules href=#git.github_origin.submodules>submodules</span> | <code><a href="#string">string</a></code><br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
+<span id=git.github_origin.excluded_submodules href=#git.github_origin.excluded_submodules>excluded_submodules</span> | <code>sequence of <a href="#string">string</a></code><br><p>A list of names (not paths, e.g. "foo" is the submodule name if [submodule "foo"] appears in the .gitmodules file) of submodules that will not be download even if 'submodules' is set to YES or RECURSIVE. </p>
+<span id=git.github_origin.first_parent href=#git.github_origin.first_parent>first_parent</span> | <code><a href="#bool">bool</a></code><br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
+<span id=git.github_origin.partial_fetch href=#git.github_origin.partial_fetch>partial_fetch</span> | <code><a href="#bool">bool</a></code><br><p>If true, partially fetch git repository by only fetching affected files.</p>
 <span id=git.github_origin.patch href=#git.github_origin.patch>patch</span> | <code><a href="#transformation">transformation</a></code> or <code>NoneType</code><br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
-<span id=git.github_origin.describe_version href=#git.github_origin.describe_version>describe_version</span> | <code>bool</code> or <code>NoneType</code><br><p>Download tags and use 'git describe' to create four labels with a meaningful version identifier:<br><br>  - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br> - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br>  -`GIT_DESCRIBE_FIRST_PARENT`: `git describe` for the first parent version.<br>  -`GIT_SEQUENTIAL_REVISION_NUMBER`: The sequential number of the commit. Falls back to the SHA1 if not applicable.<br></p>
+<span id=git.github_origin.describe_version href=#git.github_origin.describe_version>describe_version</span> | <code><a href="#bool">bool</a></code> or <code>NoneType</code><br><p>Download tags and use 'git describe' to create four labels with a meaningful version identifier:<br><br>  - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br> - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br>  -`GIT_DESCRIBE_FIRST_PARENT`: `git describe` for the first parent version.<br>  -`GIT_SEQUENTIAL_REVISION_NUMBER`: The sequential number of the commit. Falls back to the SHA1 if not applicable.<br></p>
 <span id=git.github_origin.version_selector href=#git.github_origin.version_selector>version_selector</span> | <code><a href="#versionselector">VersionSelector</a></code> or <code>NoneType</code><br><p>Select a custom version (tag)to migrate instead of 'ref'. Version selector is expected to match the whole refspec (e.g. 'refs/heads/${n1}')</p>
-<span id=git.github_origin.primary_branch_migration href=#git.github_origin.primary_branch_migration>primary_branch_migration</span> | <code>bool</code><br><p>When enabled, copybara will ignore the 'ref' param if it is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the 'ref' param.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
-<span id=git.github_origin.enable_lfs href=#git.github_origin.enable_lfs>enable_lfs</span> | <code>bool</code><br><p>If true, Large File Storage support is enabled for the origin.</p>
+<span id=git.github_origin.primary_branch_migration href=#git.github_origin.primary_branch_migration>primary_branch_migration</span> | <code><a href="#bool">bool</a></code><br><p>When enabled, copybara will ignore the 'ref' param if it is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the 'ref' param.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
+<span id=git.github_origin.enable_lfs href=#git.github_origin.enable_lfs>enable_lfs</span> | <code><a href="#bool">bool</a></code><br><p>If true, Large File Storage support is enabled for the origin.</p>
 <span id=git.github_origin.credentials href=#git.github_origin.credentials>credentials</span> | <code>UsernamePasswordIssuer</code> or <code>NoneType</code><br><p>EXPERIMENTAL: Read credentials from config file to access the Git Repo. This expects a 'credentials.username_password' specifying the username to use for the remote git host and a password or token. This is gated by the '--use-credentials-from-config' flag</p>
 
 
@@ -3212,22 +3464,22 @@ Creates changes in a new pull request in the destination.
 
 Parameter | Description
 --------- | -----------
-<span id=git.github_pr_destination.url href=#git.github_pr_destination.url>url</span> | <code>string</code><br><p>Url of the GitHub project. For example "https://github.com/google/copybara'"</p>
-<span id=git.github_pr_destination.destination_ref href=#git.github_pr_destination.destination_ref>destination_ref</span> | <code>string</code><br><p>Destination reference for the change.</p>
-<span id=git.github_pr_destination.pr_branch href=#git.github_pr_destination.pr_branch>pr_branch</span> | <code>string</code> or <code>NoneType</code><br><p>Customize the pull request branch. The token ${CONTEXT_REFERENCE} will be replaced with the corresponding stable reference (head, PR number, Gerrit change number, etc.).</p>
-<span id=git.github_pr_destination.partial_fetch href=#git.github_pr_destination.partial_fetch>partial_fetch</span> | <code>bool</code><br><p>This is an experimental feature that only works for certain origin globs.</p>
-<span id=git.github_pr_destination.allow_empty_diff href=#git.github_pr_destination.allow_empty_diff>allow_empty_diff</span> | <code>bool</code><br><p>By default, copybara migrates changes without checking existing PRs. If set, copybara will skip pushing a change to an existing PR only if the git three of the pending migrating change is the same as the existing PR.</p>
-<span id=git.github_pr_destination.allow_empty_diff_merge_statuses href=#git.github_pr_destination.allow_empty_diff_merge_statuses>allow_empty_diff_merge_statuses</span> | <code>sequence of string</code><br><p>**EXPERIMENTAL feature.** By default, if `allow_empty_diff = False` is set, Copybara skips uploading the change if the tree hasn't changed and it can be merged. When this list is set with values from https://docs.github.com/en/github-ae@latest/graphql/reference/enums#mergestatestatus, it will still upload for the configured statuses. For example, if a user sets it to `['DIRTY', 'UNSTABLE', 'UNKNOWN']` (the recommended set to use), it wouldn't skip upload if test failed in GitHub for previous export, or if the change cannot be merged. **Note that this field is experimental and is subject to change by GitHub without notice**. Please consult Copybara team before using this field.</p>
+<span id=git.github_pr_destination.url href=#git.github_pr_destination.url>url</span> | <code><a href="#string">string</a></code><br><p>Url of the GitHub project. For example "https://github.com/google/copybara'"</p>
+<span id=git.github_pr_destination.destination_ref href=#git.github_pr_destination.destination_ref>destination_ref</span> | <code><a href="#string">string</a></code><br><p>Destination reference for the change.</p>
+<span id=git.github_pr_destination.pr_branch href=#git.github_pr_destination.pr_branch>pr_branch</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>Customize the pull request branch. The token ${CONTEXT_REFERENCE} will be replaced with the corresponding stable reference (head, PR number, Gerrit change number, etc.).</p>
+<span id=git.github_pr_destination.partial_fetch href=#git.github_pr_destination.partial_fetch>partial_fetch</span> | <code><a href="#bool">bool</a></code><br><p>This is an experimental feature that only works for certain origin globs.</p>
+<span id=git.github_pr_destination.allow_empty_diff href=#git.github_pr_destination.allow_empty_diff>allow_empty_diff</span> | <code><a href="#bool">bool</a></code><br><p>By default, copybara migrates changes without checking existing PRs. If set, copybara will skip pushing a change to an existing PR only if the git three of the pending migrating change is the same as the existing PR.</p>
+<span id=git.github_pr_destination.allow_empty_diff_merge_statuses href=#git.github_pr_destination.allow_empty_diff_merge_statuses>allow_empty_diff_merge_statuses</span> | <code>sequence of <a href="#string">string</a></code><br><p>**EXPERIMENTAL feature.** By default, if `allow_empty_diff = False` is set, Copybara skips uploading the change if the tree hasn't changed and it can be merged. When this list is set with values from https://docs.github.com/en/github-ae@latest/graphql/reference/enums#mergestatestatus, it will still upload for the configured statuses. For example, if a user sets it to `['DIRTY', 'UNSTABLE', 'UNKNOWN']` (the recommended set to use), it wouldn't skip upload if test failed in GitHub for previous export, or if the change cannot be merged. **Note that this field is experimental and is subject to change by GitHub without notice**. Please consult Copybara team before using this field.</p>
 <span id=git.github_pr_destination.allow_empty_diff_check_suites_to_conclusion href=#git.github_pr_destination.allow_empty_diff_check_suites_to_conclusion>allow_empty_diff_check_suites_to_conclusion</span> | <code>dict of string</code><br><p>**EXPERIMENTAL feature.** By default, if `allow_empty_diff = False` is set, Copybara skips uploading the change if the tree hasn't changed and it can be merged.<br><br>This field allows to configure Check suit slugs and conclusions for those check suites where an upload needs to happen despite no code changes. For example this can be used to upload if tests are failing. A Very common usage would be `{"github-actions" :   ["none", "failure", "timed_out", "cancelled"]}`: This would upload changes when Checks are in progress, has failed, timeout or being cancelled. `github-actions` check suit slug name is the default name for checks run by GitHub actions where the suit is not given a name.</p>
-<span id=git.github_pr_destination.title href=#git.github_pr_destination.title>title</span> | <code>string</code> or <code>NoneType</code><br><p>When creating (or updating if `update_description` is set) a pull request, use this title. By default it uses the change first line. This field accepts a template with labels. For example: `"Change ${CONTEXT_REFERENCE}"`</p>
-<span id=git.github_pr_destination.body href=#git.github_pr_destination.body>body</span> | <code>string</code> or <code>NoneType</code><br><p>When creating (or updating if `update_description` is set) a pull request, use this body. By default it uses the change summary. This field accepts a template with labels. For example: `"Change ${CONTEXT_REFERENCE}"`</p>
-<span id=git.github_pr_destination.assignees href=#git.github_pr_destination.assignees>assignees</span> | <code>sequence of string</code><br><p>The assignees to set when creating a new pull request. The maximum number of assignees is 10 and the assignees must be GitHub usernames or a label that can be resolved to a GitHub username. For example: `assignees = ["github-repo-owner1", "${YOUR_LABEL}"]`</p>
+<span id=git.github_pr_destination.title href=#git.github_pr_destination.title>title</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>When creating (or updating if `update_description` is set) a pull request, use this title. By default it uses the change first line. This field accepts a template with labels. For example: `"Change ${CONTEXT_REFERENCE}"`</p>
+<span id=git.github_pr_destination.body href=#git.github_pr_destination.body>body</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>When creating (or updating if `update_description` is set) a pull request, use this body. By default it uses the change summary. This field accepts a template with labels. For example: `"Change ${CONTEXT_REFERENCE}"`</p>
+<span id=git.github_pr_destination.assignees href=#git.github_pr_destination.assignees>assignees</span> | <code>sequence of <a href="#string">string</a></code><br><p>The assignees to set when creating a new pull request. The maximum number of assignees is 10 and the assignees must be GitHub usernames or a label that can be resolved to a GitHub username. For example: `assignees = ["github-repo-owner1", "${YOUR_LABEL}"]`</p>
 <span id=git.github_pr_destination.integrates href=#git.github_pr_destination.integrates>integrates</span> | <code>sequence of git_integrate</code> or <code>NoneType</code><br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
 <span id=git.github_pr_destination.api_checker href=#git.github_pr_destination.api_checker>api_checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker for the GitHub API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
-<span id=git.github_pr_destination.update_description href=#git.github_pr_destination.update_description>update_description</span> | <code>bool</code><br><p>By default, Copybara only set the title and body of the PR when creating the PR. If this field is set to true, it will update those fields for every update.</p>
-<span id=git.github_pr_destination.primary_branch_migration href=#git.github_pr_destination.primary_branch_migration>primary_branch_migration</span> | <code>bool</code><br><p>When enabled, copybara will ignore the 'desination_ref' param if it is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the param's declared value.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
+<span id=git.github_pr_destination.update_description href=#git.github_pr_destination.update_description>update_description</span> | <code><a href="#bool">bool</a></code><br><p>By default, Copybara only set the title and body of the PR when creating the PR. If this field is set to true, it will update those fields for every update.</p>
+<span id=git.github_pr_destination.primary_branch_migration href=#git.github_pr_destination.primary_branch_migration>primary_branch_migration</span> | <code><a href="#bool">bool</a></code><br><p>When enabled, copybara will ignore the 'desination_ref' param if it is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the param's declared value.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
 <span id=git.github_pr_destination.checker href=#git.github_pr_destination.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker that validates the commit files & message. If `api_checker` is not set, it will also be used for checking API calls. If only `api_checker`is used, that checker will only apply to API calls.</p>
-<span id=git.github_pr_destination.draft href=#git.github_pr_destination.draft>draft</span> | <code>bool</code><br><p>Flag create pull request as draft or not.</p>
+<span id=git.github_pr_destination.draft href=#git.github_pr_destination.draft>draft</span> | <code><a href="#bool">bool</a></code><br><p>Flag create pull request as draft or not.</p>
 <span id=git.github_pr_destination.credentials href=#git.github_pr_destination.credentials>credentials</span> | <code>UsernamePasswordIssuer</code> or <code>NoneType</code><br><p>EXPERIMENTAL: Read credentials from config file to access the Git Repo. This expects a 'credentials.username_password' specifying the username to use for the remote git host and a password or token. This is gated by the '--use-credentials-from-config' flag</p>
 
 
@@ -3326,24 +3578,24 @@ Implicit labels that can be used/exposed:
 
 Parameter | Description
 --------- | -----------
-<span id=git.github_pr_origin.url href=#git.github_pr_origin.url>url</span> | <code>string</code><br><p>Indicates the URL of the GitHub repository</p>
-<span id=git.github_pr_origin.use_merge href=#git.github_pr_origin.use_merge>use_merge</span> | <code>bool</code><br><p>If the content for refs/pull/&lt;ID&gt;/merge should be used instead of the PR head. The GitOrigin-RevId still will be the one from refs/pull/&lt;ID&gt;/head revision.</p>
-<span id=git.github_pr_origin.required_labels href=#git.github_pr_origin.required_labels>required_labels</span> | <code>sequence of string</code><br><p>Required labels to import the PR. All the labels need to be present in order to migrate the Pull Request.</p>
-<span id=git.github_pr_origin.required_status_context_names href=#git.github_pr_origin.required_status_context_names>required_status_context_names</span> | <code>sequence of string</code><br><p>A list of names of services which must all mark the PR with 'success' before it can be imported.<br><br>See https://docs.github.com/en/rest/reference/repos#statuses</p>
-<span id=git.github_pr_origin.required_check_runs href=#git.github_pr_origin.required_check_runs>required_check_runs</span> | <code>sequence of string</code><br><p>A list of check runs which must all have a value of 'success' in order to import the PR.<br><br>See https://docs.github.com/en/rest/guides/getting-started-with-the-checks-api</p>
-<span id=git.github_pr_origin.retryable_labels href=#git.github_pr_origin.retryable_labels>retryable_labels</span> | <code>sequence of string</code><br><p>Required labels to import the PR that should be retried. This parameter must be a subset of required_labels.</p>
-<span id=git.github_pr_origin.submodules href=#git.github_pr_origin.submodules>submodules</span> | <code>string</code><br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
-<span id=git.github_pr_origin.excluded_submodules href=#git.github_pr_origin.excluded_submodules>excluded_submodules</span> | <code>sequence of string</code><br><p>A list of names (not paths, e.g. "foo" is the submodule name if [submodule "foo"] appears in the .gitmodules file) of submodules that will not be download even if 'submodules' is set to YES or RECURSIVE. </p>
-<span id=git.github_pr_origin.baseline_from_branch href=#git.github_pr_origin.baseline_from_branch>baseline_from_branch</span> | <code>bool</code><br><p>WARNING: Use this field only for github -> git CHANGE_REQUEST workflows.<br>When the field is set to true for CHANGE_REQUEST workflows it will find the baseline comparing the Pull Request with the base branch instead of looking for the *-RevId label in the commit message.</p>
-<span id=git.github_pr_origin.first_parent href=#git.github_pr_origin.first_parent>first_parent</span> | <code>bool</code><br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
-<span id=git.github_pr_origin.partial_fetch href=#git.github_pr_origin.partial_fetch>partial_fetch</span> | <code>bool</code><br><p>This is an experimental feature that only works for certain origin globs.</p>
-<span id=git.github_pr_origin.state href=#git.github_pr_origin.state>state</span> | <code>string</code><br><p>Only migrate Pull Request with that state. Possible values: `'OPEN'`, `'CLOSED'` or `'ALL'`. Default 'OPEN'</p>
-<span id=git.github_pr_origin.review_state href=#git.github_pr_origin.review_state>review_state</span> | <code>string</code> or <code>NoneType</code><br><p>Required state of the reviews associated with the Pull Request Possible values:<br><br>-  `ANY`: No review or approval required.<br>-  `HAS_REVIEWERS`: A reviewer interacted with the change, e.g. commented.<br>-  `ANY_COMMIT_APPROVED`: At least one commit in the PR was approved.<br>-  `HEAD_COMMIT_APPROVED`: The current head commit was approved.<br><br> Default is `None` which has no requirement.<br>This field is required if the user wants `GITHUB_PR_REVIEWER_APPROVER` and `GITHUB_PR_REVIEWER_OTHER` labels populated</p>
-<span id=git.github_pr_origin.review_approvers href=#git.github_pr_origin.review_approvers>review_approvers</span> | <code>sequence of string</code> or <code>NoneType</code><br><p>The set of reviewer types that are considered for approvals. In order to have any effect, `review_state` needs to be set. GITHUB_PR_REVIEWER_APPROVER` will be populated for these types. See the valid types here: https://developer.github.com/v4/enum/commentauthorassociation/</p>
+<span id=git.github_pr_origin.url href=#git.github_pr_origin.url>url</span> | <code><a href="#string">string</a></code><br><p>Indicates the URL of the GitHub repository</p>
+<span id=git.github_pr_origin.use_merge href=#git.github_pr_origin.use_merge>use_merge</span> | <code><a href="#bool">bool</a></code><br><p>If the content for refs/pull/&lt;ID&gt;/merge should be used instead of the PR head. The GitOrigin-RevId still will be the one from refs/pull/&lt;ID&gt;/head revision.</p>
+<span id=git.github_pr_origin.required_labels href=#git.github_pr_origin.required_labels>required_labels</span> | <code>sequence of <a href="#string">string</a></code><br><p>Required labels to import the PR. All the labels need to be present in order to migrate the Pull Request.</p>
+<span id=git.github_pr_origin.required_status_context_names href=#git.github_pr_origin.required_status_context_names>required_status_context_names</span> | <code>sequence of <a href="#string">string</a></code><br><p>A list of names of services which must all mark the PR with 'success' before it can be imported.<br><br>See https://docs.github.com/en/rest/reference/repos#statuses</p>
+<span id=git.github_pr_origin.required_check_runs href=#git.github_pr_origin.required_check_runs>required_check_runs</span> | <code>sequence of <a href="#string">string</a></code><br><p>A list of check runs which must all have a value of 'success' in order to import the PR.<br><br>See https://docs.github.com/en/rest/guides/getting-started-with-the-checks-api</p>
+<span id=git.github_pr_origin.retryable_labels href=#git.github_pr_origin.retryable_labels>retryable_labels</span> | <code>sequence of <a href="#string">string</a></code><br><p>Required labels to import the PR that should be retried. This parameter must be a subset of required_labels.</p>
+<span id=git.github_pr_origin.submodules href=#git.github_pr_origin.submodules>submodules</span> | <code><a href="#string">string</a></code><br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
+<span id=git.github_pr_origin.excluded_submodules href=#git.github_pr_origin.excluded_submodules>excluded_submodules</span> | <code>sequence of <a href="#string">string</a></code><br><p>A list of names (not paths, e.g. "foo" is the submodule name if [submodule "foo"] appears in the .gitmodules file) of submodules that will not be download even if 'submodules' is set to YES or RECURSIVE. </p>
+<span id=git.github_pr_origin.baseline_from_branch href=#git.github_pr_origin.baseline_from_branch>baseline_from_branch</span> | <code><a href="#bool">bool</a></code><br><p>WARNING: Use this field only for github -> git CHANGE_REQUEST workflows.<br>When the field is set to true for CHANGE_REQUEST workflows it will find the baseline comparing the Pull Request with the base branch instead of looking for the *-RevId label in the commit message.</p>
+<span id=git.github_pr_origin.first_parent href=#git.github_pr_origin.first_parent>first_parent</span> | <code><a href="#bool">bool</a></code><br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
+<span id=git.github_pr_origin.partial_fetch href=#git.github_pr_origin.partial_fetch>partial_fetch</span> | <code><a href="#bool">bool</a></code><br><p>This is an experimental feature that only works for certain origin globs.</p>
+<span id=git.github_pr_origin.state href=#git.github_pr_origin.state>state</span> | <code><a href="#string">string</a></code><br><p>Only migrate Pull Request with that state. Possible values: `'OPEN'`, `'CLOSED'` or `'ALL'`. Default 'OPEN'</p>
+<span id=git.github_pr_origin.review_state href=#git.github_pr_origin.review_state>review_state</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>Required state of the reviews associated with the Pull Request Possible values:<br><br>-  `ANY`: No review or approval required.<br>-  `HAS_REVIEWERS`: A reviewer interacted with the change, e.g. commented.<br>-  `ANY_COMMIT_APPROVED`: At least one commit in the PR was approved.<br>-  `HEAD_COMMIT_APPROVED`: The current head commit was approved.<br><br> Default is `None` which has no requirement.<br>This field is required if the user wants `GITHUB_PR_REVIEWER_APPROVER` and `GITHUB_PR_REVIEWER_OTHER` labels populated</p>
+<span id=git.github_pr_origin.review_approvers href=#git.github_pr_origin.review_approvers>review_approvers</span> | <code>sequence of <a href="#string">string</a></code> or <code>NoneType</code><br><p>The set of reviewer types that are considered for approvals. In order to have any effect, `review_state` needs to be set. GITHUB_PR_REVIEWER_APPROVER` will be populated for these types. See the valid types here: https://developer.github.com/v4/enum/commentauthorassociation/</p>
 <span id=git.github_pr_origin.api_checker href=#git.github_pr_origin.api_checker>api_checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker for the GitHub API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
 <span id=git.github_pr_origin.patch href=#git.github_pr_origin.patch>patch</span> | <code><a href="#transformation">transformation</a></code> or <code>NoneType</code><br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
-<span id=git.github_pr_origin.branch href=#git.github_pr_origin.branch>branch</span> | <code>string</code> or <code>NoneType</code><br><p>If set, it will only migrate pull requests for this base branch</p>
-<span id=git.github_pr_origin.describe_version href=#git.github_pr_origin.describe_version>describe_version</span> | <code>bool</code> or <code>NoneType</code><br><p>Download tags and use 'git describe' to create four labels with a meaningful version identifier:<br><br>  - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br> - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br>  -`GIT_DESCRIBE_FIRST_PARENT`: `git describe` for the first parent version.<br>  -`GIT_SEQUENTIAL_REVISION_NUMBER`: The sequential number of the commit. Falls back to the SHA1 if not applicable.<br></p>
+<span id=git.github_pr_origin.branch href=#git.github_pr_origin.branch>branch</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>If set, it will only migrate pull requests for this base branch</p>
+<span id=git.github_pr_origin.describe_version href=#git.github_pr_origin.describe_version>describe_version</span> | <code><a href="#bool">bool</a></code> or <code>NoneType</code><br><p>Download tags and use 'git describe' to create four labels with a meaningful version identifier:<br><br>  - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br> - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br>  -`GIT_DESCRIBE_FIRST_PARENT`: `git describe` for the first parent version.<br>  -`GIT_SEQUENTIAL_REVISION_NUMBER`: The sequential number of the commit. Falls back to the SHA1 if not applicable.<br></p>
 <span id=git.github_pr_origin.credentials href=#git.github_pr_origin.credentials>credentials</span> | <code>UsernamePasswordIssuer</code> or <code>NoneType</code><br><p>EXPERIMENTAL: Read credentials from config file to access the Git Repo. This expects a 'credentials.username_password' specifying the username to use for the remote git host and a password or token. This is gated by the '--use-credentials-from-config' flag</p>
 
 
@@ -3383,9 +3635,9 @@ Defines a feedback trigger based on updates on a GitHub PR.
 
 Parameter | Description
 --------- | -----------
-<span id=git.github_trigger.url href=#git.github_trigger.url>url</span> | <code>string</code><br><p>Indicates the GitHub repo URL.</p>
+<span id=git.github_trigger.url href=#git.github_trigger.url>url</span> | <code><a href="#string">string</a></code><br><p>Indicates the GitHub repo URL.</p>
 <span id=git.github_trigger.checker href=#git.github_trigger.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker for the GitHub API transport provided by this trigger.</p>
-<span id=git.github_trigger.events href=#git.github_trigger.events>events</span> | <code>sequence of string</code> or <code>dict of sequence</code><br><p>Types of events to subscribe. Can  either be a list of event types or a dict of event types to particular events of that type, e.g. `['CHECK_RUNS']` or `{'CHECK_RUNS': 'my_check_run_name'}`.<br>Valid values for event types are: `'ISSUES'`, `'ISSUE_COMMENT'`, `'PULL_REQUEST'`,  `'PULL_REQUEST_REVIEW_COMMENT'`, `'PUSH'`, `'STATUS'`, `'CHECK_RUNS'`</p>
+<span id=git.github_trigger.events href=#git.github_trigger.events>events</span> | <code>sequence of <a href="#string">string</a></code> or <code>dict of sequence</code><br><p>Types of events to subscribe. Can  either be a list of event types or a dict of event types to particular events of that type, e.g. `['CHECK_RUNS']` or `{'CHECK_RUNS': 'my_check_run_name'}`.<br>Valid values for event types are: `'ISSUES'`, `'ISSUE_COMMENT'`, `'PULL_REQUEST'`,  `'PULL_REQUEST_REVIEW_COMMENT'`, `'PUSH'`, `'STATUS'`, `'CHECK_RUNS'`</p>
 <span id=git.github_trigger.credentials href=#git.github_trigger.credentials>credentials</span> | <code>UsernamePasswordIssuer</code> or <code>NoneType</code><br><p>EXPERIMENTAL: Read credentials from config file to access the Git Repo. This expects a 'credentials.username_password' specifying the username to use for the remote git host and a password or token. This is gated by the '--use-credentials-from-config' flag</p>
 
 
@@ -3411,9 +3663,9 @@ Integrate changes from a url present in the migrated change label.
 
 Parameter | Description
 --------- | -----------
-<span id=git.integrate.label href=#git.integrate.label>label</span> | <code>string</code><br><p>The migration label that will contain the url to the change to integrate.</p>
-<span id=git.integrate.strategy href=#git.integrate.strategy>strategy</span> | <code>string</code><br><p>How to integrate the change:<br><ul> <li><b>'FAKE_MERGE'</b>: Add the url revision/reference as parent of the migration change but ignore all the files from the url. The commit message will be a standard merge one but will include the corresponding RevId label</li> <li><b>'FAKE_MERGE_AND_INCLUDE_FILES'</b>: Same as 'FAKE_MERGE' but any change to files that doesn't match destination_files will be included as part of the merge commit. So it will be a semi fake merge: Fake for destination_files but merge for non destination files.</li> <li><b>'INCLUDE_FILES'</b>: Same as 'FAKE_MERGE_AND_INCLUDE_FILES' but it it doesn't create a merge but only include changes not matching destination_files</li></ul></p>
-<span id=git.integrate.ignore_errors href=#git.integrate.ignore_errors>ignore_errors</span> | <code>bool</code><br><p>If we should ignore integrate errors and continue the migration without the integrate</p>
+<span id=git.integrate.label href=#git.integrate.label>label</span> | <code><a href="#string">string</a></code><br><p>The migration label that will contain the url to the change to integrate.</p>
+<span id=git.integrate.strategy href=#git.integrate.strategy>strategy</span> | <code><a href="#string">string</a></code><br><p>How to integrate the change:<br><ul> <li><b>'FAKE_MERGE'</b>: Add the url revision/reference as parent of the migration change but ignore all the files from the url. The commit message will be a standard merge one but will include the corresponding RevId label</li> <li><b>'FAKE_MERGE_AND_INCLUDE_FILES'</b>: Same as 'FAKE_MERGE' but any change to files that doesn't match destination_files will be included as part of the merge commit. So it will be a semi fake merge: Fake for destination_files but merge for non destination files.</li> <li><b>'INCLUDE_FILES'</b>: Same as 'FAKE_MERGE_AND_INCLUDE_FILES' but it it doesn't create a merge but only include changes not matching destination_files</li></ul></p>
+<span id=git.integrate.ignore_errors href=#git.integrate.ignore_errors>ignore_errors</span> | <code><a href="#bool">bool</a></code><br><p>If we should ignore integrate errors and continue the migration without the integrate</p>
 
 
 <h4 id="example.git.integrate">Example:</h4>
@@ -3448,8 +3700,8 @@ Customize what version of the available branches and tags to pick. By default it
 
 Parameter | Description
 --------- | -----------
-<span id=git.latest_version.refspec_format href=#git.latest_version.refspec_format>refspec_format</span> | <code>string</code><br><p>The format of the branch/tag</p>
-<span id=git.latest_version.refspec_groups href=#git.latest_version.refspec_groups>refspec_groups</span> | <code>dict</code><br><p>A set of named regexes that can be used to match part of the versions. Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. Use the following nomenclature n0, n1, n2 for the version part (will use numeric sorting) or s0, s1, s2 (alphabetic sorting). Note that there can be mixed but the numbers cannot be repeated. In other words n0, s1, n2 is valid but not n0, s0, n1. n0 has more priority than n1. If there are fields where order is not important, use s(N+1) where N ist he latest sorted field. Example {"n0": "[0-9]+", "s1": "[a-z]+"}</p>
+<span id=git.latest_version.refspec_format href=#git.latest_version.refspec_format>refspec_format</span> | <code><a href="#string">string</a></code><br><p>The format of the branch/tag</p>
+<span id=git.latest_version.refspec_groups href=#git.latest_version.refspec_groups>refspec_groups</span> | <code><a href="#dict">dict</a></code><br><p>A set of named regexes that can be used to match part of the versions. Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. Use the following nomenclature n0, n1, n2 for the version part (will use numeric sorting) or s0, s1, s2 (alphabetic sorting). Note that there can be mixed but the numbers cannot be repeated. In other words n0, s1, n2 is valid but not n0, s0, n1. n0 has more priority than n1. If there are fields where order is not important, use s(N+1) where N ist he latest sorted field. Example {"n0": "[0-9]+", "s1": "[a-z]+"}</p>
 
 <a id="git.mirror" aria-hidden="true"></a>
 ### git.mirror
@@ -3463,13 +3715,13 @@ Mirror git references between repositories
 
 Parameter | Description
 --------- | -----------
-<span id=git.mirror.name href=#git.mirror.name>name</span> | <code>string</code><br><p>Migration name</p>
-<span id=git.mirror.origin href=#git.mirror.origin>origin</span> | <code>string</code><br><p>Indicates the URL of the origin git repository</p>
-<span id=git.mirror.destination href=#git.mirror.destination>destination</span> | <code>string</code><br><p>Indicates the URL of the destination git repository</p>
-<span id=git.mirror.refspecs href=#git.mirror.refspecs>refspecs</span> | <code>sequence of string</code><br><p>Represents a list of git refspecs to mirror between origin and destination. For example 'refs/heads/*:refs/remotes/origin/*' will mirror any reference inside refs/heads to refs/remotes/origin.</p>
-<span id=git.mirror.prune href=#git.mirror.prune>prune</span> | <code>bool</code><br><p>Remove remote refs that don't have a origin counterpart. Prune is ignored if actions are used (Action is in charge of doing the pruning)</p>
-<span id=git.mirror.partial_fetch href=#git.mirror.partial_fetch>partial_fetch</span> | <code>bool</code><br><p>This is an experimental feature that only works for certain origin globs.</p>
-<span id=git.mirror.description href=#git.mirror.description>description</span> | <code>string</code> or <code>NoneType</code><br><p>A description of what this migration achieves</p>
+<span id=git.mirror.name href=#git.mirror.name>name</span> | <code><a href="#string">string</a></code><br><p>Migration name</p>
+<span id=git.mirror.origin href=#git.mirror.origin>origin</span> | <code><a href="#string">string</a></code><br><p>Indicates the URL of the origin git repository</p>
+<span id=git.mirror.destination href=#git.mirror.destination>destination</span> | <code><a href="#string">string</a></code><br><p>Indicates the URL of the destination git repository</p>
+<span id=git.mirror.refspecs href=#git.mirror.refspecs>refspecs</span> | <code>sequence of <a href="#string">string</a></code><br><p>Represents a list of git refspecs to mirror between origin and destination. For example 'refs/heads/*:refs/remotes/origin/*' will mirror any reference inside refs/heads to refs/remotes/origin.</p>
+<span id=git.mirror.prune href=#git.mirror.prune>prune</span> | <code><a href="#bool">bool</a></code><br><p>Remove remote refs that don't have a origin counterpart. Prune is ignored if actions are used (Action is in charge of doing the pruning)</p>
+<span id=git.mirror.partial_fetch href=#git.mirror.partial_fetch>partial_fetch</span> | <code><a href="#bool">bool</a></code><br><p>This is an experimental feature that only works for certain origin globs.</p>
+<span id=git.mirror.description href=#git.mirror.description>description</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>A description of what this migration achieves</p>
 <span id=git.mirror.action href=#git.mirror.action>action</span> | <code>unknown</code><br><p>An action to execute when the migration is triggered. Actions can fetch, push, rebase, merge, etc. Only fetches/pushes for the declared refspec are allowed.</p>
 <span id=git.mirror.origin_checker href=#git.mirror.origin_checker>origin_checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>Checker for applicable gerrit or github apis that can be inferred from the origin url. You can omit this if there no intention to use aforementioned APIs.</p>
 <span id=git.mirror.destination_checker href=#git.mirror.destination_checker>destination_checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>Checker for applicable gerrit or github apis that can be inferred from the destination url. You can omit this if there no intention to use aforementioned APIs.</p>
@@ -3488,17 +3740,17 @@ Defines a standard Git origin. For Git specific origins use: `github_origin` or 
 
 Parameter | Description
 --------- | -----------
-<span id=git.origin.url href=#git.origin.url>url</span> | <code>string</code><br><p>Indicates the URL of the git repository</p>
-<span id=git.origin.ref href=#git.origin.ref>ref</span> | <code>string</code> or <code>NoneType</code><br><p>Represents the default reference that will be used for reading the revision from the git repository. For example: 'master'</p>
-<span id=git.origin.submodules href=#git.origin.submodules>submodules</span> | <code>string</code><br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
-<span id=git.origin.excluded_submodules href=#git.origin.excluded_submodules>excluded_submodules</span> | <code>sequence of string</code><br><p>A list of names (not paths, e.g. "foo" is the submodule name if [submodule "foo"] appears in the .gitmodules file) of submodules that will not be download even if 'submodules' is set to YES or RECURSIVE. </p>
-<span id=git.origin.include_branch_commit_logs href=#git.origin.include_branch_commit_logs>include_branch_commit_logs</span> | <code>bool</code><br><p>Whether to include raw logs of branch commits in the migrated change message.WARNING: This field is deprecated in favor of 'first_parent' one. This setting *only* affects merge commits.</p>
-<span id=git.origin.first_parent href=#git.origin.first_parent>first_parent</span> | <code>bool</code><br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
-<span id=git.origin.partial_fetch href=#git.origin.partial_fetch>partial_fetch</span> | <code>bool</code><br><p>If true, partially fetch git repository by only fetching affected files.</p>
+<span id=git.origin.url href=#git.origin.url>url</span> | <code><a href="#string">string</a></code><br><p>Indicates the URL of the git repository</p>
+<span id=git.origin.ref href=#git.origin.ref>ref</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>Represents the default reference that will be used for reading the revision from the git repository. For example: 'master'</p>
+<span id=git.origin.submodules href=#git.origin.submodules>submodules</span> | <code><a href="#string">string</a></code><br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
+<span id=git.origin.excluded_submodules href=#git.origin.excluded_submodules>excluded_submodules</span> | <code>sequence of <a href="#string">string</a></code><br><p>A list of names (not paths, e.g. "foo" is the submodule name if [submodule "foo"] appears in the .gitmodules file) of submodules that will not be download even if 'submodules' is set to YES or RECURSIVE. </p>
+<span id=git.origin.include_branch_commit_logs href=#git.origin.include_branch_commit_logs>include_branch_commit_logs</span> | <code><a href="#bool">bool</a></code><br><p>Whether to include raw logs of branch commits in the migrated change message.WARNING: This field is deprecated in favor of 'first_parent' one. This setting *only* affects merge commits.</p>
+<span id=git.origin.first_parent href=#git.origin.first_parent>first_parent</span> | <code><a href="#bool">bool</a></code><br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
+<span id=git.origin.partial_fetch href=#git.origin.partial_fetch>partial_fetch</span> | <code><a href="#bool">bool</a></code><br><p>If true, partially fetch git repository by only fetching affected files.</p>
 <span id=git.origin.patch href=#git.origin.patch>patch</span> | <code><a href="#transformation">transformation</a></code> or <code>NoneType</code><br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
-<span id=git.origin.describe_version href=#git.origin.describe_version>describe_version</span> | <code>bool</code> or <code>NoneType</code><br><p>Download tags and use 'git describe' to create four labels with a meaningful version identifier:<br><br>  - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br> - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br>  -`GIT_DESCRIBE_FIRST_PARENT`: `git describe` for the first parent version.<br>  -`GIT_SEQUENTIAL_REVISION_NUMBER`: The sequential number of the commit. Falls back to the SHA1 if not applicable.<br></p>
+<span id=git.origin.describe_version href=#git.origin.describe_version>describe_version</span> | <code><a href="#bool">bool</a></code> or <code>NoneType</code><br><p>Download tags and use 'git describe' to create four labels with a meaningful version identifier:<br><br>  - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br> - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br>  -`GIT_DESCRIBE_FIRST_PARENT`: `git describe` for the first parent version.<br>  -`GIT_SEQUENTIAL_REVISION_NUMBER`: The sequential number of the commit. Falls back to the SHA1 if not applicable.<br></p>
 <span id=git.origin.version_selector href=#git.origin.version_selector>version_selector</span> | <code><a href="#versionselector">VersionSelector</a></code> or <code>NoneType</code><br><p>Select a custom version (tag)to migrate instead of 'ref'. Version selector is expected to match the whole refspec (e.g. 'refs/heads/${n1}')</p>
-<span id=git.origin.primary_branch_migration href=#git.origin.primary_branch_migration>primary_branch_migration</span> | <code>bool</code><br><p>When enabled, copybara will ignore the 'ref' param if it is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the 'ref' param.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
+<span id=git.origin.primary_branch_migration href=#git.origin.primary_branch_migration>primary_branch_migration</span> | <code><a href="#bool">bool</a></code><br><p>When enabled, copybara will ignore the 'ref' param if it is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the 'ref' param.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
 <span id=git.origin.credentials href=#git.origin.credentials>credentials</span> | <code>UsernamePasswordIssuer</code> or <code>NoneType</code><br><p>EXPERIMENTAL: Read credentials from config file to access the Git Repo. This expects a 'credentials.username_password' specifying the username to use for the remote git host and a password or token. This is gated by the '--use-credentials-from-config' flag</p>
 
 
@@ -3524,9 +3776,9 @@ Creates a review to be posted on Gerrit.
 
 Parameter | Description
 --------- | -----------
-<span id=git.review_input.labels href=#git.review_input.labels>labels</span> | <code>dict</code><br><p>The labels to post.</p>
-<span id=git.review_input.message href=#git.review_input.message>message</span> | <code>string</code> or <code>NoneType</code><br><p>The message to be added as review comment.</p>
-<span id=git.review_input.tag href=#git.review_input.tag>tag</span> | <code>string</code> or <code>NoneType</code><br><p>Tag to be applied to the review, for instance 'autogenerated:copybara'.</p>
+<span id=git.review_input.labels href=#git.review_input.labels>labels</span> | <code><a href="#dict">dict</a></code><br><p>The labels to post.</p>
+<span id=git.review_input.message href=#git.review_input.message>message</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>The message to be added as review comment.</p>
+<span id=git.review_input.tag href=#git.review_input.tag>tag</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>Tag to be applied to the review, for instance 'autogenerated:copybara'.</p>
 
 
 
@@ -3550,12 +3802,12 @@ Expose methods to `git.mirror` actions to perform operations over git repositori
 
 Name | Description
 ---- | -----------
-action_name | <code>string</code><br><p>The name of the current action.</p>
-cli_labels | <code>dict[string, string]</code><br><p>Access labels that a user passes through flag '--labels'. For example: --labels=foo:value1,bar:value2. Then it can access in this way:cli_labels['foo'].</p>
+action_name | <code><a href="#string">string</a></code><br><p>The name of the current action.</p>
+cli_labels | <code>dict[<a href="#string">string</a>, <a href="#string">string</a>]</code><br><p>Access labels that a user passes through flag '--labels'. For example: --labels=foo:value1,bar:value2. Then it can access in this way:cli_labels['foo'].</p>
 console | <code><a href="#console">Console</a></code><br><p>Get an instance of the console to report errors or warnings</p>
 destination_api | <code><a href="#endpoint">endpoint</a></code><br><p>Returns a handle to platform specific api, inferred from the destination url when possible.</p>
 origin_api | <code><a href="#endpoint">endpoint</a></code><br><p>Returns a handle to platform specific api, inferred from the origin url when possible.</p>
-params | <code>dict</code><br><p>Parameters for the function if created with core.action</p>
+params | <code><a href="#dict">dict</a></code><br><p>Parameters for the function if created with core.action</p>
 refs | <code>sequence</code><br><p>A list containing string representations of the entities that triggered the event</p>
 
 <a id="git.mirrorContext.cherry_pick" aria-hidden="true"></a>
@@ -3570,12 +3822,12 @@ Cherry-pick one or more commits to a branch
 
 Parameter | Description
 --------- | -----------
-<span id=git.mirrorContext.cherry_pick.branch href=#git.mirrorContext.cherry_pick.branch>branch</span> | <code>string</code><br><p></p>
-<span id=git.mirrorContext.cherry_pick.commits href=#git.mirrorContext.cherry_pick.commits>commits</span> | <code>sequence of string</code><br><p>Commits to cherry-pick. An expression like foo..bar can be used to cherry-pick several commits. Note that 'HEAD' will refer to the `branch` HEAD, since cherry-pick requires a checkout of the branch before cherry-picking.</p>
-<span id=git.mirrorContext.cherry_pick.add_commit_origin_info href=#git.mirrorContext.cherry_pick.add_commit_origin_info>add_commit_origin_info</span> | <code>bool</code><br><p>Add information about the origin of the commit (sha-1) to the message of the newcommit</p>
+<span id=git.mirrorContext.cherry_pick.branch href=#git.mirrorContext.cherry_pick.branch>branch</span> | <code><a href="#string">string</a></code><br><p></p>
+<span id=git.mirrorContext.cherry_pick.commits href=#git.mirrorContext.cherry_pick.commits>commits</span> | <code>sequence of <a href="#string">string</a></code><br><p>Commits to cherry-pick. An expression like foo..bar can be used to cherry-pick several commits. Note that 'HEAD' will refer to the `branch` HEAD, since cherry-pick requires a checkout of the branch before cherry-picking.</p>
+<span id=git.mirrorContext.cherry_pick.add_commit_origin_info href=#git.mirrorContext.cherry_pick.add_commit_origin_info>add_commit_origin_info</span> | <code><a href="#bool">bool</a></code><br><p>Add information about the origin of the commit (sha-1) to the message of the newcommit</p>
 <span id=git.mirrorContext.cherry_pick.merge_parent_number href=#git.mirrorContext.cherry_pick.merge_parent_number>merge_parent_number</span> | <code>unknown</code><br><p>Specify the parent number for cherry-picking merge commits</p>
-<span id=git.mirrorContext.cherry_pick.allow_empty href=#git.mirrorContext.cherry_pick.allow_empty>allow_empty</span> | <code>bool</code><br><p>Allow empty commits (noop commits)</p>
-<span id=git.mirrorContext.cherry_pick.fast_forward href=#git.mirrorContext.cherry_pick.fast_forward>fast_forward</span> | <code>bool</code><br><p>Fast-forward commits if possible</p>
+<span id=git.mirrorContext.cherry_pick.allow_empty href=#git.mirrorContext.cherry_pick.allow_empty>allow_empty</span> | <code><a href="#bool">bool</a></code><br><p>Allow empty commits (noop commits)</p>
+<span id=git.mirrorContext.cherry_pick.fast_forward href=#git.mirrorContext.cherry_pick.fast_forward>fast_forward</span> | <code><a href="#bool">bool</a></code><br><p>Fast-forward commits if possible</p>
 
 <a id="git.mirrorContext.create_branch" aria-hidden="true"></a>
 ### git.mirrorContext.create_branch
@@ -3589,7 +3841,7 @@ Merge one or more commits into a local branch.
 
 Parameter | Description
 --------- | -----------
-<span id=git.mirrorContext.create_branch.name href=#git.mirrorContext.create_branch.name>name</span> | <code>string</code><br><p></p>
+<span id=git.mirrorContext.create_branch.name href=#git.mirrorContext.create_branch.name>name</span> | <code><a href="#string">string</a></code><br><p></p>
 <span id=git.mirrorContext.create_branch.starting_point href=#git.mirrorContext.create_branch.starting_point>starting_point</span> | <code>unknown</code><br><p></p>
 
 <a id="git.mirrorContext.destination_fetch" aria-hidden="true"></a>
@@ -3597,17 +3849,17 @@ Parameter | Description
 
 Fetch from the destination a list of refspecs. Note that fetch happens without pruning.
 
-<code>bool</code> <code>git.mirrorContext.destination_fetch(<a href=#git.mirrorContext.destination_fetch.refspec>refspec</a>, <a href=#git.mirrorContext.destination_fetch.prune>prune</a>=True, <a href=#git.mirrorContext.destination_fetch.depth>depth</a>=None, <a href=#git.mirrorContext.destination_fetch.partial_fetch>partial_fetch</a>=False)</code>
+<code><a href="#bool">bool</a></code> <code>git.mirrorContext.destination_fetch(<a href=#git.mirrorContext.destination_fetch.refspec>refspec</a>, <a href=#git.mirrorContext.destination_fetch.prune>prune</a>=True, <a href=#git.mirrorContext.destination_fetch.depth>depth</a>=None, <a href=#git.mirrorContext.destination_fetch.partial_fetch>partial_fetch</a>=False)</code>
 
 
 <h4 id="parameters.git.mirrorContext.destination_fetch">Parameters:</h4>
 
 Parameter | Description
 --------- | -----------
-<span id=git.mirrorContext.destination_fetch.refspec href=#git.mirrorContext.destination_fetch.refspec>refspec</span> | <code>sequence of string</code><br><p></p>
-<span id=git.mirrorContext.destination_fetch.prune href=#git.mirrorContext.destination_fetch.prune>prune</span> | <code>bool</code><br><p></p>
-<span id=git.mirrorContext.destination_fetch.depth href=#git.mirrorContext.destination_fetch.depth>depth</span> | <code>int</code> or <code>NoneType</code><br><p>Sets number of commits to fetch. Setting to None (the default) means no limit to that number.</p>
-<span id=git.mirrorContext.destination_fetch.partial_fetch href=#git.mirrorContext.destination_fetch.partial_fetch>partial_fetch</span> | <code>bool</code><br><p>If true, partially fetch only the minimum needed (e.g. don't fetch blobs if not used)</p>
+<span id=git.mirrorContext.destination_fetch.refspec href=#git.mirrorContext.destination_fetch.refspec>refspec</span> | <code>sequence of <a href="#string">string</a></code><br><p></p>
+<span id=git.mirrorContext.destination_fetch.prune href=#git.mirrorContext.destination_fetch.prune>prune</span> | <code><a href="#bool">bool</a></code><br><p></p>
+<span id=git.mirrorContext.destination_fetch.depth href=#git.mirrorContext.destination_fetch.depth>depth</span> | <code><a href="#int">int</a></code> or <code>NoneType</code><br><p>Sets number of commits to fetch. Setting to None (the default) means no limit to that number.</p>
+<span id=git.mirrorContext.destination_fetch.partial_fetch href=#git.mirrorContext.destination_fetch.partial_fetch>partial_fetch</span> | <code><a href="#bool">bool</a></code><br><p>If true, partially fetch only the minimum needed (e.g. don't fetch blobs if not used)</p>
 
 <a id="git.mirrorContext.destination_push" aria-hidden="true"></a>
 ### git.mirrorContext.destination_push
@@ -3621,9 +3873,9 @@ Push to the destination a list of refspecs.
 
 Parameter | Description
 --------- | -----------
-<span id=git.mirrorContext.destination_push.refspec href=#git.mirrorContext.destination_push.refspec>refspec</span> | <code>sequence of string</code><br><p></p>
-<span id=git.mirrorContext.destination_push.prune href=#git.mirrorContext.destination_push.prune>prune</span> | <code>bool</code><br><p></p>
-<span id=git.mirrorContext.destination_push.push_options href=#git.mirrorContext.destination_push.push_options>push_options</span> | <code>sequence of string</code><br><p>Additional push options to use with destination push</p>
+<span id=git.mirrorContext.destination_push.refspec href=#git.mirrorContext.destination_push.refspec>refspec</span> | <code>sequence of <a href="#string">string</a></code><br><p></p>
+<span id=git.mirrorContext.destination_push.prune href=#git.mirrorContext.destination_push.prune>prune</span> | <code><a href="#bool">bool</a></code><br><p></p>
+<span id=git.mirrorContext.destination_push.push_options href=#git.mirrorContext.destination_push.push_options>push_options</span> | <code>sequence of <a href="#string">string</a></code><br><p>Additional push options to use with destination push</p>
 
 <a id="git.mirrorContext.error" aria-hidden="true"></a>
 ### git.mirrorContext.error
@@ -3637,7 +3889,7 @@ Returns an error action result.
 
 Parameter | Description
 --------- | -----------
-<span id=git.mirrorContext.error.msg href=#git.mirrorContext.error.msg>msg</span> | <code>string</code><br><p>The error message</p>
+<span id=git.mirrorContext.error.msg href=#git.mirrorContext.error.msg>msg</span> | <code><a href="#string">string</a></code><br><p>The error message</p>
 
 <a id="git.mirrorContext.merge" aria-hidden="true"></a>
 ### git.mirrorContext.merge
@@ -3651,10 +3903,10 @@ Merge one or more commits into a local branch.
 
 Parameter | Description
 --------- | -----------
-<span id=git.mirrorContext.merge.branch href=#git.mirrorContext.merge.branch>branch</span> | <code>string</code><br><p></p>
-<span id=git.mirrorContext.merge.commits href=#git.mirrorContext.merge.commits>commits</span> | <code>sequence of string</code><br><p></p>
+<span id=git.mirrorContext.merge.branch href=#git.mirrorContext.merge.branch>branch</span> | <code><a href="#string">string</a></code><br><p></p>
+<span id=git.mirrorContext.merge.commits href=#git.mirrorContext.merge.commits>commits</span> | <code>sequence of <a href="#string">string</a></code><br><p></p>
 <span id=git.mirrorContext.merge.msg href=#git.mirrorContext.merge.msg>msg</span> | <code>unknown</code><br><p></p>
-<span id=git.mirrorContext.merge.fast_forward href=#git.mirrorContext.merge.fast_forward>fast_forward</span> | <code>string</code><br><p>Valid values are FF (default), NO_FF, FF_ONLY.</p>
+<span id=git.mirrorContext.merge.fast_forward href=#git.mirrorContext.merge.fast_forward>fast_forward</span> | <code><a href="#string">string</a></code><br><p>Valid values are FF (default), NO_FF, FF_ONLY.</p>
 
 <a id="git.mirrorContext.noop" aria-hidden="true"></a>
 ### git.mirrorContext.noop
@@ -3668,24 +3920,24 @@ Returns a no op action result with an optional message.
 
 Parameter | Description
 --------- | -----------
-<span id=git.mirrorContext.noop.msg href=#git.mirrorContext.noop.msg>msg</span> | <code>string</code> or <code>NoneType</code><br><p>The no op message</p>
+<span id=git.mirrorContext.noop.msg href=#git.mirrorContext.noop.msg>msg</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>The no op message</p>
 
 <a id="git.mirrorContext.origin_fetch" aria-hidden="true"></a>
 ### git.mirrorContext.origin_fetch
 
 Fetch from the origin a list of refspecs. Note that fetch happens without pruning.
 
-<code>bool</code> <code>git.mirrorContext.origin_fetch(<a href=#git.mirrorContext.origin_fetch.refspec>refspec</a>, <a href=#git.mirrorContext.origin_fetch.prune>prune</a>=True, <a href=#git.mirrorContext.origin_fetch.depth>depth</a>=None, <a href=#git.mirrorContext.origin_fetch.partial_fetch>partial_fetch</a>=False)</code>
+<code><a href="#bool">bool</a></code> <code>git.mirrorContext.origin_fetch(<a href=#git.mirrorContext.origin_fetch.refspec>refspec</a>, <a href=#git.mirrorContext.origin_fetch.prune>prune</a>=True, <a href=#git.mirrorContext.origin_fetch.depth>depth</a>=None, <a href=#git.mirrorContext.origin_fetch.partial_fetch>partial_fetch</a>=False)</code>
 
 
 <h4 id="parameters.git.mirrorContext.origin_fetch">Parameters:</h4>
 
 Parameter | Description
 --------- | -----------
-<span id=git.mirrorContext.origin_fetch.refspec href=#git.mirrorContext.origin_fetch.refspec>refspec</span> | <code>sequence of string</code><br><p></p>
-<span id=git.mirrorContext.origin_fetch.prune href=#git.mirrorContext.origin_fetch.prune>prune</span> | <code>bool</code><br><p></p>
-<span id=git.mirrorContext.origin_fetch.depth href=#git.mirrorContext.origin_fetch.depth>depth</span> | <code>int</code> or <code>NoneType</code><br><p>Sets number of commits to fetch. Setting to None (the default) means no limit to that number.</p>
-<span id=git.mirrorContext.origin_fetch.partial_fetch href=#git.mirrorContext.origin_fetch.partial_fetch>partial_fetch</span> | <code>bool</code><br><p>If true, partially fetch only the minimum needed (e.g. don't fetch blobs if not used)</p>
+<span id=git.mirrorContext.origin_fetch.refspec href=#git.mirrorContext.origin_fetch.refspec>refspec</span> | <code>sequence of <a href="#string">string</a></code><br><p></p>
+<span id=git.mirrorContext.origin_fetch.prune href=#git.mirrorContext.origin_fetch.prune>prune</span> | <code><a href="#bool">bool</a></code><br><p></p>
+<span id=git.mirrorContext.origin_fetch.depth href=#git.mirrorContext.origin_fetch.depth>depth</span> | <code><a href="#int">int</a></code> or <code>NoneType</code><br><p>Sets number of commits to fetch. Setting to None (the default) means no limit to that number.</p>
+<span id=git.mirrorContext.origin_fetch.partial_fetch href=#git.mirrorContext.origin_fetch.partial_fetch>partial_fetch</span> | <code><a href="#bool">bool</a></code><br><p>If true, partially fetch only the minimum needed (e.g. don't fetch blobs if not used)</p>
 
 <a id="git.mirrorContext.rebase" aria-hidden="true"></a>
 ### git.mirrorContext.rebase
@@ -3699,8 +3951,8 @@ Rebase one or more commits into a local branch.
 
 Parameter | Description
 --------- | -----------
-<span id=git.mirrorContext.rebase.upstream href=#git.mirrorContext.rebase.upstream>upstream</span> | <code>string</code><br><p>upstream branch with new changes</p>
-<span id=git.mirrorContext.rebase.branch href=#git.mirrorContext.rebase.branch>branch</span> | <code>string</code><br><p>Current branch with specific commits that we want to rebase in top of the new `upstream` changes</p>
+<span id=git.mirrorContext.rebase.upstream href=#git.mirrorContext.rebase.upstream>upstream</span> | <code><a href="#string">string</a></code><br><p>upstream branch with new changes</p>
+<span id=git.mirrorContext.rebase.branch href=#git.mirrorContext.rebase.branch>branch</span> | <code><a href="#string">string</a></code><br><p>Current branch with specific commits that we want to rebase in top of the new `upstream` changes</p>
 <span id=git.mirrorContext.rebase.newBase href=#git.mirrorContext.rebase.newBase>newBase</span> | <code>unknown</code><br><p>Move the rebased changes to a new branch (--into parameter in git rebase)</p>
 <span id=git.mirrorContext.rebase.conflict_advice href=#git.mirrorContext.rebase.conflict_advice>conflict_advice</span> | <code>unknown</code><br><p>Additional information on how to solve the issue in case if conflict</p>
 
@@ -3716,25 +3968,25 @@ Records an effect of the current action.
 
 Parameter | Description
 --------- | -----------
-<span id=git.mirrorContext.record_effect.summary href=#git.mirrorContext.record_effect.summary>summary</span> | <code>string</code><br><p>The summary of this effect</p>
+<span id=git.mirrorContext.record_effect.summary href=#git.mirrorContext.record_effect.summary>summary</span> | <code><a href="#string">string</a></code><br><p>The summary of this effect</p>
 <span id=git.mirrorContext.record_effect.origin_refs href=#git.mirrorContext.record_effect.origin_refs>origin_refs</span> | <code>sequence of <a href="#origin_ref">origin_ref</a></code><br><p>The origin refs</p>
 <span id=git.mirrorContext.record_effect.destination_ref href=#git.mirrorContext.record_effect.destination_ref>destination_ref</span> | <code><a href="#destination_ref">destination_ref</a></code><br><p>The destination ref</p>
-<span id=git.mirrorContext.record_effect.errors href=#git.mirrorContext.record_effect.errors>errors</span> | <code>sequence of string</code><br><p>An optional list of errors</p>
-<span id=git.mirrorContext.record_effect.type href=#git.mirrorContext.record_effect.type>type</span> | <code>string</code><br><p>The type of migration effect:<br><ul><li><b>'CREATED'</b>: A new review or change was created.</li><li><b>'UPDATED'</b>: An existing review or change was updated.</li><li><b>'NOOP'</b>: The change was a noop.</li><li><b>'NOOP_AGAINST_PENDING_CHANGE'</b>: The change was a noop, relativeto an existing pending change.</li><li><b>'INSUFFICIENT_APPROVALS'</b>: The effect couldn't happen because the change doesn't have enough approvals.</li><li><b>'ERROR'</b>: A user attributable error happened that prevented the destination from creating/updating the change. <li><b>'STARTED'</b>: The initial effect of a migration that depends on a previous one. This allows to have 'dependant' migrations defined by users.<br>An example of this: a workflow migrates code from a Gerrit review to a GitHub PR, and a feedback migration migrates the test results from a CI in GitHub back to the Gerrit change.<br>This effect would be created on the former one.</li></ul></p>
+<span id=git.mirrorContext.record_effect.errors href=#git.mirrorContext.record_effect.errors>errors</span> | <code>sequence of <a href="#string">string</a></code><br><p>An optional list of errors</p>
+<span id=git.mirrorContext.record_effect.type href=#git.mirrorContext.record_effect.type>type</span> | <code><a href="#string">string</a></code><br><p>The type of migration effect:<br><ul><li><b>'CREATED'</b>: A new review or change was created.</li><li><b>'UPDATED'</b>: An existing review or change was updated.</li><li><b>'NOOP'</b>: The change was a noop.</li><li><b>'NOOP_AGAINST_PENDING_CHANGE'</b>: The change was a noop, relativeto an existing pending change.</li><li><b>'INSUFFICIENT_APPROVALS'</b>: The effect couldn't happen because the change doesn't have enough approvals.</li><li><b>'ERROR'</b>: A user attributable error happened that prevented the destination from creating/updating the change.</li><li><b>'STARTED'</b>: The initial effect of a migration that depends on a previous one. This allows to have 'dependant' migrations defined by users.<br>An example of this: a workflow migrates code from a Gerrit review to a GitHub PR, and a feedback migration migrates the test results from a CI in GitHub back to the Gerrit change.<br>This effect would be created on the former one.</li></ul></p>
 
 <a id="git.mirrorContext.references" aria-hidden="true"></a>
 ### git.mirrorContext.references
 
 Return a map of reference -> sha-1 for local references matching the refspec or all if no refspec is passed.
 
-<code>dict[string, string]</code> <code>git.mirrorContext.references(<a href=#git.mirrorContext.references.refspec>refspec</a>=[])</code>
+<code>dict[<a href="#string">string</a>, <a href="#string">string</a>]</code> <code>git.mirrorContext.references(<a href=#git.mirrorContext.references.refspec>refspec</a>=[])</code>
 
 
 <h4 id="parameters.git.mirrorContext.references">Parameters:</h4>
 
 Parameter | Description
 --------- | -----------
-<span id=git.mirrorContext.references.refspec href=#git.mirrorContext.references.refspec>refspec</span> | <code>sequence of string</code><br><p></p>
+<span id=git.mirrorContext.references.refspec href=#git.mirrorContext.references.refspec>refspec</span> | <code>sequence of <a href="#string">string</a></code><br><p></p>
 
 <a id="git.mirrorContext.success" aria-hidden="true"></a>
 ### git.mirrorContext.success
@@ -3754,8 +4006,8 @@ The result returned by git merge when used in Starlark. For example in git.mirro
 
 Name | Description
 ---- | -----------
-error | <code>bool</code><br><p>True if the merge execution resulted in an error. False otherwise</p>
-error_msg | <code>string</code><br><p>Error message from git if the merge resulted in a conflict/error. Users must check error field before accessing this field.</p>
+error | <code><a href="#bool">bool</a></code><br><p>True if the merge execution resulted in an error. False otherwise</p>
+error_msg | <code><a href="#string">string</a></code><br><p>Error message from git if the merge resulted in a conflict/error. Users must check error field before accessing this field.</p>
 
 
 <h4 id="returned_by.git_merge_result">Returned By:</h4>
@@ -3773,10 +4025,10 @@ Combined Information about a commit status as defined in https://developer.githu
 
 Name | Description
 ---- | -----------
-sha | <code>string</code><br><p>The SHA-1 of the commit</p>
-state | <code>string</code><br><p>The overall state of all statuses for a commit: success, failure, pending or error</p>
+sha | <code><a href="#string">string</a></code><br><p>The SHA-1 of the commit</p>
+state | <code><a href="#string">string</a></code><br><p>The overall state of all statuses for a commit: success, failure, pending or error</p>
 statuses | <code>list of github_api_status_obj</code><br><p>List of statuses for the commit</p>
-total_count | <code>int</code><br><p>Total number of statuses</p>
+total_count | <code><a href="#int">int</a></code><br><p>Total number of statuses</p>
 
 
 <h4 id="returned_by.github_api_combined_status_obj">Returned By:</h4>
@@ -3794,9 +4046,9 @@ Author/Committer for commit field for GitHub commit information https://develope
 
 Name | Description
 ---- | -----------
-date | <code>string</code><br><p>Date of the commit</p>
-email | <code>string</code><br><p>Email of the author/committer</p>
-name | <code>string</code><br><p>Name of the author/committer</p>
+date | <code><a href="#string">string</a></code><br><p>Date of the commit</p>
+email | <code><a href="#string">string</a></code><br><p>Email of the author/committer</p>
+name | <code><a href="#string">string</a></code><br><p>Name of the author/committer</p>
 
 
 
@@ -3811,7 +4063,7 @@ Name | Description
 ---- | -----------
 author | <code><a href="#github_api_commit_author_obj">github_api_commit_author_obj</a></code><br><p>Author of the commit</p>
 committer | <code><a href="#github_api_commit_author_obj">github_api_commit_author_obj</a></code><br><p>Committer of the commit</p>
-message | <code>string</code><br><p>Message of the commit</p>
+message | <code><a href="#string">string</a></code><br><p>Message of the commit</p>
 
 
 
@@ -3827,8 +4079,8 @@ Name | Description
 author | <code><a href="#github_api_user_obj">github_api_user_obj</a></code><br><p>GitHub information about the author of the change</p>
 commit | <code><a href="#github_api_commit_obj">github_api_commit_obj</a></code><br><p>Information about the commit, like the message or git commit author/committer</p>
 committer | <code><a href="#github_api_user_obj">github_api_user_obj</a></code><br><p>GitHub information about the committer of the change</p>
-html_url | <code>string</code><br><p>GitHub url for the commit</p>
-sha | <code>string</code><br><p>SHA of the commit</p>
+html_url | <code><a href="#string">string</a></code><br><p>GitHub url for the commit</p>
+sha | <code><a href="#string">string</a></code><br><p>SHA of the commit</p>
 
 
 <h4 id="returned_by.github_api_github_commit_obj">Returned By:</h4>
@@ -3846,7 +4098,7 @@ Information about an issue comment as defined in https://docs.github.com/en/rest
 
 Name | Description
 ---- | -----------
-body | <code>string</code><br><p>Body of the comment</p>
+body | <code><a href="#string">string</a></code><br><p>Body of the comment</p>
 id | <code>long</code><br><p>Comment identifier</p>
 user | <code><a href="#github_api_user_obj">github_api_user_obj</a></code><br><p>Comment user</p>
 
@@ -3861,7 +4113,7 @@ GitHub API endpoint implementation for feedback migrations and after migration h
 
 Name | Description
 ---- | -----------
-url | <code>string</code><br><p>Return the URL of this endpoint.</p>
+url | <code><a href="#string">string</a></code><br><p>Return the URL of this endpoint.</p>
 
 <a id="github_api_obj.add_label" aria-hidden="true"></a>
 ### github_api_obj.add_label
@@ -3875,8 +4127,8 @@ Add labels to a PR/issue
 
 Parameter | Description
 --------- | -----------
-<span id=github_api_obj.add_label.number href=#github_api_obj.add_label.number>number</span> | <code>int</code><br><p>Pull Request number</p>
-<span id=github_api_obj.add_label.labels href=#github_api_obj.add_label.labels>labels</span> | <code>sequence of string</code><br><p>List of labels to add.</p>
+<span id=github_api_obj.add_label.number href=#github_api_obj.add_label.number>number</span> | <code><a href="#int">int</a></code><br><p>Pull Request number</p>
+<span id=github_api_obj.add_label.labels href=#github_api_obj.add_label.labels>labels</span> | <code>sequence of <a href="#string">string</a></code><br><p>List of labels to add.</p>
 
 <a id="github_api_obj.create_issue" aria-hidden="true"></a>
 ### github_api_obj.create_issue
@@ -3890,8 +4142,8 @@ Create a new issue.
 
 Parameter | Description
 --------- | -----------
-<span id=github_api_obj.create_issue.title href=#github_api_obj.create_issue.title>title</span> | <code>string</code><br><p>Title of the issue</p>
-<span id=github_api_obj.create_issue.body href=#github_api_obj.create_issue.body>body</span> | <code>string</code><br><p>Body of the issue.</p>
+<span id=github_api_obj.create_issue.title href=#github_api_obj.create_issue.title>title</span> | <code><a href="#string">string</a></code><br><p>Title of the issue</p>
+<span id=github_api_obj.create_issue.body href=#github_api_obj.create_issue.body>body</span> | <code><a href="#string">string</a></code><br><p>Body of the issue.</p>
 <span id=github_api_obj.create_issue.assignees href=#github_api_obj.create_issue.assignees>assignees</span> | <code>sequence</code><br><p>GitHub users to whom the issue will be assigned.</p>
 
 <a id="github_api_obj.create_release" aria-hidden="true"></a>
@@ -3920,11 +4172,11 @@ Create or update a status for a commit. Returns the status created.
 
 Parameter | Description
 --------- | -----------
-<span id=github_api_obj.create_status.sha href=#github_api_obj.create_status.sha>sha</span> | <code>string</code><br><p>The SHA-1 for which we want to create or update the status</p>
-<span id=github_api_obj.create_status.state href=#github_api_obj.create_status.state>state</span> | <code>string</code><br><p>The state of the commit status: 'success', 'error', 'pending' or 'failure'</p>
-<span id=github_api_obj.create_status.context href=#github_api_obj.create_status.context>context</span> | <code>string</code><br><p>The context for the commit status. Use a value like 'copybara/import_successful' or similar</p>
-<span id=github_api_obj.create_status.description href=#github_api_obj.create_status.description>description</span> | <code>string</code><br><p>Description about what happened</p>
-<span id=github_api_obj.create_status.target_url href=#github_api_obj.create_status.target_url>target_url</span> | <code>string</code> or <code>NoneType</code><br><p>Url with expanded information about the event</p>
+<span id=github_api_obj.create_status.sha href=#github_api_obj.create_status.sha>sha</span> | <code><a href="#string">string</a></code><br><p>The SHA-1 for which we want to create or update the status</p>
+<span id=github_api_obj.create_status.state href=#github_api_obj.create_status.state>state</span> | <code><a href="#string">string</a></code><br><p>The state of the commit status: 'success', 'error', 'pending' or 'failure'</p>
+<span id=github_api_obj.create_status.context href=#github_api_obj.create_status.context>context</span> | <code><a href="#string">string</a></code><br><p>The context for the commit status. Use a value like 'copybara/import_successful' or similar</p>
+<span id=github_api_obj.create_status.description href=#github_api_obj.create_status.description>description</span> | <code><a href="#string">string</a></code><br><p>Description about what happened</p>
+<span id=github_api_obj.create_status.target_url href=#github_api_obj.create_status.target_url>target_url</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>Url with expanded information about the event</p>
 
 <a id="github_api_obj.delete_reference" aria-hidden="true"></a>
 ### github_api_obj.delete_reference
@@ -3938,7 +4190,7 @@ Delete a reference.
 
 Parameter | Description
 --------- | -----------
-<span id=github_api_obj.delete_reference.ref href=#github_api_obj.delete_reference.ref>ref</span> | <code>string</code><br><p>The name of the reference.</p>
+<span id=github_api_obj.delete_reference.ref href=#github_api_obj.delete_reference.ref>ref</span> | <code><a href="#string">string</a></code><br><p>The name of the reference.</p>
 
 <a id="github_api_obj.get_authenticated_user" aria-hidden="true"></a>
 ### github_api_obj.get_authenticated_user
@@ -3959,7 +4211,7 @@ Get the list of check runs for a sha. https://developer.github.com/v3/checks/run
 
 Parameter | Description
 --------- | -----------
-<span id=github_api_obj.get_check_runs.sha href=#github_api_obj.get_check_runs.sha>sha</span> | <code>string</code><br><p>The SHA-1 for which we want to get the check runs</p>
+<span id=github_api_obj.get_check_runs.sha href=#github_api_obj.get_check_runs.sha>sha</span> | <code><a href="#string">string</a></code><br><p>The SHA-1 for which we want to get the check runs</p>
 
 <a id="github_api_obj.get_combined_status" aria-hidden="true"></a>
 ### github_api_obj.get_combined_status
@@ -3973,7 +4225,7 @@ Get the combined status for a commit. Returns None if not found.
 
 Parameter | Description
 --------- | -----------
-<span id=github_api_obj.get_combined_status.ref href=#github_api_obj.get_combined_status.ref>ref</span> | <code>string</code><br><p>The SHA-1 or ref for which we want to get the combined status</p>
+<span id=github_api_obj.get_combined_status.ref href=#github_api_obj.get_combined_status.ref>ref</span> | <code><a href="#string">string</a></code><br><p>The SHA-1 or ref for which we want to get the combined status</p>
 
 <a id="github_api_obj.get_commit" aria-hidden="true"></a>
 ### github_api_obj.get_commit
@@ -3987,7 +4239,7 @@ Get information for a commit in GitHub. Returns None if not found.
 
 Parameter | Description
 --------- | -----------
-<span id=github_api_obj.get_commit.ref href=#github_api_obj.get_commit.ref>ref</span> | <code>string</code><br><p>The SHA-1 for which we want to get the combined status</p>
+<span id=github_api_obj.get_commit.ref href=#github_api_obj.get_commit.ref>ref</span> | <code><a href="#string">string</a></code><br><p>The SHA-1 for which we want to get the combined status</p>
 
 <a id="github_api_obj.get_pull_request_comment" aria-hidden="true"></a>
 ### github_api_obj.get_pull_request_comment
@@ -4001,7 +4253,7 @@ Get a pull request comment
 
 Parameter | Description
 --------- | -----------
-<span id=github_api_obj.get_pull_request_comment.comment_id href=#github_api_obj.get_pull_request_comment.comment_id>comment_id</span> | <code>string</code><br><p>Comment identifier</p>
+<span id=github_api_obj.get_pull_request_comment.comment_id href=#github_api_obj.get_pull_request_comment.comment_id>comment_id</span> | <code><a href="#string">string</a></code><br><p>Comment identifier</p>
 
 <a id="github_api_obj.get_pull_request_comments" aria-hidden="true"></a>
 ### github_api_obj.get_pull_request_comments
@@ -4015,7 +4267,7 @@ Get all pull request comments
 
 Parameter | Description
 --------- | -----------
-<span id=github_api_obj.get_pull_request_comments.number href=#github_api_obj.get_pull_request_comments.number>number</span> | <code>int</code><br><p>Pull Request number</p>
+<span id=github_api_obj.get_pull_request_comments.number href=#github_api_obj.get_pull_request_comments.number>number</span> | <code><a href="#int">int</a></code><br><p>Pull Request number</p>
 
 <a id="github_api_obj.get_pull_requests" aria-hidden="true"></a>
 ### github_api_obj.get_pull_requests
@@ -4029,11 +4281,11 @@ Get Pull Requests for a repo
 
 Parameter | Description
 --------- | -----------
-<span id=github_api_obj.get_pull_requests.head_prefix href=#github_api_obj.get_pull_requests.head_prefix>head_prefix</span> | <code>string</code> or <code>NoneType</code><br><p>Only return PRs wher the branch name has head_prefix</p>
-<span id=github_api_obj.get_pull_requests.base_prefix href=#github_api_obj.get_pull_requests.base_prefix>base_prefix</span> | <code>string</code> or <code>NoneType</code><br><p>Only return PRs where the destination branch name has base_prefix</p>
-<span id=github_api_obj.get_pull_requests.state href=#github_api_obj.get_pull_requests.state>state</span> | <code>string</code><br><p>State of the Pull Request. Can be `"OPEN"`, `"CLOSED"` or `"ALL"`</p>
-<span id=github_api_obj.get_pull_requests.sort href=#github_api_obj.get_pull_requests.sort>sort</span> | <code>string</code><br><p>Sort filter for retrieving the Pull Requests. Can be `"CREATED"`, `"UPDATED"` or `"POPULARITY"`</p>
-<span id=github_api_obj.get_pull_requests.direction href=#github_api_obj.get_pull_requests.direction>direction</span> | <code>string</code><br><p>Direction of the filter. Can be `"ASC"` or `"DESC"`</p>
+<span id=github_api_obj.get_pull_requests.head_prefix href=#github_api_obj.get_pull_requests.head_prefix>head_prefix</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>Only return PRs wher the branch name has head_prefix</p>
+<span id=github_api_obj.get_pull_requests.base_prefix href=#github_api_obj.get_pull_requests.base_prefix>base_prefix</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>Only return PRs where the destination branch name has base_prefix</p>
+<span id=github_api_obj.get_pull_requests.state href=#github_api_obj.get_pull_requests.state>state</span> | <code><a href="#string">string</a></code><br><p>State of the Pull Request. Can be `"OPEN"`, `"CLOSED"` or `"ALL"`</p>
+<span id=github_api_obj.get_pull_requests.sort href=#github_api_obj.get_pull_requests.sort>sort</span> | <code><a href="#string">string</a></code><br><p>Sort filter for retrieving the Pull Requests. Can be `"CREATED"`, `"UPDATED"` or `"POPULARITY"`</p>
+<span id=github_api_obj.get_pull_requests.direction href=#github_api_obj.get_pull_requests.direction>direction</span> | <code><a href="#string">string</a></code><br><p>Direction of the filter. Can be `"ASC"` or `"DESC"`</p>
 
 <a id="github_api_obj.get_reference" aria-hidden="true"></a>
 ### github_api_obj.get_reference
@@ -4047,7 +4299,7 @@ Get a reference SHA-1 from GitHub. Returns None if not found.
 
 Parameter | Description
 --------- | -----------
-<span id=github_api_obj.get_reference.ref href=#github_api_obj.get_reference.ref>ref</span> | <code>string</code><br><p>The name of the reference. For example: "refs/heads/branchName".</p>
+<span id=github_api_obj.get_reference.ref href=#github_api_obj.get_reference.ref>ref</span> | <code><a href="#string">string</a></code><br><p>The name of the reference. For example: "refs/heads/branchName".</p>
 
 <a id="github_api_obj.get_references" aria-hidden="true"></a>
 ### github_api_obj.get_references
@@ -4068,7 +4320,7 @@ Lists comments for an issue
 
 Parameter | Description
 --------- | -----------
-<span id=github_api_obj.list_issue_comments.number href=#github_api_obj.list_issue_comments.number>number</span> | <code>int</code><br><p>Issue or Pull Request number</p>
+<span id=github_api_obj.list_issue_comments.number href=#github_api_obj.list_issue_comments.number>number</span> | <code><a href="#int">int</a></code><br><p>Issue or Pull Request number</p>
 
 <a id="github_api_obj.new_destination_ref" aria-hidden="true"></a>
 ### github_api_obj.new_destination_ref
@@ -4082,9 +4334,9 @@ Creates a new destination reference out of this endpoint.
 
 Parameter | Description
 --------- | -----------
-<span id=github_api_obj.new_destination_ref.ref href=#github_api_obj.new_destination_ref.ref>ref</span> | <code>string</code><br><p>The reference.</p>
-<span id=github_api_obj.new_destination_ref.type href=#github_api_obj.new_destination_ref.type>type</span> | <code>string</code><br><p>The type of this reference.</p>
-<span id=github_api_obj.new_destination_ref.url href=#github_api_obj.new_destination_ref.url>url</span> | <code>string</code> or <code>NoneType</code><br><p>The url associated with this reference, if any.</p>
+<span id=github_api_obj.new_destination_ref.ref href=#github_api_obj.new_destination_ref.ref>ref</span> | <code><a href="#string">string</a></code><br><p>The reference.</p>
+<span id=github_api_obj.new_destination_ref.type href=#github_api_obj.new_destination_ref.type>type</span> | <code><a href="#string">string</a></code><br><p>The type of this reference.</p>
+<span id=github_api_obj.new_destination_ref.url href=#github_api_obj.new_destination_ref.url>url</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>The url associated with this reference, if any.</p>
 
 <a id="github_api_obj.new_origin_ref" aria-hidden="true"></a>
 ### github_api_obj.new_origin_ref
@@ -4098,7 +4350,7 @@ Creates a new origin reference out of this endpoint.
 
 Parameter | Description
 --------- | -----------
-<span id=github_api_obj.new_origin_ref.ref href=#github_api_obj.new_origin_ref.ref>ref</span> | <code>string</code><br><p>The reference.</p>
+<span id=github_api_obj.new_origin_ref.ref href=#github_api_obj.new_origin_ref.ref>ref</span> | <code><a href="#string">string</a></code><br><p>The reference.</p>
 
 <a id="github_api_obj.new_release_request" aria-hidden="true"></a>
 ### github_api_obj.new_release_request
@@ -4112,7 +4364,7 @@ Create a handle for creating a new release.
 
 Parameter | Description
 --------- | -----------
-<span id=github_api_obj.new_release_request.tag_name href=#github_api_obj.new_release_request.tag_name>tag_name</span> | <code>string</code><br><p>The git tag to use for the release.</p>
+<span id=github_api_obj.new_release_request.tag_name href=#github_api_obj.new_release_request.tag_name>tag_name</span> | <code><a href="#string">string</a></code><br><p>The git tag to use for the release.</p>
 
 
 <h4 id="example.github_api_obj.new_release_request">Example:</h4>
@@ -4139,8 +4391,8 @@ Post a comment on a issue.
 
 Parameter | Description
 --------- | -----------
-<span id=github_api_obj.post_issue_comment.number href=#github_api_obj.post_issue_comment.number>number</span> | <code>int</code><br><p>Issue or Pull Request number</p>
-<span id=github_api_obj.post_issue_comment.comment href=#github_api_obj.post_issue_comment.comment>comment</span> | <code>string</code><br><p>Comment body to post.</p>
+<span id=github_api_obj.post_issue_comment.number href=#github_api_obj.post_issue_comment.number>number</span> | <code><a href="#int">int</a></code><br><p>Issue or Pull Request number</p>
+<span id=github_api_obj.post_issue_comment.comment href=#github_api_obj.post_issue_comment.comment>comment</span> | <code><a href="#string">string</a></code><br><p>Comment body to post.</p>
 
 <a id="github_api_obj.update_pull_request" aria-hidden="true"></a>
 ### github_api_obj.update_pull_request
@@ -4154,10 +4406,10 @@ Update Pull Requests for a repo. Returns None if not found
 
 Parameter | Description
 --------- | -----------
-<span id=github_api_obj.update_pull_request.number href=#github_api_obj.update_pull_request.number>number</span> | <code>int</code><br><p>Pull Request number</p>
-<span id=github_api_obj.update_pull_request.title href=#github_api_obj.update_pull_request.title>title</span> | <code>string</code> or <code>NoneType</code><br><p>New Pull Request title</p>
-<span id=github_api_obj.update_pull_request.body href=#github_api_obj.update_pull_request.body>body</span> | <code>string</code> or <code>NoneType</code><br><p>New Pull Request body</p>
-<span id=github_api_obj.update_pull_request.state href=#github_api_obj.update_pull_request.state>state</span> | <code>string</code> or <code>NoneType</code><br><p>State of the Pull Request. Can be `"OPEN"`, `"CLOSED"`</p>
+<span id=github_api_obj.update_pull_request.number href=#github_api_obj.update_pull_request.number>number</span> | <code><a href="#int">int</a></code><br><p>Pull Request number</p>
+<span id=github_api_obj.update_pull_request.title href=#github_api_obj.update_pull_request.title>title</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>New Pull Request title</p>
+<span id=github_api_obj.update_pull_request.body href=#github_api_obj.update_pull_request.body>body</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>New Pull Request body</p>
+<span id=github_api_obj.update_pull_request.state href=#github_api_obj.update_pull_request.state>state</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>State of the Pull Request. Can be `"OPEN"`, `"CLOSED"`</p>
 
 <a id="github_api_obj.update_reference" aria-hidden="true"></a>
 ### github_api_obj.update_reference
@@ -4171,9 +4423,9 @@ Update a reference to point to a new commit. Returns the info of the reference.
 
 Parameter | Description
 --------- | -----------
-<span id=github_api_obj.update_reference.ref href=#github_api_obj.update_reference.ref>ref</span> | <code>string</code><br><p>The name of the reference.</p>
-<span id=github_api_obj.update_reference.sha href=#github_api_obj.update_reference.sha>sha</span> | <code>string</code><br><p>The id for the commit status.</p>
-<span id=github_api_obj.update_reference.force href=#github_api_obj.update_reference.force>force</span> | <code>bool</code><br><p>Indicates whether to force the update or to make sure the update is a fast-forward update. Leaving this out or setting it to false will make sure you're not overwriting work. Default: false</p>
+<span id=github_api_obj.update_reference.ref href=#github_api_obj.update_reference.ref>ref</span> | <code><a href="#string">string</a></code><br><p>The name of the reference.</p>
+<span id=github_api_obj.update_reference.sha href=#github_api_obj.update_reference.sha>sha</span> | <code><a href="#string">string</a></code><br><p>The id for the commit status.</p>
+<span id=github_api_obj.update_reference.force href=#github_api_obj.update_reference.force>force</span> | <code><a href="#bool">bool</a></code><br><p>Indicates whether to force the update or to make sure the update is a fast-forward update. Leaving this out or setting it to false will make sure you're not overwriting work. Default: false</p>
 
 
 
@@ -4186,12 +4438,12 @@ Information about a pull request comment as defined in https://developer.github.
 
 Name | Description
 ---- | -----------
-body | <code>string</code><br><p>Body of the comment</p>
-diff_hunk | <code>string</code><br><p>The diff hunk where the comment was posted</p>
-id | <code>string</code><br><p>Comment identifier</p>
-original_position | <code>int</code><br><p>Original position of the comment</p>
-path | <code>string</code><br><p>The file path</p>
-position | <code>int</code><br><p>Position of the comment</p>
+body | <code><a href="#string">string</a></code><br><p>Body of the comment</p>
+diff_hunk | <code><a href="#string">string</a></code><br><p>The diff hunk where the comment was posted</p>
+id | <code><a href="#string">string</a></code><br><p>Comment identifier</p>
+original_position | <code><a href="#int">int</a></code><br><p>Original position of the comment</p>
+path | <code><a href="#string">string</a></code><br><p>The file path</p>
+position | <code><a href="#int">int</a></code><br><p>Position of the comment</p>
 user | <code><a href="#github_api_user_obj">github_api_user_obj</a></code><br><p>The user who posted the comment</p>
 
 
@@ -4212,14 +4464,14 @@ Name | Description
 ---- | -----------
 assignee | <code><a href="#github_api_user_obj">github_api_user_obj</a></code><br><p>Pull Request assignee</p>
 base | <code><a href="#github_api_revision_obj">github_api_revision_obj</a></code><br><p>Information about base</p>
-body | <code>string</code><br><p>Pull Request body</p>
-commits | <code>int</code><br><p>Number of commits in the PR</p>
-draft | <code>bool</code><br><p>Whether pull request is a draft</p>
+body | <code><a href="#string">string</a></code><br><p>Pull Request body</p>
+commits | <code><a href="#int">int</a></code><br><p>Number of commits in the PR</p>
+draft | <code><a href="#bool">bool</a></code><br><p>Whether pull request is a draft</p>
 head | <code><a href="#github_api_revision_obj">github_api_revision_obj</a></code><br><p>Information about head</p>
-merged | <code>bool</code><br><p>Whether pull request has been merged</p>
-number | <code>int</code><br><p>Pull Request number</p>
-state | <code>string</code><br><p>Pull Request state</p>
-title | <code>string</code><br><p>Pull Request title</p>
+merged | <code><a href="#bool">bool</a></code><br><p>Whether pull request has been merged</p>
+number | <code><a href="#int">int</a></code><br><p>Pull Request number</p>
+state | <code><a href="#string">string</a></code><br><p>Pull Request state</p>
+title | <code><a href="#string">string</a></code><br><p>Pull Request title</p>
 user | <code><a href="#github_api_user_obj">github_api_user_obj</a></code><br><p>Pull Request owner</p>
 
 
@@ -4238,9 +4490,9 @@ Information about a commit status as defined in https://developer.github.com/v3/
 
 Name | Description
 ---- | -----------
-ref | <code>string</code><br><p>The name of the reference</p>
-sha | <code>string</code><br><p>The sha of the reference</p>
-url | <code>string</code><br><p>The url of the reference</p>
+ref | <code><a href="#string">string</a></code><br><p>The name of the reference</p>
+sha | <code><a href="#string">string</a></code><br><p>The sha of the reference</p>
+url | <code><a href="#string">string</a></code><br><p>The url of the reference</p>
 
 
 <h4 id="returned_by.github_api_ref_obj">Returned By:</h4>
@@ -4258,10 +4510,10 @@ Information about a GitHub revision (Used in Pull Request and other entities)
 
 Name | Description
 ---- | -----------
-label | <code>string</code><br><p>Label for the revision</p>
-ref | <code>string</code><br><p>Reference</p>
+label | <code><a href="#string">string</a></code><br><p>Label for the revision</p>
+ref | <code><a href="#string">string</a></code><br><p>Reference</p>
 repo | <code>Repository</code><br><p>Repository</p>
-sha | <code>string</code><br><p>SHA of the reference</p>
+sha | <code><a href="#string">string</a></code><br><p>SHA of the reference</p>
 
 
 
@@ -4274,10 +4526,10 @@ Information about a commit status as defined in https://developer.github.com/v3/
 
 Name | Description
 ---- | -----------
-context | <code>string</code><br><p>Context of the commit status. This is a relatively stable id</p>
-description | <code>string</code><br><p>Description of the commit status. Can be None.</p>
-state | <code>string</code><br><p>The state of the commit status: success, failure, pending or error</p>
-target_url | <code>string</code><br><p>Get the target url of the commit status. Can be None.</p>
+context | <code><a href="#string">string</a></code><br><p>Context of the commit status. This is a relatively stable id</p>
+description | <code><a href="#string">string</a></code><br><p>Description of the commit status. Can be None.</p>
+state | <code><a href="#string">string</a></code><br><p>The state of the commit status: success, failure, pending or error</p>
+target_url | <code><a href="#string">string</a></code><br><p>Get the target url of the commit status. Can be None.</p>
 
 
 <h4 id="returned_by.github_api_status_obj">Returned By:</h4>
@@ -4295,7 +4547,7 @@ An object representing a GitHub user
 
 Name | Description
 ---- | -----------
-login | <code>string</code><br><p>Login of the user</p>
+login | <code><a href="#string">string</a></code><br><p>Login of the user</p>
 
 
 <h4 id="returned_by.github_api_user_obj">Returned By:</h4>
@@ -4313,9 +4565,9 @@ Detail about a GitHub App.
 
 Name | Description
 ---- | -----------
-id | <code>int</code><br><p>The GitHub App's Id</p>
-name | <code>string</code><br><p>The GitHub App's name</p>
-slug | <code>string</code><br><p>The url-friendly name of the GitHub App.</p>
+id | <code><a href="#int">int</a></code><br><p>The GitHub App's Id</p>
+name | <code><a href="#string">string</a></code><br><p>The GitHub App's name</p>
+slug | <code><a href="#string">string</a></code><br><p>The url-friendly name of the GitHub App.</p>
 
 
 
@@ -4329,13 +4581,13 @@ Detail about a check run as defined in https://developer.github.com/v3/checks/ru
 Name | Description
 ---- | -----------
 app | <code><a href="#github_app_obj">github_app_obj</a></code><br><p>The detail of a GitHub App, such as id, slug, and name</p>
-conclusion | <code>string</code><br><p>The final conclusion of the check. Can be one of success, failure, neutral, cancelled, timed_out, or action_required.</p>
-detail_url | <code>string</code><br><p>The URL of the integrator's site that has the full details of the check.</p>
-name | <code>string</code><br><p>The name of the check</p>
+conclusion | <code><a href="#string">string</a></code><br><p>The final conclusion of the check. Can be one of success, failure, neutral, cancelled, timed_out, or action_required.</p>
+detail_url | <code><a href="#string">string</a></code><br><p>The URL of the integrator's site that has the full details of the check.</p>
+name | <code><a href="#string">string</a></code><br><p>The name of the check</p>
 output | <code><a href="#output_obj">output_obj</a></code><br><p>The description of a GitHub App's run, including title, summary, text.</p>
 pulls | <code>list of PullRequest</code><br><p>Pull requests associated with this check_run ('number' only)</p>
-sha | <code>string</code><br><p>The SHA-1 the check run is based on</p>
-status | <code>string</code><br><p>The current status of the check run. Can be one of queued, in_progress, or completed.</p>
+sha | <code><a href="#string">string</a></code><br><p>The SHA-1 the check run is based on</p>
+status | <code><a href="#string">string</a></code><br><p>The current status of the check run. Can be one of queued, in_progress, or completed.</p>
 
 
 
@@ -4349,7 +4601,7 @@ List check runs for a specific ref https://developer.github.com/v3/checks/runs/#
 Name | Description
 ---- | -----------
 check_runs | <code>list of github_check_run_obj</code><br><p>The list of the detail for each check run.</p>
-total_count | <code>int</code><br><p>The total count of check runs.</p>
+total_count | <code><a href="#int">int</a></code><br><p>The total count of check runs.</p>
 
 
 
@@ -4363,10 +4615,10 @@ Detail about a check run as defined in https://developer.github.com/v3/checks/ru
 Name | Description
 ---- | -----------
 app | <code><a href="#github_app_obj">github_app_obj</a></code><br><p>The detail of a GitHub App, such as id, slug, and name</p>
-conclusion | <code>string</code><br><p>The final conclusion of the check. Can be one of success, failure, neutral, cancelled, timed_out, or action_required.</p>
-id | <code>int</code><br><p>Check suite identifier</p>
-sha | <code>string</code><br><p>The SHA-1 the check run is based on</p>
-status | <code>string</code><br><p>The current status of the check run. Can be one of queued, in_progress, pending, or completed.</p>
+conclusion | <code><a href="#string">string</a></code><br><p>The final conclusion of the check. Can be one of success, failure, neutral, cancelled, timed_out, or action_required.</p>
+id | <code><a href="#int">int</a></code><br><p>Check suite identifier</p>
+sha | <code><a href="#string">string</a></code><br><p>The SHA-1 the check run is based on</p>
+status | <code><a href="#string">string</a></code><br><p>The current status of the check run. Can be one of queued, in_progress, pending, or completed.</p>
 
 
 
@@ -4400,7 +4652,7 @@ Is this a draft release?
 
 Parameter | Description
 --------- | -----------
-<span id=github_create_release_obj.set_draft.draft href=#github_create_release_obj.set_draft.draft>draft</span> | <code>bool</code><br><p>Mark release as draft?</p>
+<span id=github_create_release_obj.set_draft.draft href=#github_create_release_obj.set_draft.draft>draft</span> | <code><a href="#bool">bool</a></code><br><p>Mark release as draft?</p>
 
 <a id="github_create_release_obj.set_generate_release_notes" aria-hidden="true"></a>
 ### github_create_release_obj.set_generate_release_notes
@@ -4414,7 +4666,7 @@ Generate release notes?
 
 Parameter | Description
 --------- | -----------
-<span id=github_create_release_obj.set_generate_release_notes.generate_notes href=#github_create_release_obj.set_generate_release_notes.generate_notes>generate_notes</span> | <code>bool</code><br><p>Generate notes?</p>
+<span id=github_create_release_obj.set_generate_release_notes.generate_notes href=#github_create_release_obj.set_generate_release_notes.generate_notes>generate_notes</span> | <code><a href="#bool">bool</a></code><br><p>Generate notes?</p>
 
 <a id="github_create_release_obj.set_latest" aria-hidden="true"></a>
 ### github_create_release_obj.set_latest
@@ -4428,7 +4680,7 @@ Is this the latest release?
 
 Parameter | Description
 --------- | -----------
-<span id=github_create_release_obj.set_latest.make_latest href=#github_create_release_obj.set_latest.make_latest>make_latest</span> | <code>bool</code><br><p>Mark release as latest?</p>
+<span id=github_create_release_obj.set_latest.make_latest href=#github_create_release_obj.set_latest.make_latest>make_latest</span> | <code><a href="#bool">bool</a></code><br><p>Mark release as latest?</p>
 
 <a id="github_create_release_obj.set_prerelease" aria-hidden="true"></a>
 ### github_create_release_obj.set_prerelease
@@ -4442,7 +4694,7 @@ Is this a prerelease?
 
 Parameter | Description
 --------- | -----------
-<span id=github_create_release_obj.set_prerelease.prerelease href=#github_create_release_obj.set_prerelease.prerelease>prerelease</span> | <code>bool</code><br><p>Mark release as prerelease?</p>
+<span id=github_create_release_obj.set_prerelease.prerelease href=#github_create_release_obj.set_prerelease.prerelease>prerelease</span> | <code><a href="#bool">bool</a></code><br><p>Mark release as prerelease?</p>
 
 <a id="github_create_release_obj.with_body" aria-hidden="true"></a>
 ### github_create_release_obj.with_body
@@ -4456,7 +4708,7 @@ Set the body for the release.
 
 Parameter | Description
 --------- | -----------
-<span id=github_create_release_obj.with_body.body href=#github_create_release_obj.with_body.body>body</span> | <code>string</code><br><p>Body for the release</p>
+<span id=github_create_release_obj.with_body.body href=#github_create_release_obj.with_body.body>body</span> | <code><a href="#string">string</a></code><br><p>Body for the release</p>
 
 <a id="github_create_release_obj.with_commitish" aria-hidden="true"></a>
 ### github_create_release_obj.with_commitish
@@ -4470,7 +4722,7 @@ Set the commitish to be used for the release. Defaults to HEAD
 
 Parameter | Description
 --------- | -----------
-<span id=github_create_release_obj.with_commitish.commitish href=#github_create_release_obj.with_commitish.commitish>commitish</span> | <code>string</code><br><p>Commitish for the release</p>
+<span id=github_create_release_obj.with_commitish.commitish href=#github_create_release_obj.with_commitish.commitish>commitish</span> | <code><a href="#string">string</a></code><br><p>Commitish for the release</p>
 
 <a id="github_create_release_obj.with_name" aria-hidden="true"></a>
 ### github_create_release_obj.with_name
@@ -4484,7 +4736,7 @@ Set the name for the release.
 
 Parameter | Description
 --------- | -----------
-<span id=github_create_release_obj.with_name.name href=#github_create_release_obj.with_name.name>name</span> | <code>string</code><br><p>Name for the release</p>
+<span id=github_create_release_obj.with_name.name href=#github_create_release_obj.with_name.name>name</span> | <code><a href="#string">string</a></code><br><p>Name for the release</p>
 
 
 
@@ -4497,9 +4749,9 @@ GitHub API value type for a release. See https://docs.github.com/en/rest/release
 
 Name | Description
 ---- | -----------
-id | <code>int</code><br><p>Release id</p>
-tarball | <code>string</code><br><p>Tarball Url</p>
-zip | <code>string</code><br><p>Zip Url</p>
+id | <code><a href="#int">int</a></code><br><p>Release id</p>
+tarball | <code><a href="#string">string</a></code><br><p>Tarball Url</p>
+zip | <code><a href="#string">string</a></code><br><p>Zip Url</p>
 
 
 <h4 id="returned_by.github_release_obj">Returned By:</h4>
@@ -4526,6 +4778,158 @@ A glob represents a set of relative filepaths in the Copybara workdir. Most cons
 
 Global functions available in Copybara
 
+<a id="abs" aria-hidden="true"></a>
+### abs
+
+Returns the absolute value of a number (a non-negative number with the same magnitude).<pre class="language-python">abs(-2.3) == 2.3</pre>
+
+<code>unknown</code> <code>abs(<a href=#abs.x>x</a>)</code>
+
+
+<h4 id="parameters.abs">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=abs.x href=#abs.x>x</span> | <code><a href="#int">int</a></code> or <code><a href="#float">float</a></code><br><p>A number (int or float)</p>
+
+<a id="all" aria-hidden="true"></a>
+### all
+
+Returns true if all elements evaluate to True or if the collection is empty. Elements are converted to boolean using the <a href="#bool">bool</a> function.<pre class="language-python">all(["hello", 3, True]) == True
+all([-1, 0, 1]) == False</pre>
+
+<code><a href="#bool">bool</a></code> <code>all(<a href=#all.elements>elements</a>)</code>
+
+
+<h4 id="parameters.all">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=all.elements href=#all.elements>elements</span> | <code>unknown</code><br><p>A string or a collection of elements.</p>
+
+<a id="any" aria-hidden="true"></a>
+### any
+
+Returns true if at least one element evaluates to True. Elements are converted to boolean using the <a href="#bool">bool</a> function.<pre class="language-python">any([-1, 0, 1]) == True
+any([False, 0, ""]) == False</pre>
+
+<code><a href="#bool">bool</a></code> <code>any(<a href=#any.elements>elements</a>)</code>
+
+
+<h4 id="parameters.any">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=any.elements href=#any.elements>elements</span> | <code>unknown</code><br><p>A string or a collection of elements.</p>
+
+<a id="bool" aria-hidden="true"></a>
+### bool
+
+Constructor for the bool type. It returns <code>False</code> if the object is <code>None</code>, <code>False</code>, an empty string (<code>""</code>), the number <code>0</code>, or an empty collection (e.g. <code>()</code>, <code>[]</code>). Otherwise, it returns <code>True</code>.
+
+<code><a href="#bool">bool</a></code> <code>bool(<a href=#bool.x>x</a>=False)</code>
+
+
+<h4 id="parameters.bool">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=bool.x href=#bool.x>x</span> | <code>unknown</code><br><p>The variable to convert.</p>
+
+<a id="dict" aria-hidden="true"></a>
+### dict
+
+Creates a <a href="../core/dict.html">dictionary</a> from an optional positional argument and an optional set of keyword arguments. In the case where the same key is given multiple times, the last value will be used. Entries supplied via keyword arguments are considered to come after entries supplied via the positional argument.
+
+<code><a href="#dict">dict</a></code> <code>dict(<a href=#dict.pairs>pairs</a>=[], <a href=#dict.kwargs>kwargs</a>)</code>
+
+
+<h4 id="parameters.dict">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=dict.pairs href=#dict.pairs>pairs</span> | <code>unknown</code><br><p>A dict, or an iterable whose elements are each of length 2 (key, value).</p>
+<span id=dict.kwargs href=#dict.kwargs>kwargs</span> | <code><a href="#dict">dict</a></code><br><p>Dictionary of additional entries.</p>
+
+<a id="dir" aria-hidden="true"></a>
+### dir
+
+Returns a list of strings: the names of the attributes and methods of the parameter object.
+
+<code>sequence</code> <code>dir(<a href=#dir.x>x</a>)</code>
+
+
+<h4 id="parameters.dir">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=dir.x href=#dir.x>x</span> | <code>unknown</code><br><p>The object to check.</p>
+
+<a id="enumerate" aria-hidden="true"></a>
+### enumerate
+
+Returns a list of pairs (two-element tuples), with the index (int) and the item from the input sequence.
+<pre class="language-python">enumerate([24, 21, 84]) == [(0, 24), (1, 21), (2, 84)]</pre>
+
+
+<code>sequence</code> <code>enumerate(<a href=#enumerate.list>list</a>, <a href=#enumerate.start>start</a>=0)</code>
+
+
+<h4 id="parameters.enumerate">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=enumerate.list href=#enumerate.list>list</span> | <code>unknown</code><br><p>input sequence.</p>
+<span id=enumerate.start href=#enumerate.start>start</span> | <code><a href="#int">int</a></code><br><p>start index.</p>
+
+<a id="fail" aria-hidden="true"></a>
+### fail
+
+Causes execution to fail with an error.
+
+<code>fail(<a href=#fail.msg>msg</a>=None, <a href=#fail.attr>attr</a>=None, <a href=#fail.sep>sep</a>=" ", <a href=#fail.args>args</a>)</code>
+
+
+<h4 id="parameters.fail">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=fail.msg href=#fail.msg>msg</span> | <code>unknown</code><br><p>Deprecated: use positional arguments instead. This argument acts like an implicit leading positional argument.</p>
+<span id=fail.attr href=#fail.attr>attr</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>Deprecated. Causes an optional prefix containing this string to be added to the error message.</p>
+<span id=fail.sep href=#fail.sep>sep</span> | <code><a href="#string">string</a></code><br><p>The separator string between the objects, default is space (" ").</p>
+<span id=fail.args href=#fail.args>args</span> | <code><a href="#list">list</a></code><br><p>A list of values, formatted with debugPrint (which is equivalent to str by default) and joined with sep (defaults to " "), that appear in the error message.</p>
+
+<a id="float" aria-hidden="true"></a>
+### float
+
+Returns x as a float value. <ul><li>If <code>x</code> is already a float, <code>float</code> returns it unchanged.</li><li>If <code>x</code> is a bool, <code>float</code> returns 1.0 for True and 0.0 for False.</li><li>If <code>x</code> is an int, <code>float</code> returns the nearest finite floating-point value to x, or an error if the magnitude is too large.</li><li>If <code>x</code> is a string, it must be a valid floating-point literal, or be equal (ignoring case) to <code>NaN</code>, <code>Inf</code>, or <code>Infinity</code>, optionally preceded by a <code>+</code> or <code>-</code> sign.</li></ul>Any other value causes an error. With no argument, <code>float()</code> returns 0.0.
+
+<code><a href="#float">float</a></code> <code>float(<a href=#float.x>x</a>=unbound)</code>
+
+
+<h4 id="parameters.float">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=float.x href=#float.x>x</span> | <code>unknown</code><br><p>The value to convert.</p>
+
+<a id="getattr" aria-hidden="true"></a>
+### getattr
+
+Returns the struct's field of the given name if it exists. If not, it either returns <code>default</code> (if specified) or raises an error. <code>getattr(x, "foobar")</code> is equivalent to <code>x.foobar</code>.<pre class="language-python">getattr(ctx.attr, "myattr")
+getattr(ctx.attr, "myattr", "mydefault")</pre>
+
+<code>unknown</code> <code>getattr(<a href=#getattr.x>x</a>, <a href=#getattr.name>name</a>, <a href=#getattr.default>default</a>=unbound)</code>
+
+
+<h4 id="parameters.getattr">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=getattr.x href=#getattr.x>x</span> | <code>unknown</code><br><p>The struct whose attribute is accessed.</p>
+<span id=getattr.name href=#getattr.name>name</span> | <code><a href="#string">string</a></code><br><p>The name of the struct attribute.</p>
+<span id=getattr.default href=#getattr.default>default</span> | <code>unknown</code><br><p>The default value to return in case the struct doesn't have an attribute of the given name.</p>
+
 <a id="glob" aria-hidden="true"></a>
 ### glob
 
@@ -4538,8 +4942,8 @@ Returns an object which matches every file in the workdir that matches at least 
 
 Parameter | Description
 --------- | -----------
-<span id=glob.include href=#glob.include>include</span> | <code>sequence of string</code><br><p>The list of glob patterns to include</p>
-<span id=glob.exclude href=#glob.exclude>exclude</span> | <code>sequence of string</code><br><p>The list of glob patterns to exclude</p>
+<span id=glob.include href=#glob.include>include</span> | <code>sequence of <a href="#string">string</a></code><br><p>The list of glob patterns to include</p>
+<span id=glob.exclude href=#glob.exclude>exclude</span> | <code>sequence of <a href="#string">string</a></code><br><p>The list of glob patterns to exclude</p>
 
 
 <h4 id="example.glob">Examples:</h4>
@@ -4620,6 +5024,129 @@ glob(["folder/**"]) - glob(["folder/**.excluded"], exclude=["folder/includeme.ex
 This matches the same file as in the previous example.<br><br>`-` operator for globs is equivalent to a set difference operation.
 
 
+<a id="hasattr" aria-hidden="true"></a>
+### hasattr
+
+Returns True if the object <code>x</code> has an attribute or method of the given <code>name</code>, otherwise False. Example:<br><pre class="language-python">hasattr(ctx.attr, "myattr")</pre>
+
+<code><a href="#bool">bool</a></code> <code>hasattr(<a href=#hasattr.x>x</a>, <a href=#hasattr.name>name</a>)</code>
+
+
+<h4 id="parameters.hasattr">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=hasattr.x href=#hasattr.x>x</span> | <code>unknown</code><br><p>The object to check.</p>
+<span id=hasattr.name href=#hasattr.name>name</span> | <code><a href="#string">string</a></code><br><p>The name of the attribute.</p>
+
+<a id="hash" aria-hidden="true"></a>
+### hash
+
+Return a hash value for a string. This is computed deterministically using the same algorithm as Java's <code>String.hashCode()</code>, namely: <pre class="language-python">s[0] * (31^(n-1)) + s[1] * (31^(n-2)) + ... + s[n-1]</pre> Hashing of values besides strings is not currently supported.
+
+<code><a href="#int">int</a></code> <code>hash(<a href=#hash.value>value</a>)</code>
+
+
+<h4 id="parameters.hash">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=hash.value href=#hash.value>value</span> | <code><a href="#string">string</a></code><br><p>String value to hash.</p>
+
+<a id="int" aria-hidden="true"></a>
+### int
+
+Returns x as an int value.<ul><li>If <code>x</code> is already an int, <code>int</code> returns it unchanged.</li><li>If <code>x</code> is a bool, <code>int</code> returns 1 for True and 0 for False.</li><li>If <code>x</code> is a string, it must have the format     <code>&lt;sign&gt;&lt;prefix&gt;&lt;digits&gt;</code>.     <code>&lt;sign&gt;</code> is either <code>"+"</code>, <code>"-"</code>,     or empty (interpreted as positive). <code>&lt;digits&gt;</code> are a     sequence of digits from 0 up to <code>base</code> - 1, where the letters a-z     (or equivalently, A-Z) are used as digits for 10-35. In the case where     <code>base</code> is 2/8/16, <code>&lt;prefix&gt;</code> is optional and may     be 0b/0o/0x (or equivalently, 0B/0O/0X) respectively; if the     <code>base</code> is any other value besides these bases or the special value     0, the prefix must be empty. In the case where <code>base</code> is 0, the     string is interpreted as an integer literal, in the sense that one of the     bases 2/8/10/16 is chosen depending on which prefix if any is used. If     <code>base</code> is 0, no prefix is used, and there is more than one digit,     the leading digit cannot be 0; this is to avoid confusion between octal and     decimal. The magnitude of the number represented by the string must be within     the allowed range for the int type.</li><li>If <code>x</code> is a float, <code>int</code> returns the integer value of    the float, rounding towards zero. It is an error if x is non-finite (NaN or    infinity).</li></ul>This function fails if <code>x</code> is any other type, or if the value is a string not satisfying the above format. Unlike Python's <code>int</code> function, this function does not allow zero arguments, and does not allow extraneous whitespace for string arguments.<p>Examples:<pre class="language-python">int("123") == 123
+int("-123") == -123
+int("+123") == 123
+int("FF", 16) == 255
+int("0xFF", 16) == 255
+int("10", 0) == 10
+int("-0x10", 0) == -16
+int("-0x10", 0) == -16
+int("123.456") == 123
+</pre>
+
+<code><a href="#int">int</a></code> <code>int(<a href=#int.x>x</a>, <a href=#int.base>base</a>=unbound)</code>
+
+
+<h4 id="parameters.int">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=int.x href=#int.x>x</span> | <code>unknown</code><br><p>The string to convert.</p>
+<span id=int.base href=#int.base>base</span> | <code>unknown</code><br><p>The base used to interpret a string value; defaults to 10. Must be between 2 and 36 (inclusive), or 0 to detect the base as if <code>x</code> were an integer literal. This parameter must not be supplied if the value is not a string.</p>
+
+<a id="len" aria-hidden="true"></a>
+### len
+
+Returns the length of a string, sequence (such as a list or tuple), dict, set, or other iterable.
+
+<code><a href="#int">int</a></code> <code>len(<a href=#len.x>x</a>)</code>
+
+
+<h4 id="parameters.len">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=len.x href=#len.x>x</span> | <code>unknown</code><br><p>The value whose length to report.</p>
+
+<a id="list" aria-hidden="true"></a>
+### list
+
+Returns a new list with the same elements as the given iterable value.<pre class="language-python">list([1, 2]) == [1, 2]
+list((2, 3, 2)) == [2, 3, 2]
+list({5: "a", 2: "b", 4: "c"}) == [5, 2, 4]</pre>
+
+<code>sequence</code> <code>list(<a href=#list.x>x</a>=[])</code>
+
+
+<h4 id="parameters.list">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=list.x href=#list.x>x</span> | <code>sequence</code><br><p>The object to convert.</p>
+
+<a id="max" aria-hidden="true"></a>
+### max
+
+Returns the largest one of all given arguments. If only one positional argument is provided, it must be a non-empty iterable.It is an error if elements are not comparable (for example int with string), or if no arguments are given.<pre class="language-python">
+max(2, 5, 4) == 5
+max([5, 6, 3]) == 6
+max("two", "three", "four", key = len) =="three"  # the longest
+max([1, -1, -2, 2], key = abs) == -2  # the first encountered with maximal key value
+</pre>
+
+<code>unknown</code> <code>max(<a href=#max.key>key</a>=None, <a href=#max.args>args</a>)</code>
+
+
+<h4 id="parameters.max">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=max.key href=#max.key>key</span> | <code>callable</code> or <code>NoneType</code><br><p>An optional function applied to each element before comparison.</p>
+<span id=max.args href=#max.args>args</span> | <code><a href="#list">list</a></code><br><p>The elements to be checked.</p>
+
+<a id="min" aria-hidden="true"></a>
+### min
+
+Returns the smallest one of all given arguments. If only one positional argument is provided, it must be a non-empty iterable. It is an error if elements are not comparable (for example int with string), or if no arguments are given.<pre class="language-python">
+min(2, 5, 4) == 2
+min([5, 6, 3]) == 3
+min("six", "three", "four", key = len) == "six"  # the shortest
+min([2, -2, -1, 1], key = abs) == -1  # the first encountered with minimal key value
+</pre>
+
+<code>unknown</code> <code>min(<a href=#min.key>key</a>=None, <a href=#min.args>args</a>)</code>
+
+
+<h4 id="parameters.min">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=min.key href=#min.key>key</span> | <code>callable</code> or <code>NoneType</code><br><p>An optional function applied to each element before comparison.</p>
+<span id=min.args href=#min.args>args</span> | <code><a href="#list">list</a></code><br><p>The elements to be checked.</p>
+
 <a id="new_author" aria-hidden="true"></a>
 ### new_author
 
@@ -4632,7 +5159,7 @@ Create a new author from a string with the form 'name <foo@bar.com>'
 
 Parameter | Description
 --------- | -----------
-<span id=new_author.author_string href=#new_author.author_string>author_string</span> | <code>string</code><br><p>A string representation of the author with the form 'name <foo@bar.com>'</p>
+<span id=new_author.author_string href=#new_author.author_string>author_string</span> | <code><a href="#string">string</a></code><br><p>A string representation of the author with the form 'name <foo@bar.com>'</p>
 
 
 <h4 id="example.new_author">Example:</h4>
@@ -4659,7 +5186,179 @@ Returns a ChangeMessage parsed from a well formed string.
 
 Parameter | Description
 --------- | -----------
-<span id=parse_message.message href=#parse_message.message>message</span> | <code>string</code><br><p>The contents of the change message</p>
+<span id=parse_message.message href=#parse_message.message>message</span> | <code><a href="#string">string</a></code><br><p>The contents of the change message</p>
+
+<a id="print" aria-hidden="true"></a>
+### print
+
+Prints <code>args</code> as debug output. It will be prefixed with the string <code>"DEBUG"</code> and the location (file and line number) of this call. The exact way in which the arguments are converted to strings is unspecified and may change at any time. In particular, it may be different from (and more detailed than) the formatting done by <a href='#str'><code>str()</code></a> and <a href='#repr'><code>repr()</code></a>.<p>Using <code>print</code> in production code is discouraged due to the spam it creates for users. For deprecations, prefer a hard error using <a href="#fail"><code>fail()</code></a> whenever possible.
+
+<code>print(<a href=#print.sep>sep</a>=" ", <a href=#print.args>args</a>)</code>
+
+
+<h4 id="parameters.print">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=print.sep href=#print.sep>sep</span> | <code><a href="#string">string</a></code><br><p>The separator string between the objects, default is space (" ").</p>
+<span id=print.args href=#print.args>args</span> | <code><a href="#list">list</a></code><br><p>The objects to print.</p>
+
+<a id="range" aria-hidden="true"></a>
+### range
+
+Creates a list where items go from <code>start</code> to <code>stop</code>, using a <code>step</code> increment. If a single argument is provided, items will range from 0 to that element.<pre class="language-python">range(4) == [0, 1, 2, 3]
+range(3, 9, 2) == [3, 5, 7]
+range(3, 0, -1) == [3, 2, 1]</pre>
+
+<code>list of int</code> <code>range(<a href=#range.start_or_stop>start_or_stop</a>, <a href=#range.stop_or_none>stop_or_none</a>=None, <a href=#range.step>step</a>=1)</code>
+
+
+<h4 id="parameters.range">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=range.start_or_stop href=#range.start_or_stop>start_or_stop</span> | <code><a href="#int">int</a></code><br><p>Value of the start element if stop is provided, otherwise value of stop and the actual start is 0</p>
+<span id=range.stop_or_none href=#range.stop_or_none>stop_or_none</span> | <code><a href="#int">int</a></code> or <code>NoneType</code><br><p>optional index of the first item <i>not</i> to be included in the resulting list; generation of the list stops before <code>stop</code> is reached.</p>
+<span id=range.step href=#range.step>step</span> | <code><a href="#int">int</a></code><br><p>The increment (default is 1). It may be negative.</p>
+
+<a id="repr" aria-hidden="true"></a>
+### repr
+
+Converts any object to a string representation. This is useful for debugging.<br><pre class="language-python">repr("ab") == '"ab"'</pre>
+
+<code><a href="#string">string</a></code> <code>repr(<a href=#repr.x>x</a>)</code>
+
+
+<h4 id="parameters.repr">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=repr.x href=#repr.x>x</span> | <code>unknown</code><br><p>The object to convert.</p>
+
+<a id="reversed" aria-hidden="true"></a>
+### reversed
+
+Returns a new, unfrozen list that contains the elements of the original iterable sequence in reversed order.<pre class="language-python">reversed([3, 5, 4]) == [4, 5, 3]</pre>
+
+<code>sequence</code> <code>reversed(<a href=#reversed.sequence>sequence</a>)</code>
+
+
+<h4 id="parameters.reversed">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=reversed.sequence href=#reversed.sequence>sequence</span> | <code>sequence</code><br><p>The iterable sequence (e.g. list) to be reversed.</p>
+
+<a id="set" aria-hidden="true"></a>
+### set
+
+Creates a new <a href="#set-2">set</a> containing the unique elements of a given
+iterable, preserving iteration order.
+
+<p>If called with no argument, <code>set()</code> returns a new empty set.
+
+<p>For example,
+<pre class=language-python>
+set()                          # an empty set
+set([3, 1, 1, 2])              # set([3, 1, 2]), a set of three elements
+set({"k1": "v1", "k2": "v2"})  # set(["k1", "k2"]), a set of two elements
+</pre>
+
+
+<code>sequence</code> <code>set(<a href=#set.elements>elements</a>=[])</code>
+
+
+<h4 id="parameters.set">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=set.elements href=#set.elements>elements</span> | <code>unknown</code><br><p>A set, a sequence of hashable values, or a dict.</p>
+
+<a id="sorted" aria-hidden="true"></a>
+### sorted
+
+Returns a new sorted list containing all the elements of the supplied iterable sequence. An error may occur if any pair of elements x, y may not be compared using x < y. The elements are sorted into ascending order, unless the reverse argument is True, in which case the order is descending.
+ Sorting is stable: elements that compare equal retain their original relative order.
+<pre class="language-python">
+sorted([3, 5, 4]) == [3, 4, 5]
+sorted([3, 5, 4], reverse = True) == [5, 4, 3]
+sorted(["two", "three", "four"], key = len) == ["two", "four", "three"]  # sort by length
+</pre>
+
+<code>sequence</code> <code>sorted(<a href=#sorted.iterable>iterable</a>, <a href=#sorted.key>key</a>=None, <a href=#sorted.reverse>reverse</a>=False)</code>
+
+
+<h4 id="parameters.sorted">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=sorted.iterable href=#sorted.iterable>iterable</span> | <code>sequence</code><br><p>The iterable sequence to sort.</p>
+<span id=sorted.key href=#sorted.key>key</span> | <code>callable</code> or <code>NoneType</code><br><p>An optional function applied to each element before comparison.</p>
+<span id=sorted.reverse href=#sorted.reverse>reverse</span> | <code><a href="#bool">bool</a></code><br><p>Return results in descending order.</p>
+
+<a id="str" aria-hidden="true"></a>
+### str
+
+Converts any object to string. This is useful for debugging.<pre class="language-python">str("ab") == "ab"
+str(8) == "8"</pre>
+
+<code><a href="#string">string</a></code> <code>str(<a href=#str.x>x</a>)</code>
+
+
+<h4 id="parameters.str">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=str.x href=#str.x>x</span> | <code>unknown</code><br><p>The object to convert.</p>
+
+<a id="tuple" aria-hidden="true"></a>
+### tuple
+
+Returns a tuple with the same elements as the given iterable value.<pre class="language-python">tuple([1, 2]) == (1, 2)
+tuple((2, 3, 2)) == (2, 3, 2)
+tuple({5: "a", 2: "b", 4: "c"}) == (5, 2, 4)</pre>
+
+<code><a href="#tuple">tuple</a></code> <code>tuple(<a href=#tuple.x>x</a>=())</code>
+
+
+<h4 id="parameters.tuple">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=tuple.x href=#tuple.x>x</span> | <code>sequence</code><br><p>The object to convert.</p>
+
+<a id="type" aria-hidden="true"></a>
+### type
+
+Returns the type name of its argument. This is useful for debugging and type-checking. Examples:<pre class="language-python">type(2) == "int"
+type([1]) == "list"
+type(struct(a = 2)) == "struct"</pre>This function might change in the future. To write Python-compatible code and be future-proof, use it only to compare return values: <pre class="language-python">if type(x) == type([]):  # if x is a list</pre>
+
+<code><a href="#string">string</a></code> <code>type(<a href=#type.x>x</a>)</code>
+
+
+<h4 id="parameters.type">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=type.x href=#type.x>x</span> | <code>unknown</code><br><p>The object to check type of.</p>
+
+<a id="zip" aria-hidden="true"></a>
+### zip
+
+Returns a <code>list</code> of <code>tuple</code>s, where the i-th tuple contains the i-th element from each of the argument sequences or iterables. The list has the size of the shortest input. With a single iterable argument, it returns a list of 1-tuples. With no arguments, it returns an empty list. Examples:<pre class="language-python">zip()  # == []
+zip([1, 2])  # == [(1,), (2,)]
+zip([1, 2], [3, 4])  # == [(1, 3), (2, 4)]
+zip([1, 2], [3, 4, 5])  # == [(1, 3), (2, 4)]</pre>
+
+<code>sequence</code> <code>zip(<a href=#zip.args>args</a>)</code>
+
+
+<h4 id="parameters.zip">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=zip.args href=#zip.args>args</span> | <code><a href="#list">list</a></code><br><p>lists to zip.</p>
 
 
 
@@ -4679,7 +5378,7 @@ Go resolver that knows what to do with command line passed refs.
 
 Parameter | Description
 --------- | -----------
-<span id=go.go_proxy_resolver.module href=#go.go_proxy_resolver.module>module</span> | <code>string</code><br><p>The go module path name. e.g. github.com/google/gopacket. This will automatically normalize uppercase characters to '!{your_uppercase_character}' to escape them.</p>
+<span id=go.go_proxy_resolver.module href=#go.go_proxy_resolver.module>module</span> | <code><a href="#string">string</a></code><br><p>The go module path name. e.g. github.com/google/gopacket. This will automatically normalize uppercase characters to '!{your_uppercase_character}' to escape them.</p>
 <span id=go.go_proxy_resolver.auth href=#go.go_proxy_resolver.auth>auth</span> | <code>AuthInterceptor</code> or <code>NoneType</code><br><p>Optional, an interceptor for providing credentials.</p>
 
 <a id="go.go_proxy_version_list" aria-hidden="true"></a>
@@ -4694,8 +5393,8 @@ Returns go proxy version list object
 
 Parameter | Description
 --------- | -----------
-<span id=go.go_proxy_version_list.module href=#go.go_proxy_version_list.module>module</span> | <code>string</code><br><p>The go module path name. e.g. github.com/google/gopacket. This will automatically normalize uppercase characters to '!{your_uppercase_character}' to escape them.</p>
-<span id=go.go_proxy_version_list.ref href=#go.go_proxy_version_list.ref>ref</span> | <code>string</code> or <code>NoneType</code><br><p>This parameter is primarily used to track versions at specific branches and revisions. If a value is supplied, the returned version list will attempt to extract version data from ${ref}.info found with go proxy at the /@v/${ref}.info endpoint. You can leave off the .info suffix.</p>
+<span id=go.go_proxy_version_list.module href=#go.go_proxy_version_list.module>module</span> | <code><a href="#string">string</a></code><br><p>The go module path name. e.g. github.com/google/gopacket. This will automatically normalize uppercase characters to '!{your_uppercase_character}' to escape them.</p>
+<span id=go.go_proxy_version_list.ref href=#go.go_proxy_version_list.ref>ref</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>This parameter is primarily used to track versions at specific branches and revisions. If a value is supplied, the returned version list will attempt to extract version data from ${ref}.info found with go proxy at the /@v/${ref}.info endpoint. You can leave off the .info suffix.</p>
 <span id=go.go_proxy_version_list.auth href=#go.go_proxy_version_list.auth>auth</span> | <code>AuthInterceptor</code> or <code>NoneType</code><br><p>Optional, an interceptor for providing credentials.</p>
 
 
@@ -4736,7 +5435,7 @@ Return the results of an info query. An object is only returned if a ref was spe
 
 Parameter | Description
 --------- | -----------
-<span id=goproxy_version_list.get_info.ref href=#goproxy_version_list.get_info.ref>ref</span> | <code>string</code> or <code>NoneType</code><br><p>The reference to query for. This is optional, and the default will be the latest version, or the ref if passed into this object during creation.</p>
+<span id=goproxy_version_list.get_info.ref href=#goproxy_version_list.get_info.ref>ref</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>The reference to query for. This is optional, and the default will be the latest version, or the ref if passed into this object during creation.</p>
 
 
 
@@ -4750,7 +5449,7 @@ utilities for hashing
 Return the md5 hash of a file at a checkout path. Do not use unless working with legacy systems that require MD5.
 WARNING: do not use unless working with legacy systems that require MD5
 
-<code>string</code> <code>hashing.path_md5_sum(<a href=#hashing.path_md5_sum.path>path</a>)</code>
+<code><a href="#string">string</a></code> <code>hashing.path_md5_sum(<a href=#hashing.path_md5_sum.path>path</a>)</code>
 
 
 <h4 id="parameters.hashing.path_md5_sum">Parameters:</h4>
@@ -4764,7 +5463,7 @@ Parameter | Description
 
 Return the sha256 hash of a file at a checkout path
 
-<code>string</code> <code>hashing.path_sha256_sum(<a href=#hashing.path_sha256_sum.path>path</a>)</code>
+<code><a href="#string">string</a></code> <code>hashing.path_sha256_sum(<a href=#hashing.path_sha256_sum.path>path</a>)</code>
 
 
 <h4 id="parameters.hashing.path_sha256_sum">Parameters:</h4>
@@ -4778,14 +5477,14 @@ Parameter | Description
 
 Return the hash of a list of objects based on the algorithm specified
 
-<code>string</code> <code>hashing.str_sha256_sum(<a href=#hashing.str_sha256_sum.input>input</a>)</code>
+<code><a href="#string">string</a></code> <code>hashing.str_sha256_sum(<a href=#hashing.str_sha256_sum.input>input</a>)</code>
 
 
 <h4 id="parameters.hashing.str_sha256_sum">Parameters:</h4>
 
 Parameter | Description
 --------- | -----------
-<span id=hashing.str_sha256_sum.input href=#hashing.str_sha256_sum.input>input</span> | <code>sequence of string</code> or <code>string</code><br><p>One or more string inputs to hash.</p>
+<span id=hashing.str_sha256_sum.input href=#hashing.str_sha256_sum.input>input</span> | <code>sequence of <a href="#string">string</a></code> or <code><a href="#string">string</a></code><br><p>One or more string inputs to hash.</p>
 
 
 
@@ -4805,8 +5504,8 @@ Set of functions to define Mercurial (Hg) origins and destinations.
 
 Parameter | Description
 --------- | -----------
-<span id=hg.origin.url href=#hg.origin.url>url</span> | <code>string</code><br><p>Indicates the URL of the Hg repository</p>
-<span id=hg.origin.ref href=#hg.origin.ref>ref</span> | <code>string</code><br><p>Represents the default reference that will be used to read a revision from the repository. The reference defaults to `default`, the most recent revision on the default branch. References can be in a variety of formats:<br><ul> <li> A global identifier for a revision. Example: f4e0e692208520203de05557244e573e981f6c72</li><li> A bookmark in the repository.</li><li> A branch in the repository, which returns the tip of that branch. Example: default</li><li> A tag in the repository. Example: tip</li></ul></p>
+<span id=hg.origin.url href=#hg.origin.url>url</span> | <code><a href="#string">string</a></code><br><p>Indicates the URL of the Hg repository</p>
+<span id=hg.origin.ref href=#hg.origin.ref>ref</span> | <code><a href="#string">string</a></code><br><p>Represents the default reference that will be used to read a revision from the repository. The reference defaults to `default`, the most recent revision on the default branch. References can be in a variety of formats:<br><ul> <li> A global identifier for a revision. Example: f4e0e692208520203de05557244e573e981f6c72</li><li> A bookmark in the repository.</li><li> A branch in the repository, which returns the tip of that branch. Example: default</li><li> A tag in the repository. Example: tip</li></ul></p>
 
 
 
@@ -4826,8 +5525,8 @@ Run an xpath expression on HTML content to select elements. This only supports a
 
 Parameter | Description
 --------- | -----------
-<span id=html.xpath.content href=#html.xpath.content>content</span> | <code>string</code><br><p>The HTML content</p>
-<span id=html.xpath.expression href=#html.xpath.expression>expression</span> | <code>string</code><br><p>XPath expression to select elements</p>
+<span id=html.xpath.content href=#html.xpath.content>content</span> | <code><a href="#string">string</a></code><br><p>The HTML content</p>
+<span id=html.xpath.expression href=#html.xpath.expression>expression</span> | <code><a href="#string">string</a></code><br><p>XPath expression to select elements</p>
 
 
 
@@ -4840,14 +5539,14 @@ A HTML element.
 
 Get an attribute value by key
 
-<code>string</code> <code>html_element.attr(<a href=#html_element.attr.key>key</a>)</code>
+<code><a href="#string">string</a></code> <code>html_element.attr(<a href=#html_element.attr.key>key</a>)</code>
 
 
 <h4 id="parameters.html_element.attr">Parameters:</h4>
 
 Parameter | Description
 --------- | -----------
-<span id=html_element.attr.key href=#html_element.attr.key>key</span> | <code>string</code><br><p>the (case-sensitive) attribute key</p>
+<span id=html_element.attr.key href=#html_element.attr.key>key</span> | <code><a href="#string">string</a></code><br><p>the (case-sensitive) attribute key</p>
 
 
 
@@ -4881,10 +5580,10 @@ Endpoint that executes any sort of http request. Currently restrictedto requests
 
 Parameter | Description
 --------- | -----------
-<span id=http.endpoint.host href=#http.endpoint.host>host</span> | <code>string</code><br><p>DEPRECATED. A single host to allow HTTP traffic to.</p>
+<span id=http.endpoint.host href=#http.endpoint.host>host</span> | <code><a href="#string">string</a></code><br><p>DEPRECATED. A single host to allow HTTP traffic to.</p>
 <span id=http.endpoint.checker href=#http.endpoint.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker that will check calls made by the endpoint</p>
 <span id=http.endpoint.hosts href=#http.endpoint.hosts>hosts</span> | <code>sequence</code><br><p>A list of hosts to allow HTTP traffic to.</p>
-<span id=http.endpoint.issuers href=#http.endpoint.issuers>issuers</span> | <code>dict</code> or <code>NoneType</code><br><p>A dictionaty of credential issuers.</p>
+<span id=http.endpoint.issuers href=#http.endpoint.issuers>issuers</span> | <code><a href="#dict">dict</a></code> or <code>NoneType</code><br><p>A dictionaty of credential issuers.</p>
 
 <a id="http.host" aria-hidden="true"></a>
 ### http.host
@@ -4898,7 +5597,7 @@ Wraps a host and potentially credentials for http auth.
 
 Parameter | Description
 --------- | -----------
-<span id=http.host.host href=#http.host.host>host</span> | <code>string</code><br><p>The host to be contacted.</p>
+<span id=http.host.host href=#http.host.host>host</span> | <code><a href="#string">string</a></code><br><p>The host to be contacted.</p>
 <span id=http.host.auth href=#http.host.auth>auth</span> | <code>AuthInterceptor</code> or <code>UsernamePasswordIssuer</code> or <code>NoneType</code><br><p>Optional, an interceptor for providing credentials. Also accepts a username_password.</p>
 
 <a id="http.json" aria-hidden="true"></a>
@@ -4941,10 +5640,10 @@ Create a file part for a multipart form payload.
 
 Parameter | Description
 --------- | -----------
-<span id=http.multipart_form_file.name href=#http.multipart_form_file.name>name</span> | <code>string</code><br><p>The name of the form field.</p>
+<span id=http.multipart_form_file.name href=#http.multipart_form_file.name>name</span> | <code><a href="#string">string</a></code><br><p>The name of the form field.</p>
 <span id=http.multipart_form_file.path href=#http.multipart_form_file.path>path</span> | <code><a href="#path">Path</a></code><br><p>The checkout path pointing to the file to use as the field value.</p>
-<span id=http.multipart_form_file.content_type href=#http.multipart_form_file.content_type>content_type</span> | <code>string</code><br><p>Content type header value for the form part. Defaults to application/octet-stream. <br>https://www.w3.org/Protocols/rfc1341/4_Content-Type.html</p>
-<span id=http.multipart_form_file.filename href=#http.multipart_form_file.filename>filename</span> | <code>string</code> or <code>NoneType</code><br><p>The filename that will be sent along with the data. Defaults to the filename of the path parameter. Sets the filename parameter in the content disposition header. <br>https://www.w3.org/Protocols/HTTP/Issues/content-disposition.txt</p>
+<span id=http.multipart_form_file.content_type href=#http.multipart_form_file.content_type>content_type</span> | <code><a href="#string">string</a></code><br><p>Content type header value for the form part. Defaults to application/octet-stream. <br>https://www.w3.org/Protocols/rfc1341/4_Content-Type.html</p>
+<span id=http.multipart_form_file.filename href=#http.multipart_form_file.filename>filename</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>The filename that will be sent along with the data. Defaults to the filename of the path parameter. Sets the filename parameter in the content disposition header. <br>https://www.w3.org/Protocols/HTTP/Issues/content-disposition.txt</p>
 
 <a id="http.multipart_form_text" aria-hidden="true"></a>
 ### http.multipart_form_text
@@ -4958,8 +5657,8 @@ Create a text/plain part for a multipart form payload
 
 Parameter | Description
 --------- | -----------
-<span id=http.multipart_form_text.name href=#http.multipart_form_text.name>name</span> | <code>string</code><br><p>The name of the form field.</p>
-<span id=http.multipart_form_text.text href=#http.multipart_form_text.text>text</span> | <code>string</code><br><p>The form value of the field</p>
+<span id=http.multipart_form_text.name href=#http.multipart_form_text.name>name</span> | <code><a href="#string">string</a></code><br><p>The name of the form field.</p>
+<span id=http.multipart_form_text.text href=#http.multipart_form_text.text>text</span> | <code><a href="#string">string</a></code><br><p>The form value of the field</p>
 
 <a id="http.trigger" aria-hidden="true"></a>
 ### http.trigger
@@ -4974,7 +5673,7 @@ Trigger for http endpoint
 Parameter | Description
 --------- | -----------
 <span id=http.trigger.hosts href=#http.trigger.hosts>hosts</span> | <code>sequence</code><br><p>A list of hosts to allow HTTP traffic to.</p>
-<span id=http.trigger.issuers href=#http.trigger.issuers>issuers</span> | <code>dict</code> or <code>NoneType</code><br><p>A dictionary of credential issuers.</p>
+<span id=http.trigger.issuers href=#http.trigger.issuers>issuers</span> | <code><a href="#dict">dict</a></code> or <code>NoneType</code><br><p>A dictionary of credential issuers.</p>
 <span id=http.trigger.checker href=#http.trigger.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker that will check calls made by the endpoint</p>
 
 <a id="http.url_encode" aria-hidden="true"></a>
@@ -4982,14 +5681,14 @@ Parameter | Description
 
 URL-encode the input string
 
-<code>string</code> <code>http.url_encode(<a href=#http.url_encode.input>input</a>)</code>
+<code><a href="#string">string</a></code> <code>http.url_encode(<a href=#http.url_encode.input>input</a>)</code>
 
 
 <h4 id="parameters.http.url_encode">Parameters:</h4>
 
 Parameter | Description
 --------- | -----------
-<span id=http.url_encode.input href=#http.url_encode.input>input</span> | <code>string</code><br><p>The string to be encoded.</p>
+<span id=http.url_encode.input href=#http.url_encode.input>input</span> | <code><a href="#string">string</a></code><br><p>The string to be encoded.</p>
 
 <a id="http.urlencoded_form" aria-hidden="true"></a>
 ### http.urlencoded_form
@@ -5003,7 +5702,7 @@ Creates a url-encoded form HTTP body.
 
 Parameter | Description
 --------- | -----------
-<span id=http.urlencoded_form.body href=#http.urlencoded_form.body>body</span> | <code>dict</code><br><p>HTTP body object, property name will be used as key and value as value.</p>
+<span id=http.urlencoded_form.body href=#http.urlencoded_form.body>body</span> | <code><a href="#dict">dict</a></code><br><p>HTTP body object, property name will be used as key and value as value.</p>
 
 <a id="http.username_password_auth" aria-hidden="true"></a>
 ### http.username_password_auth
@@ -5030,7 +5729,7 @@ Calls via HTTP.
 
 Name | Description
 ---- | -----------
-url | <code>string</code><br><p>Return the URL of this endpoint.</p>
+url | <code><a href="#string">string</a></code><br><p>Return the URL of this endpoint.</p>
 
 <a id="http_endpoint.delete" aria-hidden="true"></a>
 ### http_endpoint.delete
@@ -5044,9 +5743,9 @@ Execute a delete request
 
 Parameter | Description
 --------- | -----------
-<span id=http_endpoint.delete.url href=#http_endpoint.delete.url>url</span> | <code>string</code><br><p></p>
-<span id=http_endpoint.delete.headers href=#http_endpoint.delete.headers>headers</span> | <code>dict</code><br><p>dict of http headers for the request</p>
-<span id=http_endpoint.delete.auth href=#http_endpoint.delete.auth>auth</span> | <code>bool</code><br><p></p>
+<span id=http_endpoint.delete.url href=#http_endpoint.delete.url>url</span> | <code><a href="#string">string</a></code><br><p></p>
+<span id=http_endpoint.delete.headers href=#http_endpoint.delete.headers>headers</span> | <code><a href="#dict">dict</a></code><br><p>dict of http headers for the request</p>
+<span id=http_endpoint.delete.auth href=#http_endpoint.delete.auth>auth</span> | <code><a href="#bool">bool</a></code><br><p></p>
 
 <a id="http_endpoint.followRedirects" aria-hidden="true"></a>
 ### http_endpoint.followRedirects
@@ -5060,7 +5759,7 @@ Sets whether to follow redirects automatically
 
 Parameter | Description
 --------- | -----------
-<span id=http_endpoint.followRedirects.followRedirects href=#http_endpoint.followRedirects.followRedirects>followRedirects</span> | <code>bool</code><br><p>Whether to follow redirects automatically</p>
+<span id=http_endpoint.followRedirects.followRedirects href=#http_endpoint.followRedirects.followRedirects>followRedirects</span> | <code><a href="#bool">bool</a></code><br><p>Whether to follow redirects automatically</p>
 
 <a id="http_endpoint.get" aria-hidden="true"></a>
 ### http_endpoint.get
@@ -5074,9 +5773,9 @@ Execute a get request
 
 Parameter | Description
 --------- | -----------
-<span id=http_endpoint.get.url href=#http_endpoint.get.url>url</span> | <code>string</code><br><p></p>
-<span id=http_endpoint.get.headers href=#http_endpoint.get.headers>headers</span> | <code>dict</code><br><p>dict of http headers for the request</p>
-<span id=http_endpoint.get.auth href=#http_endpoint.get.auth>auth</span> | <code>bool</code><br><p></p>
+<span id=http_endpoint.get.url href=#http_endpoint.get.url>url</span> | <code><a href="#string">string</a></code><br><p></p>
+<span id=http_endpoint.get.headers href=#http_endpoint.get.headers>headers</span> | <code><a href="#dict">dict</a></code><br><p>dict of http headers for the request</p>
+<span id=http_endpoint.get.auth href=#http_endpoint.get.auth>auth</span> | <code><a href="#bool">bool</a></code><br><p></p>
 
 <a id="http_endpoint.new_destination_ref" aria-hidden="true"></a>
 ### http_endpoint.new_destination_ref
@@ -5090,9 +5789,9 @@ Creates a new destination reference out of this endpoint.
 
 Parameter | Description
 --------- | -----------
-<span id=http_endpoint.new_destination_ref.ref href=#http_endpoint.new_destination_ref.ref>ref</span> | <code>string</code><br><p>The reference.</p>
-<span id=http_endpoint.new_destination_ref.type href=#http_endpoint.new_destination_ref.type>type</span> | <code>string</code><br><p>The type of this reference.</p>
-<span id=http_endpoint.new_destination_ref.url href=#http_endpoint.new_destination_ref.url>url</span> | <code>string</code> or <code>NoneType</code><br><p>The url associated with this reference, if any.</p>
+<span id=http_endpoint.new_destination_ref.ref href=#http_endpoint.new_destination_ref.ref>ref</span> | <code><a href="#string">string</a></code><br><p>The reference.</p>
+<span id=http_endpoint.new_destination_ref.type href=#http_endpoint.new_destination_ref.type>type</span> | <code><a href="#string">string</a></code><br><p>The type of this reference.</p>
+<span id=http_endpoint.new_destination_ref.url href=#http_endpoint.new_destination_ref.url>url</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>The url associated with this reference, if any.</p>
 
 <a id="http_endpoint.new_origin_ref" aria-hidden="true"></a>
 ### http_endpoint.new_origin_ref
@@ -5106,7 +5805,7 @@ Creates a new origin reference out of this endpoint.
 
 Parameter | Description
 --------- | -----------
-<span id=http_endpoint.new_origin_ref.ref href=#http_endpoint.new_origin_ref.ref>ref</span> | <code>string</code><br><p>The reference.</p>
+<span id=http_endpoint.new_origin_ref.ref href=#http_endpoint.new_origin_ref.ref>ref</span> | <code><a href="#string">string</a></code><br><p>The reference.</p>
 
 <a id="http_endpoint.post" aria-hidden="true"></a>
 ### http_endpoint.post
@@ -5120,10 +5819,10 @@ Execute a post request
 
 Parameter | Description
 --------- | -----------
-<span id=http_endpoint.post.url href=#http_endpoint.post.url>url</span> | <code>string</code><br><p></p>
-<span id=http_endpoint.post.headers href=#http_endpoint.post.headers>headers</span> | <code>dict</code><br><p>dict of http headers for the request</p>
+<span id=http_endpoint.post.url href=#http_endpoint.post.url>url</span> | <code><a href="#string">string</a></code><br><p></p>
+<span id=http_endpoint.post.headers href=#http_endpoint.post.headers>headers</span> | <code><a href="#dict">dict</a></code><br><p>dict of http headers for the request</p>
 <span id=http_endpoint.post.content href=#http_endpoint.post.content>content</span> | <code>HttpEndpointBody</code> or <code>NoneType</code><br><p></p>
-<span id=http_endpoint.post.auth href=#http_endpoint.post.auth>auth</span> | <code>bool</code><br><p></p>
+<span id=http_endpoint.post.auth href=#http_endpoint.post.auth>auth</span> | <code><a href="#bool">bool</a></code><br><p></p>
 
 
 
@@ -5141,14 +5840,14 @@ A http response.
 
 http status code
 
-<code>int</code> <code>http_response.code()</code>
+<code><a href="#int">int</a></code> <code>http_response.code()</code>
 
 <a id="http_response.contents_string" aria-hidden="true"></a>
 ### http_response.contents_string
 
 response contents as string
 
-<code>string</code> <code>http_response.contents_string()</code>
+<code><a href="#string">string</a></code> <code>http_response.contents_string()</code>
 
 <a id="http_response.download" aria-hidden="true"></a>
 ### http_response.download
@@ -5176,14 +5875,35 @@ Returns the value of the response header specified by the field name
 
 Parameter | Description
 --------- | -----------
-<span id=http_response.header.key href=#http_response.header.key>key</span> | <code>string</code><br><p></p>
+<span id=http_response.header.key href=#http_response.header.key>key</span> | <code><a href="#string">string</a></code><br><p></p>
 
 <a id="http_response.status" aria-hidden="true"></a>
 ### http_response.status
 
 http status message
 
-<code>string</code> <code>http_response.status()</code>
+<code><a href="#string">string</a></code> <code>http_response.status()</code>
+
+
+
+## int
+
+The type of integers in Starlark. Starlark integers may be of any magnitude; arithmetic is exact. Examples of integer expressions:<br><pre class="language-python">153
+0x2A  # hexadecimal literal
+0o54  # octal literal
+23 * 2 + 5
+100 / -7
+100 % -7  # -5 (unlike in some other languages)
+int("18")
+</pre>
+
+
+<h4 id="returned_by.int">Returned By:</h4>
+
+<ul><li><a href="#hash">hash</a></li><li><a href="#int">int</a></li><li><a href="#len">len</a></li><li><a href="#http_response.code">http_response.code</a></li><li><a href="#list.index">list.index</a></li><li><a href="#re2_matcher.end">re2_matcher.end</a></li><li><a href="#re2_matcher.group_count">re2_matcher.group_count</a></li><li><a href="#re2_matcher.start">re2_matcher.start</a></li><li><a href="#string.count">string.count</a></li><li><a href="#string.find">string.find</a></li><li><a href="#string.index">string.index</a></li><li><a href="#string.rfind">string.rfind</a></li><li><a href="#string.rindex">string.rindex</a></li></ul>
+<h4 id="consumed_by.int">Consumed By:</h4>
+
+<ul><li><a href="#core.filter_replace">core.filter_replace</a></li><li><a href="#datetime.fromtimestamp">datetime.fromtimestamp</a></li><li><a href="#git.mirrorContext.destination_fetch">git.mirrorContext.destination_fetch</a></li><li><a href="#git.mirrorContext.origin_fetch">git.mirrorContext.origin_fetch</a></li><li><a href="#github_api_obj.add_label">github_api_obj.add_label</a></li><li><a href="#github_api_obj.get_pull_request_comments">github_api_obj.get_pull_request_comments</a></li><li><a href="#github_api_obj.list_issue_comments">github_api_obj.list_issue_comments</a></li><li><a href="#github_api_obj.post_issue_comment">github_api_obj.post_issue_comment</a></li><li><a href="#github_api_obj.update_pull_request">github_api_obj.update_pull_request</a></li><li><a href="#abs">abs</a></li><li><a href="#enumerate">enumerate</a></li><li><a href="#range">range</a></li><li><a href="#list.index">list.index</a></li><li><a href="#list.insert">list.insert</a></li><li><a href="#list.pop">list.pop</a></li><li><a href="#metadata.squash_notes">metadata.squash_notes</a></li><li><a href="#patch.apply">patch.apply</a></li><li><a href="#random.sample">random.sample</a></li><li><a href="#re2_matcher.end">re2_matcher.end</a></li><li><a href="#re2_matcher.find">re2_matcher.find</a></li><li><a href="#re2_matcher.group">re2_matcher.group</a></li><li><a href="#re2_matcher.start">re2_matcher.start</a></li><li><a href="#string.count">string.count</a></li><li><a href="#string.endswith">string.endswith</a></li><li><a href="#string.find">string.find</a></li><li><a href="#string.index">string.index</a></li><li><a href="#string.replace">string.replace</a></li><li><a href="#string.rfind">string.rfind</a></li><li><a href="#string.rindex">string.rindex</a></li><li><a href="#string.rsplit">string.rsplit</a></li><li><a href="#string.split">string.split</a></li><li><a href="#string.startswith">string.startswith</a></li></ul>
 
 
 
@@ -5197,16 +5917,125 @@ Github issue object
 Name | Description
 ---- | -----------
 assignee | <code><a href="#github_api_user_obj">github_api_user_obj</a></code><br><p>Pull Request assignee</p>
-body | <code>string</code><br><p>Pull Request body</p>
-number | <code>int</code><br><p>Pull Request number</p>
-state | <code>string</code><br><p>Pull Request state</p>
-title | <code>string</code><br><p>Pull Request title</p>
+body | <code><a href="#string">string</a></code><br><p>Pull Request body</p>
+number | <code><a href="#int">int</a></code><br><p>Pull Request number</p>
+state | <code><a href="#string">string</a></code><br><p>Pull Request state</p>
+title | <code><a href="#string">string</a></code><br><p>Pull Request title</p>
 user | <code><a href="#github_api_user_obj">github_api_user_obj</a></code><br><p>Pull Request owner</p>
 
 
 <h4 id="returned_by.Issue">Returned By:</h4>
 
 <ul><li><a href="#github_api_obj.create_issue">github_api_obj.create_issue</a></li></ul>
+
+
+
+## list
+
+The built-in list type. Example list expressions:<br><pre class=language-python>x = [1, 2, 3]</pre>Accessing elements is possible using indexing (starts from <code>0</code>):<br><pre class=language-python>e = x[1]   # e == 2</pre>Lists support the <code>+</code> operator to concatenate two lists. Example:<br><pre class=language-python>x = [1, 2] + [3, 4]   # x == [1, 2, 3, 4]
+x = ["a", "b"]
+x += ["c"]            # x == ["a", "b", "c"]</pre>Similar to strings, lists support slice operations:<pre class=language-python>['a', 'b', 'c', 'd'][1:3]   # ['b', 'c']
+['a', 'b', 'c', 'd'][::2]  # ['a', 'c']
+['a', 'b', 'c', 'd'][3:0:-1]  # ['d', 'c', 'b']</pre>Lists are mutable, as in Python.
+
+
+<h4 id="consumed_by.list">Consumed By:</h4>
+
+<ul><li><a href="#fail">fail</a></li><li><a href="#max">max</a></li><li><a href="#min">min</a></li><li><a href="#print">print</a></li><li><a href="#zip">zip</a></li><li><a href="#random.sample">random.sample</a></li><li><a href="#set.difference">set.difference</a></li><li><a href="#set.difference_update">set.difference_update</a></li><li><a href="#set.intersection">set.intersection</a></li><li><a href="#set.intersection_update">set.intersection_update</a></li><li><a href="#set.union">set.union</a></li><li><a href="#set.update">set.update</a></li><li><a href="#string.format">string.format</a></li></ul>
+
+<a id="list.append" aria-hidden="true"></a>
+### list.append
+
+Adds an item to the end of the list.
+
+<code>list.append(<a href=#list.append.item>item</a>)</code>
+
+
+<h4 id="parameters.list.append">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=list.append.item href=#list.append.item>item</span> | <code>unknown</code><br><p>Item to add at the end.</p>
+
+<a id="list.clear" aria-hidden="true"></a>
+### list.clear
+
+Removes all the elements of the list.
+
+<code>list.clear()</code>
+
+<a id="list.extend" aria-hidden="true"></a>
+### list.extend
+
+Adds all items to the end of the list.
+
+<code>list.extend(<a href=#list.extend.items>items</a>)</code>
+
+
+<h4 id="parameters.list.extend">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=list.extend.items href=#list.extend.items>items</span> | <code>unknown</code><br><p>Items to add at the end.</p>
+
+<a id="list.index" aria-hidden="true"></a>
+### list.index
+
+Returns the index in the list of the first item whose value is x. It is an error if there is no such item.
+
+<code><a href="#int">int</a></code> <code>list.index(<a href=#list.index.x>x</a>, <a href=#list.index.start>start</a>=None, <a href=#list.index.end>end</a>=None)</code>
+
+
+<h4 id="parameters.list.index">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=list.index.x href=#list.index.x>x</span> | <code>unknown</code><br><p>The object to search.</p>
+<span id=list.index.start href=#list.index.start>start</span> | <code><a href="#int">int</a></code> or <code>NoneType</code><br><p>The start index of the list portion to inspect.</p>
+<span id=list.index.end href=#list.index.end>end</span> | <code><a href="#int">int</a></code> or <code>NoneType</code><br><p>The end index of the list portion to inspect.</p>
+
+<a id="list.insert" aria-hidden="true"></a>
+### list.insert
+
+Inserts an item at a given position.
+
+<code>list.insert(<a href=#list.insert.index>index</a>, <a href=#list.insert.item>item</a>)</code>
+
+
+<h4 id="parameters.list.insert">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=list.insert.index href=#list.insert.index>index</span> | <code><a href="#int">int</a></code><br><p>The index of the given position.</p>
+<span id=list.insert.item href=#list.insert.item>item</span> | <code>unknown</code><br><p>The item.</p>
+
+<a id="list.pop" aria-hidden="true"></a>
+### list.pop
+
+Removes the item at the given position in the list, and returns it. If no <code>index</code> is specified, it removes and returns the last item in the list.
+
+<code>unknown</code> <code>list.pop(<a href=#list.pop.i>i</a>=-1)</code>
+
+
+<h4 id="parameters.list.pop">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=list.pop.i href=#list.pop.i>i</span> | <code><a href="#int">int</a></code> or <code>NoneType</code><br><p>The index of the item.</p>
+
+<a id="list.remove" aria-hidden="true"></a>
+### list.remove
+
+Removes the first item from the list whose value is x. It is an error if there is no such item.
+
+<code>list.remove(<a href=#list.remove.x>x</a>)</code>
+
+
+<h4 id="parameters.list.remove">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=list.remove.x href=#list.remove.x>x</span> | <code>unknown</code><br><p>The object to remove.</p>
 
 
 
@@ -5238,9 +6067,9 @@ Adds a header line to the commit message. Any variable present in the message in
 
 Parameter | Description
 --------- | -----------
-<span id=metadata.add_header.text href=#metadata.add_header.text>text</span> | <code>string</code><br><p>The header text to include in the message. For example '[Import of foo ${LABEL}]'. This would construct a message resolving ${LABEL} to the corresponding label.</p>
-<span id=metadata.add_header.ignore_label_not_found href=#metadata.add_header.ignore_label_not_found>ignore_label_not_found</span> | <code>bool</code><br><p>If a label used in the template is not found, ignore the error and don't add the header. By default it will stop the migration and fail.</p>
-<span id=metadata.add_header.new_line href=#metadata.add_header.new_line>new_line</span> | <code>bool</code><br><p>If a new line should be added between the header and the original message. This allows to create messages like `HEADER: ORIGINAL_MESSAGE`</p>
+<span id=metadata.add_header.text href=#metadata.add_header.text>text</span> | <code><a href="#string">string</a></code><br><p>The header text to include in the message. For example '[Import of foo ${LABEL}]'. This would construct a message resolving ${LABEL} to the corresponding label.</p>
+<span id=metadata.add_header.ignore_label_not_found href=#metadata.add_header.ignore_label_not_found>ignore_label_not_found</span> | <code><a href="#bool">bool</a></code><br><p>If a label used in the template is not found, ignore the error and don't add the header. By default it will stop the migration and fail.</p>
+<span id=metadata.add_header.new_line href=#metadata.add_header.new_line>new_line</span> | <code><a href="#bool">bool</a></code><br><p>If a new line should be added between the header and the original message. This allows to create messages like `HEADER: ORIGINAL_MESSAGE`</p>
 
 
 <h4 id="example.metadata.add_header">Examples:</h4>
@@ -5347,11 +6176,11 @@ Certain labels are present in the internal metadata but are not exposed in the m
 
 Parameter | Description
 --------- | -----------
-<span id=metadata.expose_label.name href=#metadata.expose_label.name>name</span> | <code>string</code><br><p>The label to search</p>
-<span id=metadata.expose_label.new_name href=#metadata.expose_label.new_name>new_name</span> | <code>string</code> or <code>NoneType</code><br><p>The name to use in the message</p>
-<span id=metadata.expose_label.separator href=#metadata.expose_label.separator>separator</span> | <code>string</code><br><p>The separator to use when adding the label to the message</p>
-<span id=metadata.expose_label.ignore_label_not_found href=#metadata.expose_label.ignore_label_not_found>ignore_label_not_found</span> | <code>bool</code><br><p>If a label is not found, ignore the error and continue.</p>
-<span id=metadata.expose_label.all href=#metadata.expose_label.all>all</span> | <code>bool</code><br><p>By default Copybara tries to find the most relevant instance of the label. First looking into the message and then looking into the changes in order. If this field is true it exposes all the matches instead.</p>
+<span id=metadata.expose_label.name href=#metadata.expose_label.name>name</span> | <code><a href="#string">string</a></code><br><p>The label to search</p>
+<span id=metadata.expose_label.new_name href=#metadata.expose_label.new_name>new_name</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>The name to use in the message</p>
+<span id=metadata.expose_label.separator href=#metadata.expose_label.separator>separator</span> | <code><a href="#string">string</a></code><br><p>The separator to use when adding the label to the message</p>
+<span id=metadata.expose_label.ignore_label_not_found href=#metadata.expose_label.ignore_label_not_found>ignore_label_not_found</span> | <code><a href="#bool">bool</a></code><br><p>If a label is not found, ignore the error and continue.</p>
+<span id=metadata.expose_label.all href=#metadata.expose_label.all>all</span> | <code><a href="#bool">bool</a></code><br><p>By default Copybara tries to find the most relevant instance of the label. First looking into the message and then looking into the changes in order. If this field is true it exposes all the matches instead.</p>
 <span id=metadata.expose_label.concat_separator href=#metadata.expose_label.concat_separator>concat_separator</span> | <code>unknown</code><br><p>If all is set, copybara will expose multiple values in one per line. If a separator is specified, it will concat the values instead.</p>
 
 
@@ -5425,12 +6254,12 @@ Map the author name and mail to another author. The mapping can be done by both 
 
 Parameter | Description
 --------- | -----------
-<span id=metadata.map_author.authors href=#metadata.map_author.authors>authors</span> | <code>dict</code><br><p>The author mapping. Keys can be in the form of 'Your Name', 'some@mail' or 'Your Name &lt;some@mail&gt;'. The mapping applies heuristics to know which field to use in the mapping. The value has to be always in the form of 'Your Name &lt;some@mail&gt;'</p>
-<span id=metadata.map_author.reversible href=#metadata.map_author.reversible>reversible</span> | <code>bool</code><br><p>If the transform is automatically reversible. Workflows using the reverse of this transform will be able to automatically map values to keys.</p>
-<span id=metadata.map_author.noop_reverse href=#metadata.map_author.noop_reverse>noop_reverse</span> | <code>bool</code><br><p>If true, the reversal of the transformation doesn't do anything. This is useful to avoid having to write `core.transformation(metadata.map_author(...), reversal = [])`.</p>
-<span id=metadata.map_author.fail_if_not_found href=#metadata.map_author.fail_if_not_found>fail_if_not_found</span> | <code>bool</code><br><p>Fail if a mapping cannot be found. Helps discovering early authors that should be in the map</p>
-<span id=metadata.map_author.reverse_fail_if_not_found href=#metadata.map_author.reverse_fail_if_not_found>reverse_fail_if_not_found</span> | <code>bool</code><br><p>Same as fail_if_not_found but when the transform is used in a inverse workflow.</p>
-<span id=metadata.map_author.map_all_changes href=#metadata.map_author.map_all_changes>map_all_changes</span> | <code>bool</code><br><p>If all changes being migrated should be mapped. Useful for getting a mapped metadata.squash_notes. By default we only map the current author.</p>
+<span id=metadata.map_author.authors href=#metadata.map_author.authors>authors</span> | <code><a href="#dict">dict</a></code><br><p>The author mapping. Keys can be in the form of 'Your Name', 'some@mail' or 'Your Name &lt;some@mail&gt;'. The mapping applies heuristics to know which field to use in the mapping. The value has to be always in the form of 'Your Name &lt;some@mail&gt;'</p>
+<span id=metadata.map_author.reversible href=#metadata.map_author.reversible>reversible</span> | <code><a href="#bool">bool</a></code><br><p>If the transform is automatically reversible. Workflows using the reverse of this transform will be able to automatically map values to keys.</p>
+<span id=metadata.map_author.noop_reverse href=#metadata.map_author.noop_reverse>noop_reverse</span> | <code><a href="#bool">bool</a></code><br><p>If true, the reversal of the transformation doesn't do anything. This is useful to avoid having to write `core.transformation(metadata.map_author(...), reversal = [])`.</p>
+<span id=metadata.map_author.fail_if_not_found href=#metadata.map_author.fail_if_not_found>fail_if_not_found</span> | <code><a href="#bool">bool</a></code><br><p>Fail if a mapping cannot be found. Helps discovering early authors that should be in the map</p>
+<span id=metadata.map_author.reverse_fail_if_not_found href=#metadata.map_author.reverse_fail_if_not_found>reverse_fail_if_not_found</span> | <code><a href="#bool">bool</a></code><br><p>Same as fail_if_not_found but when the transform is used in a inverse workflow.</p>
+<span id=metadata.map_author.map_all_changes href=#metadata.map_author.map_all_changes>map_all_changes</span> | <code><a href="#bool">bool</a></code><br><p>If all changes being migrated should be mapped. Useful for getting a mapped metadata.squash_notes. By default we only map the current author.</p>
 
 
 <h4 id="example.metadata.map_author">Example:</h4>
@@ -5461,10 +6290,10 @@ Allows updating links to references in commit messages to match the destination'
 
 Parameter | Description
 --------- | -----------
-<span id=metadata.map_references.before href=#metadata.map_references.before>before</span> | <code>string</code><br><p>Template for origin references in the change message. Use a '${reference}' token to capture the actual references. E.g. if the origin uses links like 'http://changes?1234', the template would be 'http://changes?${reference}', with reference_regex = '[0-9]+'</p>
-<span id=metadata.map_references.after href=#metadata.map_references.after>after</span> | <code>string</code><br><p>Format for destination references in the change message. Use a '${reference}' token to represent the destination reference.  E.g. if the destination uses links like 'http://changes?1234', the template would be 'http://changes?${reference}', with reference_regex = '[0-9]+'</p>
-<span id=metadata.map_references.regex_groups href=#metadata.map_references.regex_groups>regex_groups</span> | <code>dict</code><br><p>Regexes for the ${reference} token's content. Requires one 'before_ref' entry matching the ${reference} token's content on the before side. Optionally accepts one 'after_ref' used for validation. Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax.</p>
-<span id=metadata.map_references.additional_import_labels href=#metadata.map_references.additional_import_labels>additional_import_labels</span> | <code>sequence of string</code><br><p>Meant to be used when migrating from another tool: Per default, copybara will only recognize the labels defined in the workflow's endpoints. The tool will use these additional labels to find labels created by other invocations and tools.</p>
+<span id=metadata.map_references.before href=#metadata.map_references.before>before</span> | <code><a href="#string">string</a></code><br><p>Template for origin references in the change message. Use a '${reference}' token to capture the actual references. E.g. if the origin uses links like 'http://changes?1234', the template would be 'http://changes?${reference}', with reference_regex = '[0-9]+'</p>
+<span id=metadata.map_references.after href=#metadata.map_references.after>after</span> | <code><a href="#string">string</a></code><br><p>Format for destination references in the change message. Use a '${reference}' token to represent the destination reference.  E.g. if the destination uses links like 'http://changes?1234', the template would be 'http://changes?${reference}', with reference_regex = '[0-9]+'</p>
+<span id=metadata.map_references.regex_groups href=#metadata.map_references.regex_groups>regex_groups</span> | <code><a href="#dict">dict</a></code><br><p>Regexes for the ${reference} token's content. Requires one 'before_ref' entry matching the ${reference} token's content on the before side. Optionally accepts one 'after_ref' used for validation. Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax.</p>
+<span id=metadata.map_references.additional_import_labels href=#metadata.map_references.additional_import_labels>additional_import_labels</span> | <code>sequence of <a href="#string">string</a></code><br><p>Meant to be used when migrating from another tool: Per default, copybara will only recognize the labels defined in the workflow's endpoints. The tool will use these additional labels to find labels created by other invocations and tools.</p>
 
 
 <h4 id="example.metadata.map_references">Example:</h4>
@@ -5500,7 +6329,7 @@ Remove a label from the message
 
 Parameter | Description
 --------- | -----------
-<span id=metadata.remove_label.name href=#metadata.remove_label.name>name</span> | <code>string</code><br><p>The label name</p>
+<span id=metadata.remove_label.name href=#metadata.remove_label.name>name</span> | <code><a href="#string">string</a></code><br><p>The label name</p>
 
 
 <h4 id="example.metadata.remove_label">Example:</h4>
@@ -5528,8 +6357,8 @@ Replace the change message with a template text. Any variable present in the mes
 
 Parameter | Description
 --------- | -----------
-<span id=metadata.replace_message.text href=#metadata.replace_message.text>text</span> | <code>string</code><br><p>The template text to use for the message. For example '[Import of foo ${LABEL}]'. This would construct a message resolving ${LABEL} to the corresponding label.</p>
-<span id=metadata.replace_message.ignore_label_not_found href=#metadata.replace_message.ignore_label_not_found>ignore_label_not_found</span> | <code>bool</code><br><p>If a label used in the template is not found, ignore the error and don't add the header. By default it will stop the migration and fail.</p>
+<span id=metadata.replace_message.text href=#metadata.replace_message.text>text</span> | <code><a href="#string">string</a></code><br><p>The template text to use for the message. For example '[Import of foo ${LABEL}]'. This would construct a message resolving ${LABEL} to the corresponding label.</p>
+<span id=metadata.replace_message.ignore_label_not_found href=#metadata.replace_message.ignore_label_not_found>ignore_label_not_found</span> | <code><a href="#bool">bool</a></code><br><p>If a label used in the template is not found, ignore the error and don't add the header. By default it will stop the migration and fail.</p>
 
 
 <h4 id="example.metadata.replace_message">Example:</h4>
@@ -5566,9 +6395,9 @@ For a given change, restore the author present in the ORIGINAL_AUTHOR label as t
 
 Parameter | Description
 --------- | -----------
-<span id=metadata.restore_author.label href=#metadata.restore_author.label>label</span> | <code>string</code><br><p>The label to use for restoring the author</p>
-<span id=metadata.restore_author.separator href=#metadata.restore_author.separator>separator</span> | <code>string</code><br><p>The separator to use between the label and the value</p>
-<span id=metadata.restore_author.search_all_changes href=#metadata.restore_author.search_all_changes>search_all_changes</span> | <code>bool</code><br><p>By default Copybara only looks in the last current change for the author label. This allows to do the search in all current changes (Only makes sense for SQUASH/CHANGE_REQUEST).</p>
+<span id=metadata.restore_author.label href=#metadata.restore_author.label>label</span> | <code><a href="#string">string</a></code><br><p>The label to use for restoring the author</p>
+<span id=metadata.restore_author.separator href=#metadata.restore_author.separator>separator</span> | <code><a href="#string">string</a></code><br><p>The separator to use between the label and the value</p>
+<span id=metadata.restore_author.search_all_changes href=#metadata.restore_author.search_all_changes>search_all_changes</span> | <code><a href="#bool">bool</a></code><br><p>By default Copybara only looks in the last current change for the author label. This allows to do the search in all current changes (Only makes sense for SQUASH/CHANGE_REQUEST).</p>
 
 <a id="metadata.save_author" aria-hidden="true"></a>
 ### metadata.save_author
@@ -5582,8 +6411,8 @@ For a given change, store a copy of the author as a label with the name ORIGINAL
 
 Parameter | Description
 --------- | -----------
-<span id=metadata.save_author.label href=#metadata.save_author.label>label</span> | <code>string</code><br><p>The label to use for storing the author</p>
-<span id=metadata.save_author.separator href=#metadata.save_author.separator>separator</span> | <code>string</code><br><p>The separator to use between the label and the value</p>
+<span id=metadata.save_author.label href=#metadata.save_author.label>label</span> | <code><a href="#string">string</a></code><br><p>The label to use for storing the author</p>
+<span id=metadata.save_author.separator href=#metadata.save_author.separator>separator</span> | <code><a href="#string">string</a></code><br><p>The separator to use between the label and the value</p>
 
 <a id="metadata.scrubber" aria-hidden="true"></a>
 ### metadata.scrubber
@@ -5597,10 +6426,10 @@ Removes part of the change message using a regex
 
 Parameter | Description
 --------- | -----------
-<span id=metadata.scrubber.regex href=#metadata.scrubber.regex>regex</span> | <code>string</code><br><p>Any text matching the regex will be removed. Note that the regex is runs in multiline mode.</p>
-<span id=metadata.scrubber.msg_if_no_match href=#metadata.scrubber.msg_if_no_match>msg_if_no_match</span> | <code>string</code> or <code>NoneType</code><br><p>If set, Copybara will use this text when the scrubbing regex doesn't match.</p>
-<span id=metadata.scrubber.fail_if_no_match href=#metadata.scrubber.fail_if_no_match>fail_if_no_match</span> | <code>bool</code><br><p>If set, msg_if_no_match must be None and then fail if the scrubbing regex doesn't match. </p>
-<span id=metadata.scrubber.replacement href=#metadata.scrubber.replacement>replacement</span> | <code>string</code><br><p>Text replacement for the matching substrings. References to regex group numbers can be used in the form of $1, $2, etc.</p>
+<span id=metadata.scrubber.regex href=#metadata.scrubber.regex>regex</span> | <code><a href="#string">string</a></code><br><p>Any text matching the regex will be removed. Note that the regex is runs in multiline mode.</p>
+<span id=metadata.scrubber.msg_if_no_match href=#metadata.scrubber.msg_if_no_match>msg_if_no_match</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>If set, Copybara will use this text when the scrubbing regex doesn't match.</p>
+<span id=metadata.scrubber.fail_if_no_match href=#metadata.scrubber.fail_if_no_match>fail_if_no_match</span> | <code><a href="#bool">bool</a></code><br><p>If set, msg_if_no_match must be None and then fail if the scrubbing regex doesn't match. </p>
+<span id=metadata.scrubber.replacement href=#metadata.scrubber.replacement>replacement</span> | <code><a href="#string">string</a></code><br><p>Text replacement for the matching substrings. References to regex group numbers can be used in the form of $1, $2, etc.</p>
 
 
 <h4 id="example.metadata.scrubber">Examples:</h4>
@@ -5741,14 +6570,14 @@ Generate a message that includes a constant prefix text and a list of changes in
 
 Parameter | Description
 --------- | -----------
-<span id=metadata.squash_notes.prefix href=#metadata.squash_notes.prefix>prefix</span> | <code>string</code><br><p>A prefix to be printed before the list of commits.</p>
-<span id=metadata.squash_notes.max href=#metadata.squash_notes.max>max</span> | <code>int</code><br><p>Max number of commits to include in the message. For the rest a comment like (and x more) will be included. By default 100 commits are included.</p>
-<span id=metadata.squash_notes.compact href=#metadata.squash_notes.compact>compact</span> | <code>bool</code><br><p>If compact is set, each change will be shown in just one line</p>
-<span id=metadata.squash_notes.show_ref href=#metadata.squash_notes.show_ref>show_ref</span> | <code>bool</code><br><p>If each change reference should be present in the notes</p>
-<span id=metadata.squash_notes.show_author href=#metadata.squash_notes.show_author>show_author</span> | <code>bool</code><br><p>If each change author should be present in the notes</p>
-<span id=metadata.squash_notes.show_description href=#metadata.squash_notes.show_description>show_description</span> | <code>bool</code><br><p>If each change description should be present in the notes</p>
-<span id=metadata.squash_notes.oldest_first href=#metadata.squash_notes.oldest_first>oldest_first</span> | <code>bool</code><br><p>If set to true, the list shows the oldest changes first. Otherwise it shows the changes in descending order.</p>
-<span id=metadata.squash_notes.use_merge href=#metadata.squash_notes.use_merge>use_merge</span> | <code>bool</code><br><p>If true then merge changes are included in the squash notes</p>
+<span id=metadata.squash_notes.prefix href=#metadata.squash_notes.prefix>prefix</span> | <code><a href="#string">string</a></code><br><p>A prefix to be printed before the list of commits.</p>
+<span id=metadata.squash_notes.max href=#metadata.squash_notes.max>max</span> | <code><a href="#int">int</a></code><br><p>Max number of commits to include in the message. For the rest a comment like (and x more) will be included. By default 100 commits are included.</p>
+<span id=metadata.squash_notes.compact href=#metadata.squash_notes.compact>compact</span> | <code><a href="#bool">bool</a></code><br><p>If compact is set, each change will be shown in just one line</p>
+<span id=metadata.squash_notes.show_ref href=#metadata.squash_notes.show_ref>show_ref</span> | <code><a href="#bool">bool</a></code><br><p>If each change reference should be present in the notes</p>
+<span id=metadata.squash_notes.show_author href=#metadata.squash_notes.show_author>show_author</span> | <code><a href="#bool">bool</a></code><br><p>If each change author should be present in the notes</p>
+<span id=metadata.squash_notes.show_description href=#metadata.squash_notes.show_description>show_description</span> | <code><a href="#bool">bool</a></code><br><p>If each change description should be present in the notes</p>
+<span id=metadata.squash_notes.oldest_first href=#metadata.squash_notes.oldest_first>oldest_first</span> | <code><a href="#bool">bool</a></code><br><p>If set to true, the list shows the oldest changes first. Otherwise it shows the changes in descending order.</p>
+<span id=metadata.squash_notes.use_merge href=#metadata.squash_notes.use_merge>use_merge</span> | <code><a href="#bool">bool</a></code><br><p>If true then merge changes are included in the squash notes</p>
 
 
 <h4 id="example.metadata.squash_notes">Examples:</h4>
@@ -5859,10 +6688,10 @@ Use metadata (message or/and author) from the last change being migrated. Useful
 
 Parameter | Description
 --------- | -----------
-<span id=metadata.use_last_change.author href=#metadata.use_last_change.author>author</span> | <code>bool</code><br><p>Replace author with the last change author (Could still be the default author if not on the allowlist or using `authoring.overwrite`.)</p>
-<span id=metadata.use_last_change.message href=#metadata.use_last_change.message>message</span> | <code>bool</code><br><p>Replace message with last change message.</p>
-<span id=metadata.use_last_change.default_message href=#metadata.use_last_change.default_message>default_message</span> | <code>string</code> or <code>NoneType</code><br><p>Replace message with last change message.</p>
-<span id=metadata.use_last_change.use_merge href=#metadata.use_last_change.use_merge>use_merge</span> | <code>bool</code><br><p>If true then merge changes are taken into account for looking for the last change.</p>
+<span id=metadata.use_last_change.author href=#metadata.use_last_change.author>author</span> | <code><a href="#bool">bool</a></code><br><p>Replace author with the last change author (Could still be the default author if not on the allowlist or using `authoring.overwrite`.)</p>
+<span id=metadata.use_last_change.message href=#metadata.use_last_change.message>message</span> | <code><a href="#bool">bool</a></code><br><p>Replace message with last change message.</p>
+<span id=metadata.use_last_change.default_message href=#metadata.use_last_change.default_message>default_message</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>Replace message with last change message.</p>
+<span id=metadata.use_last_change.use_merge href=#metadata.use_last_change.use_merge>use_merge</span> | <code><a href="#bool">bool</a></code><br><p>If true then merge changes are taken into account for looking for the last change.</p>
 
 <a id="metadata.verify_match" aria-hidden="true"></a>
 ### metadata.verify_match
@@ -5876,8 +6705,8 @@ Verifies that a RegEx matches (or not matches) the change message. Does not tran
 
 Parameter | Description
 --------- | -----------
-<span id=metadata.verify_match.regex href=#metadata.verify_match.regex>regex</span> | <code>string</code><br><p>The regex pattern to verify. The re2j pattern will be applied in multiline mode, i.e. '^' refers to the beginning of a file and '$' to its end.</p>
-<span id=metadata.verify_match.verify_no_match href=#metadata.verify_match.verify_no_match>verify_no_match</span> | <code>bool</code><br><p>If true, the transformation will verify that the RegEx does not match.</p>
+<span id=metadata.verify_match.regex href=#metadata.verify_match.regex>regex</span> | <code><a href="#string">string</a></code><br><p>The regex pattern to verify. The re2j pattern will be applied in multiline mode, i.e. '^' refers to the beginning of a file and '$' to its end.</p>
+<span id=metadata.verify_match.verify_no_match href=#metadata.verify_match.verify_no_match>verify_no_match</span> | <code><a href="#bool">bool</a></code><br><p>If true, the transformation will verify that the RegEx does not match.</p>
 
 
 <h4 id="example.metadata.verify_match">Example:</h4>
@@ -5917,7 +6746,7 @@ Reference to the change/review in the origin.
 
 Name | Description
 ---- | -----------
-ref | <code>string</code><br><p>Origin reference ref</p>
+ref | <code><a href="#string">string</a></code><br><p>Origin reference ref</p>
 
 
 <h4 id="returned_by.origin_ref">Returned By:</h4>
@@ -5938,9 +6767,9 @@ Descriptive details about the run.
 
 Name | Description
 ---- | -----------
-summary | <code>string</code><br><p>The summary of the check run.</p>
-text | <code>string</code><br><p>The details of the check run.</p>
-title | <code>string</code><br><p>The title of the check run.</p>
+summary | <code><a href="#string">string</a></code><br><p>The summary of the check run.</p>
+text | <code><a href="#string">string</a></code><br><p>The details of the check run.</p>
+title | <code><a href="#string">string</a></code><br><p>The title of the check run.</p>
 
 
 
@@ -5960,11 +6789,11 @@ A transformation that applies the given patch files. If a path does not exist in
 
 Parameter | Description
 --------- | -----------
-<span id=patch.apply.patches href=#patch.apply.patches>patches</span> | <code>sequence of string</code><br><p>The list of patchfiles to apply, relative to the current config file. The files will be applied relative to the checkout dir and the leading path component will be stripped (-p1).<br><br>If `series` is also specified, these patches will be applied before those ones.<br><br>**This field doesn't accept a glob.**</p>
-<span id=patch.apply.excluded_patch_paths href=#patch.apply.excluded_patch_paths>excluded_patch_paths</span> | <code>sequence of string</code><br><p>The list of paths to exclude from each of the patches. Each of the paths will be excluded from all the patches. Note that these are not workdir paths, but paths relative to the patch itself. If not empty, the patch will be applied using 'git apply' instead of GNU Patch.</p>
-<span id=patch.apply.series href=#patch.apply.series>series</span> | <code>string</code> or <code>NoneType</code><br><p>A file which contains a list of patches to apply. The patch files to apply are interpreted relative to this file and must be written one per line. The patches listed in this file will be applied relative to the checkout dir and the leading path component will be stripped (via the `-p1` flag).<br><br>You can generate a file which matches this format by running 'find . -name *.patch &#124; sort > series'.<br><br>If `patches` is also specified, those patches will be applied before these ones.</p>
-<span id=patch.apply.strip href=#patch.apply.strip>strip</span> | <code>int</code><br><p>Number of segments to strip. (This sets the `-pX` flag, for example `-p0`, `-p1`, etc.) By default it uses `-p1`.</p>
-<span id=patch.apply.directory href=#patch.apply.directory>directory</span> | <code>string</code><br><p>Path relative to the working directory from which to apply patches. This supports patches that specify relative paths in their file diffs but use a different relative path base than the working directory. (This sets the `-d` flag, for example `-d sub/dir/`). By default, it uses the current directory.</p>
+<span id=patch.apply.patches href=#patch.apply.patches>patches</span> | <code>sequence of <a href="#string">string</a></code><br><p>The list of patchfiles to apply, relative to the current config file. The files will be applied relative to the checkout dir and the leading path component will be stripped (-p1).<br><br>If `series` is also specified, these patches will be applied before those ones.<br><br>**This field doesn't accept a glob.**</p>
+<span id=patch.apply.excluded_patch_paths href=#patch.apply.excluded_patch_paths>excluded_patch_paths</span> | <code>sequence of <a href="#string">string</a></code><br><p>The list of paths to exclude from each of the patches. Each of the paths will be excluded from all the patches. Note that these are not workdir paths, but paths relative to the patch itself. If not empty, the patch will be applied using 'git apply' instead of GNU Patch.</p>
+<span id=patch.apply.series href=#patch.apply.series>series</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>A file which contains a list of patches to apply. The patch files to apply are interpreted relative to this file and must be written one per line. The patches listed in this file will be applied relative to the checkout dir and the leading path component will be stripped (via the `-p1` flag).<br><br>You can generate a file which matches this format by running 'find . -name *.patch &#124; sort > series'.<br><br>If `patches` is also specified, those patches will be applied before these ones.</p>
+<span id=patch.apply.strip href=#patch.apply.strip>strip</span> | <code><a href="#int">int</a></code><br><p>Number of segments to strip. (This sets the `-pX` flag, for example `-p0`, `-p1`, etc.) By default it uses `-p1`.</p>
+<span id=patch.apply.directory href=#patch.apply.directory>directory</span> | <code><a href="#string">string</a></code><br><p>Path relative to the working directory from which to apply patches. This supports patches that specify relative paths in their file diffs but use a different relative path base than the working directory. (This sets the `-d` flag, for example `-d sub/dir/`). By default, it uses the current directory.</p>
 
 
 
@@ -5988,7 +6817,7 @@ A transformation that applies and updates patch files using Quilt. Compared to `
 
 Parameter | Description
 --------- | -----------
-<span id=patch.quilt_apply.series href=#patch.quilt_apply.series>series</span> | <code>string</code><br><p>A file which contains a list of patches to apply. It is similar to the `series` parameter in `patch.apply` transformation, and is required for Quilt. Patches listed in this file will be applied relative to the checkout dir, and the leading path component is stripped via the `-p1` flag. Currently this file should be the `patches/series` file in the root directory of the migrated code.</p>
+<span id=patch.quilt_apply.series href=#patch.quilt_apply.series>series</span> | <code><a href="#string">string</a></code><br><p>A file which contains a list of patches to apply. It is similar to the `series` parameter in `patch.apply` transformation, and is required for Quilt. Patches listed in this file will be applied relative to the checkout dir, and the leading path component is stripped via the `-p1` flag. Currently this file should be the `patches/series` file in the root directory of the migrated code.</p>
 
 
 <h4 id="example.patch.quilt_apply">Example:</h4>
@@ -6039,9 +6868,9 @@ Represents a path in the checkout directory
 Name | Description
 ---- | -----------
 attr | <code><a href="#pathattributes">PathAttributes</a></code><br><p>Get the file attributes, for example size.</p>
-name | <code>string</code><br><p>Filename of the path. For foo/bar/baz.txt it would be baz.txt</p>
+name | <code><a href="#string">string</a></code><br><p>Filename of the path. For foo/bar/baz.txt it would be baz.txt</p>
 parent | <code>unknown</code><br><p>Get the parent path</p>
-path | <code>string</code><br><p>Full path relative to the checkout directory</p>
+path | <code><a href="#string">string</a></code><br><p>Full path relative to the checkout directory</p>
 
 
 <h4 id="returned_by.Path">Returned By:</h4>
@@ -6056,7 +6885,7 @@ path | <code>string</code><br><p>Full path relative to the checkout directory</p
 
 Check whether a file, directory or symlink exists at this path
 
-<code>bool</code> <code>path.exists()</code>
+<code><a href="#bool">bool</a></code> <code>path.exists()</code>
 
 <a id="path.read_symlink" aria-hidden="true"></a>
 ### path.read_symlink
@@ -6098,7 +6927,7 @@ Resolve the given path against this path.
 
 Parameter | Description
 --------- | -----------
-<span id=path.resolve.child href=#path.resolve.child>child</span> | <code>string</code> or <code><a href="#path">Path</a></code><br><p>Resolve the given path against this path. The parameter can be a string or a Path.</p>
+<span id=path.resolve.child href=#path.resolve.child>child</span> | <code><a href="#string">string</a></code> or <code><a href="#path">Path</a></code><br><p>Resolve the given path against this path. The parameter can be a string or a Path.</p>
 
 <a id="path.resolve_sibling" aria-hidden="true"></a>
 ### path.resolve_sibling
@@ -6112,7 +6941,7 @@ Resolve the given path against this path.
 
 Parameter | Description
 --------- | -----------
-<span id=path.resolve_sibling.other href=#path.resolve_sibling.other>other</span> | <code>string</code> or <code><a href="#path">Path</a></code><br><p>Resolve the given path against this path. The parameter can be a string or a Path.</p>
+<span id=path.resolve_sibling.other href=#path.resolve_sibling.other>other</span> | <code><a href="#string">string</a></code> or <code><a href="#path">Path</a></code><br><p>Resolve the given path against this path. The parameter can be a string or a Path.</p>
 
 <a id="path.rmdir" aria-hidden="true"></a>
 ### path.rmdir
@@ -6126,7 +6955,7 @@ Delete all files in a directory. If recursive is true, delete descendants of all
 
 Parameter | Description
 --------- | -----------
-<span id=path.rmdir.recursive href=#path.rmdir.recursive>recursive</span> | <code>bool</code><br><p>When true, delete descendants of self and of siblings</p>
+<span id=path.rmdir.recursive href=#path.rmdir.recursive>recursive</span> | <code><a href="#bool">bool</a></code><br><p>When true, delete descendants of self and of siblings</p>
 
 
 
@@ -6139,8 +6968,8 @@ Represents a path attributes like size.
 
 Name | Description
 ---- | -----------
-size | <code>int</code><br><p>The size of the file. Throws an error if file size > 2GB.</p>
-symlink | <code>bool</code><br><p>Returns true if it is a symlink</p>
+size | <code><a href="#int">int</a></code><br><p>The size of the file. Throws an error if file size > 2GB.</p>
+symlink | <code><a href="#bool">bool</a></code><br><p>Returns true if it is a symlink</p>
 
 
 
@@ -6180,8 +7009,8 @@ Returns a list of k unique elements randomly sampled from the list.
 
 Parameter | Description
 --------- | -----------
-<span id=random.sample.population href=#random.sample.population>population</span> | <code>list</code><br><p>The list to sample from.</p>
-<span id=random.sample.k href=#random.sample.k>k</span> | <code>int</code><br><p>The number of elements to sample from the population list.</p>
+<span id=random.sample.population href=#random.sample.population>population</span> | <code><a href="#list">list</a></code><br><p>The list to sample from.</p>
+<span id=random.sample.k href=#random.sample.k>k</span> | <code><a href="#int">int</a></code><br><p>The number of elements to sample from the population list.</p>
 
 
 
@@ -6201,7 +7030,7 @@ Create a regex pattern
 
 Parameter | Description
 --------- | -----------
-<span id=re2.compile.regex href=#re2.compile.regex>regex</span> | <code>string</code><br><p></p>
+<span id=re2.compile.regex href=#re2.compile.regex>regex</span> | <code><a href="#string">string</a></code><br><p></p>
 
 
 <h4 id="example.re2.compile">Example:</h4>
@@ -6221,14 +7050,14 @@ re2.compile("a(.*)b").matches('accccb')
 
 Quote a string to be matched literally if used within a regex pattern
 
-<code>string</code> <code>re2.quote(<a href=#re2.quote.string>string</a>)</code>
+<code><a href="#string">string</a></code> <code>re2.quote(<a href=#re2.quote.string>string</a>)</code>
 
 
 <h4 id="parameters.re2.quote">Parameters:</h4>
 
 Parameter | Description
 --------- | -----------
-<span id=re2.quote.string href=#re2.quote.string>string</span> | <code>string</code><br><p></p>
+<span id=re2.quote.string href=#re2.quote.string>string</span> | <code><a href="#string">string</a></code><br><p></p>
 
 
 
@@ -6246,98 +7075,98 @@ A RE2 regex pattern matcher object to perform regexes in Starlark
 
 Return the end position of a matching group
 
-<code>int</code> <code>re2_matcher.end(<a href=#re2_matcher.end.group>group</a>=0)</code>
+<code><a href="#int">int</a></code> <code>re2_matcher.end(<a href=#re2_matcher.end.group>group</a>=0)</code>
 
 
 <h4 id="parameters.re2_matcher.end">Parameters:</h4>
 
 Parameter | Description
 --------- | -----------
-<span id=re2_matcher.end.group href=#re2_matcher.end.group>group</span> | <code>int</code> or <code>string</code><br><p></p>
+<span id=re2_matcher.end.group href=#re2_matcher.end.group>group</span> | <code><a href="#int">int</a></code> or <code><a href="#string">string</a></code><br><p></p>
 
 <a id="re2_matcher.find" aria-hidden="true"></a>
 ### re2_matcher.find
 
 Return true if the string matches the regex pattern.
 
-<code>bool</code> <code>re2_matcher.find(<a href=#re2_matcher.find.start>start</a>=None)</code>
+<code><a href="#bool">bool</a></code> <code>re2_matcher.find(<a href=#re2_matcher.find.start>start</a>=None)</code>
 
 
 <h4 id="parameters.re2_matcher.find">Parameters:</h4>
 
 Parameter | Description
 --------- | -----------
-<span id=re2_matcher.find.start href=#re2_matcher.find.start>start</span> | <code>int</code> or <code>NoneType</code><br><p>The input position where the search begins</p>
+<span id=re2_matcher.find.start href=#re2_matcher.find.start>start</span> | <code><a href="#int">int</a></code> or <code>NoneType</code><br><p>The input position where the search begins</p>
 
 <a id="re2_matcher.group" aria-hidden="true"></a>
 ### re2_matcher.group
 
 Return a matching group
 
-<code>string</code> <code>re2_matcher.group(<a href=#re2_matcher.group.group>group</a>=0)</code>
+<code><a href="#string">string</a></code> <code>re2_matcher.group(<a href=#re2_matcher.group.group>group</a>=0)</code>
 
 
 <h4 id="parameters.re2_matcher.group">Parameters:</h4>
 
 Parameter | Description
 --------- | -----------
-<span id=re2_matcher.group.group href=#re2_matcher.group.group>group</span> | <code>int</code> or <code>string</code><br><p></p>
+<span id=re2_matcher.group.group href=#re2_matcher.group.group>group</span> | <code><a href="#int">int</a></code> or <code><a href="#string">string</a></code><br><p></p>
 
 <a id="re2_matcher.group_count" aria-hidden="true"></a>
 ### re2_matcher.group_count
 
 Return the number of groups found for a match
 
-<code>int</code> <code>re2_matcher.group_count()</code>
+<code><a href="#int">int</a></code> <code>re2_matcher.group_count()</code>
 
 <a id="re2_matcher.matches" aria-hidden="true"></a>
 ### re2_matcher.matches
 
 Return true if the string matches the regex pattern.
 
-<code>bool</code> <code>re2_matcher.matches()</code>
+<code><a href="#bool">bool</a></code> <code>re2_matcher.matches()</code>
 
 <a id="re2_matcher.replace_all" aria-hidden="true"></a>
 ### re2_matcher.replace_all
 
 Replace all instances matching the regex
 
-<code>string</code> <code>re2_matcher.replace_all(<a href=#re2_matcher.replace_all.replacement>replacement</a>=0)</code>
+<code><a href="#string">string</a></code> <code>re2_matcher.replace_all(<a href=#re2_matcher.replace_all.replacement>replacement</a>=0)</code>
 
 
 <h4 id="parameters.re2_matcher.replace_all">Parameters:</h4>
 
 Parameter | Description
 --------- | -----------
-<span id=re2_matcher.replace_all.replacement href=#re2_matcher.replace_all.replacement>replacement</span> | <code>string</code><br><p></p>
+<span id=re2_matcher.replace_all.replacement href=#re2_matcher.replace_all.replacement>replacement</span> | <code><a href="#string">string</a></code><br><p></p>
 
 <a id="re2_matcher.replace_first" aria-hidden="true"></a>
 ### re2_matcher.replace_first
 
 Replace the first instance matching the regex
 
-<code>string</code> <code>re2_matcher.replace_first(<a href=#re2_matcher.replace_first.replacement>replacement</a>=0)</code>
+<code><a href="#string">string</a></code> <code>re2_matcher.replace_first(<a href=#re2_matcher.replace_first.replacement>replacement</a>=0)</code>
 
 
 <h4 id="parameters.re2_matcher.replace_first">Parameters:</h4>
 
 Parameter | Description
 --------- | -----------
-<span id=re2_matcher.replace_first.replacement href=#re2_matcher.replace_first.replacement>replacement</span> | <code>string</code><br><p></p>
+<span id=re2_matcher.replace_first.replacement href=#re2_matcher.replace_first.replacement>replacement</span> | <code><a href="#string">string</a></code><br><p></p>
 
 <a id="re2_matcher.start" aria-hidden="true"></a>
 ### re2_matcher.start
 
 Return the start position of a matching group
 
-<code>int</code> <code>re2_matcher.start(<a href=#re2_matcher.start.group>group</a>=0)</code>
+<code><a href="#int">int</a></code> <code>re2_matcher.start(<a href=#re2_matcher.start.group>group</a>=0)</code>
 
 
 <h4 id="parameters.re2_matcher.start">Parameters:</h4>
 
 Parameter | Description
 --------- | -----------
-<span id=re2_matcher.start.group href=#re2_matcher.start.group>group</span> | <code>int</code> or <code>string</code><br><p></p>
+<span id=re2_matcher.start.group href=#re2_matcher.start.group>group</span> | <code><a href="#int">int</a></code> or <code><a href="#string">string</a></code><br><p></p>
 
 
 
@@ -6362,21 +7191,21 @@ Return a Matcher for the given input.
 
 Parameter | Description
 --------- | -----------
-<span id=re2_pattern.matcher.input href=#re2_pattern.matcher.input>input</span> | <code>string</code><br><p></p>
+<span id=re2_pattern.matcher.input href=#re2_pattern.matcher.input>input</span> | <code><a href="#string">string</a></code><br><p></p>
 
 <a id="re2_pattern.matches" aria-hidden="true"></a>
 ### re2_pattern.matches
 
 Return true if the string matches the regex pattern
 
-<code>bool</code> <code>re2_pattern.matches(<a href=#re2_pattern.matches.input>input</a>)</code>
+<code><a href="#bool">bool</a></code> <code>re2_pattern.matches(<a href=#re2_pattern.matches.input>input</a>)</code>
 
 
 <h4 id="parameters.re2_pattern.matches">Parameters:</h4>
 
 Parameter | Description
 --------- | -----------
-<span id=re2_pattern.matches.input href=#re2_pattern.matches.input>input</span> | <code>string</code><br><p></p>
+<span id=re2_pattern.matches.input href=#re2_pattern.matches.input>input</span> | <code><a href="#string">string</a></code><br><p></p>
 
 
 
@@ -6404,9 +7233,9 @@ A tarball for a specific SHA1 on GitHub. Experimental.
 
 Parameter | Description
 --------- | -----------
-<span id=remotefiles.github_archive.project href=#remotefiles.github_archive.project>project</span> | <code>string</code><br><p>The GitHub project from which to load the file, e.g. google/copybara</p>
-<span id=remotefiles.github_archive.revision href=#remotefiles.github_archive.revision>revision</span> | <code>string</code><br><p>The revision to download from the project, typically a commit SHA1.</p>
-<span id=remotefiles.github_archive.type href=#remotefiles.github_archive.type>type</span> | <code>string</code><br><p>Archive type to download, options are 'TARBALL' or 'ZIP'.</p>
+<span id=remotefiles.github_archive.project href=#remotefiles.github_archive.project>project</span> | <code><a href="#string">string</a></code><br><p>The GitHub project from which to load the file, e.g. google/copybara</p>
+<span id=remotefiles.github_archive.revision href=#remotefiles.github_archive.revision>revision</span> | <code><a href="#string">string</a></code><br><p>The revision to download from the project, typically a commit SHA1.</p>
+<span id=remotefiles.github_archive.type href=#remotefiles.github_archive.type>type</span> | <code><a href="#string">string</a></code><br><p>Archive type to download, options are 'TARBALL' or 'ZIP'.</p>
 <span id=remotefiles.github_archive.auth href=#remotefiles.github_archive.auth>auth</span> | <code>AuthInterceptor</code> or <code>NoneType</code><br><p>Optional, an interceptor for providing credentials.</p>
 
 
@@ -6429,10 +7258,10 @@ Defines a remote file origin.
 
 Parameter | Description
 --------- | -----------
-<span id=remotefiles.origin.author href=#remotefiles.origin.author>author</span> | <code>string</code><br><p>Author to attribute the change to</p>
-<span id=remotefiles.origin.message href=#remotefiles.origin.message>message</span> | <code>string</code><br><p>Message to attach to the change</p>
-<span id=remotefiles.origin.unpack_method href=#remotefiles.origin.unpack_method>unpack_method</span> | <code>string</code><br><p>The method by which to unpack the remote file. Currently 'ZIP', 'TAR', 'TAR_GZ', and 'AS_IS' are supported.</p>
-<span id=remotefiles.origin.archive_source href=#remotefiles.origin.archive_source>archive_source</span> | <code>string</code><br><p>Template or literal URL to download archive from. Optionally you can use ${VERSION} in your URL string as placeholder for later resolved versions during origin checkout. E.g. 'https://proxy.golang.org/mymodule/@v/${VERSION}.zip'</p>
+<span id=remotefiles.origin.author href=#remotefiles.origin.author>author</span> | <code><a href="#string">string</a></code><br><p>Author to attribute the change to</p>
+<span id=remotefiles.origin.message href=#remotefiles.origin.message>message</span> | <code><a href="#string">string</a></code><br><p>Message to attach to the change</p>
+<span id=remotefiles.origin.unpack_method href=#remotefiles.origin.unpack_method>unpack_method</span> | <code><a href="#string">string</a></code><br><p>The method by which to unpack the remote file. Currently 'ZIP', 'TAR', 'TAR_GZ', and 'AS_IS' are supported.</p>
+<span id=remotefiles.origin.archive_source href=#remotefiles.origin.archive_source>archive_source</span> | <code><a href="#string">string</a></code><br><p>Template or literal URL to download archive from. Optionally you can use ${VERSION} in your URL string as placeholder for later resolved versions during origin checkout. E.g. 'https://proxy.golang.org/mymodule/@v/${VERSION}.zip'</p>
 <span id=remotefiles.origin.version_list href=#remotefiles.origin.version_list>version_list</span> | <code>VersionList</code> or <code>NoneType</code><br><p>Version list to select versions on. Omit to create a versionless origin.</p>
 <span id=remotefiles.origin.origin_version_selector href=#remotefiles.origin.origin_version_selector>origin_version_selector</span> | <code><a href="#versionselector">VersionSelector</a></code> or <code>NoneType</code><br><p>Version selector used to select on version_list. Omit to create a versionless origin.</p>
 <span id=remotefiles.origin.version_resolver href=#remotefiles.origin.version_resolver>version_resolver</span> | <code>VersionResolver</code> or <code>NoneType</code><br><p>Version resolvers are used to resolve refs to specific versions. Primarily used when command line refs are provided and accompanied by the '--force' or '--version-selector-use-cli-ref' flag.</p>
@@ -6457,14 +7286,519 @@ Represents a Cargo version requirement.
 
 Given a semantic version string, returns true if the version fulfills this version requirement.
 
-<code>bool</code> <code>rust_version_requirement.fulfills(<a href=#rust_version_requirement.fulfills.fulfills>fulfills</a>)</code>
+<code><a href="#bool">bool</a></code> <code>rust_version_requirement.fulfills(<a href=#rust_version_requirement.fulfills.fulfills>fulfills</a>)</code>
 
 
 <h4 id="parameters.rust_version_requirement.fulfills">Parameters:</h4>
 
 Parameter | Description
 --------- | -----------
-<span id=rust_version_requirement.fulfills.fulfills href=#rust_version_requirement.fulfills.fulfills>fulfills</span> | <code>string</code><br><p>The version requirement</p>
+<span id=rust_version_requirement.fulfills.fulfills href=#rust_version_requirement.fulfills.fulfills>fulfills</span> | <code><a href="#string">string</a></code><br><p>The version requirement</p>
+
+
+
+## set
+
+The built-in set type. A set is a mutable, iterable collection of unique values &ndash; the set's
+<em>elements</em>. The <a href="../globals/all#type">type name</a> of a set is <code>"set"</code>.
+
+<p>Sets provide constant-time operations to insert, remove, or check for the presence of a value.
+Sets are implemented using a hash table, and therefore, just like keys of a
+<a href="../dict">dictionary</a>, elements of a set must be hashable. A value may be used as an
+element of a set if and only if it may be used as a key of a dictionary.
+
+<p>Sets may be constructed using the <a href="../globals/all#set"><code>set()</code></a> built-in
+function, which returns a new set containing the unique elements of its optional argument, which
+must be an iterable. Calling <code>set()</code> without an argument constructs an empty set. Sets
+have no literal syntax.
+
+<p>The <code>in</code> and <code>not in</code> operations check whether a value is (or is not) in a
+set:
+
+<pre class=language-python>
+s = set(["a", "b", "c"])
+"a" in s  # True
+"z" in s  # False
+</pre>
+
+<p>A set is iterable, and thus may be used as the operand of a <code>for</code> loop, a list
+comprehension, and the various built-in functions that operate on iterables. Its length can be
+retrieved using the <a href="../globals/all#len"><code>len()</code></a> built-in function, and the
+order of iteration is the order in which elements were first added to the set:
+
+<pre class=language-python>
+s = set(["z", "y", "z", "y"])
+len(s)       # prints 2
+s.add("x")
+len(s)       # prints 3
+for e in s:
+    print e  # prints "z", "y", "x"
+</pre>
+
+<p>A set used in Boolean context is true if and only if it is non-empty.
+
+<pre class=language-python>
+s = set()
+"non-empty" if s else "empty"  # "empty"
+t = set(["x", "y"])
+"non-empty" if t else "empty"  # "non-empty"
+</pre>
+
+<p>Sets may be compared for equality or inequality using <code>==</code> and <code>!=</code>. A set
+<code>s</code> is equal to <code>t</code> if and only if <code>t</code> is a set containing the same
+elements; iteration order is not significant. In particular, a set is <em>not</em> equal to the list
+of its elements. Sets are not ordered with respect to other sets, and an attempt to compare two sets
+using <code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code>, <code>&gt;=</code>, or to sort a
+sequence of sets, will fail.
+
+<pre class=language-python>
+set() == set()              # True
+set() != []                 # True
+set([1, 2]) == set([2, 1])  # True
+set([1, 2]) != [1, 2]       # True
+</pre>
+
+<p>The <code>|</code> operation on two sets returns the union of the two sets: a set containing the
+elements found in either one or both of the original sets.
+
+<pre class=language-python>
+set([1, 2]) | set([3, 2])  # set([1, 2, 3])
+</pre>
+
+<p>The <code>&amp;</code> operation on two sets returns the intersection of the two sets: a set
+containing only the elements found in both of the original sets.
+
+<pre class=language-python>
+set([1, 2]) &amp; set([2, 3])  # set([2])
+set([1, 2]) &amp; set([3, 4])  # set()
+</pre>
+
+<p>The <code>-</code> operation on two sets returns the difference of the two sets: a set containing
+the elements found in the left-hand side set but not the right-hand side set.
+
+<pre class=language-python>
+set([1, 2]) - set([2, 3])  # set([1])
+set([1, 2]) - set([3, 4])  # set([1, 2])
+</pre>
+
+<p>The <code>^</code> operation on two sets returns the symmetric difference of the two sets: a set
+containing the elements found in exactly one of the two original sets, but not in both.
+
+<pre class=language-python>
+set([1, 2]) ^ set([2, 3])  # set([1, 3])
+set([1, 2]) ^ set([3, 4])  # set([1, 2, 3, 4])
+</pre>
+
+<p>In each of the above operations, the elements of the resulting set retain their order from the
+two operand sets, with all elements that were drawn from the left-hand side ordered before any
+element that was only present in the right-hand side.
+
+<p>The corresponding augmented assignments, <code>|=</code>, <code>&amp;=</code>, <code>-=</code>,
+and <code>^=</code>, modify the left-hand set in place.
+
+<pre class=language-python>
+s = set([1, 2])
+s |= set([2, 3, 4])     # s now equals set([1, 2, 3, 4])
+s &amp;= set([0, 1, 2, 3])  # s now equals set([1, 2, 3])
+s -= set([0, 1])        # s now equals set([2, 3])
+s ^= set([3, 4])        # s now equals set([2, 4])
+</pre>
+
+<p>Like all mutable values in Starlark, a set can be frozen, and once frozen, all subsequent
+operations that attempt to update it will fail.
+
+
+<a id="set.add" aria-hidden="true"></a>
+### set.add
+
+Adds an element to the set.
+
+<p>It is permissible to <code>add</code> a value already present in the set; this leaves the set
+unchanged.
+
+<p>If you need to add multiple elements to a set, see <a href="#update"><code>update</code></a> or
+the <code>|=</code> augmented assignment operation.
+
+
+<code>set.add(<a href=#set.add.element>element</a>)</code>
+
+
+<h4 id="parameters.set.add">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=set.add.element href=#set.add.element>element</span> | <code>?</code><br><p>Element to add.</p>
+
+<a id="set.clear" aria-hidden="true"></a>
+### set.clear
+
+Removes all the elements of the set.
+
+<code>set.clear()</code>
+
+<a id="set.difference" aria-hidden="true"></a>
+### set.difference
+
+Returns a new mutable set containing the difference of this set with others.
+
+<p>If <code>s</code> and <code>t</code> are sets, <code>s.difference(t)</code> is equivalent to
+<code>s - t</code>; however, note that the <code>-</code> operation requires both sides to be sets,
+while the <code>difference</code> method also accepts sequences and dicts.
+
+<p>It is permissible to call <code>difference</code> without any arguments; this returns a copy of
+the set.
+
+<p>For example,
+<pre class=language-python>
+set([1, 2, 3]).difference([2])             # set([1, 3])
+set([1, 2, 3]).difference([0, 1], [3, 4])  # set([2])
+</pre>
+
+
+<code>sequence</code> <code>set.difference(<a href=#set.difference.others>others</a>)</code>
+
+
+<h4 id="parameters.set.difference">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=set.difference.others href=#set.difference.others>others</span> | <code><a href="#list">list</a></code><br><p>Sets, sequences of hashable elements, or dicts.</p>
+
+<a id="set.difference_update" aria-hidden="true"></a>
+### set.difference_update
+
+Removes any elements found in any others from this set.
+
+<p>If <code>s</code> and <code>t</code> are sets, <code>s.difference_update(t)</code> is equivalent
+to <code>s -= t</code>; however, note that the <code>-=</code> augmented assignment requires both
+sides to be sets, while the <code>difference_update</code> method also accepts sequences and dicts.
+
+<p>It is permissible to call <code>difference_update</code> without any arguments; this leaves the
+set unchanged.
+
+<p>For example,
+<pre class=language-python>
+s = set([1, 2, 3, 4])
+s.difference_update([2])             # None; s is set([1, 3, 4])
+s.difference_update([0, 1], [4, 5])  # None; s is set([3])
+</pre>
+
+
+<code>set.difference_update(<a href=#set.difference_update.others>others</a>)</code>
+
+
+<h4 id="parameters.set.difference_update">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=set.difference_update.others href=#set.difference_update.others>others</span> | <code><a href="#list">list</a></code><br><p>Sets, sequences of hashable elements, or dicts.</p>
+
+<a id="set.discard" aria-hidden="true"></a>
+### set.discard
+
+Removes an element from the set if it is present.
+
+<p>It is permissible to <code>discard</code> a value not present in the set; this leaves the set
+unchanged. If you want to fail on an attempt to remove a non-present element, use
+<a href="#remove"><code>remove</code></a> instead. If you need to remove multiple elements from a
+set, see <a href="#difference_update"><code>difference_update</code></a> or the <code>-=</code>
+augmented assignment operation.
+
+<p>For example,
+<pre class=language-python>
+s = set(["x", "y"])
+s.discard("y")  # None; s == set(["x"])
+s.discard("y")  # None; s == set(["x"])
+</pre>
+
+
+<code>set.discard(<a href=#set.discard.element>element</a>)</code>
+
+
+<h4 id="parameters.set.discard">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=set.discard.element href=#set.discard.element>element</span> | <code>?</code><br><p>Element to discard. Must be hashable.</p>
+
+<a id="set.intersection" aria-hidden="true"></a>
+### set.intersection
+
+Returns a new mutable set containing the intersection of this set with others.
+
+<p>If <code>s</code> and <code>t</code> are sets, <code>s.intersection(t)</code> is equivalent to
+<code>s &amp; t</code>; however, note that the <code>&amp;</code> operation requires both sides to
+be sets, while the <code>intersection</code> method also accepts sequences and dicts.
+
+<p>It is permissible to call <code>intersection</code> without any arguments; this returns a copy of
+the set.
+
+<p>For example,
+<pre class=language-python>
+set([1, 2]).intersection([2, 3])             # set([2])
+set([1, 2, 3]).intersection([0, 1], [1, 2])  # set([1])
+</pre>
+
+
+<code>sequence</code> <code>set.intersection(<a href=#set.intersection.others>others</a>)</code>
+
+
+<h4 id="parameters.set.intersection">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=set.intersection.others href=#set.intersection.others>others</span> | <code><a href="#list">list</a></code><br><p>Sets, sequences of hashable elements, or dicts.</p>
+
+<a id="set.intersection_update" aria-hidden="true"></a>
+### set.intersection_update
+
+Removes any elements not found in all others from this set.
+
+<p>If <code>s</code> and <code>t</code> are sets, <code>s.intersection_update(t)</code> is
+equivalent to <code>s &amp;= t</code>; however, note that the <code>&amp;=</code> augmented
+assignment requires both sides to be sets, while the <code>intersection_update</code> method also
+accepts sequences and dicts.
+
+<p>It is permissible to call <code>intersection_update</code> without any arguments; this leaves the
+set unchanged.
+
+<p>For example,
+<pre class=language-python>
+s = set([1, 2, 3, 4])
+s.intersection_update([0, 1, 2])       # None; s is set([1, 2])
+s.intersection_update([0, 1], [1, 2])  # None; s is set([1])
+</pre>
+
+
+<code>set.intersection_update(<a href=#set.intersection_update.others>others</a>)</code>
+
+
+<h4 id="parameters.set.intersection_update">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=set.intersection_update.others href=#set.intersection_update.others>others</span> | <code><a href="#list">list</a></code><br><p>Sets, sequences of hashable elements, or dicts.</p>
+
+<a id="set.isdisjoint" aria-hidden="true"></a>
+### set.isdisjoint
+
+Returns true if this set has no elements in common with another.
+
+<p>For example,
+<pre class=language-python>
+set([1, 2]).isdisjoint([3, 4])  # True
+set().isdisjoint(set())         # True
+set([1, 2]).isdisjoint([2, 3])  # False
+</pre>
+
+
+<code><a href="#bool">bool</a></code> <code>set.isdisjoint(<a href=#set.isdisjoint.other>other</a>)</code>
+
+
+<h4 id="parameters.set.isdisjoint">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=set.isdisjoint.other href=#set.isdisjoint.other>other</span> | <code>unknown</code><br><p>A set, a sequence of hashable elements, or a dict.</p>
+
+<a id="set.issubset" aria-hidden="true"></a>
+### set.issubset
+
+Returns true of this set is a subset of another.
+
+<p>Note that a set is always considered to be a subset of itself.
+
+<p>For example,
+<pre class=language-python>
+set([1, 2]).issubset([1, 2, 3])  # True
+set([1, 2]).issubset([1, 2])     # True
+set([1, 2]).issubset([2, 3])     # False
+</pre>
+
+
+<code><a href="#bool">bool</a></code> <code>set.issubset(<a href=#set.issubset.other>other</a>)</code>
+
+
+<h4 id="parameters.set.issubset">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=set.issubset.other href=#set.issubset.other>other</span> | <code>unknown</code><br><p>A set, a sequence of hashable elements, or a dict.</p>
+
+<a id="set.issuperset" aria-hidden="true"></a>
+### set.issuperset
+
+Returns true of this set is a superset of another.
+
+<p>Note that a set is always considered to be a superset of itself.
+
+<p>For example,
+<pre class=language-python>
+set([1, 2, 3]).issuperset([1, 2])     # True
+set([1, 2, 3]).issuperset([1, 2, 3])  # True
+set([1, 2, 3]).issuperset([2, 3, 4])  # False
+</pre>
+
+
+<code><a href="#bool">bool</a></code> <code>set.issuperset(<a href=#set.issuperset.other>other</a>)</code>
+
+
+<h4 id="parameters.set.issuperset">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=set.issuperset.other href=#set.issuperset.other>other</span> | <code>unknown</code><br><p>A set, a sequence of hashable elements, or a dict.</p>
+
+<a id="set.pop" aria-hidden="true"></a>
+### set.pop
+
+Removes and returns the first element of the set (in iteration order, which is the order in which
+elements were first added to the set).
+
+<p>Fails if the set is empty.
+
+<p>For example,
+<pre class=language-python>
+s = set([3, 1, 2])
+s.pop()  # 3; s == set([1, 2])
+s.pop()  # 1; s == set([2])
+s.pop()  # 2; s == set()
+s.pop()  # error: empty set
+</pre>
+
+
+<code>?</code> <code>set.pop()</code>
+
+<a id="set.remove" aria-hidden="true"></a>
+### set.remove
+
+Removes an element, which must be present in the set, from the set.
+
+<p><code>remove</code> fails if the element was not present in the set. If you don't want to fail on
+an attempt to remove a non-present element, use <a href="#discard"><code>discard</code></a> instead.
+If you need to remove multiple elements from a set, see
+<a href="#difference_update"><code>difference_update</code></a> or the <code>-=</code> augmented
+assignment operation.
+
+
+<code>set.remove(<a href=#set.remove.element>element</a>)</code>
+
+
+<h4 id="parameters.set.remove">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=set.remove.element href=#set.remove.element>element</span> | <code>?</code><br><p>Element to remove. Must be an element of the set (and hashable).</p>
+
+<a id="set.symmetric_difference" aria-hidden="true"></a>
+### set.symmetric_difference
+
+Returns a new mutable set containing the symmetric difference of this set with another set,
+sequence, or dict.
+
+<p>If <code>s</code> and <code>t</code> are sets, <code>s.symmetric_difference(t)</code> is
+equivalent to <code>s ^ t</code>; however, note that the <code>^</code> operation requires both
+sides to be sets, while the <code>symmetric_difference</code> method also accepts a sequence or a
+dict.
+
+<p>For example,
+<pre class=language-python>
+set([1, 2]).symmetric_difference([2, 3])  # set([1, 3])
+</pre>
+
+
+<code>sequence</code> <code>set.symmetric_difference(<a href=#set.symmetric_difference.other>other</a>)</code>
+
+
+<h4 id="parameters.set.symmetric_difference">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=set.symmetric_difference.other href=#set.symmetric_difference.other>other</span> | <code>unknown</code><br><p>A set, a sequence of hashable elements, or a dict.</p>
+
+<a id="set.symmetric_difference_update" aria-hidden="true"></a>
+### set.symmetric_difference_update
+
+Returns a new mutable set containing the symmetric difference of this set with another set,
+sequence, or dict.
+
+<p>If <code>s</code> and <code>t</code> are sets, <code>s.symmetric_difference_update(t)</code> is
+equivalent to `s ^= t<code>; however, note that the </code>^=` augmented assignment requires both
+sides to be sets, while the <code>symmetric_difference_update</code> method also accepts a sequence
+or a dict.
+
+<p>For example,
+<pre class=language-python>
+s = set([1, 2])
+s.symmetric_difference_update([2, 3])  # None; s == set([1, 3])
+</pre>
+
+
+<code>set.symmetric_difference_update(<a href=#set.symmetric_difference_update.other>other</a>)</code>
+
+
+<h4 id="parameters.set.symmetric_difference_update">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=set.symmetric_difference_update.other href=#set.symmetric_difference_update.other>other</span> | <code>unknown</code><br><p>A set, a sequence of hashable elements, or a dict.</p>
+
+<a id="set.union" aria-hidden="true"></a>
+### set.union
+
+Returns a new mutable set containing the union of this set with others.
+
+<p>If <code>s</code> and <code>t</code> are sets, <code>s.union(t)</code> is equivalent to
+<code>s | t</code>; however, note that the <code>|</code> operation requires both sides to be sets,
+while the <code>union</code> method also accepts sequences and dicts.
+
+<p>It is permissible to call <code>union</code> without any arguments; this returns a copy of the
+set.
+
+<p>For example,
+<pre class=language-python>
+set([1, 2]).union([2, 3])                    # set([1, 2, 3])
+set([1, 2]).union([2, 3], {3: "a", 4: "b"})  # set([1, 2, 3, 4])
+</pre>
+
+
+<code>sequence</code> <code>set.union(<a href=#set.union.others>others</a>)</code>
+
+
+<h4 id="parameters.set.union">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=set.union.others href=#set.union.others>others</span> | <code><a href="#list">list</a></code><br><p>Sets, sequences of hashable elements, or dicts.</p>
+
+<a id="set.update" aria-hidden="true"></a>
+### set.update
+
+Adds the elements found in others to this set.
+
+<p>For example,
+<pre class=language-python>
+s = set()
+s.update([1, 2])          # None; s is set([1, 2])
+s.update([2, 3], [3, 4])  # None; s is set([1, 2, 3, 4])
+</pre>
+
+<p>If <code>s</code> and <code>t</code> are sets, <code>s.update(t)</code> is equivalent to
+<code>s |= t</code>; however, note that the <code>|=</code> augmented assignment requires both sides
+to be sets, while the <code>update</code> method also accepts sequences and dicts.
+
+<p>It is permissible to call <code>update</code> without any arguments; this leaves the set
+unchanged.
+
+
+<code>set.update(<a href=#set.update.others>others</a>)</code>
+
+
+<h4 id="parameters.set.update">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=set.update.others href=#set.update.others>others</span> | <code><a href="#list">list</a></code><br><p>Sets, sequences of hashable elements, or dicts.</p>
 
 
 
@@ -6503,14 +7837,534 @@ Returns the time in epoch seconds for the starlark_datetime instance
 
 Returns a string representation of the StarlarkDateTime object with your chosen formatting
 
-<code>string</code> <code>StarlarkDateTime.strftime(<a href=#StarlarkDateTime.strftime.format>format</a>)</code>
+<code><a href="#string">string</a></code> <code>StarlarkDateTime.strftime(<a href=#StarlarkDateTime.strftime.format>format</a>)</code>
 
 
 <h4 id="parameters.StarlarkDateTime.strftime">Parameters:</h4>
 
 Parameter | Description
 --------- | -----------
-<span id=StarlarkDateTime.strftime.format href=#StarlarkDateTime.strftime.format>format</span> | <code>string</code><br><p>Format string used to present StarlarkDateTime object. See https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html for patterns.</p>
+<span id=StarlarkDateTime.strftime.format href=#StarlarkDateTime.strftime.format>format</span> | <code><a href="#string">string</a></code><br><p>Format string used to present StarlarkDateTime object. See https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html for patterns.</p>
+
+
+
+## string
+
+A language built-in type to support strings. Examples of string literals:<br><pre class="language-python">a = 'abc\ndef'
+b = "ab'cd"
+c = """multiline string"""
+
+# Strings support slicing (negative index starts from the end):
+x = "hello"[2:4]  # "ll"
+y = "hello"[1:-1]  # "ell"
+z = "hello"[:4]  # "hell"
+# Slice steps can be used, too:
+s = "hello"[::2] # "hlo"
+t = "hello"[3:0:-1] # "lle"
+</pre>Strings are not directly iterable, use the <code>.elems()</code> method to iterate over their characters. Examples:<br><pre class="language-python">"bc" in "abcd"   # evaluates to True
+x = [c for c in "abc".elems()]  # x == ["a", "b", "c"]</pre>
+Implicit concatenation of strings is not allowed; use the <code>+</code> operator instead. Comparison operators perform a lexicographical comparison; use <code>==</code> to test for equality.
+
+
+<h4 id="returned_by.string">Returned By:</h4>
+
+<ul><li><a href="#buildozer.print">buildozer.print</a></li><li><a href="#core.format">core.format</a></li><li><a href="#destination_reader.read_file">destination_reader.read_file</a></li><li><a href="#feedback.revision_context.fill_template">feedback.revision_context.fill_template</a></li><li><a href="#gerrit_api_obj.get_actions">gerrit_api_obj.get_actions</a></li><li><a href="#git.mirrorContext.references">git.mirrorContext.references</a></li><li><a href="#repr">repr</a></li><li><a href="#str">str</a></li><li><a href="#type">type</a></li><li><a href="#hashing.path_md5_sum">hashing.path_md5_sum</a></li><li><a href="#hashing.path_sha256_sum">hashing.path_sha256_sum</a></li><li><a href="#hashing.str_sha256_sum">hashing.str_sha256_sum</a></li><li><a href="#html_element.attr">html_element.attr</a></li><li><a href="#http.url_encode">http.url_encode</a></li><li><a href="#http_response.contents_string">http_response.contents_string</a></li><li><a href="#http_response.status">http_response.status</a></li><li><a href="#re2.quote">re2.quote</a></li><li><a href="#re2_matcher.group">re2_matcher.group</a></li><li><a href="#re2_matcher.replace_all">re2_matcher.replace_all</a></li><li><a href="#re2_matcher.replace_first">re2_matcher.replace_first</a></li><li><a href="#StarlarkDateTime.strftime">StarlarkDateTime.strftime</a></li><li><a href="#string.capitalize">string.capitalize</a></li><li><a href="#string.format">string.format</a></li><li><a href="#string.join">string.join</a></li><li><a href="#string.lower">string.lower</a></li><li><a href="#string.lstrip">string.lstrip</a></li><li><a href="#string.removeprefix">string.removeprefix</a></li><li><a href="#string.removesuffix">string.removesuffix</a></li><li><a href="#string.replace">string.replace</a></li><li><a href="#string.rstrip">string.rstrip</a></li><li><a href="#string.strip">string.strip</a></li><li><a href="#string.title">string.title</a></li><li><a href="#string.upper">string.upper</a></li><li><a href="#ctx.fill_template">ctx.fill_template</a></li><li><a href="#ctx.find_label">ctx.find_label</a></li><li><a href="#ctx.now_as_string">ctx.now_as_string</a></li><li><a href="#ctx.read_path">ctx.read_path</a></li></ul>
+<h4 id="consumed_by.string">Consumed By:</h4>
+
+<ul><li><a href="#archive.extract">archive.extract</a></li><li><a href="#authoring.allowed">authoring.allowed</a></li><li><a href="#authoring.overwrite">authoring.overwrite</a></li><li><a href="#authoring.pass_thru">authoring.pass_thru</a></li><li><a href="#buildozer.cmd">buildozer.cmd</a></li><li><a href="#buildozer.create">buildozer.create</a></li><li><a href="#buildozer.delete">buildozer.delete</a></li><li><a href="#buildozer.modify">buildozer.modify</a></li><li><a href="#buildozer.print">buildozer.print</a></li><li><a href="#message.label_values">message.label_values</a></li><li><a href="#console.error">console.error</a></li><li><a href="#console.info">console.info</a></li><li><a href="#console.progress">console.progress</a></li><li><a href="#console.verbose">console.verbose</a></li><li><a href="#console.warn">console.warn</a></li><li><a href="#core.action_migration">core.action_migration</a></li><li><a href="#core.autopatch_config">core.autopatch_config</a></li><li><a href="#core.convert_encoding">core.convert_encoding</a></li><li><a href="#core.copy">core.copy</a></li><li><a href="#core.fail_with_noop">core.fail_with_noop</a></li><li><a href="#core.feedback">core.feedback</a></li><li><a href="#core.filter_replace">core.filter_replace</a></li><li><a href="#core.format">core.format</a></li><li><a href="#core.latest_version">core.latest_version</a></li><li><a href="#core.merge_import_config">core.merge_import_config</a></li><li><a href="#core.move">core.move</a></li><li><a href="#core.rename">core.rename</a></li><li><a href="#core.replace">core.replace</a></li><li><a href="#core.todo_replace">core.todo_replace</a></li><li><a href="#core.transform">core.transform</a></li><li><a href="#core.verify_match">core.verify_match</a></li><li><a href="#core.workflow">core.workflow</a></li><li><a href="#credentials.static_secret">credentials.static_secret</a></li><li><a href="#credentials.static_value">credentials.static_value</a></li><li><a href="#credentials.toml_key_source">credentials.toml_key_source</a></li><li><a href="#datetime.fromtimestamp">datetime.fromtimestamp</a></li><li><a href="#datetime.now">datetime.now</a></li><li><a href="#destination_reader.file_exists">destination_reader.file_exists</a></li><li><a href="#destination_reader.read_file">destination_reader.read_file</a></li><li><a href="#endpoint.new_destination_ref">endpoint.new_destination_ref</a></li><li><a href="#endpoint.new_origin_ref">endpoint.new_origin_ref</a></li><li><a href="#feedback.context.error">feedback.context.error</a></li><li><a href="#feedback.context.noop">feedback.context.noop</a></li><li><a href="#feedback.context.record_effect">feedback.context.record_effect</a></li><li><a href="#feedback.finish_hook_context.error">feedback.finish_hook_context.error</a></li><li><a href="#feedback.finish_hook_context.noop">feedback.finish_hook_context.noop</a></li><li><a href="#feedback.finish_hook_context.record_effect">feedback.finish_hook_context.record_effect</a></li><li><a href="#feedback.revision_context.fill_template">feedback.revision_context.fill_template</a></li><li><a href="#format.buildifier">format.buildifier</a></li><li><a href="#gerrit_api_obj.abandon_change">gerrit_api_obj.abandon_change</a></li><li><a href="#gerrit_api_obj.delete_vote">gerrit_api_obj.delete_vote</a></li><li><a href="#gerrit_api_obj.get_actions">gerrit_api_obj.get_actions</a></li><li><a href="#gerrit_api_obj.get_change">gerrit_api_obj.get_change</a></li><li><a href="#gerrit_api_obj.list_changes">gerrit_api_obj.list_changes</a></li><li><a href="#gerrit_api_obj.new_destination_ref">gerrit_api_obj.new_destination_ref</a></li><li><a href="#gerrit_api_obj.new_origin_ref">gerrit_api_obj.new_origin_ref</a></li><li><a href="#gerrit_api_obj.post_review">gerrit_api_obj.post_review</a></li><li><a href="#gerrit_api_obj.submit_change">gerrit_api_obj.submit_change</a></li><li><a href="#git.destination">git.destination</a></li><li><a href="#git.gerrit_api">git.gerrit_api</a></li><li><a href="#git.gerrit_destination">git.gerrit_destination</a></li><li><a href="#git.gerrit_origin">git.gerrit_origin</a></li><li><a href="#git.gerrit_trigger">git.gerrit_trigger</a></li><li><a href="#git.github_api">git.github_api</a></li><li><a href="#git.github_destination">git.github_destination</a></li><li><a href="#git.github_origin">git.github_origin</a></li><li><a href="#git.github_pr_destination">git.github_pr_destination</a></li><li><a href="#git.github_pr_origin">git.github_pr_origin</a></li><li><a href="#git.github_trigger">git.github_trigger</a></li><li><a href="#git.integrate">git.integrate</a></li><li><a href="#git.latest_version">git.latest_version</a></li><li><a href="#git.mirror">git.mirror</a></li><li><a href="#git.origin">git.origin</a></li><li><a href="#git.review_input">git.review_input</a></li><li><a href="#git.mirrorContext.cherry_pick">git.mirrorContext.cherry_pick</a></li><li><a href="#git.mirrorContext.create_branch">git.mirrorContext.create_branch</a></li><li><a href="#git.mirrorContext.destination_fetch">git.mirrorContext.destination_fetch</a></li><li><a href="#git.mirrorContext.destination_push">git.mirrorContext.destination_push</a></li><li><a href="#git.mirrorContext.error">git.mirrorContext.error</a></li><li><a href="#git.mirrorContext.merge">git.mirrorContext.merge</a></li><li><a href="#git.mirrorContext.noop">git.mirrorContext.noop</a></li><li><a href="#git.mirrorContext.origin_fetch">git.mirrorContext.origin_fetch</a></li><li><a href="#git.mirrorContext.rebase">git.mirrorContext.rebase</a></li><li><a href="#git.mirrorContext.record_effect">git.mirrorContext.record_effect</a></li><li><a href="#git.mirrorContext.references">git.mirrorContext.references</a></li><li><a href="#github_api_obj.add_label">github_api_obj.add_label</a></li><li><a href="#github_api_obj.create_issue">github_api_obj.create_issue</a></li><li><a href="#github_api_obj.create_status">github_api_obj.create_status</a></li><li><a href="#github_api_obj.delete_reference">github_api_obj.delete_reference</a></li><li><a href="#github_api_obj.get_check_runs">github_api_obj.get_check_runs</a></li><li><a href="#github_api_obj.get_combined_status">github_api_obj.get_combined_status</a></li><li><a href="#github_api_obj.get_commit">github_api_obj.get_commit</a></li><li><a href="#github_api_obj.get_pull_request_comment">github_api_obj.get_pull_request_comment</a></li><li><a href="#github_api_obj.get_pull_requests">github_api_obj.get_pull_requests</a></li><li><a href="#github_api_obj.get_reference">github_api_obj.get_reference</a></li><li><a href="#github_api_obj.new_destination_ref">github_api_obj.new_destination_ref</a></li><li><a href="#github_api_obj.new_origin_ref">github_api_obj.new_origin_ref</a></li><li><a href="#github_api_obj.new_release_request">github_api_obj.new_release_request</a></li><li><a href="#github_api_obj.post_issue_comment">github_api_obj.post_issue_comment</a></li><li><a href="#github_api_obj.update_pull_request">github_api_obj.update_pull_request</a></li><li><a href="#github_api_obj.update_reference">github_api_obj.update_reference</a></li><li><a href="#github_create_release_obj.with_body">github_create_release_obj.with_body</a></li><li><a href="#github_create_release_obj.with_commitish">github_create_release_obj.with_commitish</a></li><li><a href="#github_create_release_obj.with_name">github_create_release_obj.with_name</a></li><li><a href="#fail">fail</a></li><li><a href="#getattr">getattr</a></li><li><a href="#glob">glob</a></li><li><a href="#hasattr">hasattr</a></li><li><a href="#hash">hash</a></li><li><a href="#new_author">new_author</a></li><li><a href="#parse_message">parse_message</a></li><li><a href="#print">print</a></li><li><a href="#go.go_proxy_resolver">go.go_proxy_resolver</a></li><li><a href="#go.go_proxy_version_list">go.go_proxy_version_list</a></li><li><a href="#goproxy_version_list.get_info">goproxy_version_list.get_info</a></li><li><a href="#hashing.str_sha256_sum">hashing.str_sha256_sum</a></li><li><a href="#hg.origin">hg.origin</a></li><li><a href="#html.xpath">html.xpath</a></li><li><a href="#html_element.attr">html_element.attr</a></li><li><a href="#http.endpoint">http.endpoint</a></li><li><a href="#http.host">http.host</a></li><li><a href="#http.multipart_form_file">http.multipart_form_file</a></li><li><a href="#http.multipart_form_text">http.multipart_form_text</a></li><li><a href="#http.url_encode">http.url_encode</a></li><li><a href="#http_endpoint.delete">http_endpoint.delete</a></li><li><a href="#http_endpoint.get">http_endpoint.get</a></li><li><a href="#http_endpoint.new_destination_ref">http_endpoint.new_destination_ref</a></li><li><a href="#http_endpoint.new_origin_ref">http_endpoint.new_origin_ref</a></li><li><a href="#http_endpoint.post">http_endpoint.post</a></li><li><a href="#http_response.header">http_response.header</a></li><li><a href="#metadata.add_header">metadata.add_header</a></li><li><a href="#metadata.expose_label">metadata.expose_label</a></li><li><a href="#metadata.map_references">metadata.map_references</a></li><li><a href="#metadata.remove_label">metadata.remove_label</a></li><li><a href="#metadata.replace_message">metadata.replace_message</a></li><li><a href="#metadata.restore_author">metadata.restore_author</a></li><li><a href="#metadata.save_author">metadata.save_author</a></li><li><a href="#metadata.scrubber">metadata.scrubber</a></li><li><a href="#metadata.squash_notes">metadata.squash_notes</a></li><li><a href="#metadata.use_last_change">metadata.use_last_change</a></li><li><a href="#metadata.verify_match">metadata.verify_match</a></li><li><a href="#patch.apply">patch.apply</a></li><li><a href="#patch.quilt_apply">patch.quilt_apply</a></li><li><a href="#path.resolve">path.resolve</a></li><li><a href="#path.resolve_sibling">path.resolve_sibling</a></li><li><a href="#re2.compile">re2.compile</a></li><li><a href="#re2.quote">re2.quote</a></li><li><a href="#re2_matcher.end">re2_matcher.end</a></li><li><a href="#re2_matcher.group">re2_matcher.group</a></li><li><a href="#re2_matcher.replace_all">re2_matcher.replace_all</a></li><li><a href="#re2_matcher.replace_first">re2_matcher.replace_first</a></li><li><a href="#re2_matcher.start">re2_matcher.start</a></li><li><a href="#re2_pattern.matcher">re2_pattern.matcher</a></li><li><a href="#re2_pattern.matches">re2_pattern.matches</a></li><li><a href="#remotefiles.github_archive">remotefiles.github_archive</a></li><li><a href="#remotefiles.origin">remotefiles.origin</a></li><li><a href="#rust_version_requirement.fulfills">rust_version_requirement.fulfills</a></li><li><a href="#StarlarkDateTime.strftime">StarlarkDateTime.strftime</a></li><li><a href="#string.capitalize">string.capitalize</a></li><li><a href="#string.count">string.count</a></li><li><a href="#string.elems">string.elems</a></li><li><a href="#string.endswith">string.endswith</a></li><li><a href="#string.find">string.find</a></li><li><a href="#string.format">string.format</a></li><li><a href="#string.index">string.index</a></li><li><a href="#string.isalnum">string.isalnum</a></li><li><a href="#string.isalpha">string.isalpha</a></li><li><a href="#string.isdigit">string.isdigit</a></li><li><a href="#string.islower">string.islower</a></li><li><a href="#string.isspace">string.isspace</a></li><li><a href="#string.istitle">string.istitle</a></li><li><a href="#string.isupper">string.isupper</a></li><li><a href="#string.join">string.join</a></li><li><a href="#string.lower">string.lower</a></li><li><a href="#string.lstrip">string.lstrip</a></li><li><a href="#string.partition">string.partition</a></li><li><a href="#string.removeprefix">string.removeprefix</a></li><li><a href="#string.removesuffix">string.removesuffix</a></li><li><a href="#string.replace">string.replace</a></li><li><a href="#string.rfind">string.rfind</a></li><li><a href="#string.rindex">string.rindex</a></li><li><a href="#string.rpartition">string.rpartition</a></li><li><a href="#string.rsplit">string.rsplit</a></li><li><a href="#string.rstrip">string.rstrip</a></li><li><a href="#string.split">string.split</a></li><li><a href="#string.splitlines">string.splitlines</a></li><li><a href="#string.startswith">string.startswith</a></li><li><a href="#string.strip">string.strip</a></li><li><a href="#string.title">string.title</a></li><li><a href="#string.upper">string.upper</a></li><li><a href="#toml.parse">toml.parse</a></li><li><a href="#TomlContent.get">TomlContent.get</a></li><li><a href="#TomlContent.get_or_default">TomlContent.get_or_default</a></li><li><a href="#ctx.add_label">ctx.add_label</a></li><li><a href="#ctx.add_or_replace_label">ctx.add_or_replace_label</a></li><li><a href="#ctx.add_text_before_labels">ctx.add_text_before_labels</a></li><li><a href="#ctx.fill_template">ctx.fill_template</a></li><li><a href="#ctx.find_all_labels">ctx.find_all_labels</a></li><li><a href="#ctx.find_label">ctx.find_label</a></li><li><a href="#ctx.new_path">ctx.new_path</a></li><li><a href="#ctx.noop">ctx.noop</a></li><li><a href="#ctx.now_as_string">ctx.now_as_string</a></li><li><a href="#ctx.remove_label">ctx.remove_label</a></li><li><a href="#ctx.replace_label">ctx.replace_label</a></li><li><a href="#ctx.set_message">ctx.set_message</a></li><li><a href="#ctx.write_path">ctx.write_path</a></li><li><a href="#xml.xpath">xml.xpath</a></li></ul>
+
+<a id="string.capitalize" aria-hidden="true"></a>
+### string.capitalize
+
+Returns a copy of the string with its first character (if any) capitalized and the rest lowercased. This method does not support non-ascii characters. 
+
+<code><a href="#string">string</a></code> <code>string.capitalize(<a href=#string.capitalize.self>self</a>)</code>
+
+
+<h4 id="parameters.string.capitalize">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=string.capitalize.self href=#string.capitalize.self>self</span> | <code><a href="#string">string</a></code><br><p>This string.</p>
+
+<a id="string.count" aria-hidden="true"></a>
+### string.count
+
+Returns the number of (non-overlapping) occurrences of substring <code>sub</code> in string, optionally restricting to <code>[start:end]</code>, <code>start</code> being inclusive and <code>end</code> being exclusive.
+
+<code><a href="#int">int</a></code> <code>string.count(<a href=#string.count.self>self</a>, <a href=#string.count.sub>sub</a>, <a href=#string.count.start>start</a>=0, <a href=#string.count.end>end</a>=None)</code>
+
+
+<h4 id="parameters.string.count">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=string.count.self href=#string.count.self>self</span> | <code><a href="#string">string</a></code><br><p>This string.</p>
+<span id=string.count.sub href=#string.count.sub>sub</span> | <code><a href="#string">string</a></code><br><p>The substring to count.</p>
+<span id=string.count.start href=#string.count.start>start</span> | <code><a href="#int">int</a></code> or <code>NoneType</code><br><p>Restrict to search from this position.</p>
+<span id=string.count.end href=#string.count.end>end</span> | <code><a href="#int">int</a></code> or <code>NoneType</code><br><p>optional position before which to restrict to search.</p>
+
+<a id="string.elems" aria-hidden="true"></a>
+### string.elems
+
+Returns an iterable value containing successive 1-element substrings of the string. Equivalent to <code>[s[i] for i in range(len(s))]</code>, except that the returned value might not be a list.
+
+<code>list of string</code> <code>string.elems(<a href=#string.elems.self>self</a>)</code>
+
+
+<h4 id="parameters.string.elems">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=string.elems.self href=#string.elems.self>self</span> | <code><a href="#string">string</a></code><br><p>This string.</p>
+
+<a id="string.endswith" aria-hidden="true"></a>
+### string.endswith
+
+Returns True if the string ends with <code>sub</code>, otherwise False, optionally restricting to <code>[start:end]</code>, <code>start</code> being inclusive and <code>end</code> being exclusive.
+
+<code><a href="#bool">bool</a></code> <code>string.endswith(<a href=#string.endswith.self>self</a>, <a href=#string.endswith.sub>sub</a>, <a href=#string.endswith.start>start</a>=0, <a href=#string.endswith.end>end</a>=None)</code>
+
+
+<h4 id="parameters.string.endswith">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=string.endswith.self href=#string.endswith.self>self</span> | <code><a href="#string">string</a></code><br><p>This string.</p>
+<span id=string.endswith.sub href=#string.endswith.sub>sub</span> | <code><a href="#string">string</a></code> or <code>tuple of string</code><br><p>The suffix (or tuple of alternative suffixes) to match.</p>
+<span id=string.endswith.start href=#string.endswith.start>start</span> | <code><a href="#int">int</a></code> or <code>NoneType</code><br><p>Test beginning at this position.</p>
+<span id=string.endswith.end href=#string.endswith.end>end</span> | <code><a href="#int">int</a></code> or <code>NoneType</code><br><p>optional position at which to stop comparing.</p>
+
+<a id="string.find" aria-hidden="true"></a>
+### string.find
+
+Returns the first index where <code>sub</code> is found, or -1 if no such index exists, optionally restricting to <code>[start:end]</code>, <code>start</code> being inclusive and <code>end</code> being exclusive.
+
+<code><a href="#int">int</a></code> <code>string.find(<a href=#string.find.self>self</a>, <a href=#string.find.sub>sub</a>, <a href=#string.find.start>start</a>=0, <a href=#string.find.end>end</a>=None)</code>
+
+
+<h4 id="parameters.string.find">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=string.find.self href=#string.find.self>self</span> | <code><a href="#string">string</a></code><br><p>This string.</p>
+<span id=string.find.sub href=#string.find.sub>sub</span> | <code><a href="#string">string</a></code><br><p>The substring to find.</p>
+<span id=string.find.start href=#string.find.start>start</span> | <code><a href="#int">int</a></code> or <code>NoneType</code><br><p>Restrict to search from this position.</p>
+<span id=string.find.end href=#string.find.end>end</span> | <code><a href="#int">int</a></code> or <code>NoneType</code><br><p>optional position before which to restrict to search.</p>
+
+<a id="string.format" aria-hidden="true"></a>
+### string.format
+
+Perform string interpolation. Format strings contain replacement fields surrounded by curly braces <code>&#123;&#125;</code>. Anything that is not contained in braces is considered literal text, which is copied unchanged to the output.If you need to include a brace character in the literal text, it can be escaped by doubling: <code>&#123;&#123;</code> and <code>&#125;&#125;</code>A replacement field can be either a name, a number, or empty. Values are converted to strings using the <a href="#str">str</a> function.<pre class="language-python"># Access in order:
+"&#123;&#125; < &#123;&#125;".format(4, 5) == "4 < 5"
+# Access by position:
+"{1}, {0}".format(2, 1) == "1, 2"
+# Access by name:
+"x{key}x".format(key = 2) == "x2x"</pre>
+
+
+<code><a href="#string">string</a></code> <code>string.format(<a href=#string.format.self>self</a>, <a href=#string.format.kwargs>kwargs</a>, <a href=#string.format.args>args</a>)</code>
+
+
+<h4 id="parameters.string.format">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=string.format.self href=#string.format.self>self</span> | <code><a href="#string">string</a></code><br><p>This string.</p>
+<span id=string.format.kwargs href=#string.format.kwargs>kwargs</span> | <code><a href="#dict">dict</a></code><br><p>Dictionary of arguments.</p>
+<span id=string.format.args href=#string.format.args>args</span> | <code><a href="#list">list</a></code><br><p>List of arguments.</p>
+
+<a id="string.index" aria-hidden="true"></a>
+### string.index
+
+Returns the first index where <code>sub</code> is found, or raises an error if no such  index exists, optionally restricting to <code>[start:end]</code><code>start</code> being inclusive and <code>end</code> being exclusive.
+
+<code><a href="#int">int</a></code> <code>string.index(<a href=#string.index.self>self</a>, <a href=#string.index.sub>sub</a>, <a href=#string.index.start>start</a>=0, <a href=#string.index.end>end</a>=None)</code>
+
+
+<h4 id="parameters.string.index">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=string.index.self href=#string.index.self>self</span> | <code><a href="#string">string</a></code><br><p>This string.</p>
+<span id=string.index.sub href=#string.index.sub>sub</span> | <code><a href="#string">string</a></code><br><p>The substring to find.</p>
+<span id=string.index.start href=#string.index.start>start</span> | <code><a href="#int">int</a></code> or <code>NoneType</code><br><p>Restrict to search from this position.</p>
+<span id=string.index.end href=#string.index.end>end</span> | <code><a href="#int">int</a></code> or <code>NoneType</code><br><p>optional position before which to restrict to search.</p>
+
+<a id="string.isalnum" aria-hidden="true"></a>
+### string.isalnum
+
+Returns True if all characters in the string are alphanumeric ([a-zA-Z0-9]) and there is at least one character.
+
+<code><a href="#bool">bool</a></code> <code>string.isalnum(<a href=#string.isalnum.self>self</a>)</code>
+
+
+<h4 id="parameters.string.isalnum">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=string.isalnum.self href=#string.isalnum.self>self</span> | <code><a href="#string">string</a></code><br><p>This string.</p>
+
+<a id="string.isalpha" aria-hidden="true"></a>
+### string.isalpha
+
+Returns True if all characters in the string are alphabetic ([a-zA-Z]) and there is at least one character.
+
+<code><a href="#bool">bool</a></code> <code>string.isalpha(<a href=#string.isalpha.self>self</a>)</code>
+
+
+<h4 id="parameters.string.isalpha">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=string.isalpha.self href=#string.isalpha.self>self</span> | <code><a href="#string">string</a></code><br><p>This string.</p>
+
+<a id="string.isdigit" aria-hidden="true"></a>
+### string.isdigit
+
+Returns True if all characters in the string are digits ([0-9]) and there is at least one character.
+
+<code><a href="#bool">bool</a></code> <code>string.isdigit(<a href=#string.isdigit.self>self</a>)</code>
+
+
+<h4 id="parameters.string.isdigit">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=string.isdigit.self href=#string.isdigit.self>self</span> | <code><a href="#string">string</a></code><br><p>This string.</p>
+
+<a id="string.islower" aria-hidden="true"></a>
+### string.islower
+
+Returns True if all cased characters in the string are lowercase and there is at least one character.
+
+<code><a href="#bool">bool</a></code> <code>string.islower(<a href=#string.islower.self>self</a>)</code>
+
+
+<h4 id="parameters.string.islower">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=string.islower.self href=#string.islower.self>self</span> | <code><a href="#string">string</a></code><br><p>This string.</p>
+
+<a id="string.isspace" aria-hidden="true"></a>
+### string.isspace
+
+Returns True if all characters are white space characters and the string contains at least one character.
+
+<code><a href="#bool">bool</a></code> <code>string.isspace(<a href=#string.isspace.self>self</a>)</code>
+
+
+<h4 id="parameters.string.isspace">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=string.isspace.self href=#string.isspace.self>self</span> | <code><a href="#string">string</a></code><br><p>This string.</p>
+
+<a id="string.istitle" aria-hidden="true"></a>
+### string.istitle
+
+Returns True if the string is in title case and it contains at least one character. This means that every uppercase character must follow an uncased one (e.g. whitespace) and every lowercase character must follow a cased one (e.g. uppercase or lowercase).
+
+<code><a href="#bool">bool</a></code> <code>string.istitle(<a href=#string.istitle.self>self</a>)</code>
+
+
+<h4 id="parameters.string.istitle">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=string.istitle.self href=#string.istitle.self>self</span> | <code><a href="#string">string</a></code><br><p>This string.</p>
+
+<a id="string.isupper" aria-hidden="true"></a>
+### string.isupper
+
+Returns True if all cased characters in the string are uppercase and there is at least one character.
+
+<code><a href="#bool">bool</a></code> <code>string.isupper(<a href=#string.isupper.self>self</a>)</code>
+
+
+<h4 id="parameters.string.isupper">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=string.isupper.self href=#string.isupper.self>self</span> | <code><a href="#string">string</a></code><br><p>This string.</p>
+
+<a id="string.join" aria-hidden="true"></a>
+### string.join
+
+Returns a string in which the string elements of the argument have been joined by this string as a separator. Example:<br><pre class="language-python">"|".join(["a", "b", "c"]) == "a|b|c"</pre>
+
+<code><a href="#string">string</a></code> <code>string.join(<a href=#string.join.self>self</a>, <a href=#string.join.elements>elements</a>)</code>
+
+
+<h4 id="parameters.string.join">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=string.join.self href=#string.join.self>self</span> | <code><a href="#string">string</a></code><br><p></p>
+<span id=string.join.elements href=#string.join.elements>elements</span> | <code>unknown</code><br><p>The objects to join.</p>
+
+<a id="string.lower" aria-hidden="true"></a>
+### string.lower
+
+Returns the lower case version of this string.
+
+<code><a href="#string">string</a></code> <code>string.lower(<a href=#string.lower.self>self</a>)</code>
+
+
+<h4 id="parameters.string.lower">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=string.lower.self href=#string.lower.self>self</span> | <code><a href="#string">string</a></code><br><p></p>
+
+<a id="string.lstrip" aria-hidden="true"></a>
+### string.lstrip
+
+Returns a copy of the string where leading characters that appear in <code>chars</code> are removed. Note that <code>chars</code> is not a prefix: all combinations of its value are removed:<pre class="language-python">"abcba".lstrip("ba") == "cba"</pre>
+
+<code><a href="#string">string</a></code> <code>string.lstrip(<a href=#string.lstrip.self>self</a>, <a href=#string.lstrip.chars>chars</a>=None)</code>
+
+
+<h4 id="parameters.string.lstrip">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=string.lstrip.self href=#string.lstrip.self>self</span> | <code><a href="#string">string</a></code><br><p></p>
+<span id=string.lstrip.chars href=#string.lstrip.chars>chars</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>The characters to remove, or all whitespace if None.</p>
+
+<a id="string.partition" aria-hidden="true"></a>
+### string.partition
+
+Splits the input string at the first occurrence of the separator <code>sep</code> and returns the resulting partition as a three-element tuple of the form (before, separator, after). If the input string does not contain the separator, partition returns (self, '', '').
+
+<code><a href="#tuple">tuple</a></code> <code>string.partition(<a href=#string.partition.self>self</a>, <a href=#string.partition.sep>sep</a>)</code>
+
+
+<h4 id="parameters.string.partition">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=string.partition.self href=#string.partition.self>self</span> | <code><a href="#string">string</a></code><br><p></p>
+<span id=string.partition.sep href=#string.partition.sep>sep</span> | <code><a href="#string">string</a></code><br><p>The string to split on.</p>
+
+<a id="string.removeprefix" aria-hidden="true"></a>
+### string.removeprefix
+
+If the string starts with <code>prefix</code>, returns a new string with the prefix removed. Otherwise, returns the string.
+
+<code><a href="#string">string</a></code> <code>string.removeprefix(<a href=#string.removeprefix.self>self</a>, <a href=#string.removeprefix.prefix>prefix</a>)</code>
+
+
+<h4 id="parameters.string.removeprefix">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=string.removeprefix.self href=#string.removeprefix.self>self</span> | <code><a href="#string">string</a></code><br><p>This string.</p>
+<span id=string.removeprefix.prefix href=#string.removeprefix.prefix>prefix</span> | <code><a href="#string">string</a></code><br><p>The prefix to remove if present.</p>
+
+<a id="string.removesuffix" aria-hidden="true"></a>
+### string.removesuffix
+
+If the string ends with <code>suffix</code>, returns a new string with the suffix removed. Otherwise, returns the string.
+
+<code><a href="#string">string</a></code> <code>string.removesuffix(<a href=#string.removesuffix.self>self</a>, <a href=#string.removesuffix.suffix>suffix</a>)</code>
+
+
+<h4 id="parameters.string.removesuffix">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=string.removesuffix.self href=#string.removesuffix.self>self</span> | <code><a href="#string">string</a></code><br><p>This string.</p>
+<span id=string.removesuffix.suffix href=#string.removesuffix.suffix>suffix</span> | <code><a href="#string">string</a></code><br><p>The suffix to remove if present.</p>
+
+<a id="string.replace" aria-hidden="true"></a>
+### string.replace
+
+Returns a copy of the string in which the occurrences of <code>old</code> have been replaced with <code>new</code>, optionally restricting the number of replacements to <code>count</code>.
+
+<code><a href="#string">string</a></code> <code>string.replace(<a href=#string.replace.self>self</a>, <a href=#string.replace.old>old</a>, <a href=#string.replace.new>new</a>, <a href=#string.replace.count>count</a>=-1)</code>
+
+
+<h4 id="parameters.string.replace">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=string.replace.self href=#string.replace.self>self</span> | <code><a href="#string">string</a></code><br><p>This string.</p>
+<span id=string.replace.old href=#string.replace.old>old</span> | <code><a href="#string">string</a></code><br><p>The string to be replaced.</p>
+<span id=string.replace.new href=#string.replace.new>new</span> | <code><a href="#string">string</a></code><br><p>The string to replace with.</p>
+<span id=string.replace.count href=#string.replace.count>count</span> | <code><a href="#int">int</a></code><br><p>The maximum number of replacements. If omitted, or if the value is negative, there is no limit.</p>
+
+<a id="string.rfind" aria-hidden="true"></a>
+### string.rfind
+
+Returns the last index where <code>sub</code> is found, or -1 if no such index exists, optionally restricting to <code>[start:end]</code>, <code>start</code> being inclusive and <code>end</code> being exclusive.
+
+<code><a href="#int">int</a></code> <code>string.rfind(<a href=#string.rfind.self>self</a>, <a href=#string.rfind.sub>sub</a>, <a href=#string.rfind.start>start</a>=0, <a href=#string.rfind.end>end</a>=None)</code>
+
+
+<h4 id="parameters.string.rfind">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=string.rfind.self href=#string.rfind.self>self</span> | <code><a href="#string">string</a></code><br><p>This string.</p>
+<span id=string.rfind.sub href=#string.rfind.sub>sub</span> | <code><a href="#string">string</a></code><br><p>The substring to find.</p>
+<span id=string.rfind.start href=#string.rfind.start>start</span> | <code><a href="#int">int</a></code> or <code>NoneType</code><br><p>Restrict to search from this position.</p>
+<span id=string.rfind.end href=#string.rfind.end>end</span> | <code><a href="#int">int</a></code> or <code>NoneType</code><br><p>optional position before which to restrict to search.</p>
+
+<a id="string.rindex" aria-hidden="true"></a>
+### string.rindex
+
+Returns the last index where <code>sub</code> is found, or raises an error if no such index exists, optionally restricting to <code>[start:end]</code>, <code>start</code> being inclusive and <code>end</code> being exclusive.
+
+<code><a href="#int">int</a></code> <code>string.rindex(<a href=#string.rindex.self>self</a>, <a href=#string.rindex.sub>sub</a>, <a href=#string.rindex.start>start</a>=0, <a href=#string.rindex.end>end</a>=None)</code>
+
+
+<h4 id="parameters.string.rindex">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=string.rindex.self href=#string.rindex.self>self</span> | <code><a href="#string">string</a></code><br><p>This string.</p>
+<span id=string.rindex.sub href=#string.rindex.sub>sub</span> | <code><a href="#string">string</a></code><br><p>The substring to find.</p>
+<span id=string.rindex.start href=#string.rindex.start>start</span> | <code><a href="#int">int</a></code> or <code>NoneType</code><br><p>Restrict to search from this position.</p>
+<span id=string.rindex.end href=#string.rindex.end>end</span> | <code><a href="#int">int</a></code> or <code>NoneType</code><br><p>optional position before which to restrict to search.</p>
+
+<a id="string.rpartition" aria-hidden="true"></a>
+### string.rpartition
+
+Splits the input string at the last occurrence of the separator <code>sep</code> and returns the resulting partition as a three-element tuple of the form (before, separator, after). If the input string does not contain the separator, rpartition returns ('', '', self).
+
+<code><a href="#tuple">tuple</a></code> <code>string.rpartition(<a href=#string.rpartition.self>self</a>, <a href=#string.rpartition.sep>sep</a>)</code>
+
+
+<h4 id="parameters.string.rpartition">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=string.rpartition.self href=#string.rpartition.self>self</span> | <code><a href="#string">string</a></code><br><p></p>
+<span id=string.rpartition.sep href=#string.rpartition.sep>sep</span> | <code><a href="#string">string</a></code><br><p>The string to split on.</p>
+
+<a id="string.rsplit" aria-hidden="true"></a>
+### string.rsplit
+
+Returns a list of all the words in the string, using <code>sep</code> as the separator, optionally limiting the number of splits to <code>maxsplit</code>. Except for splitting from the right, this method behaves like split().
+
+<code>list of string</code> <code>string.rsplit(<a href=#string.rsplit.self>self</a>, <a href=#string.rsplit.sep>sep</a>, <a href=#string.rsplit.maxsplit>maxsplit</a>=None)</code>
+
+
+<h4 id="parameters.string.rsplit">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=string.rsplit.self href=#string.rsplit.self>self</span> | <code><a href="#string">string</a></code><br><p>This string.</p>
+<span id=string.rsplit.sep href=#string.rsplit.sep>sep</span> | <code><a href="#string">string</a></code><br><p>The string to split on.</p>
+<span id=string.rsplit.maxsplit href=#string.rsplit.maxsplit>maxsplit</span> | <code><a href="#int">int</a></code> or <code>NoneType</code><br><p>The maximum number of splits.</p>
+
+<a id="string.rstrip" aria-hidden="true"></a>
+### string.rstrip
+
+Returns a copy of the string where trailing characters that appear in <code>chars</code> are removed. Note that <code>chars</code> is not a suffix: all combinations of its value are removed:<pre class="language-python">"abcbaa".rstrip("ab") == "abc"</pre>
+
+<code><a href="#string">string</a></code> <code>string.rstrip(<a href=#string.rstrip.self>self</a>, <a href=#string.rstrip.chars>chars</a>=None)</code>
+
+
+<h4 id="parameters.string.rstrip">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=string.rstrip.self href=#string.rstrip.self>self</span> | <code><a href="#string">string</a></code><br><p>This string.</p>
+<span id=string.rstrip.chars href=#string.rstrip.chars>chars</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>The characters to remove, or all whitespace if None.</p>
+
+<a id="string.split" aria-hidden="true"></a>
+### string.split
+
+Returns a list of all the words in the string, using <code>sep</code> as the separator, optionally limiting the number of splits to <code>maxsplit</code>.
+
+<code>list of string</code> <code>string.split(<a href=#string.split.self>self</a>, <a href=#string.split.sep>sep</a>, <a href=#string.split.maxsplit>maxsplit</a>=None)</code>
+
+
+<h4 id="parameters.string.split">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=string.split.self href=#string.split.self>self</span> | <code><a href="#string">string</a></code><br><p>This string.</p>
+<span id=string.split.sep href=#string.split.sep>sep</span> | <code><a href="#string">string</a></code><br><p>The string to split on.</p>
+<span id=string.split.maxsplit href=#string.split.maxsplit>maxsplit</span> | <code><a href="#int">int</a></code> or <code>NoneType</code><br><p>The maximum number of splits.</p>
+
+<a id="string.splitlines" aria-hidden="true"></a>
+### string.splitlines
+
+Splits the string at line boundaries ('\n', '\r\n', '\r') and returns the result as a new mutable list.
+
+<code>list of string</code> <code>string.splitlines(<a href=#string.splitlines.self>self</a>, <a href=#string.splitlines.keepends>keepends</a>=False)</code>
+
+
+<h4 id="parameters.string.splitlines">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=string.splitlines.self href=#string.splitlines.self>self</span> | <code><a href="#string">string</a></code><br><p>This string.</p>
+<span id=string.splitlines.keepends href=#string.splitlines.keepends>keepends</span> | <code><a href="#bool">bool</a></code><br><p>Whether the line breaks should be included in the resulting list.</p>
+
+<a id="string.startswith" aria-hidden="true"></a>
+### string.startswith
+
+Returns True if the string starts with <code>sub</code>, otherwise False, optionally restricting to <code>[start:end]</code>, <code>start</code> being inclusive and <code>end</code> being exclusive.
+
+<code><a href="#bool">bool</a></code> <code>string.startswith(<a href=#string.startswith.self>self</a>, <a href=#string.startswith.sub>sub</a>, <a href=#string.startswith.start>start</a>=0, <a href=#string.startswith.end>end</a>=None)</code>
+
+
+<h4 id="parameters.string.startswith">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=string.startswith.self href=#string.startswith.self>self</span> | <code><a href="#string">string</a></code><br><p>This string.</p>
+<span id=string.startswith.sub href=#string.startswith.sub>sub</span> | <code><a href="#string">string</a></code> or <code>tuple of string</code><br><p>The prefix (or tuple of alternative prefixes) to match.</p>
+<span id=string.startswith.start href=#string.startswith.start>start</span> | <code><a href="#int">int</a></code> or <code>NoneType</code><br><p>Test beginning at this position.</p>
+<span id=string.startswith.end href=#string.startswith.end>end</span> | <code><a href="#int">int</a></code> or <code>NoneType</code><br><p>Stop comparing at this position.</p>
+
+<a id="string.strip" aria-hidden="true"></a>
+### string.strip
+
+Returns a copy of the string where leading or trailing characters that appear in <code>chars</code> are removed. Note that <code>chars</code> is neither a prefix nor a suffix: all combinations of its value are removed:<pre class="language-python">"aabcbcbaa".strip("ab") == "cbc"</pre>
+
+<code><a href="#string">string</a></code> <code>string.strip(<a href=#string.strip.self>self</a>, <a href=#string.strip.chars>chars</a>=None)</code>
+
+
+<h4 id="parameters.string.strip">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=string.strip.self href=#string.strip.self>self</span> | <code><a href="#string">string</a></code><br><p>This string.</p>
+<span id=string.strip.chars href=#string.strip.chars>chars</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>The characters to remove, or all whitespace if None.</p>
+
+<a id="string.title" aria-hidden="true"></a>
+### string.title
+
+Converts the input string into title case, i.e. every word starts with an uppercase letter while the remaining letters are lowercase. In this context, a word means strictly a sequence of letters. This method does not support supplementary Unicode characters.
+
+<code><a href="#string">string</a></code> <code>string.title(<a href=#string.title.self>self</a>)</code>
+
+
+<h4 id="parameters.string.title">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=string.title.self href=#string.title.self>self</span> | <code><a href="#string">string</a></code><br><p>This string.</p>
+
+<a id="string.upper" aria-hidden="true"></a>
+### string.upper
+
+Returns the upper case version of this string.
+
+<code><a href="#string">string</a></code> <code>string.upper(<a href=#string.upper.self>self</a>)</code>
+
+
+<h4 id="parameters.string.upper">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=string.upper.self href=#string.upper.self>self</span> | <code><a href="#string">string</a></code><br><p></p>
 
 
 
@@ -6530,7 +8384,7 @@ Creates a new immutable struct. Structs with the same keys/values are equal. The
 
 Parameter | Description
 --------- | -----------
-<span id=struct.kwargs href=#struct.kwargs>kwargs</span> | <code>dict</code><br><p>Dictionary of Args.</p>
+<span id=struct.kwargs href=#struct.kwargs>kwargs</span> | <code><a href="#dict">dict</a></code><br><p>Dictionary of Args.</p>
 
 
 <h4 id="example.struct">Example:</h4>
@@ -6577,7 +8431,7 @@ Parse the TOML content. Returns a toml object.
 
 Parameter | Description
 --------- | -----------
-<span id=toml.parse.content href=#toml.parse.content>content</span> | <code>string</code><br><p>TOML content to be parsed</p>
+<span id=toml.parse.content href=#toml.parse.content>content</span> | <code><a href="#string">string</a></code><br><p>TOML content to be parsed</p>
 
 
 <h4 id="example.toml.parse">Example:</h4>
@@ -6615,7 +8469,7 @@ Retrieve the value from the parsed TOML for the given key. If the key is not def
 
 Parameter | Description
 --------- | -----------
-<span id=TomlContent.get.key href=#TomlContent.get.key>key</span> | <code>string</code><br><p>The dotted key expression</p>
+<span id=TomlContent.get.key href=#TomlContent.get.key>key</span> | <code><a href="#string">string</a></code><br><p>The dotted key expression</p>
 
 
 <h4 id="example.TomlContent.get">Example:</h4>
@@ -6642,7 +8496,7 @@ Retrieve the value from the parsed TOML for the given key. If the key is not def
 
 Parameter | Description
 --------- | -----------
-<span id=TomlContent.get_or_default.key href=#TomlContent.get_or_default.key>key</span> | <code>string</code><br><p>The dotted key expression</p>
+<span id=TomlContent.get_or_default.key href=#TomlContent.get_or_default.key>key</span> | <code><a href="#string">string</a></code><br><p>The dotted key expression</p>
 <span id=TomlContent.get_or_default.default href=#TomlContent.get_or_default.default>default</span> | <code>unknown</code><br><p>The default value to return if the key isn't found.</p>
 
 
@@ -6683,8 +8537,8 @@ The status of a Transformation that was just run. Either a 'success' or a 'no-op
 
 Name | Description
 ---- | -----------
-is_noop | <code>bool</code><br><p>Whether this status has the value NO-OP.</p>
-is_success | <code>bool</code><br><p>Whether this status has the value SUCCESS.</p>
+is_noop | <code><a href="#bool">bool</a></code><br><p>Whether this status has the value NO-OP.</p>
+is_success | <code><a href="#bool">bool</a></code><br><p>Whether this status has the value SUCCESS.</p>
 
 
 <h4 id="returned_by.transformation_status">Returned By:</h4>
@@ -6705,8 +8559,8 @@ Name | Description
 author | <code><a href="#author">author</a></code><br><p>Author to be used in the change</p>
 changes | <code><a href="#changes">Changes</a></code><br><p>List of changes that will be migrated</p>
 console | <code><a href="#console">Console</a></code><br><p>Get an instance of the console to report errors or warnings</p>
-message | <code>string</code><br><p>Message to be used in the change</p>
-params | <code>dict</code><br><p>Parameters for the function if created with core.dynamic_transform</p>
+message | <code><a href="#string">string</a></code><br><p>Message to be used in the change</p>
+params | <code><a href="#dict">dict</a></code><br><p>Parameters for the function if created with core.dynamic_transform</p>
 
 
 <h4 id="consumed_by.TransformWork">Consumed By:</h4>
@@ -6725,10 +8579,10 @@ Add a label to the end of the description
 
 Parameter | Description
 --------- | -----------
-<span id=ctx.add_label.label href=#ctx.add_label.label>label</span> | <code>string</code><br><p>The label to add</p>
-<span id=ctx.add_label.value href=#ctx.add_label.value>value</span> | <code>string</code><br><p>The new value for the label</p>
-<span id=ctx.add_label.separator href=#ctx.add_label.separator>separator</span> | <code>string</code><br><p>The separator to use for the label</p>
-<span id=ctx.add_label.hidden href=#ctx.add_label.hidden>hidden</span> | <code>bool</code><br><p>Don't show the label in the message but only keep it internally</p>
+<span id=ctx.add_label.label href=#ctx.add_label.label>label</span> | <code><a href="#string">string</a></code><br><p>The label to add</p>
+<span id=ctx.add_label.value href=#ctx.add_label.value>value</span> | <code><a href="#string">string</a></code><br><p>The new value for the label</p>
+<span id=ctx.add_label.separator href=#ctx.add_label.separator>separator</span> | <code><a href="#string">string</a></code><br><p>The separator to use for the label</p>
+<span id=ctx.add_label.hidden href=#ctx.add_label.hidden>hidden</span> | <code><a href="#bool">bool</a></code><br><p>Don't show the label in the message but only keep it internally</p>
 
 <a id="ctx.add_or_replace_label" aria-hidden="true"></a>
 ### ctx.add_or_replace_label
@@ -6742,9 +8596,9 @@ Replace an existing label or add it to the end of the description
 
 Parameter | Description
 --------- | -----------
-<span id=ctx.add_or_replace_label.label href=#ctx.add_or_replace_label.label>label</span> | <code>string</code><br><p>The label to add/replace</p>
-<span id=ctx.add_or_replace_label.value href=#ctx.add_or_replace_label.value>value</span> | <code>string</code><br><p>The new value for the label</p>
-<span id=ctx.add_or_replace_label.separator href=#ctx.add_or_replace_label.separator>separator</span> | <code>string</code><br><p>The separator to use for the label</p>
+<span id=ctx.add_or_replace_label.label href=#ctx.add_or_replace_label.label>label</span> | <code><a href="#string">string</a></code><br><p>The label to add/replace</p>
+<span id=ctx.add_or_replace_label.value href=#ctx.add_or_replace_label.value>value</span> | <code><a href="#string">string</a></code><br><p>The new value for the label</p>
+<span id=ctx.add_or_replace_label.separator href=#ctx.add_or_replace_label.separator>separator</span> | <code><a href="#string">string</a></code><br><p>The separator to use for the label</p>
 
 <a id="ctx.add_text_before_labels" aria-hidden="true"></a>
 ### ctx.add_text_before_labels
@@ -6758,7 +8612,7 @@ Add a text to the description before the labels paragraph
 
 Parameter | Description
 --------- | -----------
-<span id=ctx.add_text_before_labels.text href=#ctx.add_text_before_labels.text>text</span> | <code>string</code><br><p></p>
+<span id=ctx.add_text_before_labels.text href=#ctx.add_text_before_labels.text>text</span> | <code><a href="#string">string</a></code><br><p></p>
 
 <a id="ctx.create_symlink" aria-hidden="true"></a>
 ### ctx.create_symlink
@@ -6801,14 +8655,14 @@ Returns a handle to read files from the destination, if supported by the destina
 
 Replaces variables in templates with the values from this revision.
 
-<code>string</code> <code>ctx.fill_template(<a href=#ctx.fill_template.template>template</a>)</code>
+<code><a href="#string">string</a></code> <code>ctx.fill_template(<a href=#ctx.fill_template.template>template</a>)</code>
 
 
 <h4 id="parameters.ctx.fill_template">Parameters:</h4>
 
 Parameter | Description
 --------- | -----------
-<span id=ctx.fill_template.template href=#ctx.fill_template.template>template</span> | <code>string</code><br><p>The template to use</p>
+<span id=ctx.fill_template.template href=#ctx.fill_template.template>template</span> | <code><a href="#string">string</a></code><br><p>The template to use</p>
 
 
 <h4 id="example.ctx.fill_template">Example:</h4>
@@ -6837,21 +8691,21 @@ Tries to find all the values for a label. First it looks at the generated messag
 
 Parameter | Description
 --------- | -----------
-<span id=ctx.find_all_labels.label href=#ctx.find_all_labels.label>label</span> | <code>string</code><br><p>The label to find</p>
+<span id=ctx.find_all_labels.label href=#ctx.find_all_labels.label>label</span> | <code><a href="#string">string</a></code><br><p>The label to find</p>
 
 <a id="ctx.find_label" aria-hidden="true"></a>
 ### ctx.find_label
 
 Tries to find a label. First it looks at the generated message (that is, labels that might have been added by previous transformations), then it looks in all the commit messages being imported and finally in the resolved reference passed in the CLI. Returns the first such label value found this way.
 
-<code>string</code> <code>ctx.find_label(<a href=#ctx.find_label.label>label</a>)</code>
+<code><a href="#string">string</a></code> <code>ctx.find_label(<a href=#ctx.find_label.label>label</a>)</code>
 
 
 <h4 id="parameters.ctx.find_label">Parameters:</h4>
 
 Parameter | Description
 --------- | -----------
-<span id=ctx.find_label.label href=#ctx.find_label.label>label</span> | <code>string</code><br><p>The label to find</p>
+<span id=ctx.find_label.label href=#ctx.find_label.label>label</span> | <code><a href="#string">string</a></code><br><p>The label to find</p>
 
 <a id="ctx.list" aria-hidden="true"></a>
 ### ctx.list
@@ -6879,7 +8733,7 @@ Create a new path
 
 Parameter | Description
 --------- | -----------
-<span id=ctx.new_path.path href=#ctx.new_path.path>path</span> | <code>string</code><br><p>The string representing the path, relative to the checkout root directory</p>
+<span id=ctx.new_path.path href=#ctx.new_path.path>path</span> | <code><a href="#string">string</a></code><br><p>The string representing the path, relative to the checkout root directory</p>
 
 <a id="ctx.noop" aria-hidden="true"></a>
 ### ctx.noop
@@ -6893,7 +8747,7 @@ The status returned by a no-op Transformation
 
 Parameter | Description
 --------- | -----------
-<span id=ctx.noop.message href=#ctx.noop.message>message</span> | <code>string</code><br><p></p>
+<span id=ctx.noop.message href=#ctx.noop.message>message</span> | <code><a href="#string">string</a></code><br><p></p>
 
 
 <h4 id="example.ctx.noop">Example:</h4>
@@ -6915,15 +8769,15 @@ def my_transform(ctx):
 
 Get current date as a string
 
-<code>string</code> <code>ctx.now_as_string(<a href=#ctx.now_as_string.format>format</a>="yyyy-MM-dd", <a href=#ctx.now_as_string.zone>zone</a>="UTC")</code>
+<code><a href="#string">string</a></code> <code>ctx.now_as_string(<a href=#ctx.now_as_string.format>format</a>="yyyy-MM-dd", <a href=#ctx.now_as_string.zone>zone</a>="UTC")</code>
 
 
 <h4 id="parameters.ctx.now_as_string">Parameters:</h4>
 
 Parameter | Description
 --------- | -----------
-<span id=ctx.now_as_string.format href=#ctx.now_as_string.format>format</span> | <code>string</code><br><p>The format to use. See: https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html for details.</p>
-<span id=ctx.now_as_string.zone href=#ctx.now_as_string.zone>zone</span> | <code>string</code><br><p>The timezone id to use. See https://docs.oracle.com/javase/8/docs/api/java/time/ZoneId.html. By default UTC </p>
+<span id=ctx.now_as_string.format href=#ctx.now_as_string.format>format</span> | <code><a href="#string">string</a></code><br><p>The format to use. See: https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html for details.</p>
+<span id=ctx.now_as_string.zone href=#ctx.now_as_string.zone>zone</span> | <code><a href="#string">string</a></code><br><p>The timezone id to use. See https://docs.oracle.com/javase/8/docs/api/java/time/ZoneId.html. By default UTC </p>
 
 <a id="ctx.origin_api" aria-hidden="true"></a>
 ### ctx.origin_api
@@ -6937,7 +8791,7 @@ Returns an api handle for the origin repository. Methods available depend on the
 
 Read the content of path as UTF-8
 
-<code>string</code> <code>ctx.read_path(<a href=#ctx.read_path.path>path</a>)</code>
+<code><a href="#string">string</a></code> <code>ctx.read_path(<a href=#ctx.read_path.path>path</a>)</code>
 
 
 <h4 id="parameters.ctx.read_path">Parameters:</h4>
@@ -6958,8 +8812,8 @@ Remove a label from the message if present
 
 Parameter | Description
 --------- | -----------
-<span id=ctx.remove_label.label href=#ctx.remove_label.label>label</span> | <code>string</code><br><p>The label to delete</p>
-<span id=ctx.remove_label.whole_message href=#ctx.remove_label.whole_message>whole_message</span> | <code>bool</code><br><p>By default Copybara only looks in the last paragraph for labels. This flagmake it replace labels in the whole message.</p>
+<span id=ctx.remove_label.label href=#ctx.remove_label.label>label</span> | <code><a href="#string">string</a></code><br><p>The label to delete</p>
+<span id=ctx.remove_label.whole_message href=#ctx.remove_label.whole_message>whole_message</span> | <code><a href="#bool">bool</a></code><br><p>By default Copybara only looks in the last paragraph for labels. This flagmake it replace labels in the whole message.</p>
 
 <a id="ctx.replace_label" aria-hidden="true"></a>
 ### ctx.replace_label
@@ -6973,10 +8827,10 @@ Replace a label if it exist in the message
 
 Parameter | Description
 --------- | -----------
-<span id=ctx.replace_label.label href=#ctx.replace_label.label>label</span> | <code>string</code><br><p>The label to replace</p>
-<span id=ctx.replace_label.value href=#ctx.replace_label.value>value</span> | <code>string</code><br><p>The new value for the label</p>
-<span id=ctx.replace_label.separator href=#ctx.replace_label.separator>separator</span> | <code>string</code><br><p>The separator to use for the label</p>
-<span id=ctx.replace_label.whole_message href=#ctx.replace_label.whole_message>whole_message</span> | <code>bool</code><br><p>By default Copybara only looks in the last paragraph for labels. This flagmake it replace labels in the whole message.</p>
+<span id=ctx.replace_label.label href=#ctx.replace_label.label>label</span> | <code><a href="#string">string</a></code><br><p>The label to replace</p>
+<span id=ctx.replace_label.value href=#ctx.replace_label.value>value</span> | <code><a href="#string">string</a></code><br><p>The new value for the label</p>
+<span id=ctx.replace_label.separator href=#ctx.replace_label.separator>separator</span> | <code><a href="#string">string</a></code><br><p>The separator to use for the label</p>
+<span id=ctx.replace_label.whole_message href=#ctx.replace_label.whole_message>whole_message</span> | <code><a href="#bool">bool</a></code><br><p>By default Copybara only looks in the last paragraph for labels. This flagmake it replace labels in the whole message.</p>
 
 <a id="ctx.run" aria-hidden="true"></a>
 ### ctx.run
@@ -7019,7 +8873,7 @@ Set the executable permission of a file
 Parameter | Description
 --------- | -----------
 <span id=ctx.set_executable.path href=#ctx.set_executable.path>path</span> | <code><a href="#path">Path</a></code><br><p>The Path to set the executable permission of</p>
-<span id=ctx.set_executable.value href=#ctx.set_executable.value>value</span> | <code>bool</code><br><p>Whether or not the file should be executable</p>
+<span id=ctx.set_executable.value href=#ctx.set_executable.value>value</span> | <code><a href="#bool">bool</a></code><br><p>Whether or not the file should be executable</p>
 
 <a id="ctx.set_message" aria-hidden="true"></a>
 ### ctx.set_message
@@ -7033,7 +8887,7 @@ Update the message to be used in the change
 
 Parameter | Description
 --------- | -----------
-<span id=ctx.set_message.message href=#ctx.set_message.message>message</span> | <code>string</code><br><p></p>
+<span id=ctx.set_message.message href=#ctx.set_message.message>message</span> | <code><a href="#string">string</a></code><br><p></p>
 
 <a id="ctx.success" aria-hidden="true"></a>
 ### ctx.success
@@ -7072,7 +8926,22 @@ Write an arbitrary string to a path (UTF-8 will be used)
 Parameter | Description
 --------- | -----------
 <span id=ctx.write_path.path href=#ctx.write_path.path>path</span> | <code><a href="#path">Path</a></code><br><p>The Path to write to</p>
-<span id=ctx.write_path.content href=#ctx.write_path.content>content</span> | <code>string</code><br><p>The content of the file</p>
+<span id=ctx.write_path.content href=#ctx.write_path.content>content</span> | <code><a href="#string">string</a></code><br><p>The content of the file</p>
+
+
+
+## tuple
+
+The built-in tuple type. Example tuple expressions:<br><pre class=language-python>x = (1, 2, 3)</pre>Accessing elements is possible using indexing (starts from <code>0</code>):<br><pre class=language-python>e = x[1]   # e == 2</pre>Lists support the <code>+</code> operator to concatenate two tuples. Example:<br><pre class=language-python>x = (1, 2) + (3, 4)   # x == (1, 2, 3, 4)
+x = ("a", "b")
+x += ("c",)            # x == ("a", "b", "c")</pre>Similar to lists, tuples support slice operations:<pre class=language-python>('a', 'b', 'c', 'd')[1:3]   # ('b', 'c')
+('a', 'b', 'c', 'd')[::2]  # ('a', 'c')
+('a', 'b', 'c', 'd')[3:0:-1]  # ('d', 'c', 'b')</pre>Tuples are immutable, therefore <code>x[1] = "a"</code> is not supported.
+
+
+<h4 id="returned_by.tuple">Returned By:</h4>
+
+<ul><li><a href="#dict.popitem">dict.popitem</a></li><li><a href="#tuple">tuple</a></li><li><a href="#string.partition">string.partition</a></li><li><a href="#string.rpartition">string.rpartition</a></li></ul>
 
 
 
@@ -7106,9 +8975,9 @@ Run an xpath expression
 
 Parameter | Description
 --------- | -----------
-<span id=xml.xpath.content href=#xml.xpath.content>content</span> | <code>string</code><br><p>The XML content</p>
-<span id=xml.xpath.expression href=#xml.xpath.expression>expression</span> | <code>string</code><br><p>XPath expression</p>
-<span id=xml.xpath.type href=#xml.xpath.type>type</span> | <code>string</code><br><p>The type of the return value, see http://www.w3.org/TR/xpathfor more details. For now we support STRING, BOOLEAN & NUMBER.</p>
+<span id=xml.xpath.content href=#xml.xpath.content>content</span> | <code><a href="#string">string</a></code><br><p>The XML content</p>
+<span id=xml.xpath.expression href=#xml.xpath.expression>expression</span> | <code><a href="#string">string</a></code><br><p>XPath expression</p>
+<span id=xml.xpath.type href=#xml.xpath.type>type</span> | <code><a href="#string">string</a></code><br><p>The type of the return value, see http://www.w3.org/TR/xpathfor more details. For now we support STRING, BOOLEAN & NUMBER.</p>
 
 
 
