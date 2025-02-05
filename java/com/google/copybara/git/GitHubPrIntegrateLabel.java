@@ -90,16 +90,8 @@ class GitHubPrIntegrateLabel implements IntegrateLabel {
   public GitRevision getRevision() throws RepoException, ValidationException {
     String pr = "https://github.com/" + projectId + "/pull/" + prNumber;
     String repoUrl = "https://github.com/" + projectId;
-    GitRevision gitRevision =
-        GitRepoType.GITHUB.resolveRef(
-            repository,
-            repoUrl,
-            pr,
-            generalOptions,
-            /* describeVersion= */ false,
-            /* fetchHeads= */ false,
-            /* partialFetch= */ false,
-            Optional.empty());
+    GitRevision gitRevision = GitRepoType.GITHUB.resolveRef(repository, repoUrl, pr,
+        generalOptions, /*describeVersion=*/ false, /*partialFetch*/ false, Optional.empty());
     if (sha1 == null) {
       return gitRevision;
     }

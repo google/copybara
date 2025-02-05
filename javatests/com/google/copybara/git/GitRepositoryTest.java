@@ -733,77 +733,12 @@ public class GitRepositoryTest {
 
     var unused =
         local.fetchSingleRefWithTags(
-            fetchUrl, repository.getHeadRef().getSha1(), true, false, false, Optional.empty());
+            fetchUrl, repository.getHeadRef().getSha1(), true, false, Optional.empty());
 
     String gitTagStdOut = local.simpleCommand("tag").getStdout();
     assertThat(gitTagStdOut).contains("foo");
     assertThat(gitTagStdOut).contains("bar");
     assertThat(gitTagStdOut).contains("baz");
-  }
-
-  @Test
-  public void testFetchSingleRefWithTags_fetchHeads() throws Exception {
-    GitRepository local =
-        GitRepository.newBareRepo(
-            Files.createTempDirectory("localDir"),
-            getGitEnv(),
-            /* verbose= */ true,
-            DEFAULT_TIMEOUT,
-            /* noVerify= */ false);
-    local.init();
-    GitTestUtil.writeFile(workdir, "a/foo.txt", "a");
-    repository.add().files("a/foo.txt").run();
-    repository.simpleCommand("commit", "a/foo.txt", "-m", "message");
-    repository.branch("foo").run();
-    repository.branch("bar").run();
-    repository.branch("baz").run();
-
-    // Get the sha1
-    String fetchUrl = "file://" + repository.getGitDir();
-
-    var unused =
-        local.fetchSingleRefWithTags(fetchUrl, "HEAD", false, true, false, Optional.empty());
-
-    String gitBranchStdOut = local.simpleCommand("branch", "--list").getStdout();
-    assertThat(gitBranchStdOut).contains("foo");
-    assertThat(gitBranchStdOut).contains("bar");
-    assertThat(gitBranchStdOut).contains("baz");
-  }
-
-  @Test
-  public void testFetchSingleRefWithTags_fetchTagsAndHeads() throws Exception {
-    GitRepository local =
-        GitRepository.newBareRepo(
-            Files.createTempDirectory("localDir"),
-            getGitEnv(),
-            /* verbose= */ true,
-            DEFAULT_TIMEOUT,
-            /* noVerify= */ false);
-    local.init();
-    GitTestUtil.writeFile(workdir, "a/foo.txt", "a");
-    repository.add().files("a/foo.txt").run();
-    repository.simpleCommand("commit", "a/foo.txt", "-m", "message");
-    repository.tag("tag1").run();
-    repository.tag("tag2").run();
-    repository.tag("tag3").run();
-    repository.branch("foo").run();
-    repository.branch("bar").run();
-    repository.branch("baz").run();
-
-    // Get the sha1
-    String fetchUrl = "file://" + repository.getGitDir();
-
-    var unused =
-        local.fetchSingleRefWithTags(fetchUrl, "HEAD", false, true, false, Optional.empty());
-
-    String gitBranchStdOut = local.simpleCommand("branch", "--list").getStdout();
-    assertThat(gitBranchStdOut).contains("foo");
-    assertThat(gitBranchStdOut).contains("bar");
-    assertThat(gitBranchStdOut).contains("baz");
-    String gitTagStdOut = local.simpleCommand("tag").getStdout();
-    assertThat(gitTagStdOut).contains("tag1");
-    assertThat(gitTagStdOut).contains("tag2");
-    assertThat(gitTagStdOut).contains("tag3");
   }
 
   @Test
