@@ -132,6 +132,16 @@ public final class MergeImportTool {
                   baselineFile, destinationFile);
               return FileVisitResult.CONTINUE;
             }
+            try {
+              // same changes to both upstream and downstream, no need to merge
+              if (compareFileContents(destinationFile, file)) {
+                return FileVisitResult.CONTINUE;
+              }
+            } catch (IOException e) {
+              logger.atWarning().withCause(e).log(
+                  "Cannot read one of (%s, %s) - will not attempt to merge", file, destinationFile);
+              return FileVisitResult.CONTINUE;
+            }
             filesToProcess.add(
                 FilePathInformation.create(file, relativeFile, baselineFile, destinationFile));
 

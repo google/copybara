@@ -19,6 +19,7 @@ package com.google.copybara.util;
 import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -240,6 +241,25 @@ public final class MergeImportToolTest {
             originWorkdir, destinationWorkdir, baselineWorkdir, diffToolWorkdir, glob, packagePath);
 
     verify(commandLineDiffUtil, times(0))
+        .merge(any(Path.class), any(Path.class), any(Path.class), any(Path.class));
+  }
+
+  @Test
+  public void testOriginEqualsDestination_noMergeImport() throws Exception {
+    commandLineDiffUtil = Mockito.mock(MergeRunner.class);
+    String fileName = "foo.txt";
+    String commonFileContents = "a\nb\nc\n";
+    String additionalFileContents = "foo\n";
+    writeFile(baselineWorkdir, fileName, commonFileContents);
+    writeFile(originWorkdir, fileName, commonFileContents.concat(additionalFileContents));
+    writeFile(destinationWorkdir, fileName, commonFileContents.concat(additionalFileContents));
+    underTest = new MergeImportTool(console, commandLineDiffUtil, 10, null);
+
+    var unused =
+        underTest.mergeImport(
+            originWorkdir, destinationWorkdir, baselineWorkdir, diffToolWorkdir, glob, packagePath);
+
+    verify(commandLineDiffUtil, never())
         .merge(any(Path.class), any(Path.class), any(Path.class), any(Path.class));
   }
 
