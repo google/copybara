@@ -46,7 +46,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ steps.date.outputs.date }}
+          tag_name: v${{ env.date }}
           release_name: Release v${{ env.date }}
           body: |
             Automated weekly test release snapshot from master branch.
