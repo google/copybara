@@ -1574,7 +1574,7 @@ public class WorkflowTest {
             .fullReference()
             .get();
 
-    assertThat(fullRef).isEqualTo("refs/copybara_fetch/" + primaryBranch);
+    assertThat(fullRef).isEqualTo("refs/heads/" + primaryBranch);
   }
 
   @Test

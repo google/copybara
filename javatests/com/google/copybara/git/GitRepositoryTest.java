@@ -902,10 +902,16 @@ public class GitRepositoryTest {
 
     // This is the important part of the test: We do two fetches, the first ones for the default
     // head and if it fails we do one for the ref
-    assertThat(requestedFetches).isEqualTo(ImmutableList.of(
-        ImmutableList.of(),
-        ImmutableList.of("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:refs/copybara_fetch/aaaaaaaaaa"
-            + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")));
+    assertThat(requestedFetches)
+        .isEqualTo(
+            ImmutableList.of(
+                ImmutableList.of(),
+                ImmutableList.of(
+                    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:refs/copybara_fetch/aaaaaaaaaa"
+                        + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    "refs/*/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:refs/copybara_fetch/refs/*/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/copybara_full_ref"),
+                ImmutableList.of(
+                    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:refs/copybara_fetch/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")));
   }
 
   @Test

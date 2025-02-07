@@ -17,6 +17,8 @@
 package com.google.copybara.git;
 
 import static com.google.common.collect.ImmutableList.toImmutableList;
+import static com.google.copybara.git.GitRepository.COPYBARA_FETCH_NAMESPACE;
+import static com.google.copybara.git.GitRepository.FULL_REF_NAMESPACE;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
@@ -147,10 +149,11 @@ public final class GitRevision implements Revision {
     } else {
       try {
         ImmutableList<String> matchingRefs =
-            repository.showRef(ImmutableList.of(reference)).entrySet().stream()
-                .filter(e -> !e.getKey().startsWith("refs/remotes/"))
+            repository.showRef(ImmutableList.of(reference, FULL_REF_NAMESPACE)).entrySet().stream()
+                .filter(e -> e.getKey().startsWith(COPYBARA_FETCH_NAMESPACE + "/refs/"))
                 .filter(e -> e.getValue().getSha1().equals(sha1))
                 .map(Entry::getKey)
+                .map(GitRevision::getCleanedFullReference)
                 .collect(toImmutableList());
 
         if (matchingRefs.isEmpty()) {
@@ -170,6 +173,20 @@ public final class GitRevision implements Revision {
       }
     }
     return fullReference;
+  }
+
+  private static String getCleanedFullReference(String originalRef) {
+    String fullRef = originalRef;
+    String prefix = "refs/copybara_fetch/";
+    if (fullRef.startsWith(prefix)) {
+      fullRef = fullRef.substring(prefix.length());
+    }
+    String suffix = "/" + FULL_REF_NAMESPACE;
+    if (fullRef.endsWith(suffix)) {
+      fullRef = fullRef.substring(0, fullRef.length() - suffix.length());
+    }
+
+    return fullRef;
   }
 
   @Override
