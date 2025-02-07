@@ -1,0 +1,75 @@
+name: Weekly Release
+
+on:
+  #  Uncoment these two lines to test the pipeline in a PR, but NEVER merge in main branch:
+  #  pull_request:
+  #    branches: [ "master" ]
+  schedule:
+    - cron: '0 11 * * 1' # Run every Monday at 7am NYC time
+      branches:
+        - master
+  workflow_dispatch: # allows manual releasing
+      branches:
+        - master
+jobs:
+  build_and_release:
+    runs-on: ubuntu-latest
+    # Uncomment for testing in PRs, but NEVER merge in main branch:
+    #if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Bazel
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'adopt'
+          java-version: '21'
+
+      - name: Build with Bazel
+        run: bazel build java/com/google/copybara/copybara_deploy.jar
+
+      - name: Get current date
+        id: date
+        run: |
+          echo "date=$(date +%Y%m%d)" >> $GITHUB_ENV
+
+      - name: Calculate SHA256 checksum
+        id: checksum
+        run: sha256sum bazel-bin/java/com/google/copybara/copybara_deploy.jar | awk '{print $1}' > copybara_deploy.jar.sha256
+
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.date.outputs.date }}
+          release_name: Release v${{ env.date }}
+          body: |
+            Automated weekly test release snapshot from master branch.
+            This is a test release, version compatibility or correctness
+            not guaranteed.
+          draft: false # change this to true when testing
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: bazel-bin/java/com/google/copybara/copybara_deploy.jar
+          asset_name: copybara_deploy.jar
+          asset_content_type: application/java-archive
+
+      - name: Upload Checksum File
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: copybara_deploy.jar.sha256
+          asset_name: copybara_deploy.jar.sha256
+          asset_content_type: text/plain
