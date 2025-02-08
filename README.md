@@ -136,20 +136,23 @@ If using a weekly snapshot release, install Copybara as follows:
    - In WORKSPACE: `load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_jar")`
    - In MODULE.bazel: `http_jar = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_jar")`
 3. In WORKSPACE or MODULE.bazel, add:
-
+    ```starlark
     http_jar(
         name = "com_github_google_copybara",
         # from https://github.com/google/copybara/releases/download/v20250207/copybara_deploy.jar.sha256
         sha256 = "9c7a2208c77592390f997a72f22ad5b8bea7729c4ca4a8c7c1ab9bc83ef70c98",
         urls = ["https://github.com/google/copybara/releases/download/v20250207/copybara_deploy.jar"],
     )
+    ```
 4. In any BUILD file (perhaps `/tools/BUILD.bazel`) declare the `java_binary`:
+   ```starlark
    load("@rules_java//java:java_binary.bzl", "java_binary")
    java_binary(
       name = "copybara",
       main_class = "com.google.copybara.Main",
       runtime_deps = ["@com_github_google_copybara//jar"],
    )
+   ```
 5. Use that target with `bazel run`, for example `bazel run //tools:copybara -- migrate copy.bara.sky`
 
 ### Building Copybara from Source as an external Bazel repository
