@@ -27,13 +27,13 @@ jobs:
           distribution: 'adopt'
           java-version: '21'
 
-      - name: Build with Bazel
-        run: bazel build java/com/google/copybara/copybara_deploy.jar
-
       - name: Get current date
         id: date
         run: |
           echo "date=$(date +%Y%m%d)" >> $GITHUB_ENV
+
+      - name: Build with Bazel
+        run: bazel build java/com/google/copybara/copybara_deploy.jar --stamp --embed_label v${{ env.date }}
 
       - name: Calculate SHA256 checksum
         id: checksum

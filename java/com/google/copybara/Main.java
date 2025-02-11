@@ -57,6 +57,7 @@ import com.google.copybara.util.console.LogConsole;
 import com.google.copybara.util.console.NoPromptConsole;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -67,6 +68,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
@@ -83,6 +85,8 @@ public class Main {
   private static final String COPYBARA_NAMESPACE = "com.google.copybara";
 
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
+  private static final String BUILD_DATA_PROPERTIES = "/build-data.properties";
+  public static final String BUILD_LABEL = "Build label";
   /**
    * Represents the environment, typically {@code System.getEnv()}. Injected to make easier tests.
    *
@@ -300,15 +304,37 @@ public class Main {
    * Returns a short String representing the version of the binary
    */
   protected String getVersion() {
-    return "Unknown version";
+    String buildLabel = getBuildInfo().get(BUILD_LABEL);
+    return buildLabel == null ? "Unknown version" : buildLabel;
   }
 
+  private static ImmutableMap<String, String> getBuildInfo() {
+    try (InputStream in = Main.class.getResourceAsStream(BUILD_DATA_PROPERTIES)) {
+      if (in == null) {
+        return ImmutableMap.of();
+      }
+      Properties props = new Properties();
+      props.load(in);
+      ImmutableMap.Builder<String, String> buildData = ImmutableMap.builder();
+      for (Object key : props.keySet()) {
+        String stringKey = key.toString();
+        if (stringKey.startsWith("build.")) {
+          // build.label -> Build label, build.timestamp.as.int -> Build timestamp as int
+          String buildDataKey = "B" + stringKey.substring(1).replace('.', ' ');
+          buildData.put(buildDataKey, props.getProperty(stringKey, ""));
+        }
+      }
+      return buildData.buildOrThrow();
+    } catch (IOException ignored) {
+      return ImmutableMap.of();
+    }
+  }
   /**
    * Returns a String (can be multiline) representing all the information about who and when the
    * Copybara was built.
    */
   protected String getBinaryInfo() {
-    return "Unknown version";
+    return Joiner.on("\n").withKeyValueSeparator(": ").join(getBuildInfo());
   }
 
   protected Consumer<Migration> getMigrationRanConsumer() {
