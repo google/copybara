@@ -813,7 +813,9 @@ public class GitRepositoryTest {
         false,
         Optional.empty(),
         false);
-    local.withWorkTree(localWorkdir).forceCheckout(defaultBranch, ImmutableSet.of("a"));
+    local
+        .withWorkTree(localWorkdir)
+        .forceCheckout(defaultBranch, ImmutableSet.of("a"), DEFAULT_TIMEOUT);
 
     assertThat(Files.exists(localWorkdir.resolve("a/foo.txt"))).isTrue();
     assertThat(Files.exists(localWorkdir.resolve("b/bar.txt"))).isFalse();

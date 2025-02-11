@@ -458,13 +458,13 @@ public class GitOrigin implements Origin<GitRevision> {
       GitRepository repo = repository.withWorkTree(workdir);
       if (partialFetch) {
         repo.setSparseCheckout(originFiles.tips());
-        repo.forceCheckout(ref.getSha1());
+        repo.forceCheckout(ref.getSha1(), generalOptions.commandsTimeout);
         return repo;
       }
-      repo.forceCheckout(ref.getSha1(),
-          gitOptions.experimentCheckoutAffectedFiles
-          ? originFiles.roots()
-          : ImmutableSet.of());
+      repo.forceCheckout(
+          ref.getSha1(),
+          gitOptions.experimentCheckoutAffectedFiles ? originFiles.roots() : ImmutableSet.of(),
+          generalOptions.commandsTimeout);
       return repo;
     }
 

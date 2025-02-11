@@ -1316,21 +1316,44 @@ public class GitRepository {
 
   /**
    * Checks out the given ref in the repo, quietly and throwing away local changes. If checkoutPath
-   * is empty, it will checkout all files. If not, it will only checkout checkoutPaths
+   * is empty, it will checkout all files. If not, it will only checkout checkoutPaths.
+   *
+   * @param ref the ref to checkout
+   * @param checkoutPaths the paths to checkout, relative to the repo's root
+   * @param commandTimeout the command timeout to use for the checkout operation
+   * @return the command output
+   * @throws RepoException if there is an issue checking out the ref from the repo
    */
-  public CommandOutput forceCheckout(String ref, ImmutableSet<String> checkoutPaths)
+  @CanIgnoreReturnValue
+  public CommandOutput forceCheckout(
+      String ref, ImmutableSet<String> checkoutPaths, Duration commandTimeout)
       throws RepoException {
     ImmutableList.Builder<String> argv = ImmutableList.builder();
     argv.add("checkout", "-q", "-f", checkNotNull(ref));
     argv.addAll(checkoutPaths.stream().filter(e -> !e.isEmpty()).collect(Collectors.toList()));
-    return simpleCommand(argv.build());
+    return simpleCommand(commandTimeout, argv.build());
+  }
+
+  /** Checks out the given ref in the repo, quietly and throwing away local changes. */
+  public CommandOutput forceCheckout(String ref) throws RepoException {
+    return forceCheckout(ref, null);
   }
 
   /**
-   * Set the sparse checkout
+   * Checks out the given ref in the repo, quietly and throwing away local changes.
+   *
+   * @param ref the ref to check out
+   * @return the command output
+   * @throws RepoException if there is an issue checking out the given ref
    */
-  public CommandOutput setSparseCheckout(ImmutableSet<String> checkoutPaths)
+  @CanIgnoreReturnValue
+  public CommandOutput forceCheckout(String ref, @Nullable Duration commandTimeout)
       throws RepoException {
+    return simpleCommand(commandTimeout, "checkout", "-q", "-f", checkNotNull(ref));
+  }
+
+  /** Set the sparse checkout */
+  public CommandOutput setSparseCheckout(ImmutableSet<String> checkoutPaths) throws RepoException {
     ImmutableList.Builder<String> argv = ImmutableList.builder();
     argv.add("sparse-checkout", "set");
     argv.addAll(
@@ -1339,13 +1362,6 @@ public class GitRepository {
             .collect(Collectors.toList()));
     argv.add("--cone");
     return simpleCommand(argv.build());
-  }
-
-  /**
-   * Checks out the given ref in the repo, quietly and throwing away local changes.
-   */
-  public CommandOutput forceCheckout(String ref) throws RepoException {
-    return simpleCommand("checkout", "-q", "-f", checkNotNull(ref));
   }
 
   // DateTimeFormatter.ISO_OFFSET_DATE_TIME might include subseconds, but Git's ISO8601 format does
