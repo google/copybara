@@ -31,6 +31,7 @@ import com.google.copybara.credentials.CredentialRetrievalException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.gitlab.api.entities.GitLabApiEntity;
+import com.google.copybara.git.gitlab.api.entities.PaginatedPageList;
 import com.google.copybara.http.auth.AuthInterceptor;
 import com.google.copybara.json.GsonParserUtil;
 import com.google.copybara.util.console.Console;
@@ -72,9 +73,14 @@ public class GitLabApiTransportImpl implements GitLabApiTransport {
     try {
       console.verboseFmt("Sending GET request to %s", url);
       HttpResponse httpResponse = getGetHttpResponse(headers, url);
-      // TODO: b/394914756 - Support GitLab API pagination
-      return Optional.ofNullable(
-          GsonParserUtil.parseHttpResponse(httpResponse, responseType, false));
+      T response = GsonParserUtil.parseHttpResponse(httpResponse, responseType, false);
+      if (response instanceof PaginatedPageList<?> paginatedPageList) {
+        @SuppressWarnings("unchecked") // This PaginatedPageList is guaranteed to cast back to a T.
+        T responseWithNextUrl =
+            (T) paginatedPageList.withPaginatedInfo(getApiUrl(), httpResponse.getHeaders());
+        response = responseWithNextUrl;
+      }
+      return Optional.ofNullable(response);
     } catch (HttpResponseException e) {
       throw new GitLabApiException(
           String.format("Error calling GET on %s", url), e.getStatusCode(), e);
@@ -155,7 +161,11 @@ public class GitLabApiTransportImpl implements GitLabApiTransport {
 
   private GenericUrl getFullEndpointGenericUrl(String path) {
     String trimmedPath = path.startsWith("/") ? path.substring(1) : path;
-    return new GenericUrl(URI.create(hostUrl + "/" + API_PATH + "/" + trimmedPath));
+    return new GenericUrl(URI.create(getApiUrl() + "/" + trimmedPath));
+  }
+
+  private String getApiUrl() {
+    return hostUrl + "/" + API_PATH;
   }
 
   private static String getGitLabHostUrl(String repoUrl) {

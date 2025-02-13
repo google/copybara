@@ -12,27 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("@rules_java//java:defs.bzl", "java_library")
+load("//javatests/com/google/copybara:test.bzl", "all_tests")
 
-package(default_visibility = ["//visibility:public"])
-
-java_library(
-    name = "gitlab_api",
-    srcs = [
-        "GitLabApi.java",
-        "GitLabApiException.java",
-        "GitLabApiTransport.java",
-        "GitLabApiTransportImpl.java",
+all_tests(
+    name = "all_tests",
+    env = {"LC_CTYPE": "en_US.UTF-8"},
+    tags = ["local"],
+    tests = [
+        "PaginatedPageListTest.java",
     ],
     deps = [
-        "//java/com/google/copybara/credentials",
-        "//java/com/google/copybara/exception",
         "//java/com/google/copybara/git/gitlab/api/entities",
-        "//java/com/google/copybara/http/auth",
         "//java/com/google/copybara/json",
-        "//java/com/google/copybara/util/console",
         "//third_party:google_http_client",
-        "//third_party:guava",
-        "//third_party:jsr305",
+        "//third_party:google_http_client_test",
+        "//third_party:junit",
+        "//third_party:truth",
     ],
 )

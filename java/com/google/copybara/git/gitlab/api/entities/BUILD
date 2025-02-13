@@ -17,6 +17,14 @@ load("@rules_java//java:defs.bzl", "java_library")
 package(default_visibility = ["//visibility:public"])
 
 java_library(
-    name = "git_lab_api_entity",
-    srcs = ["GitLabApiEntity.java"],
+    name = "entities",
+    srcs = [
+        "GitLabApiEntity.java",
+        "PaginatedPageList.java",
+    ],
+    deps = [
+        "//third_party:google_http_client",
+        "//third_party:guava",
+        "//third_party:re2j",
+    ],
 )

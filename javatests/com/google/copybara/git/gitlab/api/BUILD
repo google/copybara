@@ -18,12 +18,15 @@ all_tests(
     name = "all_tests",
     env = {"LC_CTYPE": "en_US.UTF-8"},
     tags = ["local"],
-    tests = ["GitLabApiTransportImplTest.java"],
+    tests = [
+        "GitLabApiTest.java",
+        "GitLabApiTransportImplTest.java",
+    ],
     deps = [
         "//java/com/google/copybara/credentials",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/git/gitlab/api:gitlab_api",
-        "//java/com/google/copybara/git/gitlab/api/entities:git_lab_api_entity",
+        "//java/com/google/copybara/git/gitlab/api/entities",
         "//java/com/google/copybara/http/auth",
         "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/util/console/testing",
