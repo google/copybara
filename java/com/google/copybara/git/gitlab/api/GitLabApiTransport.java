@@ -20,6 +20,8 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.gitlab.api.entities.GitLabApiEntity;
+import java.lang.reflect.Type;
+import java.util.Optional;
 
 /** An interface for transports that communicate with a GitLab API endpoint. */
 public interface GitLabApiTransport {
@@ -29,12 +31,13 @@ public interface GitLabApiTransport {
    *
    * @param <T> the class the JSON response will be parsed to
    * @param path the path to call, e.g. projects/13422/merge_requests
+   * @param responseType the Java type that GSON should parse the response into
    * @param headers the headers to add to the HTTP request
-   * @return the returned {@link T}
+   * @return the returned {@link T}, if a response is returned
    * @throws GitLabApiException if there is an issue performing the request
    * @throws ValidationException if there is an issue with credential issuing or retrieval
    */
-  <T> T get(String path, Class<T> responseClazz, ImmutableListMultimap<String, String> headers)
+  <T> Optional<T> get(String path, Type responseType, ImmutableListMultimap<String, String> headers)
       throws GitLabApiException, ValidationException;
 
   /**
@@ -43,14 +46,15 @@ public interface GitLabApiTransport {
    * @param <T> the class the JSON response will be parsed to
    * @param path the path to call, e.g. projects/13422/merge_requests
    * @param request the object to send as part of the request
-   * @return the returned {@link T}
+   * @param responseType the Java type that GSON should parse the response into
+   * @return the returned {@link T}, if a response is returned
    * @throws GitLabApiException if there is an issue performing the request
    * @throws ValidationException if there is an issue with credential issuing or retrieval
    */
-  <T> T post(
+  <T> Optional<T> post(
       String path,
       GitLabApiEntity request,
-      Class<T> responseClazz,
+      Type responseType,
       ImmutableListMultimap<String, String> headers)
       throws RepoException, ValidationException;
 

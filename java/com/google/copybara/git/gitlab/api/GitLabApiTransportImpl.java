@@ -34,9 +34,10 @@ import com.google.copybara.git.gitlab.api.entities.GitLabApiEntity;
 import com.google.copybara.http.auth.AuthInterceptor;
 import com.google.copybara.json.GsonParserUtil;
 import com.google.copybara.util.console.Console;
-import com.google.gson.reflect.TypeToken;
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.net.URI;
+import java.util.Optional;
 import javax.annotation.Nullable;
 
 /**
@@ -64,16 +65,16 @@ public class GitLabApiTransportImpl implements GitLabApiTransport {
   }
 
   @Override
-  public <T> T get(
-      String path, Class<T> responseClazz, ImmutableListMultimap<String, String> headers)
+  public <T> Optional<T> get(
+      String path, Type responseType, ImmutableListMultimap<String, String> headers)
       throws GitLabApiException, ValidationException {
     GenericUrl url = getFullEndpointGenericUrl(path);
     try {
       console.verboseFmt("Sending GET request to %s", url);
       HttpResponse httpResponse = getGetHttpResponse(headers, url);
       // TODO: b/394914756 - Support GitLab API pagination
-      return GsonParserUtil.parseHttpResponse(
-          httpResponse, TypeToken.get(responseClazz).getType(), false);
+      return Optional.ofNullable(
+          GsonParserUtil.parseHttpResponse(httpResponse, responseType, false));
     } catch (HttpResponseException e) {
       throw new GitLabApiException(
           String.format("Error calling GET on %s", url), e.getStatusCode(), e);
@@ -107,19 +108,18 @@ public class GitLabApiTransportImpl implements GitLabApiTransport {
   }
 
   @Override
-  public <T> T post(
+  public <T> Optional<T> post(
       String path,
       GitLabApiEntity request,
-      Class<T> responseClazz,
+      Type responseType,
       ImmutableListMultimap<String, String> headers)
       throws GitLabApiException, ValidationException {
     GenericUrl url = getFullEndpointGenericUrl(path);
     try {
       console.verboseFmt("Sending POST request to %s", url);
       HttpResponse httpResponse = getPostHttpResponse(request, url);
-      // TODO: b/394914756 - Support GitLab API pagination
-      return GsonParserUtil.parseHttpResponse(
-          httpResponse, TypeToken.get(responseClazz).getType(), false);
+      return Optional.ofNullable(
+          GsonParserUtil.parseHttpResponse(httpResponse, responseType, false));
     } catch (HttpResponseException e) {
       throw new GitLabApiException(
           String.format("Error calling POST on %s", url), e.getStatusCode(), e);

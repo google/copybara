@@ -47,6 +47,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -75,12 +76,13 @@ public class GitLabApiTransportImplTest {
             "https://gitlab.copybara.io/capybara/project",
             bearerInterceptor);
 
-    TestResponse testResponse =
+    Optional<TestResponse> testResponse =
         underTest.get(
             "/projects/12345/test_request", TestResponse.class, ImmutableListMultimap.of());
 
-    assertThat(testResponse.getId()).isEqualTo(12345);
-    assertThat(testResponse.getDescription()).isEqualTo("capybara");
+    assertThat(testResponse).isPresent();
+    assertThat(testResponse.get().getId()).isEqualTo(12345);
+    assertThat(testResponse.get().getDescription()).isEqualTo("capybara");
   }
 
   @Test
@@ -95,7 +97,7 @@ public class GitLabApiTransportImplTest {
             "https://gitlab.copybara.io:8080/capybara/project",
             bearerInterceptor);
 
-    TestResponse unused =
+    Optional<TestResponse> unused =
         underTest.get(
             "/projects/12345/test_request", TestResponse.class, ImmutableListMultimap.of());
 
@@ -149,15 +151,16 @@ public class GitLabApiTransportImplTest {
             bearerInterceptor);
     TestRequest testRequest = new TestRequest(54321, "baracopy");
 
-    TestResponse testResponse =
+    Optional<TestResponse> testResponse =
         underTest.post(
             "/projects/12345/test_request",
             testRequest,
             TestResponse.class,
             ImmutableListMultimap.of());
 
-    assertThat(testResponse.getId()).isEqualTo(12345);
-    assertThat(testResponse.getDescription()).isEqualTo("capybara");
+    assertThat(testResponse).isPresent();
+    assertThat(testResponse.get().getId()).isEqualTo(12345);
+    assertThat(testResponse.get().getDescription()).isEqualTo("capybara");
   }
 
   @Test
@@ -173,7 +176,7 @@ public class GitLabApiTransportImplTest {
             bearerInterceptor);
     TestRequest testRequest = new TestRequest(54321, "baracopy");
 
-    TestResponse unused =
+    Optional<TestResponse> unused =
         underTest.post(
             "/projects/12345/test_request",
             testRequest,
@@ -244,7 +247,7 @@ public class GitLabApiTransportImplTest {
         getApiTransport(
             httpTransport, "https://gitlab.copybara.io/capybara/project", bearerInterceptor);
 
-    TestResponse unused =
+    Optional<TestResponse> unused =
         underTest.get(
             "/projects/12345/test_request", TestResponse.class, ImmutableListMultimap.of());
 
