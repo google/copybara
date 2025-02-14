@@ -245,6 +245,7 @@ public class Main {
       Path baseWorkdir = mainArgs.getBaseWorkdir(generalOptions, generalOptions.getFileSystem());
 
       commandEnv = new CommandEnv(baseWorkdir, options, cmdToRun.getArgs(), mainArgs);
+      initMonitoringEnvironment(commandEnv, cmdToRun.getArgs());
       generalOptions.console().progressFmt("Running %s", subcommand.name());
 
       ExitCode exitCode = subcommand.run(commandEnv);
@@ -298,6 +299,10 @@ public class Main {
         new GeneratorCmd(moduleSet),
         new VersionCmd(),
         new RegenerateCmd(configLoaderProvider));
+  }
+
+  protected void initMonitoringEnvironment(CommandEnv commandEnv, ImmutableList<String> args) {
+    // Hook to initialize monitoring environment - intentionally do nothing
   }
 
   /**

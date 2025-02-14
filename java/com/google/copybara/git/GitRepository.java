@@ -89,7 +89,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
@@ -562,11 +561,13 @@ public class GitRepository {
       ImmutableMap<String, GitRevision> after = showRef();
       return new FetchResult(before, after);
     }
-    checkFetchError(output.getStderr(), url, requestedRefs);
+    checkFetchError(
+        output.getStderr(), url, requestedRefs, output.getTerminationStatus().getExitCode());
     throw throwUnknownGitError(output, args);
   }
 
-  public void checkFetchError(String stdErr, String url, List<String> requestedRefs)
+  public void checkFetchError(
+      String stdErr, String url, List<String> requestedRefs, Integer exitCode)
       throws ValidationException, RepoException {
     if (stdErr.isEmpty()
         || FETCH_CANNOT_RESOLVE_ERRORS.matcher(stdErr).find()) {
