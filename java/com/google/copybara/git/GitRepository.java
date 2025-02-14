@@ -1979,7 +1979,7 @@ public class GitRepository {
             Path target = readSymlink(rev.getSha1(), file.getPath());
             symlinks.put(path, target);
           } else {
-            Files.writeString(path, readFile(rev.getSha1(), file.getPath()));
+            Files.write(path, readFileBytes(rev.getSha1(), file.getPath()));
           }
         } catch (IOException e) {
           throw new RepoException(String

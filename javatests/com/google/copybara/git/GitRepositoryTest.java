@@ -1002,6 +1002,20 @@ public class GitRepositoryTest {
   }
 
   @Test
+  public void testCheckoutBinaryFile() throws Exception {
+    var contents = new byte[]{ (byte) 0, (byte) 1, (byte) 2, (byte) 127, (byte) 128, (byte) 254, (byte) 255};
+    Files.write(workdir.resolve("binary"), contents);
+
+    repository.simpleCommand("add", ".");
+    repository.simpleCommand("commit", "-m", "add binary file");
+    GitRevision rev = repository.getHeadRef();
+
+    Path tempDir = Files.createTempDirectory("testDestination");
+    repository.checkout(Glob.ALL_FILES, tempDir, rev);
+    assertThat(Files.readAllBytes(tempDir.resolve("binary"))).isEqualTo(contents);
+  }
+
+  @Test
   public void validateUrl() throws Exception {
     doValidateUrl("ssh://git@github.com:foo/foo.git");
     doValidateUrl("https://github.com/foo/foo");
