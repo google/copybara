@@ -89,6 +89,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
@@ -1969,38 +1970,37 @@ public class GitRepository {
     ImmutableList<TreeElement> treeElements = lsTree(rev, null, true, true);
     PathMatcher pathMatcher = glob.relativeTo(destRoot);
 
-    ImmutableMap.Builder<Path, Path> symlinks = ImmutableMap.builder();
+    var checkoutFiles = new Object() {
+      void run(ImmutableList<String> files) throws RepoException {
+        ImmutableList.Builder<String> args = ImmutableList.builder();
+        args.add(
+          "--git-dir", gitDir.toString(),
+          "--work-tree", destRoot.toString(),
+          "checkout", rev.getSha1(), "--");
+        args.addAll(files);
+        git(getCwd(), args.build().toArray(new String[0]));
+      }
+    };
 
+    ImmutableList.Builder<String> pendingFiles = ImmutableList.builder();
+    int pendingFilesLength = 0;
     for (TreeElement file : treeElements) {
-      Path path = destRoot.resolve(file.getPath());
-      if (pathMatcher.matches(path)) {
-        try {
-          if (file.mode.equals(TreeElement.SYMLINK_MODE)) {
-            Path target = readSymlink(rev.getSha1(), file.getPath());
-            symlinks.put(path, target);
-          } else {
-            Files.write(path, readFileBytes(rev.getSha1(), file.getPath()));
-          }
-        } catch (IOException e) {
-          throw new RepoException(String
-              .format("Cannot write '%s' from reference '%s' into '%s'", file.getPath(), rev,
-                  path), e);
-        }
+      var path = file.getPath();
+      if (pathMatcher.matches(destRoot.resolve(path))) {
+        pendingFiles.add(path);
+        pendingFilesLength += path.length();
       }
-    }
 
-    // write symlinks after files to make sure targets exist
-    for (Map.Entry<Path, Path> symlinkEntry : symlinks.buildKeepingLast().entrySet()) {
-      try {
-        Files.createSymbolicLink(symlinkEntry.getKey(), symlinkEntry.getValue());
-      } catch (IOException e) {
-        throw new RepoException(
-            String.format(
-                "Cannot write symlink '%s' pointing to '%s'",
-                symlinkEntry.getKey(), symlinkEntry.getValue()),
-            e);
+      // Arbitrarily limit the size of the files list. If it exceeds the limit,
+      // we do the checkout in multiple batches. This works around "argument
+      // list too long" errors.
+      if (pendingFilesLength > 128 * 1024) {
+        checkoutFiles.run(pendingFiles.build());
+        pendingFiles = ImmutableList.builder();
+        pendingFilesLength = 0;
       }
     }
+    if (pendingFilesLength > 0) checkoutFiles.run(pendingFiles.build());
   }
 
   GitRevision commitTree(String message, String tree, List<GitRevision> parents)
