@@ -3,5 +3,6 @@ bazel-*
 *.iml
 *.pyc
 .ijwb
+.aswb
 /.bazelrc.user
 MODULE.bazel.lock
