@@ -32,10 +32,12 @@ public abstract class DocBase implements Comparable<DocBase> {
 
   protected final String name;
   protected final String description;
+  private final boolean isDocumented;
 
-  DocBase(String name, String description) {
+  DocBase(String name, String description, boolean isDocumented) {
     this.name = checkNotNull(name);
     this.description = checkNotNull(description);
+    this.isDocumented = isDocumented;
   }
 
   public String getName() {
@@ -44,6 +46,10 @@ public abstract class DocBase implements Comparable<DocBase> {
 
   public String getDescription() {
     return description;
+  }
+
+  public boolean isDocumented() {
+    return isDocumented;
   }
 
   @Override
@@ -58,8 +64,8 @@ public abstract class DocBase implements Comparable<DocBase> {
     final TreeSet<DocFunction> functions = new TreeSet<>();
     final TreeSet<DocFlag> flags = new TreeSet<>();
 
-    DocModule(String name, String description) {
-      super(name, description);
+    DocModule(String name, String description, boolean isDocumented) {
+      super(name, description, isDocumented);
     }
 
     @Override
@@ -80,8 +86,8 @@ public abstract class DocBase implements Comparable<DocBase> {
 
     final String type;
 
-    DocFlag(String name, String type, String description) {
-      super(name, description);
+    DocFlag(String name, String type, String description, boolean isDocumented) {
+      super(name, description, isDocumented);
       this.type = type;
     }
   }
@@ -115,8 +121,9 @@ public abstract class DocBase implements Comparable<DocBase> {
         Iterable<DocExample> examples,
         boolean hasStar,
         boolean hasStarStar,
-        boolean isSelfCall) {
-      super(name, description);
+        boolean isSelfCall,
+        boolean isDocumented) {
+      super(name, description, isDocumented);
       this.returnType = returnType;
       this.params = ImmutableList.copyOf(params);
       this.examples = ImmutableList.copyOf(examples);
@@ -143,8 +150,12 @@ public abstract class DocBase implements Comparable<DocBase> {
     }
 
     DocParam(
-        String name, @Nullable String defaultValue, List<String> allowedTypes, String description) {
-      super(name, description);
+        String name,
+        @Nullable String defaultValue,
+        List<String> allowedTypes,
+        String description,
+        boolean isDocumented) {
+      super(name, description, isDocumented);
       this.defaultValue = defaultValue;
       this.allowedTypes = allowedTypes;
     }
@@ -164,8 +175,8 @@ public abstract class DocBase implements Comparable<DocBase> {
 
     @Nullable final String type;
 
-    DocField(String name, String description, @Nullable String type) {
-      super(name, description);
+    DocField(String name, String description, @Nullable String type, boolean isDocumented) {
+      super(name, description, isDocumented);
       this.type = type;
     }
 

@@ -24,6 +24,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.copybara.doc.DocBase.DocExample;
 import com.google.copybara.doc.DocBase.DocField;
@@ -61,7 +62,7 @@ final class MarkdownRenderer {
   public CharSequence render(Iterable<DocModule> modules, boolean includeFlagAggregate) {
     ImmutableList<DocModule> modulesToRender =
         new ImmutableList.Builder<DocModule>()
-            .addAll(modules)
+            .addAll(Iterables.filter(modules, DocModule::isDocumented))
             .addAll(
                 includeFlagAggregate ? ImmutableList.of(renderFlags(modules)) : ImmutableList.of())
             .build();
@@ -79,8 +80,8 @@ final class MarkdownRenderer {
   }
 
   private void populateUsageMaps(Iterable<DocModule> modules) {
-    for (DocModule module : modules) {
-      for (DocFunction f : module.functions) {
+    for (DocModule module : Iterables.filter(modules, DocModule::isDocumented)) {
+      for (DocFunction f : Iterables.filter(module.functions, DocFunction::isDocumented)) {
         if (f.returnType != null) {
           // add f to the set of functions that return f.returnType
           addToMapValueSet(returnedBy, f.returnType, f.name);
@@ -95,7 +96,7 @@ final class MarkdownRenderer {
           }
         }
 
-        for (DocParam param : f.params) {
+        for (DocParam param : Iterables.filter(f.params, DocParam::isDocumented)) {
           // for each param, for each type accepted by that param,
           // add f to the set of functions that consume the type of that param
           for (String type : param.allowedTypes) {
@@ -116,9 +117,10 @@ final class MarkdownRenderer {
 
   private DocModule renderFlags(Iterable<DocModule> modules) {
     TreeSet<DocFlag> flagSet = new TreeSet<>();
-    modules.forEach(module -> flagSet.addAll(module.flags));
+    Iterables.filter(modules, DocModule::isDocumented)
+        .forEach(module -> flagSet.addAll(module.flags));
     DocModule flagModule =
-        new DocModule("copybara_flags", "All flag options available to the Copybara CLI.");
+        new DocModule("copybara_flags", "All flag options available to the Copybara CLI.", true);
     flagModule.flags.addAll(flagSet);
     return flagModule;
   }
@@ -131,7 +133,7 @@ final class MarkdownRenderer {
       sb.append("  - ");
       sb.append(linkify(module.name));
       sb.append("\n");
-      for (DocFunction f : module.functions) {
+      for (DocFunction f : Iterables.filter(module.functions, DocFunction::isDocumented)) {
         headings.add(f.name);
         sb.append("    - ");
         sb.append(linkify(f.name));
@@ -184,7 +186,7 @@ final class MarkdownRenderer {
       sb.append("\n\n");
     }
 
-    for (DocFunction func : module.functions) {
+    for (DocFunction func : Iterables.filter(module.functions, DocFunction::isDocumented)) {
       sb.append("<a id=\"").append(func.name).append("\" aria-hidden=\"true\"></a>");
       sb.append(title(level + 1, func.name));
       sb.append(func.description);
@@ -206,7 +208,7 @@ final class MarkdownRenderer {
       if (!func.params.isEmpty()) {
         sb.append(htmlTitle(level + 2, "Parameters:", String.format("parameters.%s", func.name)));
         sb.append(tableHeader("Parameter", "Description"));
-        for (DocParam param : func.params) {
+        for (DocParam param : Iterables.filter(func.params, DocParam::isDocumented)) {
           sb.append(
               tableRow(
                   String.format(
@@ -327,7 +329,7 @@ final class MarkdownRenderer {
     if (!flags.isEmpty()) {
       sb.append("\n\n**Command line flags:**\n\n");
       sb.append(tableHeader("Name", "Type", "Description"));
-      for (DocFlag field : flags) {
+      for (DocFlag field : Iterables.filter(flags, DocFlag::isDocumented)) {
         sb.append(
             tableRow(nowrap(field.name), String.format("*%s*", field.type), field.description));
       }

@@ -82,7 +82,7 @@ public final class ModuleLoader {
         .addAll(additionalClasses)
         .build();
     List<DocModule> modules = new ArrayList<>();
-    DocModule docModule = new DocModule("Globals", "Global functions available in Copybara");
+    DocModule docModule = new DocModule("Globals", "Global functions available in Copybara", true);
     modules.add(docModule);
     for (String clsName : classes) {
       try {
@@ -99,7 +99,7 @@ public final class ModuleLoader {
           }
           DocSignaturePrefix prefixAnn = cls.getAnnotation(DocSignaturePrefix.class);
           String prefix = prefixAnn != null ? prefixAnn.value() : library.name();
-          DocModule mod = new DocModule(library.name(), library.doc());
+          DocModule mod = new DocModule(library.name(), library.doc(), library.documented());
           mod.functions.addAll(processFunctions(cls, prefix));
           mod.fields.addAll(processFields(cls));
           mod.flags.addAll(generateFlagsInfo(cls));
@@ -138,7 +138,7 @@ public final class ModuleLoader {
     return Starlark.getMethodAnnotations(cls).entrySet().stream()
         .filter(e -> e.getValue().structField())
         .map(e -> processStarlarkMethod(e.getKey(), e.getValue(), null))
-        .map(m -> new DocField(m.name, m.description, m.returnType))
+        .map(m -> new DocField(m.name, m.description, m.returnType, m.isDocumented()))
         .collect(toImmutableList());
   }
 
@@ -202,7 +202,8 @@ public final class ModuleLoader {
               starlarkParam.name(),
               fieldInfo != null ? fieldInfo.value() : emptyToNull(starlarkParam.defaultValue()),
               allowedTypeNames,
-              starlarkParam.doc()));
+              starlarkParam.doc(),
+              starlarkParam.documented()));
     }
 
     if (!annotation.extraKeywords().name().isEmpty()) {
@@ -211,7 +212,8 @@ public final class ModuleLoader {
               annotation.extraKeywords().name(),
               null,
               ImmutableList.of("dict"),
-              annotation.extraKeywords().doc()));
+              annotation.extraKeywords().doc(),
+              annotation.documented()));
     }
     if (!annotation.extraPositionals().name().isEmpty()) {
       params.add(
@@ -219,7 +221,8 @@ public final class ModuleLoader {
               annotation.extraPositionals().name(),
               null,
               ImmutableList.of("list"),
-              annotation.extraPositionals().doc()));
+              annotation.extraPositionals().doc(),
+              annotation.documented()));
     }
 
     String returnType =
@@ -240,7 +243,8 @@ public final class ModuleLoader {
             .collect(toImmutableList()),
         !annotation.extraPositionals().name().isEmpty(),
         !annotation.extraKeywords().name().isEmpty(),
-        annotation.selfCall());
+        annotation.selfCall(),
+        annotation.documented());
   }
 
   private Collection<DocFlag> generateFlagsInfo(AnnotatedElement el) {
@@ -265,7 +269,8 @@ public final class ModuleLoader {
                         new DocFlag(
                             Joiner.on(", ").join(p.names()),
                             simplerJavaTypes(f.getType()),
-                            description));
+                            description,
+                            !p.hidden()));
                   }
                 }
               }
