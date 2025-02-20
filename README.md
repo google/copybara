@@ -73,7 +73,14 @@ $ copybara copy.bara.sky
 
 ## Getting Started using Copybara
 
-Copybara doesn't have a release process yet, so you need to compile from HEAD.
+The easiest way to start is with weekly "snapshot" releases, that include pre-built a binary.
+Note that these are released automatically without any manual testing, version compatibility or correctness guarantees.
+
+Choose a release from https://github.com/google/copybara/releases.
+
+### Building from Source
+
+To use an unreleased version of copybara, so you need to compile from HEAD.
 In order to do that, you need to do the following:
 
   * [Install JDK 11](https://www.oracle.com/java/technologies/downloads/#java11).
@@ -120,7 +127,35 @@ targets:
 Note: configuration files can be stored in any place, even in a local folder.
 We recommend using a VCS (like git) to store them; treat them as source code.
 
-### Building Copybara in an external Bazel workspace
+### Using pre-built Copybara in Bazel
+
+If using a weekly snapshot release, install Copybara as follows:
+
+1. Copybara ships with class files with version 65.0, so it must be run with Java Runtime 21 or greater. Add to your `.bazelrc` file: `run --java_runtime_version=remotejdk_21`
+2. Use `http_jar` to download the release artifact.
+   - In WORKSPACE: `load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_jar")`
+   - In MODULE.bazel: `http_jar = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_jar")`
+3. In WORKSPACE or MODULE.bazel, fill in the `[version]` placeholder:
+    ```starlark
+    http_jar(
+        name = "com_github_google_copybara",
+        # Fill in from https://github.com/google/copybara/releases/download/[version]/copybara_deploy.jar.sha256
+        # sha256 = "",
+        urls = ["https://github.com/google/copybara/releases/download/[version]/copybara_deploy.jar"],
+    )
+    ```
+4. In any BUILD file (perhaps `/tools/BUILD.bazel`) declare the `java_binary`:
+   ```starlark
+   load("@rules_java//java:java_binary.bzl", "java_binary")
+   java_binary(
+      name = "copybara",
+      main_class = "com.google.copybara.Main",
+      runtime_deps = ["@com_github_google_copybara//jar"],
+   )
+   ```
+5. Use that target with `bazel run`, for example `bazel run //tools:copybara -- migrate copy.bara.sky`
+
+### Building Copybara from Source as an external Bazel repository
 
 There are convenience macros defined for all of Copybara's dependencies. Add the
 following code to your `WORKSPACE` file, replacing `{{ sha256sum }}` and
