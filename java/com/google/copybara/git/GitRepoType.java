@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2016 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -131,6 +131,18 @@ public enum GitRepoType {
           return ghPullRequest;
         }
       }
+      return GIT.resolveRef(
+          repository, repoUrl, ref, generalOptions, describeVersion, partialFetch, fetchDepth);
+    }
+  },
+  @DocField(description = "A git repository hosted in GitLab")
+  GITLAB {
+    @Override
+    GitRevision resolveRef(
+        GitRepository repository, String repoUrl, String ref, GeneralOptions generalOptions,
+        boolean describeVersion, boolean partialFetch, Optional<Integer> fetchDepth)
+        throws RepoException, ValidationException {
+      // TODO(linjordan): Implement GitLab merge request resolution
       return GIT.resolveRef(
           repository, repoUrl, ref, generalOptions, describeVersion, partialFetch, fetchDepth);
     }

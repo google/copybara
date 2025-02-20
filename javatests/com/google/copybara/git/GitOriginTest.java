@@ -231,6 +231,51 @@ public class GitOriginTest {
   }
 
   @Test
+  public void testGitLabOriginToString() throws Exception {
+    origin =
+        skylark.eval(
+            "result",
+            """
+            result = git.gitlab_origin(
+                url = 'https://gitlab.com/google/copybara',
+                ref = 'main'
+            )
+            """);
+    assertThat(origin.toString())
+        .isEqualTo(
+            "GitOrigin{"
+                + "repoUrl=https://gitlab.com/google/copybara, "
+                + "ref=main, "
+                + "repoType=GITLAB, "
+                + "primaryBranchMigrationMode=false"
+                + "}");
+  }
+
+  @Test
+  public void testGitLabOriginWithInvalidRefTracking() throws Exception {
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                skylark.eval(
+                    "result",
+                    """
+                    result = git.gitlab_origin(
+                        url = 'https://gitlab.com/google/copybara',
+                        ref = 'main',
+                        version_selector = core.latest_version(
+                            format = 'refs/tags/1.0.0'
+                        ),
+                    )
+                    """));
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "Cannot use ref field and version_selector. Version selector will decide the ref to"
+                + " migrate");
+  }
+
+  @Test
   public void testEmptyUrl() {
     skylark.evalFails("git.origin( url = '')", "Invalid empty field 'url'");
   }

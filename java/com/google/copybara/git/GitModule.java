@@ -57,6 +57,7 @@ import com.google.copybara.WorkflowOptions;
 import com.google.copybara.action.Action;
 import com.google.copybara.action.StarlarkAction;
 import com.google.copybara.approval.ApprovalsProvider;
+import com.google.copybara.approval.NoneApprovedProvider;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.GlobalMigrations;
@@ -1396,6 +1397,170 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         workflowName,
         githubPostSubmitApprovalsProvider(
             fixedUrl, SkylarkUtil.convertOptionalString(ref), credentialHandler),
+        enableLfs,
+        credentialHandler);
+  }
+
+  @SuppressWarnings("unused")
+  @StarlarkMethod(
+      name = "gitlab_origin",
+      doc =
+          "Defines a Git origin for a GitLab hosted repository.",
+      documented = false,
+      parameters = {
+        @Param(name = "url", named = true, doc = "Indicates the URL of the git repository"),
+        @Param(
+            name = "ref",
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
+            defaultValue = "None",
+            named = true,
+            doc =
+                "Represents the default reference that will be used for reading the revision "
+                    + "from the git repository. For example: 'master'"),
+        @Param(
+            name = "submodules",
+            defaultValue = "'NO'",
+            named = true,
+            doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
+        @Param(
+            name = "excluded_submodules",
+            defaultValue = "[]",
+            allowedTypes = {
+              @ParamType(type = Sequence.class, generic1 = String.class),
+            },
+            named = true,
+            positional = false,
+            doc =
+                "A list of names (not paths, e.g. \"foo\" is the submodule name if [submodule"
+                    + " \"foo\"] appears in the .gitmodules file) of submodules that will not be"
+                    + " download even if 'submodules' is set to YES or RECURSIVE. "),
+        @Param(
+            name = "first_parent",
+            defaultValue = "True",
+            named = true,
+            doc =
+                "If true, it only uses the first parent when looking for changes. Note that"
+                    + " when disabled in ITERATIVE mode, it will try to do a migration for each"
+                    + " change of the merged branch.",
+            positional = false),
+        @Param(
+            name = "partial_fetch",
+            defaultValue = "False",
+            named = true,
+            positional = false,
+            doc = "If true, partially fetch git repository by only fetching affected files."),
+        @Param(
+            name = PATCH_FIELD,
+            allowedTypes = {
+              @ParamType(type = Transformation.class),
+              @ParamType(type = NoneType.class),
+            },
+            defaultValue = "None",
+            named = true,
+            positional = false,
+            doc = PATCH_FIELD_DESC),
+        @Param(
+            name = "describe_version",
+            allowedTypes = {
+              @ParamType(type = Boolean.class),
+              @ParamType(type = NoneType.class),
+            },
+            defaultValue = "None",
+            named = true,
+            positional = false,
+            doc = DESCRIBE_VERSION_FIELD_DOC),
+        @Param(
+            name = "version_selector",
+            allowedTypes = {
+              @ParamType(type = VersionSelector.class),
+              @ParamType(type = NoneType.class),
+            },
+            defaultValue = "None",
+            named = true,
+            positional = false,
+            doc =
+                "Select a custom version (tag)to migrate"
+                    + " instead of 'ref'. Version"
+                    + " selector is expected to match the whole refspec (e.g. 'refs/heads/${n1}')"),
+        @Param(
+            name = "primary_branch_migration",
+            allowedTypes = {
+              @ParamType(type = Boolean.class),
+            },
+            defaultValue = "False",
+            named = true,
+            positional = false,
+            doc =
+                "When enabled, copybara will ignore the 'ref' param if it is 'master' or 'main' and"
+                    + " instead try to establish the default git branch. If this fails, it will"
+                    + " fall back to the 'ref' param.\n"
+                    + "This is intended to help migrating to the new standard of using 'main'"
+                    + " without breaking users relying on the legacy default."),
+        @Param(
+            name = "enable_lfs",
+            defaultValue = "False",
+            named = true,
+            positional = false,
+            doc = "If true, Large File Storage support is enabled for the origin."),
+        @Param(
+            name = "credentials",
+            allowedTypes = {
+              @ParamType(type = UsernamePasswordIssuer.class),
+              @ParamType(type = NoneType.class),
+            },
+            defaultValue = "None",
+            named = true,
+            positional = false,
+            doc = CREDENTIAL_DOC)
+      },
+      useStarlarkThread = true)
+  public GitOrigin gitlabOrigin(
+      String url,
+      Object ref,
+      String submodules,
+      Object excludedSubmodules,
+      Boolean firstParent,
+      Boolean partialFetch,
+      Object patch,
+      Object describeVersion,
+      Object versionSelector,
+      Boolean primaryBranchMigration,
+      Boolean enableLfs,
+      @Nullable Object credentials,
+      StarlarkThread thread)
+      throws EvalException {
+    check(
+        versionSelector == Starlark.NONE || ref == Starlark.NONE,
+        "Cannot use ref field and version_selector. Version selector will decide the ref"
+            + " to migrate");
+
+    List<String> excludedSubmoduleList =
+        Sequence.cast(excludedSubmodules, String.class, "excluded_submodules");
+    checkSubmoduleConfig(submodules, excludedSubmoduleList);
+    String fixedUrl = fixHttp(url, thread.getCallerLocation());
+    PatchTransformation patchTransformation = maybeGetPatchTransformation(patch);
+    CredentialFileHandler credentialHandler = getCredentialHandler(fixedUrl, credentials);
+
+    return GitOrigin.newGitOrigin(
+        options,
+        fixedUrl,
+        SkylarkUtil.convertOptionalString(ref),
+        GitRepoType.GITLAB,
+        stringToEnum("submodules", submodules, GitOrigin.SubmoduleStrategy.class),
+        excludedSubmoduleList,
+        /* includeBranchCommitLogs= */ false,
+        firstParent,
+        partialFetch,
+        primaryBranchMigration,
+        patchTransformation,
+        convertDescribeVersion(describeVersion),
+        convertFromNoneable(versionSelector, null),
+        mainConfigFile.path(),
+        workflowName,
+        new NoneApprovedProvider(),
         enableLfs,
         credentialHandler);
   }
