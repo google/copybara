@@ -114,7 +114,8 @@ public class ArchiveModule implements StarlarkValue {
   }
   
   private static ExtractType resolveArchiveType(CheckoutPath archivePath) throws EvalException {
-    String extension = getFileExtension(archivePath.getPath().getFileName().toString());
+    String filename = archivePath.getPath().getFileName().toString();
+    String extension = getFileExtension(filename);
     switch (extension) {
       case "zip":
         return ExtractType.ZIP;
@@ -123,12 +124,16 @@ public class ArchiveModule implements StarlarkValue {
       case "tar":
         return ExtractType.TAR;
       case "tgz":
-        // fall through
-      case "tar.gz":
         return ExtractType.TAR_GZ;
+      case "gz":
+        if (filename.endsWith(".tar.gz"))  {
+          return ExtractType.TAR_GZ;
+        }
+        // fall through
+      default:
+        throw Starlark.errorf(
+            "The archive type couldn't be inferred for the file: %s",
+            archivePath.getPath().toString());
     }
-
-    throw Starlark.errorf("The archive type couldn't be inferred for the file: %s",
-        archivePath.getPath().toString());
   }
 }

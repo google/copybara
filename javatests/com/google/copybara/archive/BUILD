@@ -25,6 +25,7 @@ all_tests(
         "//java/com/google/copybara/testing",
         "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/util/console/testing",
+        "//third_party:apache_commons_compress",
         "//third_party:truth",
     ],
 )

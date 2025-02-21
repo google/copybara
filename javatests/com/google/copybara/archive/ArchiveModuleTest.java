@@ -22,14 +22,18 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.io.MoreFiles;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -66,6 +70,7 @@ public class ArchiveModuleTest {
         zipOutputStream.closeEntry();
       }
     }
+
   }
 
   @Test
@@ -86,6 +91,37 @@ public class ArchiveModuleTest {
     Path resultFile = workdir.resolve("archive_result/foo.txt");
     assertThat(Files.exists(resultFile)).isTrue();
     assertThat(Files.readString(resultFile)).isEqualTo("copybara");
+  }
+
+  @Test
+  public void testExtract_autoTypeTarGz() throws Exception {
+    Path testFile1 = workdir.resolve("foo.txt");
+    Files.writeString(testFile1, "copybara");
+
+    try (TarArchiveOutputStream tarGzOutputStream =
+        new TarArchiveOutputStream(
+            new GZIPOutputStream(Files.newOutputStream(workdir.resolve("test.tar.gz"))))) {
+      tarGzOutputStream.putArchiveEntry(new TarArchiveEntry(testFile1.toFile(), "foo.txt"));
+      tarGzOutputStream.write(Files.readAllBytes(testFile1));
+      tarGzOutputStream.closeArchiveEntry();
+    }
+    TransformWork work = TransformWorks.of(workdir, "test", console);
+    Transformation t =
+        skylark.eval(
+            "t",
+            ""
+                + "def test(ctx):\n"
+                + "   tarball = ctx.new_path(\"test.tar.gz\")\n"
+                + "   destination = ctx.new_path(\"archive_result\")\n"
+                + "   archive.extract(\n"
+                + "       archive = tarball,\n"
+                + "       destination_folder = destination,\n"
+                + "   )\n"
+                + "t = core.dynamic_transform(test)");
+
+    t.transform(work);
+    Path resulPath = workdir.resolve("archive_result");
+    FileSubjects.assertThatPath(resulPath).containsFile("foo.txt", "copybara");
   }
 
   @Test
