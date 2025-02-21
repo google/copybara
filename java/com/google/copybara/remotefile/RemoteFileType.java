@@ -29,6 +29,7 @@ public enum RemoteFileType {
   ZIP,
   TAR,
   TAR_GZ,
+  TAR_XZ,
   AS_IS;
 
   public static ExtractType toExtractType(RemoteFileType type) throws ValidationException {

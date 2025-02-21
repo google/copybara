@@ -27,6 +27,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
+import org.apache.commons.compress.compressors.xz.XZCompressorOutputStream;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -71,7 +74,7 @@ public final class ExtractUtilTest {
   }
 
   @Test
-  public void testExtractArchive() throws Exception {
+  public void testExtractArchive_zipFile() throws Exception {
     // extract it with null glob
     InputStream is = Files.newInputStream(testZip);
     Path outputPath = testFolder.resolve("output");
@@ -82,7 +85,7 @@ public final class ExtractUtilTest {
   }
 
   @Test
-  public void testFilteredExtractArchive() throws Exception {
+  public void testFilteredExtractArchive_zipFile() throws Exception {
     // extract it using a glob
     InputStream is = Files.newInputStream(testZip);
     Path outputPath = testFolder.resolve("output");
@@ -96,5 +99,30 @@ public final class ExtractUtilTest {
         .isEqualTo(testFileContentsB);
     // test that files not matching the glob have been filtered out
     assertThat(Files.exists(outputPath.resolve(testFilenameA))).isFalse();
+  }
+
+  @Test
+  public void testExtractArchive_tarXzFile() throws Exception {
+    Path testfolder = folder.getRoot().toPath();
+    Path testfile = testfolder.resolve("foo.txt");
+    MoreFiles.asByteSink(testfile).asCharSink(UTF_8).write("copybara");
+    Path testTarXz = testfolder.resolve("test.tar.xz");
+
+    // Create an archived and compressed tar.xz test file and place it in the root directory.
+    try (TarArchiveOutputStream tarXzOutputStream =
+        new TarArchiveOutputStream(
+            new XZCompressorOutputStream(Files.newOutputStream(testTarXz)))) {
+      tarXzOutputStream.putArchiveEntry(new TarArchiveEntry(testfile.toFile(), "foo.txt"));
+      tarXzOutputStream.write(Files.readAllBytes(testfile));
+      tarXzOutputStream.closeArchiveEntry();
+    }
+
+    // Extract it with null glob.
+    InputStream is = Files.newInputStream(testTarXz);
+    Path outputPath = testFolder.resolve("output");
+    ExtractUtil.extractArchive(is, outputPath, ExtractType.TAR_XZ, null);
+    // Test whether all the expected files have been uncompressed and extracted.
+    assertThat(MoreFiles.asByteSource(outputPath.resolve("foo.txt")).asCharSource(UTF_8).read())
+        .isEqualTo("copybara");
   }
 }

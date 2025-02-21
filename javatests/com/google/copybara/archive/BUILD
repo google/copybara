@@ -21,9 +21,7 @@ all_tests(
     tests = glob(["*Test.java"]),
     deps = [
         "//java/com/google/copybara:base",
-        "//java/com/google/copybara/exception",
         "//java/com/google/copybara/testing",
-        "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/util/console/testing",
         "//third_party:apache_commons_compress",
         "//third_party:truth",

@@ -134,7 +134,7 @@ public class RemoteFileModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "'AS_IS'",
             doc =
                 "The method by which to unpack the remote file. Currently 'ZIP', 'TAR', 'TAR_GZ',"
-                    + " and 'AS_IS' are supported.",
+                    + " 'TAR_XZ' and 'AS_IS' are supported.",
             named = true,
             allowedTypes = {@ParamType(type = String.class)}),
         @Param(

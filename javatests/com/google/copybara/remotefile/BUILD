@@ -28,7 +28,6 @@ all_tests(
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/http/auth",
         "//java/com/google/copybara/http/testing",
-        "//java/com/google/copybara/profiler",
         "//java/com/google/copybara/remotefile",
         "//java/com/google/copybara/testing",
         "//java/com/google/copybara/util",

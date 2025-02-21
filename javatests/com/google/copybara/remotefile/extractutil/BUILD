@@ -22,6 +22,7 @@ all_tests(
     deps = [
         "//java/com/google/copybara/remotefile/extractutil",
         "//java/com/google/copybara/util",
+        "//third_party:apache_commons_compress",
         "//third_party:truth",
     ],
 )
