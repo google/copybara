@@ -56,6 +56,7 @@ COPYBARA_MAVEN_ARTIFACTS = [
     maven.artifact("org.jcommander", "jcommander", "2.0"),
     maven.artifact("org.jsoup", "jsoup", "1.16.1"),
     maven.artifact("org.tomlj", "tomlj", "1.1.0"),
+    maven.artifact("org.tukaani", "xz", "1.9"),
     maven.artifact("com.sun.mail", "javax.mail", "1.5.6"),
 ]
 

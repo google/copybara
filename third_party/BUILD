@@ -226,6 +226,13 @@ java_library(
     ],
 )
 
+java_library(
+    name = "tukaani_xz",
+    exports = [
+        "@copybara_maven//:org_tukaani_xz",
+    ],
+)
+
 # Required temporarily until @io_bazel//src/main/java/com/google/devtools/build/lib/syntax/...
 # is fixed
 exports_files(["bazel.patch"])

@@ -24,6 +24,7 @@ java_library(
     javacopts = [
         "-Xlint:unchecked",
     ],
+    runtime_deps = ["//third_party:tukaani_xz"],
     deps = [
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/util",
