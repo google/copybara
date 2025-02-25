@@ -75,7 +75,8 @@ public class GitOrigin implements Origin<GitRevision> {
   private static final ImmutableSet<String> REF_PREFIXES =
       ImmutableSet.of("refs/heads/", "refs/tags/");
 
-  enum SubmoduleStrategy {
+  /** How downloading submodules should be handled by Git origins. */
+  public enum SubmoduleStrategy {
     /** Don't download any submodule. */
     NO,
     /** Download just the first level of submodules, but don't download recursively */

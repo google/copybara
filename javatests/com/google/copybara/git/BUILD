@@ -49,6 +49,8 @@ all_tests(
         "//java/com/google/copybara/git/github:api",
         "//java/com/google/copybara/git/github:util",
         "//java/com/google/copybara/git/github/api/testing:abstract_gitapi_test",
+        "//java/com/google/copybara/git/gitlab/api:gitlab_api",
+        "//java/com/google/copybara/git/gitlab/api/entities",
         "//java/com/google/copybara/git/testing",
         "//java/com/google/copybara/profiler",
         "//java/com/google/copybara/revision",

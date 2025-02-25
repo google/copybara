@@ -82,6 +82,10 @@ import com.google.copybara.git.github.api.CheckRun.Conclusion;
 import com.google.copybara.git.github.api.GitHubEventType;
 import com.google.copybara.git.github.api.GitHubGraphQLApi.GetCommitHistoryParams;
 import com.google.copybara.git.github.util.GitHubUtil;
+import com.google.copybara.git.gitlab.GitLabOptions;
+import com.google.copybara.git.gitlab.api.GitLabApi;
+import com.google.copybara.git.gitlab.api.GitLabApiTransport;
+import com.google.copybara.http.auth.AuthInterceptor;
 import com.google.copybara.transform.Replace;
 import com.google.copybara.transform.patch.PatchTransformation;
 import com.google.copybara.util.RepositoryUtil;
@@ -2594,6 +2598,142 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         primaryBranchMigrationMode,
         checkerObj,
         credentialHandler);
+  }
+
+  @StarlarkMethod(
+      name = "gitlab_mr_origin",
+      doc =
+          "Creates a GitLab Merge Request origin. WARNING: This is still in an experimental state;"
+              + " please do not use.",
+      documented = false,
+      parameters = {
+        @Param(
+            name = "url",
+            named = true,
+            positional = false,
+            doc = "The URL of the GitLab repository."),
+        @Param(
+            name = "credentials",
+            allowedTypes = {
+              @ParamType(type = UsernamePasswordIssuer.class),
+              @ParamType(type = NoneType.class),
+            },
+            defaultValue = "None",
+            named = true,
+            positional = false,
+            doc = CREDENTIAL_DOC),
+        @Param(
+            name = "auth_interceptor",
+            named = true,
+            positional = false,
+            doc =
+                "An interceptor for providing credentials. This is used for inserting"
+                    + " authentication headers to GitLab API calls."),
+        @Param(
+            name = "partial_fetch",
+            named = true,
+            positional = false,
+            doc = "If true, partially fetch the Git repository by only fetching affected files.",
+            defaultValue = "False"),
+        @Param(
+            name = "use_merge_commit",
+            named = true,
+            positional = false,
+            doc =
+                "If the content for GitLab's generated merge commit"
+                    + " (refs/merge-request/&lt;ID&gt;/merge) should be used instead of the MR"
+                    + " head.",
+            defaultValue = "False"),
+        @Param(
+            name = "describe_version",
+            named = true,
+            positional = false,
+            doc = DESCRIBE_VERSION_FIELD_DOC,
+            defaultValue = "True"),
+        @Param(
+            name = "first_parent",
+            defaultValue = "True",
+            named = true,
+            positional = false,
+            doc =
+                "If true, it only uses the first parent when looking for changes. Note that"
+                    + " when disabled in ITERATIVE mode, it will try to do a migration for each"
+                    + " change of the merged branch."),
+        @Param(
+            name = "submodules",
+            defaultValue = "'NO'",
+            named = true,
+            positional = false,
+            doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
+        @Param(
+            name = "excluded_submodules",
+            defaultValue = "[]",
+            allowedTypes = {
+              @ParamType(type = Sequence.class, generic1 = String.class),
+            },
+            named = true,
+            positional = false,
+            doc =
+                "A list of names (not paths, e.g. \"foo\" is the submodule name if [submodule"
+                    + " \"foo\"] appears in the .gitmodules file) of submodules that will not be"
+                    + " download even if 'submodules' is set to YES or RECURSIVE. "),
+        @Param(
+            name = PATCH_FIELD,
+            allowedTypes = {
+              @ParamType(type = Transformation.class),
+              @ParamType(type = NoneType.class),
+            },
+            defaultValue = "None",
+            named = true,
+            positional = false,
+            doc = PATCH_FIELD_DESC),
+      })
+  @SuppressWarnings("unused")
+  public GitLabMrOrigin gitLabMrOrigin(
+      String url,
+      Object usernamePasswordIssuer,
+      AuthInterceptor authInterceptor,
+      boolean partialFetch,
+      boolean useMergeCommit,
+      boolean describeVersion,
+      boolean firstParent,
+      String submodules,
+      Sequence<?> excludedSubmodules,
+      Object patch)
+      throws EvalException {
+    checkNotEmpty(url, "url");
+
+    GitLabOptions gitLabOptions = options.get(GitLabOptions.class);
+    Console console = getGeneralConsole();
+    GitLabApiTransport gitLabApiTransport =
+        GitLabOptions.getApiTransport(
+            url, gitLabOptions.getHttpTransportSupplier().get(), console, authInterceptor);
+    PatchTransformation patchTransformation = maybeGetPatchTransformation(patch);
+
+    GitLabMrOrigin.Builder originBuilder =
+        GitLabMrOrigin.builder()
+            .setGitLabApi(new GitLabApi(gitLabApiTransport))
+            .setConsole(console)
+            .setRepoUrl(URI.create(url))
+            .setGitOptions(options.get(GitOptions.class))
+            .setGitOriginOptions(options.get(GitOriginOptions.class))
+            .setGeneralOptions(options.get(GeneralOptions.class))
+            .setCredentialFileHandler(
+                Optional.ofNullable(getCredentialHandler(url, usernamePasswordIssuer)))
+            .setSubmoduleStrategy(stringToEnum("submodules", submodules, SubmoduleStrategy.class))
+            .setExcludedSubmodules(
+                ImmutableList.copyOf(
+                    Sequence.cast(excludedSubmodules, String.class, "excluded_submodules")))
+            .setPartialFetch(convertFromNoneable(partialFetch, false))
+            .setDescribeVersion(describeVersion)
+            .setFirstParent(firstParent)
+            .setUseMergeCommit(useMergeCommit);
+
+    if (patchTransformation != null) {
+      originBuilder.setPatchTransformation(patchTransformation);
+    }
+
+    return originBuilder.build();
   }
 
   @SuppressWarnings("unused")
