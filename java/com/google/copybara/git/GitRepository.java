@@ -169,7 +169,7 @@ public class GitRepository {
   public static final String GIT_DESCRIBE_ABBREV = "GIT_DESCRIBE_ABBREV";
   public static final String GIT_TAG_POINTS_AT = "GIT_TAG_POINTS_TO";
   public static final String HTTP_PERMISSION_DENIED = "The requested URL returned error: 403";
-  public static final String FULL_REF_NAMESPACE = "copybara_full_ref";
+  public static final String FULL_REF_NAMESPACE = "_copybara_full_ref";
   public static final String COPYBARA_FETCH_NAMESPACE = "refs/copybara_fetch";
 
   /**
@@ -418,7 +418,7 @@ public class GitRepository {
           .addAll(refspec.build())
           .add(
               String.format(
-                  "refs/*/%s:%s/refs/*/%s/%s",
+                  "refs/*/%s:%s/refs/*/%s%s",
                   ref, COPYBARA_FETCH_NAMESPACE, ref, FULL_REF_NAMESPACE));
 
       try {

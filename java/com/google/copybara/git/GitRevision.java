@@ -149,7 +149,10 @@ public final class GitRevision implements Revision {
     } else {
       try {
         ImmutableList<String> matchingRefs =
-            repository.showRef(ImmutableList.of(reference, FULL_REF_NAMESPACE)).entrySet().stream()
+            repository
+                .showRef(ImmutableList.of(reference, reference + FULL_REF_NAMESPACE))
+                .entrySet()
+                .stream()
                 .filter(e -> e.getKey().startsWith(COPYBARA_FETCH_NAMESPACE + "/refs/"))
                 .filter(e -> e.getValue().getSha1().equals(sha1))
                 .map(Entry::getKey)
@@ -181,9 +184,8 @@ public final class GitRevision implements Revision {
     if (fullRef.startsWith(prefix)) {
       fullRef = fullRef.substring(prefix.length());
     }
-    String suffix = "/" + FULL_REF_NAMESPACE;
-    if (fullRef.endsWith(suffix)) {
-      fullRef = fullRef.substring(0, fullRef.length() - suffix.length());
+    if (fullRef.endsWith(FULL_REF_NAMESPACE)) {
+      fullRef = fullRef.substring(0, fullRef.length() - FULL_REF_NAMESPACE.length());
     }
 
     return fullRef;

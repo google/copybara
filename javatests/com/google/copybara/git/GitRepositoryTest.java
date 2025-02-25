@@ -911,7 +911,7 @@ public class GitRepositoryTest {
                 ImmutableList.of(
                     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:refs/copybara_fetch/aaaaaaaaaa"
                         + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                    "refs/*/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:refs/copybara_fetch/refs/*/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/copybara_full_ref"),
+                    "refs/*/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:refs/copybara_fetch/refs/*/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa_copybara_full_ref"),
                 ImmutableList.of(
                     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:refs/copybara_fetch/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")));
   }
