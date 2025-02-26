@@ -2145,7 +2145,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             doc = "If true, the migration provide access to the filesystem to the endpoints",
             defaultValue = "False"),
       },
-      documented = false,
       useStarlarkThread = true)
   public NoneType actionMigration(
       String workflowName,
@@ -2402,7 +2401,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             positional = false),
         @Param(
             name = "use_consistency_file",
-            documented = false,
             doc =
                 "When merging, if a consistency file exists, use it to construct the center of the"
                     + " 3-way merge. This can result in a more accurate merge in some cases, such"

@@ -44,7 +44,6 @@ public class GoModule implements StarlarkValue {
   @StarlarkMethod(
       name = "go_proxy_version_list",
       doc = "Returns go proxy version list object",
-      documented = false,
       parameters = {
         @Param(
             name = "module",
@@ -94,7 +93,6 @@ public class GoModule implements StarlarkValue {
   @StarlarkMethod(
       name = "go_proxy_resolver",
       doc = "Go resolver that knows what to do with command line passed refs.",
-      documented = false,
       parameters = {
         @Param(
             name = "module",
