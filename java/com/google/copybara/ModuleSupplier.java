@@ -41,6 +41,7 @@ import com.google.copybara.git.GitMirrorOptions;
 import com.google.copybara.git.GitModule;
 import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitOriginOptions;
+import com.google.copybara.git.gitlab.GitLabOptions;
 import com.google.copybara.go.GoModule;
 import com.google.copybara.hashing.HashingModule;
 import com.google.copybara.hg.HgModule;
@@ -165,6 +166,7 @@ public class ModuleSupplier {
             new GitHubDestinationOptions(),
             new GerritOptions(generalOptions, gitOptions),
             new GitMirrorOptions(),
+            new GitLabOptions(),
             new HgOptions(generalOptions),
             new HgOriginOptions(),
             new PatchingOptions(generalOptions),
