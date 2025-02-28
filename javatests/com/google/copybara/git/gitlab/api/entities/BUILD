@@ -19,7 +19,9 @@ all_tests(
     env = {"LC_CTYPE": "en_US.UTF-8"},
     tags = ["local"],
     tests = [
+        "MergeRequestTest.java",
         "PaginatedPageListTest.java",
+        "ProjectTest.java",
     ],
     deps = [
         "//java/com/google/copybara/git/gitlab/api/entities",

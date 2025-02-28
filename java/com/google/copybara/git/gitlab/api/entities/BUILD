@@ -20,7 +20,9 @@ java_library(
     name = "entities",
     srcs = [
         "GitLabApiEntity.java",
+        "MergeRequest.java",
         "PaginatedPageList.java",
+        "Project.java",
     ],
     deps = [
         "//third_party:google_http_client",
