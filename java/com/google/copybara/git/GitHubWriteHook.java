@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.flogger.FluentLogger;
+import com.google.copybara.BaseUrlConfig;
 import com.google.copybara.Endpoint;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.checks.Checker;
@@ -227,7 +228,7 @@ public class GitHubWriteHook extends DefaultWriteHook {
             String.format("Reference '%s' deleted", completeRef),
             ImmutableList.of(change),
             new DestinationRef(completeRef, "ref_deleted",
-                "https://github.com/" + projectId + "/tree/" + updatedPrBranchName)));
+                "https://"+ BaseUrlConfig.getBaseUrl() + "/" + projectId + "/tree/" + updatedPrBranchName)));
       } catch (GitHubApiException e) {
         if (e.getResponseCode() == ResponseCode.NOT_FOUND
             || e.getResponseCode() == ResponseCode.UNPROCESSABLE_ENTITY) {

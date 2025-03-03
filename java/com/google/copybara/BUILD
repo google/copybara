@@ -49,6 +49,7 @@ java_library(
         ":base",
         ":copybara_lib",
         ":general_options",
+        ":base_url_config",
         "//java/com/google/copybara/config:base",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/jcommander:converters",
@@ -305,4 +306,10 @@ bzl_library(
     srcs = ["docs.bzl"],
     visibility = ["//visibility:private"],
     deps = ["@rules_java//java:rules"],
+)
+
+java_library(
+    name = "base_url_config",
+    srcs = ["BaseUrlConfig.java"],
+    javacopts = JAVACOPTS,
 )

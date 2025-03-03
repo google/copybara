@@ -38,6 +38,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.google.copybara.BaselinesWithoutLabelVisitor;
+import com.google.copybara.BaseUrlConfig;
 import com.google.copybara.Endpoint;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Origin;
@@ -453,9 +454,9 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
     if (!forceImport() && branch != null && !Objects.equals(prData.getBase().getRef(), branch)) {
       throw new EmptyChangeException(
           String.format(
-              "Cannot migrate http://github.com/%s/pull/%d because its base branch is '%s', but"
+              "Cannot migrate http://%s/%s/pull/%d because its base branch is '%s', but"
                   + " the workflow is configured to only migrate changes for branch '%s'",
-              project, prData.getNumber(), prData.getBase().getRef(), branch));
+              BaseUrlConfig.getBaseUrl(), project, prData.getNumber(), prData.getBase().getRef(), branch));
     }
   }
 
@@ -488,9 +489,9 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
     if (!requiredButNotPresent.isEmpty()) {
       throw new EmptyChangeException(
           String.format(
-              "Cannot migrate http://github.com/%s/pull/%d because it is missing the following"
+              "Cannot migrate http://%s/%s/pull/%d because it is missing the following"
                   + " labels: %s",
-              project, prData.getNumber(), requiredButNotPresent));
+              BaseUrlConfig.getBaseUrl(), project, prData.getNumber(), requiredButNotPresent));
     }
   }
 
@@ -519,9 +520,9 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
       if (!requiredButNotPresent.isEmpty()) {
         throw new EmptyChangeException(
             String.format(
-                "Cannot migrate http://github.com/%s/pull/%d because the following ci labels "
+                "Cannot migrate http://%s/%s/pull/%d because the following ci labels "
                     + "have not been passed: %s",
-                project, prData.getNumber(), requiredButNotPresent));
+                BaseUrlConfig.getBaseUrl(), project, prData.getNumber(), requiredButNotPresent));
       }
     }
   }
@@ -549,9 +550,9 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
       if (!requiredButNotPresent.isEmpty()) {
         throw new EmptyChangeException(
             String.format(
-                "Cannot migrate http://github.com/%s/pull/%d because the following check runs "
+                "Cannot migrate http://%s/%s/pull/%d because the following check runs "
                     + "have not been passed: %s",
-                project, prData.getNumber(), requiredButNotPresent));
+                BaseUrlConfig.getBaseUrl(), project, prData.getNumber(), requiredButNotPresent));
       }
     }
   }
@@ -586,9 +587,9 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
       }
       throw new EmptyChangeException(
           String.format(
-              "Cannot migrate http://github.com/%s/pull/%d because it is missing the required"
+              "Cannot migrate http://%s/%s/pull/%d because it is missing the required"
                   + " approvals (origin is configured as %s).%s",
-              project, prData.getNumber(), reviewState, rejected));
+              BaseUrlConfig.getBaseUrl(), project, prData.getNumber(), reviewState, rejected));
     }
     Set<String> approvers = new HashSet<>();
     Set<String> others = new HashSet<>();

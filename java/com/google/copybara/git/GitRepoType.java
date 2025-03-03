@@ -19,6 +19,7 @@ package com.google.copybara.git;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.flogger.FluentLogger;
+import com.google.copybara.BaseUrlConfig;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.exception.RepoException;
@@ -123,7 +124,7 @@ public enum GitRepoType {
         GitRepository repository, String repoUrl, String ref, GeneralOptions generalOptions,
         boolean describeVersion, boolean partialFetch, Optional<Integer> fetchDepth)
         throws RepoException, ValidationException {
-      if ((ref.startsWith("https://github.com") && ref.startsWith(repoUrl))
+      if ((ref.startsWith("https:/" + BaseUrlConfig.getBaseUrl()) && ref.startsWith(repoUrl))
           || GitHubUtil.maybeParseGithubPrFromMergeOrHeadRef(ref).isPresent()) {
         GitRevision ghPullRequest = maybeFetchGithubPullRequest(repository, repoUrl, ref,
             describeVersion, partialFetch);

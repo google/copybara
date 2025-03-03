@@ -32,6 +32,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.flogger.FluentLogger;
+import com.google.copybara.BaseUrlConfig;
 import com.google.copybara.MainArguments.CommandWithArgs;
 import com.google.copybara.config.ConfigValidator;
 import com.google.copybara.config.Migration;
@@ -128,7 +129,6 @@ public class Main {
     console.verboseFmt("Running: %s", Joiner.on(' ').join(args));
 
     console.startupMessage(getVersion());
-
     CommandResult result = runInternal(args, console, fs);
     try {
       shutdown(result);
@@ -212,6 +212,7 @@ public class Main {
 
     try {
       ModuleSet moduleSet = newModuleSet(environment, fs, console);
+      BaseUrlConfig.setBaseUrl("");
 
       final MainArguments mainArgs = new MainArguments(ImmutableList.copyOf(args));
       Options options = moduleSet.getOptions();

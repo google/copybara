@@ -16,6 +16,7 @@
 
 package com.google.copybara.git;
 
+import com.google.copybara.BaseUrlConfig;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.GeneralOptions;
@@ -39,7 +40,7 @@ class GitHubPrIntegrateLabel implements IntegrateLabel {
 
   private static final Pattern LABEL_PATTERN =
       Pattern.compile(
-          "https://github.com/([.a-zA-Z0-9_/-]+)/pull/([0-9]+)"
+          "https://([.a-zA-Z0-9_/-]+)/([.a-zA-Z0-9_/-]+)/pull/([0-9]+)"
               + " from ([^\\s\\r\\n]*)(?: ([0-9a-f]{7,40}))?");
 
   private final GitRepository repository;
@@ -76,7 +77,7 @@ class GitHubPrIntegrateLabel implements IntegrateLabel {
 
   @Override
   public String toString() {
-    return String.format("https://github.com/%s/pull/%d from %s%s", projectId, prNumber,
+    return String.format("https://%s/%s/pull/%d from %s%s",BaseUrlConfig.getBaseUrl(), projectId, prNumber,
         originBranch, sha1 != null ? " " + sha1 : "");
   }
 
@@ -88,8 +89,8 @@ class GitHubPrIntegrateLabel implements IntegrateLabel {
 
   @Override
   public GitRevision getRevision() throws RepoException, ValidationException {
-    String pr = "https://github.com/" + projectId + "/pull/" + prNumber;
-    String repoUrl = "https://github.com/" + projectId;
+    String pr = "https://" + BaseUrlConfig.getBaseUrl() + "/" + projectId + "/pull/" + prNumber;
+    String repoUrl = "https://"+ BaseUrlConfig.getBaseUrl() + "/" + projectId;
     GitRevision gitRevision = GitRepoType.GITHUB.resolveRef(repository, repoUrl, pr,
         generalOptions, /*describeVersion=*/ false, /*partialFetch*/ false, Optional.empty());
     if (sha1 == null) {

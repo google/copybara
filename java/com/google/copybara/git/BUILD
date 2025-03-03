@@ -50,6 +50,7 @@ java_library(
     deps = [
         ":core",
         ":creds",
+        "//java/com/google/copybara:base_url_config",
         "//java/com/google/copybara:base",
         "//java/com/google/copybara:general_options",
         "//java/com/google/copybara:labels",
