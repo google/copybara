@@ -26,6 +26,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.copybara.BaseUrlConfig;
 import com.google.copybara.ChangeMessage;
 import com.google.copybara.Destination;
 import com.google.copybara.Endpoint;
@@ -346,7 +347,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
   }
 
   private String asHttpsUrl() throws ValidationException {
-    return "https://github.com/" + getProjectName();
+    return "https://" + BaseUrlConfig.getBaseUrl() + getProjectName();
   }
 
   @VisibleForTesting
