@@ -86,6 +86,34 @@ public class GitLabApiTransportImplTest {
   }
 
   @Test
+  public void testSimpleGetRequest_parsingFailure_throwsException() throws Exception {
+    MockHttpTransport.Builder httpTransport = new MockHttpTransport.Builder();
+    httpTransport.setLowLevelHttpResponse(new MockLowLevelHttpResponse().setContent("%foo{)'"));
+    BearerInterceptor bearerInterceptor = getBearerInterceptor();
+    GitLabApiTransport underTest =
+        getApiTransport(
+            httpTransport.build(),
+            "https://gitlab.copybara.io/capybara/project",
+            bearerInterceptor);
+
+    GitLabApiException e =
+        assertThrows(
+            GitLabApiException.class,
+            () ->
+                underTest.get(
+                    "/projects/12345/test_request",
+                    TestResponse.class,
+                    ImmutableListMultimap.of()));
+
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "Error calling GET on https://gitlab.copybara.io/api/v4/projects/12345/test_request."
+                + " Failed to parse response.");
+    assertThat(e).hasCauseThat().isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
   public void testSimpleGetRequest_withHttpPort() throws Exception {
     MockHttpTransport.Builder httpTransport = new MockHttpTransport.Builder();
     httpTransport.setLowLevelHttpResponse(

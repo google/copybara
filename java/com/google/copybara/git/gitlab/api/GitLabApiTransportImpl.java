@@ -86,6 +86,11 @@ public class GitLabApiTransportImpl implements GitLabApiTransport {
           String.format("Error calling GET on %s", url), e.getStatusCode(), e);
     } catch (IOException e) {
       throw new GitLabApiException(String.format("Error calling GET on %s", url), e);
+    } catch (IllegalArgumentException e) {
+      throw new GitLabApiException(
+          String.format(
+              "Error calling GET on %s. Failed to parse response. Cause: %s", url, e.getMessage()),
+          e);
     }
   }
 
