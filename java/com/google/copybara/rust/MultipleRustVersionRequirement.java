@@ -50,7 +50,7 @@ public class MultipleRustVersionRequirement extends RustVersionRequirement {
     ImmutableList.Builder<RustVersionRequirement> requirementsBuilder = ImmutableList.builder();
     try {
       for (String requirementString : requirementStrings) {
-        requirementsBuilder.add(RustVersionRequirement.getVersionRequirement(requirementString));
+        requirementsBuilder.add(RustVersionRequirement.getVersionRequirement(requirementString, false));
       }
     } catch (ValidationException e) {
       throw new ValidationException(

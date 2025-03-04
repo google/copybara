@@ -150,6 +150,7 @@ public class RustModule implements StarlarkValue {
       documented = true,
       parameters = {
         @Param(name = "requirement", named = true, doc = "The Cargo version requirement"),
+        @Param(name = "allow_epochs", named = true, defaultValue = "False", doc = "Allow epoch version requirements"),
       })
   @Example(
       title = "Create a version requirement object",
@@ -157,9 +158,9 @@ public class RustModule implements StarlarkValue {
       code =
           "rust.create_version_requirement(\">= 0.5\")")
   @SuppressWarnings("unused")
-  public RustVersionRequirement getVersionRequirement(String requirement)
+  public RustVersionRequirement getVersionRequirement(String requirement, boolean allowEpochs)
       throws ValidationException {
-    return RustVersionRequirement.getVersionRequirement(requirement);
+    return RustVersionRequirement.getVersionRequirement(requirement, allowEpochs);
   }
 
   @StarlarkMethod(
@@ -177,7 +178,7 @@ public class RustModule implements StarlarkValue {
   public boolean checkVersionRequirement(String requirement, String version)
       throws ValidationException {
     // TODO(chriscampos): Remove this in favor of getVersionRequirement
-    return RustVersionRequirement.getVersionRequirement(requirement).fulfills(version);
+    return RustVersionRequirement.getVersionRequirement(requirement, false).fulfills(version);
   }
 
   @SuppressWarnings("unused")
@@ -392,12 +393,14 @@ public class RustModule implements StarlarkValue {
       documented = false,
       parameters = {
         @Param(name = "requirement", named = true, doc = "The Cargo version requirement"),
+        @Param(name = "allow_epochs", named = true, defaultValue = "False", doc = "Allow epoch version requirements"),
+
       })
   @SuppressWarnings("unused")
-  public RustCratesIoVersionSelector getCratesIoVersionSelector(String requirement)
+  public RustCratesIoVersionSelector getCratesIoVersionSelector(String requirement, boolean allowEpochs)
       throws ValidationException {
     return new RustCratesIoVersionSelector(
-        RustVersionRequirement.getVersionRequirement(requirement));
+        RustVersionRequirement.getVersionRequirement(requirement, allowEpochs));
   }
 
   /** Gets the location of the fuzzers in the upstream repo. */

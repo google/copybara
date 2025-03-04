@@ -29,7 +29,7 @@ import org.junit.runners.JUnit4;
 public class MultipleRustVersionRequirementTest {
   @Test
   public void testGetCorrectRustVersionRequirementObject() throws Exception {
-    assertThat(getVersionRequirement("> 0.4, <= 0.6"))
+    assertThat(getVersionRequirement("> 0.4, <= 0.6", false))
         .isInstanceOf(MultipleRustVersionRequirement.class);
   }
 

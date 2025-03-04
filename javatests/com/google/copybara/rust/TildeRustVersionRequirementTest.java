@@ -29,7 +29,7 @@ import org.junit.runners.JUnit4;
 public class TildeRustVersionRequirementTest {
   @Test
   public void testGetCorrectRustVersionRequirementObject() throws Exception {
-    assertThat(getVersionRequirement("~1.2.3")).isInstanceOf(TildeRustVersionRequirement.class);
+    assertThat(getVersionRequirement("~1.2.3", false)).isInstanceOf(TildeRustVersionRequirement.class);
   }
 
   @Test
@@ -43,13 +43,13 @@ public class TildeRustVersionRequirementTest {
 
   @Test
   public void testPreReleaseVersionRequirement() throws Exception {
-    assertThat(RustVersionRequirement.getVersionRequirement("~1.0.0-beta.1").fulfills("1.0.5"))
+    assertThat(RustVersionRequirement.getVersionRequirement("~1.0.0-beta.1", false).fulfills("1.0.5"))
         .isTrue();
-    assertThat(RustVersionRequirement.getVersionRequirement("~1.0.0-beta.1").fulfills("1.0.0"))
+    assertThat(RustVersionRequirement.getVersionRequirement("~1.0.0-beta.1", false).fulfills("1.0.0"))
         .isTrue();
-    assertThat(RustVersionRequirement.getVersionRequirement("~1.0.0-beta.1").fulfills("1.1.0"))
+    assertThat(RustVersionRequirement.getVersionRequirement("~1.0.0-beta.1", false).fulfills("1.1.0"))
         .isFalse();
-    assertThat(RustVersionRequirement.getVersionRequirement("~1.0.0-beta.1").fulfills("0.5.0"))
+    assertThat(RustVersionRequirement.getVersionRequirement("~1.0.0-beta.1", false).fulfills("0.5.0"))
         .isFalse();
   }
 

@@ -29,7 +29,7 @@ import org.junit.runners.JUnit4;
 public class WildcardRustVersionRequirementTest {
   @Test
   public void testGetCorrectRustVersionRequirementObject() throws Exception {
-    assertThat(getVersionRequirement("1.2.*")).isInstanceOf(WildcardRustVersionRequirement.class);
+    assertThat(getVersionRequirement("1.2.*", false)).isInstanceOf(WildcardRustVersionRequirement.class);
   }
 
   @Test
