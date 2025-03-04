@@ -20,7 +20,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.gitlab.api.entities.GitLabApiEntity;
+import com.google.copybara.git.gitlab.api.entities.MergeRequest;
 import com.google.copybara.git.gitlab.api.entities.PaginatedPageList;
+import com.google.copybara.git.gitlab.api.entities.Project;
 import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import java.util.Optional;
@@ -31,6 +33,44 @@ public class GitLabApi {
 
   public GitLabApi(GitLabApiTransport transport) {
     this.transport = transport;
+  }
+
+  /**
+   * Returns GitLab Project information for a given URL-encoded path. The path is defined as the
+   * group and the project separated by a '/', e.g. google/copybara.
+   *
+   * @param urlEncodedPath the URL-encoded path of the project
+   * @return an Optional containing the project response object, if any
+   * @throws ValidationException if there is an issue fetching the provided credentials
+   * @throws GitLabApiException if there is an failure while querying data from the API
+   * @see <a
+   *     href="https://docs.gitlab.com/api/projects/#get-a-single-project">https://docs.gitlab.com/api/projects/#get-a-single-project</a>
+   */
+  public Optional<Project> getProject(String urlEncodedPath)
+      throws ValidationException, GitLabApiException {
+    return transport.get(
+        "projects/" + urlEncodedPath,
+        TypeToken.get(Project.class).getType(),
+        ImmutableListMultimap.of());
+  }
+
+  /**
+   * Returns information about a Merge Request for a GitLab project.
+   *
+   * @param projectId The numeric project ID
+   * @param mergeRequestId The numeric Merge Request ID
+   * @return an Optional containing the Merge Request object, if any
+   * @throws ValidationException if there is an issue fetching the provided credentials
+   * @throws GitLabApiException if there is an failure while querying data from the API
+   * @see <a
+   *     href="https://docs.gitlab.com/api/merge_requests/#get-single-mr">https://docs.gitlab.com/api/merge_requests/#get-single-mr</a>
+   */
+  public Optional<MergeRequest> getMergeRequest(int projectId, int mergeRequestId)
+      throws ValidationException, GitLabApiException {
+    return transport.get(
+        "/projects/" + projectId + "/merge_requests/" + mergeRequestId,
+        TypeToken.get(MergeRequest.class).getType(),
+        ImmutableListMultimap.of());
   }
 
   /**

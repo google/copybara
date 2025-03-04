@@ -16,10 +16,14 @@
 
 package com.google.copybara.git.gitlab.api;
 
+import static com.google.api.client.http.HttpStatusCodes.STATUS_CODE_NO_CONTENT;
+import static com.google.api.client.http.HttpStatusCodes.STATUS_CODE_SERVER_ERROR;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.common.truth.Truth.assertThat;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertThrows;
 
+import com.google.api.client.http.HttpResponseException;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.LowLevelHttpRequest;
 import com.google.api.client.http.LowLevelHttpResponse;
@@ -35,15 +39,19 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.copybara.credentials.ConstantCredentialIssuer;
 import com.google.copybara.credentials.CredentialIssuer;
 import com.google.copybara.git.gitlab.api.entities.GitLabApiEntity;
+import com.google.copybara.git.gitlab.api.entities.MergeRequest;
+import com.google.copybara.git.gitlab.api.entities.Project;
 import com.google.copybara.http.auth.AuthInterceptor;
 import com.google.copybara.http.auth.BearerInterceptor;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -160,6 +168,117 @@ public class GitLabApiTest {
             "https://gitlab.copybara.io/api/v4/projects/12345/test_requests?capy=bara&foo=bar&per_page=10&page=3");
   }
 
+  @Test
+  public void testGetMergeRequest() throws Exception {
+    String json =
+        """
+{
+  "id": 12345
+}
+""";
+    MockHttpTransportWithCapture httpTransport = new MockHttpTransportWithCapture(json);
+    GitLabApi underTest =
+        new GitLabApi(
+            getApiTransport(
+                httpTransport,
+                "https://gitlab.copybara.io/capybara/project",
+                getBearerInterceptor()));
+
+    Optional<MergeRequest> response = underTest.getMergeRequest(12345, 456123);
+
+    assertThat(response).isPresent();
+    assertThat(response.get().getId()).isEqualTo(12345);
+    assertThat(httpTransport.getCapturedUrls())
+        .containsExactly("https://gitlab.copybara.io/api/v4/projects/12345/merge_requests/456123");
+  }
+
+  @Test
+  public void testGetMergeRequest_badHttpResponse() throws Exception {
+    GitLabApi underTest = setupApiWithMockedStatusCodeResponse(STATUS_CODE_SERVER_ERROR);
+
+    GitLabApiException e =
+        assertThrows(GitLabApiException.class, () -> underTest.getMergeRequest(12345, 456123));
+
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "Error calling GET on"
+                + " https://gitlab.copybara.io/api/v4/projects/12345/merge_requests/456123");
+  }
+
+  private GitLabApi setupApiWithMockedStatusCodeResponse(int statusCode) {
+    MockHttpTransport httpTransport =
+        new MockHttpTransport.Builder()
+            .setLowLevelHttpResponse(new MockLowLevelHttpResponse().setStatusCode(statusCode))
+            .build();
+    GitLabApi underTest =
+        new GitLabApi(
+            getApiTransport(
+                httpTransport,
+                "https://gitlab.copybara.io/capybara/project",
+                getBearerInterceptor()));
+    return underTest;
+  }
+
+  @Test
+  public void testGetMergeRequest_emptyResponse() throws Exception {
+    GitLabApi underTest = setupApiWithMockedStatusCodeResponse(STATUS_CODE_NO_CONTENT);
+
+    Optional<MergeRequest> mergeRequest = underTest.getMergeRequest(12345, 456123);
+
+    assertThat(mergeRequest).isEmpty();
+  }
+
+  @Test
+  public void testGetProject() throws Exception {
+    String json =
+        """
+{
+  "id": 12345
+}
+""";
+    String urlEncodedPath = URLEncoder.encode("capybara/project", UTF_8);
+    MockHttpTransportWithCapture httpTransport = new MockHttpTransportWithCapture(json);
+    GitLabApi underTest =
+        new GitLabApi(
+            getApiTransport(
+                httpTransport,
+                "https://gitlab.copybara.io/capybara/project",
+                getBearerInterceptor()));
+
+    Optional<Project> response = underTest.getProject(urlEncodedPath);
+
+    assertThat(response).isPresent();
+    assertThat(response.get().getId()).isEqualTo(12345);
+    assertThat(httpTransport.getCapturedUrls())
+        .containsExactly("https://gitlab.copybara.io/api/v4/projects/" + urlEncodedPath);
+  }
+
+  @Test
+  public void testGetProject_badHttpResponse() {
+    String urlEncodedPath = URLEncoder.encode("capybara/project", UTF_8);
+    GitLabApi underTest = setupApiWithMockedStatusCodeResponse(STATUS_CODE_SERVER_ERROR);
+
+    GitLabApiException e =
+        assertThrows(GitLabApiException.class, () -> underTest.getProject(urlEncodedPath));
+
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "Error calling GET on https://gitlab.copybara.io/api/v4/projects/" + urlEncodedPath);
+    assertThat(e).hasCauseThat().isInstanceOf(HttpResponseException.class);
+  }
+
+  @Test
+  public void testGetProject_emptyResponse() throws Exception {
+    String urlEncodedPath = URLEncoder.encode("capybara/project", UTF_8);
+    GitLabApi underTest = setupApiWithMockedStatusCodeResponse(STATUS_CODE_NO_CONTENT);
+
+    Optional<Project> project = underTest.getProject(urlEncodedPath);
+
+    assertThat(project).isEmpty();
+  }
+
   private static BearerInterceptor getBearerInterceptor() {
     CredentialIssuer credentialIssuer =
         ConstantCredentialIssuer.createConstantSecret("test", "example-access-token");
@@ -169,6 +288,32 @@ public class GitLabApiTest {
   private GitLabApiTransport getApiTransport(
       HttpTransport httpTransport, String url, AuthInterceptor authInterceptor) {
     return new GitLabApiTransportImpl(url, httpTransport, console, authInterceptor);
+  }
+
+  private static class MockHttpTransportWithCapture extends MockHttpTransport {
+    private final ImmutableList.Builder<String> capturedUrls = ImmutableList.builder();
+    private final String response;
+
+    public MockHttpTransportWithCapture(String response) {
+      super();
+      this.response = response;
+    }
+
+    /**
+     * Returns the URLs requested from this transport.
+     *
+     * @return a list of URLs.
+     */
+    public ImmutableList<String> getCapturedUrls() {
+      return capturedUrls.build();
+    }
+
+    @Override
+    public LowLevelHttpRequest buildRequest(String method, String url) throws IOException {
+      capturedUrls.add(url);
+      return new MockLowLevelHttpRequest()
+          .setResponse(new MockLowLevelHttpResponse().setContent(response));
+    }
   }
 
   private static class PaginatedMockHttpTransport<T extends GitLabApiEntity>
