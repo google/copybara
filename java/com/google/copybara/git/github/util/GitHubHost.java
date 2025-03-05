@@ -41,6 +41,12 @@ public class GitHubHost {
     this.gitHubPrUrlPattern = Pattern.compile("https://\\Q" + host + "\\E/(.+)/pull/([0-9]+)");
   }
 
+  static public GitHubHost fromUrl(String url)
+  {
+      url = url.replaceAll("http\\:\\/\\/|https\\:\\/\\/|git\\+|git@", "").replaceAll(":.*|/.*", "");
+      return new GitHubHost(url);
+  }
+
   /**
    * Return the username part of a github url. For example in https://github.com/foo/bar/baz, 'foo'
    * would be the user.
@@ -102,6 +108,10 @@ public class GitHubHost {
     return host;
   }
 
+  public String getHostUrl() {
+      return "https://" + host + "/";
+  }
+
   public String normalizeUrl(String url) throws ValidationException {
     return projectAsUrl(getProjectNameFromUrl(url));
   }
@@ -111,6 +121,17 @@ public class GitHubHost {
     return matcher.matches()
         ? Optional.of(new GitHubPrUrl(matcher.group(1), Integer.parseInt(matcher.group(2))))
         : Optional.empty();
+  }
+
+  public String getAPIEndpoint()
+  {
+    if(host.contains("github.com"))
+    {
+        return "https://api.github.com";
+    } else {
+        // https://docs.github.com/en/enterprise-server@3.16/rest/enterprise-admin?apiVersion=2022-11-28
+        return "https://" + host + "/api/v3";
+    }
   }
 
   /** A GitHub PR project and number */

@@ -349,7 +349,7 @@ public class GitOriginTest {
                         + ")"));
     console
         .assertThat()
-        .onceInLog(MessageType.ERROR, ".*Invalid Github URL: https://foo.com/copybara.*");
+        .onceInLog(MessageType.ERROR, ".*'foo.com' is not a valid GitHub url.*");
   }
 
   @Test
@@ -366,7 +366,7 @@ public class GitOriginTest {
                         + ")"));
     console
         .assertThat()
-        .onceInLog(MessageType.ERROR, ".*Invalid Github URL: https://foo.com/github.com.*");
+            .onceInLog(MessageType.ERROR, ".*'foo.com' is not a valid GitHub url.*");
   }
 
   @Test
