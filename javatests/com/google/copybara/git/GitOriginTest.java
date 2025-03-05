@@ -336,6 +336,24 @@ public class GitOriginTest {
   }
 
   @Test
+  public void testGithubOriginForEnterpriseUrl() throws Exception {
+    options.github.gitHubAllowedHosts = ImmutableList.of("some.github-enterprise.net");
+    origin = skylark.eval("result",
+        "result = git.github_origin(\n"
+        + "    url = 'https://some.github-enterprise.net/copybara',\n"
+        + "    ref = 'main',\n"
+        + ")");
+    assertThat(origin.toString())
+        .isEqualTo(
+            "GitOrigin{"
+                + "repoUrl=https://some.github-enterprise.net/copybara, "
+                + "ref=main, "
+                + "repoType=GITHUB, "
+                + "primaryBranchMigrationMode=false"
+                + "}");
+  }
+
+  @Test
   public void testInvalidGithubUrl() throws Exception {
     ValidationException expected =
         assertThrows(
@@ -349,7 +367,7 @@ public class GitOriginTest {
                         + ")"));
     console
         .assertThat()
-        .onceInLog(MessageType.ERROR, ".*Invalid Github URL: https://foo.com/copybara.*");
+        .onceInLog(MessageType.ERROR, ".*'foo.com' is not a valid GitHub url.*");
   }
 
   @Test
@@ -366,7 +384,7 @@ public class GitOriginTest {
                         + ")"));
     console
         .assertThat()
-        .onceInLog(MessageType.ERROR, ".*Invalid Github URL: https://foo.com/github.com.*");
+            .onceInLog(MessageType.ERROR, ".*'foo.com' is not a valid GitHub url.*");
   }
 
   @Test
