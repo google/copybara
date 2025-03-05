@@ -234,7 +234,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
           return result.build();
         }
 
-        GitHubApi api = gitHubOptions.newGitHubRestApi(getProjectName(), credentials);
+        GitHubApi api = gitHubOptions.newGitHubRestApi(ghHost, getProjectName(), credentials);
 
         ImmutableList<PullRequest> pullRequests =
             api.getPullRequests(
@@ -346,7 +346,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
   }
 
   private String asHttpsUrl() throws ValidationException {
-    return "https://github.com/" + getProjectName();
+    return ghHost.projectAsUrl(getProjectName());
   }
 
   @VisibleForTesting

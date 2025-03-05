@@ -78,6 +78,7 @@ java_library(
         "//java/com/google/copybara/monitor",
         "//java/com/google/copybara/profiler",
         "//java/com/google/copybara/revision",
+        "//java/com/google/copybara/starlark",
         "//java/com/google/copybara/templatetoken",
         "//java/com/google/copybara/transform",
         "//java/com/google/copybara/transform/patch",

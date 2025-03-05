@@ -202,7 +202,7 @@ public class GitHubPreSubmitApprovalsProvider implements ApprovalsProvider {
         ImmutableList.builder();
     ImmutableList<Review> reviews = null;
     try {
-      reviews = this.githubOptions.newGitHubRestApi(projectId, creds)
+      reviews = this.githubOptions.newGitHubRestApi(githubHost, projectId, creds)
           .getReviews(projectId, prNumber);
     } catch (RepoException | ValidationException e) {
       console.warnFmt(
