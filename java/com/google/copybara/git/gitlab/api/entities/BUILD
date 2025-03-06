@@ -21,6 +21,7 @@ java_library(
     srcs = [
         "GitLabApiEntity.java",
         "GitLabApiParams.java",
+        "ListProjectMergeRequestParams.java",
         "MergeRequest.java",
         "PaginatedPageList.java",
         "Project.java",

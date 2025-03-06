@@ -28,6 +28,7 @@ all_tests(
         "//java/com/google/copybara/git/gitlab/api:gitlab_api",
         "//java/com/google/copybara/git/gitlab/api/entities",
         "//java/com/google/copybara/http/auth",
+        "//java/com/google/copybara/json",
         "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/util/console/testing",
         "//third_party:google_http_client",

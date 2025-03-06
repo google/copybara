@@ -39,14 +39,20 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.copybara.credentials.ConstantCredentialIssuer;
 import com.google.copybara.credentials.CredentialIssuer;
 import com.google.copybara.git.gitlab.api.entities.GitLabApiEntity;
+import com.google.copybara.git.gitlab.api.entities.GitLabApiParams;
+import com.google.copybara.git.gitlab.api.entities.GitLabApiParams.Param;
+import com.google.copybara.git.gitlab.api.entities.ListProjectMergeRequestParams;
 import com.google.copybara.git.gitlab.api.entities.MergeRequest;
 import com.google.copybara.git.gitlab.api.entities.Project;
 import com.google.copybara.http.auth.AuthInterceptor;
 import com.google.copybara.http.auth.BearerInterceptor;
+import com.google.copybara.json.GsonParserUtil;
 import com.google.copybara.util.console.testing.TestingConsole;
+import com.google.gson.reflect.TypeToken;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map.Entry;
@@ -89,6 +95,70 @@ public class GitLabApiTest {
             Integer.MAX_VALUE);
 
     assertThat(fullResponse).containsExactlyElementsIn(SAMPLE_PAGES.getFirst());
+  }
+
+  @Test
+  public void paginatedGet_gitLabApiParams_addedToUrlCorrectly() throws Exception {
+    PaginatedMockHttpTransport<TestResponse> httpTransport =
+        new PaginatedMockHttpTransport<>(
+            "https://gitlab.copybara.io/api/v4",
+            "/projects/12345/test_requests",
+            ImmutableList.of(SAMPLE_PAGES.getFirst()));
+    GitLabApi underTest =
+        new GitLabApi(
+            getApiTransport(
+                httpTransport,
+                "https://gitlab.copybara.io/capybara/project",
+                getBearerInterceptor()));
+    GitLabApiParams gitLabApiParams = () -> ImmutableList.of(new Param("param", "value"));
+
+    ImmutableList<TestResponse> fullResponse =
+        underTest.paginatedGet(
+            "/projects/12345/test_requests",
+            TestResponse.class,
+            ImmutableListMultimap.of(),
+            Integer.MAX_VALUE,
+            gitLabApiParams);
+
+    assertThat(fullResponse).containsExactlyElementsIn(SAMPLE_PAGES.getFirst());
+    assertThat(httpTransport.getCapturedUrls())
+        .containsExactly(
+            "https://gitlab.copybara.io/api/v4/projects/12345/test_requests?"
+                + gitLabApiParams.getQueryString()
+                + "&per_page="
+                + Integer.MAX_VALUE);
+  }
+
+  @Test
+  public void paginatedGet_gitLabApiParams_existingQueryStringHandledCorrectly() throws Exception {
+    PaginatedMockHttpTransport<TestResponse> httpTransport =
+        new PaginatedMockHttpTransport<>(
+            "https://gitlab.copybara.io/api/v4",
+            "/projects/12345/test_requests",
+            ImmutableList.of(SAMPLE_PAGES.getFirst()));
+    GitLabApi underTest =
+        new GitLabApi(
+            getApiTransport(
+                httpTransport,
+                "https://gitlab.copybara.io/capybara/project",
+                getBearerInterceptor()));
+    GitLabApiParams gitLabApiParams = () -> ImmutableList.of(new Param("param", "value"));
+
+    ImmutableList<TestResponse> fullResponse =
+        underTest.paginatedGet(
+            "/projects/12345/test_requests?foo=bar&baz=bat",
+            TestResponse.class,
+            ImmutableListMultimap.of(),
+            Integer.MAX_VALUE,
+            gitLabApiParams);
+
+    assertThat(fullResponse).containsExactlyElementsIn(SAMPLE_PAGES.getFirst());
+    assertThat(httpTransport.getCapturedUrls())
+        .containsExactly(
+            "https://gitlab.copybara.io/api/v4/projects/12345/test_requests?foo=bar&baz=bat&"
+                + gitLabApiParams.getQueryString()
+                + "&per_page="
+                + Integer.MAX_VALUE);
   }
 
   @Test
@@ -169,6 +239,32 @@ public class GitLabApiTest {
   }
 
   @Test
+  public void paginatedGet_handleUrlQueryParamsCorrectly() throws Exception {
+    String path = "/projects/12345/test_requests";
+    PaginatedMockHttpTransport<TestResponse> httpTransport =
+        new PaginatedMockHttpTransport<>(
+            "https://gitlab.copybara.io/api/v4",
+            path,
+            ImmutableList.of(ImmutableList.of(new TestResponse(1))));
+    GitLabApi underTest =
+        new GitLabApi(
+            getApiTransport(
+                httpTransport,
+                "https://gitlab.copybara.io/capybara/project",
+                getBearerInterceptor()));
+    GitLabApiParams gitLabApiParams =
+        () -> ImmutableList.of(new Param("param1", "value1"), new Param("param2", "value2"));
+
+    ImmutableList<TestResponse> unused =
+        underTest.paginatedGet(
+            path, TestResponse.class, ImmutableListMultimap.of(), 10, gitLabApiParams);
+
+    assertThat(httpTransport.getCapturedUrls())
+        .containsExactly(
+            "https://gitlab.copybara.io/api/v4/projects/12345/test_requests?param1=value1&param2=value2&per_page=10");
+  }
+
+  @Test
   public void testGetMergeRequest() throws Exception {
     String json =
         """
@@ -227,6 +323,170 @@ public class GitLabApiTest {
     Optional<MergeRequest> mergeRequest = underTest.getMergeRequest(12345, 456123);
 
     assertThat(mergeRequest).isEmpty();
+  }
+
+  @Test
+  public void getProjectMergeRequests_apiError_throwsException() throws Exception {
+    MockHttpTransport httpTransport =
+        new MockHttpTransport.Builder()
+            .setLowLevelHttpResponse(
+                new MockLowLevelHttpResponse().setStatusCode(STATUS_CODE_SERVER_ERROR))
+            .build();
+    GitLabApi underTest =
+        new GitLabApi(
+            getApiTransport(
+                httpTransport,
+                "https://gitlab.copybara.io/capybara/project",
+                getBearerInterceptor()));
+
+    GitLabApiException e =
+        assertThrows(
+            GitLabApiException.class,
+            () ->
+                underTest.getProjectMergeRequests(
+                    12345, ListProjectMergeRequestParams.getDefaultInstance()));
+
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "Error calling GET on"
+                + " https://gitlab.copybara.io/api/v4/projects/12345/merge_requests?per_page=50");
+  }
+
+  @Test
+  public void getProjectMergeRequests_noParams_singlePageResponseWorksSuccessfully()
+      throws Exception {
+    ArrayList<MergeRequest> mergeRequests =
+        GsonParserUtil.parseString(
+            "[{\"id\": 1}, {\"id\": 2}]",
+            TypeToken.getParameterized(ArrayList.class, MergeRequest.class).getType(),
+            false);
+    PaginatedMockHttpTransport<MergeRequest> httpTransport =
+        new PaginatedMockHttpTransport<>(
+            "https://gitlab.copybara.io/api/v4",
+            "/projects/12345/merge_requests",
+            ImmutableList.of(ImmutableList.copyOf(mergeRequests)));
+    GitLabApi underTest =
+        new GitLabApi(
+            getApiTransport(
+                httpTransport,
+                "https://gitlab.copybara.io/capybara/project",
+                getBearerInterceptor()));
+
+    ImmutableList<MergeRequest> fullResponse =
+        underTest.getProjectMergeRequests(
+            12345, ListProjectMergeRequestParams.getDefaultInstance());
+
+    assertThat(fullResponse.stream().map(MergeRequest::getId)).containsExactly(1, 2).inOrder();
+    assertThat(httpTransport.getCapturedUrls())
+        .containsExactly(
+            "https://gitlab.copybara.io/api/v4/projects/12345/merge_requests?per_page=50");
+  }
+
+  @Test
+  public void getProjectMergeRequests_withParams_singlePageResponseWorksSuccessfully()
+      throws Exception {
+    ArrayList<MergeRequest> mergeRequests =
+        GsonParserUtil.parseString(
+            "[{\"id\": 1}, {\"id\": 2}]",
+            TypeToken.getParameterized(ArrayList.class, MergeRequest.class).getType(),
+            false);
+    PaginatedMockHttpTransport<MergeRequest> httpTransport =
+        new PaginatedMockHttpTransport<>(
+            "https://gitlab.copybara.io/api/v4",
+            "/projects/12345/merge_requests",
+            ImmutableList.of(ImmutableList.copyOf(mergeRequests)));
+    GitLabApi underTest =
+        new GitLabApi(
+            getApiTransport(
+                httpTransport,
+                "https://gitlab.copybara.io/capybara/project",
+                getBearerInterceptor()));
+
+    ImmutableList<MergeRequest> fullResponse =
+        underTest.getProjectMergeRequests(
+            12345, new ListProjectMergeRequestParams(Optional.of("my_branch")));
+
+    assertThat(fullResponse.stream().map(MergeRequest::getId)).containsExactly(1, 2).inOrder();
+    assertThat(httpTransport.getCapturedUrls())
+        .containsExactly(
+            "https://gitlab.copybara.io/api/v4/projects/12345/merge_requests?source_branch=my_branch&per_page=50");
+  }
+
+  @Test
+  public void getProjectMergeRequests_noParams_multiPageResponseWorksSuccessfully()
+      throws Exception {
+    ArrayList<MergeRequest> page1 =
+        GsonParserUtil.parseString(
+            "[{\"id\": 1}, {\"id\": 2}]",
+            TypeToken.getParameterized(ArrayList.class, MergeRequest.class).getType(),
+            false);
+    ArrayList<MergeRequest> page2 =
+        GsonParserUtil.parseString(
+            "[{\"id\": 3}, {\"id\": 4}]",
+            TypeToken.getParameterized(ArrayList.class, MergeRequest.class).getType(),
+            false);
+    PaginatedMockHttpTransport<MergeRequest> httpTransport =
+        new PaginatedMockHttpTransport<>(
+            "https://gitlab.copybara.io/api/v4",
+            "/projects/12345/merge_requests",
+            ImmutableList.of(ImmutableList.copyOf(page1), ImmutableList.copyOf(page2)));
+    GitLabApi underTest =
+        new GitLabApi(
+            getApiTransport(
+                httpTransport,
+                "https://gitlab.copybara.io/capybara/project",
+                getBearerInterceptor()));
+
+    ImmutableList<MergeRequest> fullResponse =
+        underTest.getProjectMergeRequests(
+            12345, ListProjectMergeRequestParams.getDefaultInstance());
+
+    assertThat(fullResponse.stream().map(MergeRequest::getId))
+        .containsExactly(1, 2, 3, 4)
+        .inOrder();
+    assertThat(httpTransport.getCapturedUrls())
+        .containsExactly(
+            "https://gitlab.copybara.io/api/v4/projects/12345/merge_requests?per_page=50",
+            "https://gitlab.copybara.io/api/v4/projects/12345/merge_requests?per_page=50&page=2");
+  }
+
+  @Test
+  public void getProjectMergeRequests_withParams_multiPageResponseWorksSuccessfully()
+      throws Exception {
+    ArrayList<MergeRequest> page1 =
+        GsonParserUtil.parseString(
+            "[{\"id\": 1}, {\"id\": 2}]",
+            TypeToken.getParameterized(ArrayList.class, MergeRequest.class).getType(),
+            false);
+    ArrayList<MergeRequest> page2 =
+        GsonParserUtil.parseString(
+            "[{\"id\": 3}, {\"id\": 4}]",
+            TypeToken.getParameterized(ArrayList.class, MergeRequest.class).getType(),
+            false);
+    PaginatedMockHttpTransport<MergeRequest> httpTransport =
+        new PaginatedMockHttpTransport<>(
+            "https://gitlab.copybara.io/api/v4",
+            "/projects/12345/merge_requests",
+            ImmutableList.of(ImmutableList.copyOf(page1), ImmutableList.copyOf(page2)));
+    GitLabApi underTest =
+        new GitLabApi(
+            getApiTransport(
+                httpTransport,
+                "https://gitlab.copybara.io/capybara/project",
+                getBearerInterceptor()));
+
+    ImmutableList<MergeRequest> fullResponse =
+        underTest.getProjectMergeRequests(
+            12345, new ListProjectMergeRequestParams(Optional.of("my_branch")));
+
+    assertThat(fullResponse.stream().map(MergeRequest::getId))
+        .containsExactly(1, 2, 3, 4)
+        .inOrder();
+    assertThat(httpTransport.getCapturedUrls())
+        .containsExactly(
+            "https://gitlab.copybara.io/api/v4/projects/12345/merge_requests?source_branch=my_branch&per_page=50",
+            "https://gitlab.copybara.io/api/v4/projects/12345/merge_requests?source_branch=my_branch&per_page=50&page=2");
   }
 
   @Test

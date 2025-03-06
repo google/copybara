@@ -20,6 +20,7 @@ all_tests(
     tags = ["local"],
     tests = [
         "GitLabApiParamsTest.java",
+        "ListProjectMergeRequestParamsTest.java",
         "MergeRequestTest.java",
         "PaginatedPageListTest.java",
         "ProjectTest.java",

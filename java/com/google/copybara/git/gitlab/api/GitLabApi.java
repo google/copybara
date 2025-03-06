@@ -20,6 +20,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.gitlab.api.entities.GitLabApiEntity;
+import com.google.copybara.git.gitlab.api.entities.GitLabApiParams;
+import com.google.copybara.git.gitlab.api.entities.ListProjectMergeRequestParams;
 import com.google.copybara.git.gitlab.api.entities.MergeRequest;
 import com.google.copybara.git.gitlab.api.entities.PaginatedPageList;
 import com.google.copybara.git.gitlab.api.entities.Project;
@@ -71,6 +73,54 @@ public class GitLabApi {
         "/projects/" + projectId + "/merge_requests/" + mergeRequestId,
         TypeToken.get(MergeRequest.class).getType(),
         ImmutableListMultimap.of());
+  }
+
+  /**
+   * Returns a list of Merge Requests for the given Project ID.
+   *
+   * @param projectId the project id
+   * @param params the params to attach to this request
+   * @return the list of Merge Requests
+   * @throws ValidationException if there is an issue fetching the provided credentials
+   * @throws GitLabApiException if there is an failure while querying data from the API
+   */
+  public ImmutableList<MergeRequest> getProjectMergeRequests(
+      int projectId, ListProjectMergeRequestParams params)
+      throws ValidationException, GitLabApiException {
+    return paginatedGet(
+        String.format("/projects/%d/merge_requests", projectId),
+        TypeToken.get(MergeRequest.class).getType(),
+        ImmutableListMultimap.of(),
+        50,
+        params);
+  }
+
+  /**
+   * Performs a GET request on the GitLab API, for the provided path, and handles the pagination of
+   * responses.
+   *
+   * <p>This method will perform various GET requests on the API endpoint, following the next link
+   * header until a complete response set is obtained, and return the full response set.
+   *
+   * @param <T> the subclass of {@link GitLabApiEntity} that the inner JSON objects in the pages
+   *     will be parsed to
+   * @param path the path to call, e.g. projects/13422/merge_requests
+   * @param responseType the type of the inner objects of the list
+   * @param headers the headers to add to the HTTP request
+   * @param perPageAmt the number of objects to list per page returned
+   * @param urlQueryParams the params to use in the request
+   * @return a list containing the entire response set
+   */
+  protected <T extends GitLabApiEntity> ImmutableList<T> paginatedGet(
+      String path,
+      Type responseType,
+      ImmutableListMultimap<String, String> headers,
+      int perPageAmt,
+      GitLabApiParams urlQueryParams)
+      throws ValidationException, GitLabApiException {
+    path += extractQueryString(path).isPresent() ? "&" : "?";
+    path += urlQueryParams.getQueryString();
+    return paginatedGet(path, responseType, headers, perPageAmt);
   }
 
   /**
