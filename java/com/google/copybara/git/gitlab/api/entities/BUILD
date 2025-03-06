@@ -20,6 +20,7 @@ java_library(
     name = "entities",
     srcs = [
         "GitLabApiEntity.java",
+        "GitLabApiParams.java",
         "MergeRequest.java",
         "PaginatedPageList.java",
         "Project.java",

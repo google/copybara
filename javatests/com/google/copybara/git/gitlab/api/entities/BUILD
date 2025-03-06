@@ -19,6 +19,7 @@ all_tests(
     env = {"LC_CTYPE": "en_US.UTF-8"},
     tags = ["local"],
     tests = [
+        "GitLabApiParamsTest.java",
         "MergeRequestTest.java",
         "PaginatedPageListTest.java",
         "ProjectTest.java",
