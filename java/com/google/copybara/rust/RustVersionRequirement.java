@@ -42,8 +42,8 @@ public abstract class RustVersionRequirement implements StarlarkValue {
     this.requirement = requirement;
   }
 
-  public static RustVersionRequirement getVersionRequirement(String requirement, boolean allowEpochs)
-      throws ValidationException {
+  public static RustVersionRequirement getVersionRequirement(
+      String requirement, boolean allowEpochs) throws ValidationException {
     // TODO(chriscampos): Support additional types of version requirements
     if (allowEpochs && EpochRustVersionRequirement.handlesRequirement(requirement)) {
       return EpochRustVersionRequirement.create(requirement);
@@ -82,9 +82,7 @@ public abstract class RustVersionRequirement implements StarlarkValue {
     return this.requirement;
   }
 
-  /**
-   * Represents a semantic version for a Rust crate.
-   */
+  /** Represents a semantic version for a Rust crate. */
   @AutoValue
   public abstract static class SemanticVersion implements Comparable<SemanticVersion> {
     private static final Pattern VALID_VERSION_PATTERN =
@@ -102,8 +100,12 @@ public abstract class RustVersionRequirement implements StarlarkValue {
         int minorVersion,
         int patchVersion,
         Optional<String> preReleaseIdentifier) {
-      return new AutoValue_RustVersionRequirement_SemanticVersion(
-          majorVersion, Optional.of(minorVersion), Optional.of(patchVersion), preReleaseIdentifier);
+      return builder()
+          .setMajorVersion(majorVersion)
+          .setMinorVersion(Optional.of(minorVersion))
+          .setPatchVersion(Optional.of(patchVersion))
+          .setPreReleaseIdentifier(preReleaseIdentifier)
+          .build();
     }
 
     public static SemanticVersion createFromVersionString(String version)
@@ -115,15 +117,23 @@ public abstract class RustVersionRequirement implements StarlarkValue {
 
       int majorVersion = Integer.parseInt(matcher.group(1));
       Optional<Integer> minorVersion =
-          Optional.ofNullable(matcher.group(2) != null
-              ? Integer.parseInt(matcher.group(2).replace(".", "")) : null);
+          Optional.ofNullable(
+              matcher.group(2) != null
+                  ? Integer.parseInt(matcher.group(2).replace(".", ""))
+                  : null);
       Optional<Integer> patchVersion =
-          Optional.ofNullable(matcher.group(3) != null
-              ? Integer.parseInt(matcher.group(3).replace(".", "")) : null);
+          Optional.ofNullable(
+              matcher.group(3) != null
+                  ? Integer.parseInt(matcher.group(3).replace(".", ""))
+                  : null);
       Optional<String> preReleaseIdentifier = Optional.ofNullable(matcher.group(5));
 
-      return new AutoValue_RustVersionRequirement_SemanticVersion(
-          majorVersion, minorVersion, patchVersion, preReleaseIdentifier);
+      return builder()
+          .setMajorVersion(majorVersion)
+          .setMinorVersion(minorVersion)
+          .setPatchVersion(patchVersion)
+          .setPreReleaseIdentifier(preReleaseIdentifier)
+          .build();
     }
 
     @Override
@@ -173,6 +183,22 @@ public abstract class RustVersionRequirement implements StarlarkValue {
           return Integer.compare(list1.size(), list2.size());
         }
       };
+    }
+
+    public static Builder builder() {
+      return new AutoValue_RustVersionRequirement_SemanticVersion.Builder();
+    }
+
+    abstract Builder toBuilder();
+
+    @AutoValue.Builder
+    public abstract static class Builder {
+      abstract Builder setMajorVersion(int majorVersion);
+      abstract Builder setMinorVersion(Optional<Integer> minorVersion);
+      abstract Builder setPatchVersion(Optional<Integer> patchVersion);
+      abstract Builder setPreReleaseIdentifier(Optional<String> preReleaseIdentifier);
+
+      abstract SemanticVersion build();
     }
   }
 }

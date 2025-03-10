@@ -80,8 +80,13 @@ public class DefaultRustVersionRequirement extends RustVersionRequirement {
   public boolean fulfills(String version) throws ValidationException {
     SemanticVersion requiredVersion = getRequiredVersion();
     SemanticVersion currVersion = SemanticVersion.createFromVersionString(version);
+    // Ensure that a pre-release of a next major version (which compares less than the next major
+    // version) doesn't fulfill a requirement for the previous major version.
+    SemanticVersion currVersionNoPreRelease = currVersion.toBuilder()
+        .setPreReleaseIdentifier(Optional.empty())
+        .build();
     SemanticVersion nextVersion = getNextVersion();
 
-    return currVersion.compareTo(requiredVersion) >= 0 && currVersion.compareTo(nextVersion) < 0;
+    return currVersion.compareTo(requiredVersion) >= 0 && currVersionNoPreRelease.compareTo(nextVersion) < 0;
   }
 }
