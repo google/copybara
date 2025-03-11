@@ -17,18 +17,24 @@
 package com.google.copybara.archive;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.io.MoreFiles;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.util.console.testing.TestingConsole;
+import com.google.testing.junit.testparameterinjector.TestParameterInjector;
+import com.google.testing.junit.testparameterinjector.TestParameters;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
 import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -38,9 +44,8 @@ import org.apache.commons.compress.compressors.xz.XZCompressorOutputStream;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
+@RunWith(TestParameterInjector.class)
 public class ArchiveModuleTest {
 
   private SkylarkTestExecutor skylark;
@@ -49,21 +54,28 @@ public class ArchiveModuleTest {
 
   @Before
   public void setup() throws Exception {
+    // Create a temporary working directory for adding test files.
     workdir = Files.createTempDirectory("workdir");
     Files.createDirectories(workdir);
+    Files.createDirectories(workdir.resolve("directory/subdir"));
     OptionsBuilder optionsBuilder = new OptionsBuilder();
     console = new TestingConsole();
     optionsBuilder.setConsole(console);
     skylark = new SkylarkTestExecutor(optionsBuilder);
 
-    // Create the test archive
+    // Create test files / sub-directories and add dummy content to them.
     Path testFile1 = workdir.resolve("foo.txt");
-    Path testFile2 = workdir.resolve("bar.txt");
     Files.writeString(testFile1, "copybara");
+    Path testFile2 = workdir.resolve("bar.txt");
     Files.writeString(testFile2, "baracopy");
+    Path testFile3 = workdir.resolve("directory/file_in_dir.txt");
+    Files.writeString(testFile3, "hello");
+    Path testFile4 = workdir.resolve("directory/subdir/file_in_subdir.txt");
+    Files.writeString(testFile4, "world");
+
+    // Create the test zip archive.
     Path testZip = workdir.resolve("test.zip");
-    try (ZipOutputStream zipOutputStream =
-        new ZipOutputStream(Files.newOutputStream(testZip))) {
+    try (ZipOutputStream zipOutputStream = new ZipOutputStream(Files.newOutputStream(testZip))) {
       for (Path file : ImmutableList.of(testFile1, testFile2)) {
         ZipEntry ze = new ZipEntry(file.getFileName().toString());
         zipOutputStream.putNextEntry(ze);
@@ -71,7 +83,6 @@ public class ArchiveModuleTest {
         zipOutputStream.closeEntry();
       }
     }
-
   }
 
   @Test
@@ -220,5 +231,154 @@ public class ArchiveModuleTest {
     assertThat(Files.readString(resultFile1)).isEqualTo("copybara");
     assertThat(Files.exists(resultFile2)).isTrue();
     assertThat(Files.readString(resultFile2)).isEqualTo("baracopy");
+  }
+
+  @Test
+  @TestParameters({
+    "{ fileExtension: 'zip' }",
+    "{ fileExtension: 'jar' }",
+    "{ fileExtension: 'tar' }",
+    "{ fileExtension: 'tar.gz' }",
+    "{ fileExtension: 'tar.xz' }",
+  })
+  public void testCreateArchive_allFileExtensions(String fileExtension) throws Exception {
+    // The directory where the generated archive is to be stored.
+    Path archiveResultDir = workdir.resolve("archive_result");
+    Files.createDirectories(archiveResultDir);
+
+    // The directory where the unarchived files are to be stored.
+    Path unarchiveResultDir = workdir.resolve("unarchive_result");
+    Files.createDirectories(unarchiveResultDir);
+
+    TransformWork work1 = TransformWorks.of(workdir, "test", console);
+    String archiveName = "archive_result/test." + fileExtension;
+    Transformation t1 =
+        skylark.eval(
+            "t",
+            ""
+                + "def test(ctx):\n"
+                + "   archive.create(\n"
+                + "       archive = ctx.new_path(\""
+                + archiveName
+                + "\"),\n"
+                + "   )\n"
+                + "t = core.dynamic_transform(test)");
+
+    t1.transform(work1);
+    assertThat(Files.exists(workdir.resolve(archiveName))).isTrue();
+
+    TransformWork work2 = TransformWorks.of(workdir, "test", console);
+    Transformation t2 =
+        skylark.eval(
+            "t",
+            ""
+                + "def test(ctx):\n"
+                + "   archive.extract(\n"
+                + "       archive = ctx.new_path(\""
+                + archiveName
+                + "\"),\n"
+                + "       destination_folder = ctx.new_path(\"unarchive_result\"),\n"
+                + "   )\n"
+                + "t = core.dynamic_transform(test)");
+
+    t2.transform(work2);
+    Path resultPath = workdir.resolve("unarchive_result");
+    FileSubjects.assertThatPath(resultPath).containsFile("foo.txt", "copybara");
+    FileSubjects.assertThatPath(resultPath).containsFile("bar.txt", "baracopy");
+    FileSubjects.assertThatPath(resultPath).containsFile("directory/file_in_dir.txt", "hello");
+    FileSubjects.assertThatPath(resultPath)
+        .containsFile("directory/subdir/file_in_subdir.txt", "world");
+  }
+
+  @Test
+  public void testCreateArchive_withGlob() throws Exception {
+    // The directory where the unarchived files are to be stored.
+    Path unarchiveResultDir = workdir.resolve("unarchive_result");
+    Files.createDirectories(unarchiveResultDir);
+
+    TransformWork work1 = TransformWorks.of(workdir, "test", console);
+    Transformation t1 =
+        skylark.eval(
+            "t",
+            ""
+                + "def test(ctx):\n"
+                + "   archive.create(\n"
+                + "       archive = ctx.new_path(\"test.zip\"),\n"
+                + "       files = glob([\"bar.txt\", \"**file_in_subdir.txt\"]),\n"
+                + "   )\n"
+                + "t = core.dynamic_transform(test)");
+
+    t1.transform(work1);
+    assertThat(Files.exists(workdir.resolve("test.zip"))).isTrue();
+
+    TransformWork work2 = TransformWorks.of(workdir, "test", console);
+    Transformation t2 =
+        skylark.eval(
+            "t",
+            ""
+                + "def test(ctx):\n"
+                + "   archive.extract(\n"
+                + "       archive = ctx.new_path(\"test.zip\"),\n"
+                + "       destination_folder = ctx.new_path(\"unarchive_result\"),\n"
+                + "   )\n"
+                + "t = core.dynamic_transform(test)");
+
+    t2.transform(work2);
+    Path resultPath = workdir.resolve("unarchive_result");
+    FileSubjects.assertThatPath(resultPath).containsFile("bar.txt", "baracopy");
+    FileSubjects.assertThatPath(resultPath)
+        .containsFile("directory/subdir/file_in_subdir.txt", "world");
+  }
+
+  @Test
+  public void testCreateArchive_invalidType_throwsException() throws Exception {
+    // The directory where the unarchived files are to be stored.
+    Path unarchiveResultDir = workdir.resolve("unarchive_result");
+    Files.createDirectories(unarchiveResultDir);
+
+    TransformWork work1 = TransformWorks.of(workdir, "test", console);
+    Transformation t1 =
+        skylark.eval(
+            "t",
+            ""
+                + "def test(ctx):\n"
+                + "   archive.create(\n"
+                + "       archive = ctx.new_path(\"test.abc\"),\n"
+                + "   )\n"
+                + "t = core.dynamic_transform(test)");
+
+    ValidationException thrown = assertThrows(ValidationException.class, () -> t1.transform(work1));
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains("The archive type couldn't be inferred for the file: test.abc");
+  }
+
+  @Test
+  public void testCreateArchive_fileLocked_throwsException() throws Exception {
+    // The directory where the unarchived files are to be stored.
+    Path unarchiveResultDir = workdir.resolve("unarchive_result");
+    Files.createDirectories(unarchiveResultDir);
+    Files.createFile(workdir.resolve("test.tar"));
+
+    // Simulate a locked file by creating a read-only file
+    Files.setPosixFilePermissions(
+        workdir.resolve("test.tar"), ImmutableSet.of(PosixFilePermission.OWNER_READ));
+
+    TransformWork work1 = TransformWorks.of(workdir, "test", console);
+    Transformation t1 =
+        skylark.eval(
+            "t",
+            ""
+                + "def test(ctx):\n"
+                + "   archive.create(\n"
+                + "       archive = ctx.new_path(\"test.tar\"),\n"
+                + "   )\n"
+                + "t = core.dynamic_transform(test)");
+
+    ValidationException thrown = assertThrows(ValidationException.class, () -> t1.transform(work1));
+    assertThat(thrown)
+        .hasMessageThat()
+        // AccessDeniedException is a subclass of IOException.
+        .contains("There was an error creating the archive: java.nio.file.AccessDeniedException");
   }
 }

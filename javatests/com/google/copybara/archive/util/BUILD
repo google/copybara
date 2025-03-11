@@ -1,4 +1,4 @@
-# Copyright 2023 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,13 +21,13 @@ all_tests(
     tests = glob(["*.java"]),
     deps = [
         "//java/com/google/copybara:base",
-        "//java/com/google/copybara/exception",
+        "//java/com/google/copybara/archive/util",
+        "//java/com/google/copybara/remotefile/extractutil",
         "//java/com/google/copybara/testing",
-        "//java/com/google/copybara/util/console/testing",
+        "//java/com/google/copybara/util",
         "//third_party:apache_commons_compress",
         "//third_party:guava",
         "//third_party:junit",
-        "//third_party:testparameterinjector",
         "//third_party:truth",
     ],
 )

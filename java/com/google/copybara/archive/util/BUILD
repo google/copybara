@@ -1,4 +1,4 @@
-# Copyright 2023 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,22 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("//javatests/com/google/copybara:test.bzl", "all_tests")
+load("@rules_java//java:defs.bzl", "java_library")
+
+package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])
 
-all_tests(
-    name = "all_tests",
-    tests = glob(["*.java"]),
+java_library(
+    name = "util",
+    srcs = glob(["*.java"]),
+    javacopts = [
+        "-Xlint:unchecked",
+    ],
+    runtime_deps = ["//third_party:tukaani_xz"],
     deps = [
         "//java/com/google/copybara:base",
         "//java/com/google/copybara/exception",
-        "//java/com/google/copybara/testing",
-        "//java/com/google/copybara/util/console/testing",
+        "//java/com/google/copybara/remotefile/extractutil",
+        "//java/com/google/copybara/util",
         "//third_party:apache_commons_compress",
         "//third_party:guava",
-        "//third_party:junit",
-        "//third_party:testparameterinjector",
-        "//third_party:truth",
+        "//third_party:jsr305",
     ],
 )

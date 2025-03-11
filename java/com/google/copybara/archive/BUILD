@@ -23,8 +23,9 @@ java_library(
     srcs = glob(["**/*.java"]),
     deps = [
         "//java/com/google/copybara:base",
+        "//java/com/google/copybara/archive/util",
         "//java/com/google/copybara/config:base",
-        "//java/com/google/copybara/doc:annotations",
+        "//java/com/google/copybara/doc:annotations",  # unuseddeps: keep
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/remotefile/extractutil",
         "//java/com/google/copybara/util",

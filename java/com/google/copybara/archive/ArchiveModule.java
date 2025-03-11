@@ -19,6 +19,7 @@ package com.google.copybara.archive;
 import static com.google.common.io.Files.getFileExtension;
 
 import com.google.copybara.CheckoutPath;
+import com.google.copybara.archive.util.ArchiveUtil;
 import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.remotefile.extractutil.ExtractType;
@@ -26,6 +27,7 @@ import com.google.copybara.remotefile.extractutil.ExtractUtil;
 import com.google.copybara.util.Glob;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
@@ -46,6 +48,40 @@ import net.starlark.java.eval.StarlarkValue;
 public class ArchiveModule implements StarlarkValue {
 
   public ArchiveModule() {}
+
+  @StarlarkMethod(
+      name = "create",
+      doc = "Creates an archive, possibly compressed, from a list of files.",
+      documented = true,
+      parameters = {
+        @Param(
+            name = "archive",
+            doc = "Expected path of the generated archive file.",
+            named = true),
+        @Param(
+            name = "files",
+            doc =
+                "An optional glob to describe the list of file paths that are to be included in the"
+                    + " archive. If not specified, all files under the current working directory"
+                    + " will be included. Note, the original file path in the filesystem will be"
+                    + " preserved when archiving it.",
+            named = true,
+            defaultValue = "None",
+            allowedTypes = {
+              @ParamType(type = Glob.class),
+              @ParamType(type = NoneType.class),
+            })
+      })
+  public void createArchive(CheckoutPath archivePath, Object files)
+      throws EvalException, IOException, ValidationException {
+    ExtractType type = resolveArchiveType(archivePath);
+    try (OutputStream os = Files.newOutputStream(archivePath.fullPath())) {
+      ArchiveUtil.createArchive(
+          os, type, archivePath, SkylarkUtil.convertFromNoneable(files, null));
+    } catch (IOException | ValidationException e) {
+      throw Starlark.errorf("There was an error creating the archive: %s", e.toString());
+    }
+  }
 
   @StarlarkMethod(
       name = "extract",

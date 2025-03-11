@@ -3,6 +3,7 @@
 
 
   - [archive](#archive)
+    - [archive.create](#archivecreate)
     - [archive.extract](#archiveextract)
   - [author](#author)
   - [authoring](#authoring)
@@ -441,6 +442,21 @@
 ## archive
 
 Functions to work with archives.
+
+<a id="archive.create" aria-hidden="true"></a>
+### archive.create
+
+Creates an archive, possibly compressed, from a list of files.
+
+<code>archive.create(<a href=#archive.create.archive>archive</a>, <a href=#archive.create.files>files</a>=None)</code>
+
+
+<h4 id="parameters.archive.create">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=archive.create.archive href=#archive.create.archive>archive</span> | <code><a href="#path">Path</a></code><br><p>Expected path of the generated archive file.</p>
+<span id=archive.create.files href=#archive.create.files>files</span> | <code><a href="#glob">glob</a></code> or <code>NoneType</code><br><p>An optional glob to describe the list of file paths that are to be included in the archive. If not specified, all files under the current working directory will be included. Note, the original file path in the filesystem will be preserved when archiving it.</p>
 
 <a id="archive.extract" aria-hidden="true"></a>
 ### archive.extract
@@ -4767,7 +4783,7 @@ A glob represents a set of relative filepaths in the Copybara workdir. Most cons
 <ul><li><a href="#glob">glob</a></li></ul>
 <h4 id="consumed_by.glob">Consumed By:</h4>
 
-<ul><li><a href="#archive.extract">archive.extract</a></li><li><a href="#compression.unzip_path">compression.unzip_path</a></li><li><a href="#core.autopatch_config">core.autopatch_config</a></li><li><a href="#core.convert_encoding">core.convert_encoding</a></li><li><a href="#core.copy">core.copy</a></li><li><a href="#core.filter_replace">core.filter_replace</a></li><li><a href="#core.merge_import_config">core.merge_import_config</a></li><li><a href="#core.move">core.move</a></li><li><a href="#core.remove">core.remove</a></li><li><a href="#core.rename">core.rename</a></li><li><a href="#core.replace">core.replace</a></li><li><a href="#core.todo_replace">core.todo_replace</a></li><li><a href="#core.verify_match">core.verify_match</a></li><li><a href="#core.workflow">core.workflow</a></li><li><a href="#destination_reader.copy_destination_files">destination_reader.copy_destination_files</a></li><li><a href="#format.buildifier">format.buildifier</a></li><li><a href="#ctx.list">ctx.list</a></li><li><a href="#ctx.run">ctx.run</a></li></ul>
+<ul><li><a href="#archive.create">archive.create</a></li><li><a href="#archive.extract">archive.extract</a></li><li><a href="#compression.unzip_path">compression.unzip_path</a></li><li><a href="#core.autopatch_config">core.autopatch_config</a></li><li><a href="#core.convert_encoding">core.convert_encoding</a></li><li><a href="#core.copy">core.copy</a></li><li><a href="#core.filter_replace">core.filter_replace</a></li><li><a href="#core.merge_import_config">core.merge_import_config</a></li><li><a href="#core.move">core.move</a></li><li><a href="#core.remove">core.remove</a></li><li><a href="#core.rename">core.rename</a></li><li><a href="#core.replace">core.replace</a></li><li><a href="#core.todo_replace">core.todo_replace</a></li><li><a href="#core.verify_match">core.verify_match</a></li><li><a href="#core.workflow">core.workflow</a></li><li><a href="#destination_reader.copy_destination_files">destination_reader.copy_destination_files</a></li><li><a href="#format.buildifier">format.buildifier</a></li><li><a href="#ctx.list">ctx.list</a></li><li><a href="#ctx.run">ctx.run</a></li></ul>
 
 
 
@@ -6875,7 +6891,7 @@ path | <code><a href="#string">string</a></code><br><p>Full path relative to the
 <ul><li><a href="#path.read_symlink">path.read_symlink</a></li><li><a href="#path.relativize">path.relativize</a></li><li><a href="#path.resolve">path.resolve</a></li><li><a href="#path.resolve_sibling">path.resolve_sibling</a></li><li><a href="#ctx.new_path">ctx.new_path</a></li></ul>
 <h4 id="consumed_by.Path">Consumed By:</h4>
 
-<ul><li><a href="#archive.extract">archive.extract</a></li><li><a href="#compression.unzip_path">compression.unzip_path</a></li><li><a href="#destination_reader.copy_destination_files">destination_reader.copy_destination_files</a></li><li><a href="#hashing.path_md5_sum">hashing.path_md5_sum</a></li><li><a href="#hashing.path_sha256_sum">hashing.path_sha256_sum</a></li><li><a href="#http.multipart_form_file">http.multipart_form_file</a></li><li><a href="#http_response.download">http_response.download</a></li><li><a href="#path.relativize">path.relativize</a></li><li><a href="#path.resolve">path.resolve</a></li><li><a href="#path.resolve_sibling">path.resolve_sibling</a></li><li><a href="#python.parse_metadata">python.parse_metadata</a></li><li><a href="#ctx.create_symlink">ctx.create_symlink</a></li><li><a href="#ctx.read_path">ctx.read_path</a></li><li><a href="#ctx.set_executable">ctx.set_executable</a></li><li><a href="#ctx.write_path">ctx.write_path</a></li></ul>
+<ul><li><a href="#archive.create">archive.create</a></li><li><a href="#archive.extract">archive.extract</a></li><li><a href="#compression.unzip_path">compression.unzip_path</a></li><li><a href="#destination_reader.copy_destination_files">destination_reader.copy_destination_files</a></li><li><a href="#hashing.path_md5_sum">hashing.path_md5_sum</a></li><li><a href="#hashing.path_sha256_sum">hashing.path_sha256_sum</a></li><li><a href="#http.multipart_form_file">http.multipart_form_file</a></li><li><a href="#http_response.download">http_response.download</a></li><li><a href="#path.relativize">path.relativize</a></li><li><a href="#path.resolve">path.resolve</a></li><li><a href="#path.resolve_sibling">path.resolve_sibling</a></li><li><a href="#python.parse_metadata">python.parse_metadata</a></li><li><a href="#ctx.create_symlink">ctx.create_symlink</a></li><li><a href="#ctx.read_path">ctx.read_path</a></li><li><a href="#ctx.set_executable">ctx.set_executable</a></li><li><a href="#ctx.write_path">ctx.write_path</a></li></ul>
 
 <a id="path.exists" aria-hidden="true"></a>
 ### path.exists
