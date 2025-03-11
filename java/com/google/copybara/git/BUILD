@@ -66,6 +66,7 @@ java_library(
         "//java/com/google/copybara/git/github:api",
         "//java/com/google/copybara/git/github:util",
         "//java/com/google/copybara/git/gitlab:git_lab_options",
+        "//java/com/google/copybara/git/gitlab:git_lab_util",
         "//java/com/google/copybara/git/gitlab/api:gitlab_api",
         "//java/com/google/copybara/git/gitlab/api/entities",
         "//java/com/google/copybara/go",

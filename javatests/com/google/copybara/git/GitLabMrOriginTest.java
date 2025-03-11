@@ -18,7 +18,6 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -40,6 +39,7 @@ import com.google.copybara.credentials.ConstantCredentialIssuer;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitOrigin.SubmoduleStrategy;
+import com.google.copybara.git.gitlab.GitLabUtil;
 import com.google.copybara.git.gitlab.api.GitLabApi;
 import com.google.copybara.git.gitlab.api.entities.MergeRequest;
 import com.google.copybara.git.gitlab.api.entities.Project;
@@ -49,7 +49,6 @@ import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.net.URI;
-import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.ZoneId;
@@ -152,37 +151,10 @@ public class GitLabMrOriginTest {
         .hasMessageThat()
         .contains(
             "Could not find Project "
-                + GitLabMrOrigin.getUrlEncodedProjectPath(repoUrl)
+                + GitLabUtil.getUrlEncodedProjectPath(repoUrl)
                 + " in "
                 + repoUrl
                 + ".");
-  }
-
-  @Test
-  public void getUrlEncodedProjectPath() {
-    URI url = URI.create("https://gitlab.com/project/repo");
-
-    String result = GitLabMrOrigin.getUrlEncodedProjectPath(url);
-
-    assertThat(result).isEqualTo(URLEncoder.encode("project/repo", UTF_8));
-  }
-
-  @Test
-  public void getUrlEncodedProjectPath_handleTrailingGit() {
-    URI url = URI.create("https://gitlab.com/project/repo.git");
-
-    String result = GitLabMrOrigin.getUrlEncodedProjectPath(url);
-
-    assertThat(result).isEqualTo(URLEncoder.encode("project/repo", UTF_8));
-  }
-
-  @Test
-  public void getUrlEncodedProjectPath_handleLeadingSlash() {
-    URI url = URI.create("https://gitlab.com//project/repo");
-
-    String result = GitLabMrOrigin.getUrlEncodedProjectPath(url);
-
-    assertThat(result).isEqualTo(URLEncoder.encode("project/repo", UTF_8));
   }
 
   @Test

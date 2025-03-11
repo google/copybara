@@ -17,9 +17,7 @@
 package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static java.nio.charset.StandardCharsets.UTF_8;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -33,6 +31,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitOrigin.ReaderImpl;
 import com.google.copybara.git.GitOrigin.SubmoduleStrategy;
+import com.google.copybara.git.gitlab.GitLabUtil;
 import com.google.copybara.git.gitlab.api.GitLabApi;
 import com.google.copybara.git.gitlab.api.entities.MergeRequest;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
@@ -42,9 +41,7 @@ import com.google.copybara.util.console.Console;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.net.URI;
-import java.net.URLEncoder;
 import java.nio.file.Path;
-import java.util.Locale;
 import java.util.Optional;
 import javax.annotation.Nullable;
 
@@ -104,7 +101,7 @@ public class GitLabMrOrigin implements Origin<GitRevision> {
     console.progressFmt("Parsing Merge Request reference %s at %s", reference, repoUrl.toString());
     int mergeRequestId = parseReference(reference);
 
-    String urlEncodedProjectPath = getUrlEncodedProjectPath(repoUrl);
+    String urlEncodedProjectPath = GitLabUtil.getUrlEncodedProjectPath(repoUrl);
     console.progressFmt("Resolving numeric Project ID for %s", urlEncodedProjectPath);
     int projectId =
         gitLabApi
@@ -201,20 +198,6 @@ public class GitLabMrOrigin implements Origin<GitRevision> {
       throw new RepoException("Unable to store credentials.", e);
     }
     return repo;
-  }
-
-  @VisibleForTesting
-  public static String getUrlEncodedProjectPath(URI repoUrl) {
-    String path = repoUrl.getPath().trim().toLowerCase(Locale.ROOT);
-    // Remove any leading '/'
-    while (path.startsWith("/")) {
-      path = path.substring(1);
-    }
-    // Remove any trailing .git
-    if (path.endsWith(".git")) {
-      path = path.substring(0, path.length() - ".git".length());
-    }
-    return URLEncoder.encode(path, UTF_8);
   }
 
   @Override

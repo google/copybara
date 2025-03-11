@@ -28,3 +28,8 @@ java_library(
         "//third_party:guava",
     ],
 )
+
+java_library(
+    name = "git_lab_util",
+    srcs = ["GitLabUtil.java"],
+)
