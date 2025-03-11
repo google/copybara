@@ -1,4 +1,4 @@
-# Copyright 2016 Google Inc.
+# Copyright 2016 Google LLC.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -53,6 +53,7 @@ all_tests(
         "//java/com/google/copybara/git/gitlab/api:gitlab_api",
         "//java/com/google/copybara/git/gitlab/api/entities",
         "//java/com/google/copybara/git/testing",
+        "//java/com/google/copybara/json",
         "//java/com/google/copybara/profiler",
         "//java/com/google/copybara/revision",
         "//java/com/google/copybara/testing",
@@ -68,6 +69,7 @@ all_tests(
         "//third_party:jcommander",
         "//third_party:jimfs",
         "//third_party:mockito",
+        "//third_party:re2j",
         "//third_party:starlark",
         "//third_party:testparameterinjector",
         "//third_party:truth",
