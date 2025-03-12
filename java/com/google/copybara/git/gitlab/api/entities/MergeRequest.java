@@ -27,9 +27,13 @@ import com.google.api.client.util.Key;
 public class MergeRequest implements GitLabApiEntity {
   @Key private int id;
   @Key private int iid;
+  @Key private String sha;
 
   @Key("source_branch")
   private String sourceBranch;
+
+  @Key("web_url")
+  private String webUrl;
 
   /**
    * Returns the ID of the merge request. When querying for an MR, use {@link #getIid()} instead.
@@ -57,5 +61,23 @@ public class MergeRequest implements GitLabApiEntity {
    */
   public String getSourceBranch() {
     return sourceBranch;
+  }
+
+  /**
+   * Returns the Web URL of the merge request.
+   *
+   * @return the web URL
+   */
+  public String getWebUrl() {
+    return webUrl;
+  }
+
+  /**
+   * Returns the diff head SHA of the merge request.
+   *
+   * @return the diff head SHA
+   */
+  public String getSha() {
+    return sha;
   }
 }

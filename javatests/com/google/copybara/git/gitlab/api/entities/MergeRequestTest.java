@@ -34,7 +34,9 @@ public class MergeRequestTest {
 {
   "id": 12345,
   "iid": 98765,
-  "source_branch": "capybara"
+  "source_branch": "capybara",
+  "sha": "90993f8bffdf33e7a238838a56403f113cefdcbd",
+  "web_url": "https://gitlab.com/google/copybara/-/merge_requests/1"
 }
 """;
     MergeRequest underTest = GSON_FACTORY.fromString(json, MergeRequest.class);
@@ -42,5 +44,8 @@ public class MergeRequestTest {
     assertThat(underTest.getId()).isEqualTo(12345);
     assertThat(underTest.getIid()).isEqualTo(98765);
     assertThat(underTest.getSourceBranch()).isEqualTo("capybara");
+    assertThat(underTest.getSha()).isEqualTo("90993f8bffdf33e7a238838a56403f113cefdcbd");
+    assertThat(underTest.getWebUrl())
+        .isEqualTo("https://gitlab.com/google/copybara/-/merge_requests/1");
   }
 }
