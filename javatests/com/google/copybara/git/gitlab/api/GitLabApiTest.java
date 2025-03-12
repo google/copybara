@@ -43,6 +43,7 @@ import com.google.copybara.git.gitlab.api.entities.GitLabApiParams;
 import com.google.copybara.git.gitlab.api.entities.GitLabApiParams.Param;
 import com.google.copybara.git.gitlab.api.entities.ListProjectMergeRequestParams;
 import com.google.copybara.git.gitlab.api.entities.MergeRequest;
+import com.google.copybara.git.gitlab.api.entities.Commit;
 import com.google.copybara.git.gitlab.api.entities.Project;
 import com.google.copybara.http.auth.AuthInterceptor;
 import com.google.copybara.http.auth.BearerInterceptor;
@@ -535,6 +536,53 @@ public class GitLabApiTest {
     GitLabApi underTest = setupApiWithMockedStatusCodeResponse(STATUS_CODE_NO_CONTENT);
 
     Optional<Project> project = underTest.getProject(urlEncodedPath);
+
+    assertThat(project).isEmpty();
+  }
+
+  @Test
+  public void testGetCommit() throws Exception {
+    String json =
+        """
+{
+  "id": 12345
+}
+""";
+    MockHttpTransportWithCapture httpTransport = new MockHttpTransportWithCapture(json);
+    GitLabApi underTest =
+        new GitLabApi(
+            getApiTransport(
+                httpTransport,
+                "https://gitlab.copybara.io/capybara/project",
+                getBearerInterceptor()));
+
+    Optional<Commit> response = underTest.getCommit(12345, "refs/heads/cl_12345");
+
+    assertThat(response).isPresent();
+    assertThat(response.get().getId()).isEqualTo(12345);
+  }
+
+  @Test
+  public void testGetCommit_badHttpResponse() {
+    GitLabApi underTest = setupApiWithMockedStatusCodeResponse(STATUS_CODE_SERVER_ERROR);
+
+    GitLabApiException e =
+        assertThrows(
+            GitLabApiException.class, () -> underTest.getCommit(12345, "refs/heads/cl_12345"));
+
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "Error calling GET on"
+                + " https://gitlab.copybara.io/api/v4/projects/12345/repository/commits/refs/heads/cl_12345");
+    assertThat(e).hasCauseThat().isInstanceOf(HttpResponseException.class);
+  }
+
+  @Test
+  public void testGetCommit_emptyResponse() throws Exception {
+    GitLabApi underTest = setupApiWithMockedStatusCodeResponse(STATUS_CODE_NO_CONTENT);
+
+    Optional<Commit> project = underTest.getCommit(12345, "refs/heads/cl_12345");
 
     assertThat(project).isEmpty();
   }

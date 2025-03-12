@@ -19,6 +19,7 @@ package com.google.copybara.git.gitlab.api;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.git.gitlab.api.entities.Commit;
 import com.google.copybara.git.gitlab.api.entities.GitLabApiEntity;
 import com.google.copybara.git.gitlab.api.entities.GitLabApiParams;
 import com.google.copybara.git.gitlab.api.entities.ListProjectMergeRequestParams;
@@ -121,6 +122,25 @@ public class GitLabApi {
     path += extractQueryString(path).isPresent() ? "&" : "?";
     path += urlQueryParams.getQueryString();
     return paginatedGet(path, responseType, headers, perPageAmt);
+  }
+
+  /**
+   * Returns information about a commit for a GitLab project.
+   *
+   * @param projectId The ID or URL-encoded path of the project
+   * @param refName The commit hash or name of a repository branch or tag
+   * @return an Optional containing the Merge Request object, if any
+   * @throws ValidationException if there is an issue fetching the provided credentials
+   * @throws GitLabApiException if there is an failure while querying data from the API
+   * @see <a
+   *     href="https://docs.gitlab.com/ee/api/commits/#get-a-single-commit">https://docs.gitlab.com/ee/api/commits/#get-a-single-commit</a>
+   */
+  public Optional<Commit> getCommit(int projectId, String refName)
+      throws ValidationException, GitLabApiException {
+    return transport.get(
+        "/projects/" + projectId + "/repository/commits/" + refName,
+        TypeToken.get(Commit.class).getType(),
+        ImmutableListMultimap.of());
   }
 
   /**

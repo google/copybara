@@ -19,6 +19,7 @@ package(default_visibility = ["//visibility:public"])
 java_library(
     name = "entities",
     srcs = [
+        "Commit.java",
         "GitLabApiEntity.java",
         "GitLabApiParams.java",
         "ListProjectMergeRequestParams.java",
