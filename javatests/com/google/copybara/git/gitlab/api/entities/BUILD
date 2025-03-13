@@ -31,6 +31,7 @@ all_tests(
         "//third_party:google_http_client",
         "//third_party:google_http_client_test",
         "//third_party:junit",
+        "//third_party:testparameterinjector",
         "//third_party:truth",
     ],
 )
