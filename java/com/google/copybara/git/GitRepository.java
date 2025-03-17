@@ -381,7 +381,8 @@ public class GitRepository {
     // below) and hope the sha1 is reachable from heads.
     // If we fail to find the SHA-1 with that fetch we fetch the SHA-1 directly and hope the server
     // allows to download it.
-    if (isSha1Reference(ref)) {
+    boolean isSha1Ref = isSha1Reference(ref);
+    if (isSha1Ref) {
       boolean tags = !partialFetch && fetchTags;
       try {
         fetch(
@@ -412,15 +413,16 @@ public class GitRepository {
     }
 
     if (!ref.startsWith("refs/")) {
-      // Define a refspec that attempts to obtain the full reference using wildcards, for use in
-      // GitRevision's fullReference() method.
       ImmutableList.Builder<String> fullRefspec = ImmutableList.builder();
-      fullRefspec
-          .addAll(refspec.build())
-          .add(
-              String.format(
-                  "refs/*/%s:%s/refs/*/%s%s",
-                  ref, COPYBARA_FETCH_NAMESPACE, ref, FULL_REF_NAMESPACE));
+      fullRefspec.addAll(refspec.build());
+      if (!isSha1Ref) {
+        // Define a refspec that attempts to obtain the full reference using wildcards, for use in
+        // GitRevision's fullReference() method.
+        fullRefspec.add(
+            String.format(
+                "refs/*/%s:%s/refs/*/%s%s",
+                ref, COPYBARA_FETCH_NAMESPACE, ref, FULL_REF_NAMESPACE));
+      }
 
       try {
         // If this fails, the fetch below will resolve using a simpler refspec.

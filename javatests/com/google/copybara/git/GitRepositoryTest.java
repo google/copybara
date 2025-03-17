@@ -910,10 +910,59 @@ public class GitRepositoryTest {
                 ImmutableList.of(),
                 ImmutableList.of(
                     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:refs/copybara_fetch/aaaaaaaaaa"
-                        + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                    "refs/*/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:refs/copybara_fetch/refs/*/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa_copybara_full_ref"),
+                        + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
                 ImmutableList.of(
                     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:refs/copybara_fetch/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")));
+  }
+
+  @Test
+  public void fetchNonSha1Ref_finalRefspecAfterMultipleFailuresHasCopybaraFullRef()
+      throws Exception {
+    List<Iterable<String>> requestedFetches = new ArrayList<>();
+
+    GitRepository dest =
+        new GitRepository(
+            Files.createTempDirectory("destDir"),
+            /* workTree= */ null,
+            /* verbose= */ true,
+            getGitEnv(),
+            DEFAULT_TIMEOUT,
+            /* noVerify= */ false,
+            /* pushOptionsValidator= */ new GitRepository.PushOptionsValidator(Optional.empty())) {
+
+          @Override
+          public FetchResult fetch(
+              String url,
+              boolean prune,
+              boolean force,
+              Iterable<String> refspecs,
+              boolean partialFetch,
+              Optional<Integer> depth,
+              boolean tags)
+              throws RepoException, ValidationException {
+            requestedFetches.add(refspecs);
+            return super.fetch(url, prune, force, refspecs, partialFetch, Optional.empty(), tags);
+          }
+        }.init();
+
+    Files.write(workdir.resolve("foo.txt"), "aaa".getBytes(UTF_8));
+    repository.add().files("foo.txt").run();
+    repository.simpleCommand("commit", "foo.txt", "-m", "message 1");
+
+    assertThrows(
+        CannotResolveRevisionException.class,
+        () ->
+            dest.fetchSingleRef(
+                "file://" + repository.getGitDir(), "capybara", false, Optional.empty()));
+
+    // Ensure that after all the fetch attempts, we at least try to map the ref to
+    // refs/*/<ref>_copybara_full_ref as it is not a SHA1.
+    assertThat(requestedFetches)
+        .containsExactly(
+            ImmutableList.of(
+                "capybara:refs/copybara_fetch/capybara",
+                "refs/*/capybara:refs/copybara_fetch/refs/*/capybara_copybara_full_ref"),
+            ImmutableList.of("capybara:refs/copybara_fetch/capybara"));
   }
 
   @Test
