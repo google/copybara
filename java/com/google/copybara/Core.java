@@ -125,8 +125,12 @@ import net.starlark.java.syntax.Location;
 @UsesFlags({GeneralOptions.class, DebugOptions.class})
 public class Core implements LabelsAwareModule, StarlarkValue {
 
-  // Restrict for label ids like 'BAZEL_REV_ID'. More strict than our current revId.
-  private static final Pattern CUSTOM_REVID_FORMAT = Pattern.compile("[A-Z][A-Z_0-9]{1,30}_REV_ID");
+  // Restrict for label ids like 'BAZEL_REV_ID' or 'Bazel-RevId'.
+  //
+  // It is suggested to meet the RFC 822 format (e.g., no underscore) so that it works with git
+  // trailer (https://git-scm.com/docs/git-interpret-trailers).
+  private static final Pattern CUSTOM_REVID_FORMAT =
+      Pattern.compile("([A-Z][A-Z_0-9]{1,30}_REV_ID|[A-Z][a-zA-Z0-9-]{1,30}-RevId)");
   private static final String CHECK_LAST_REV_STATE = "check_last_rev_state";
   private final GeneralOptions generalOptions;
   private final WorkflowOptions workflowOptions;
@@ -2179,7 +2183,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     // TODO(b/269526710): Enable more than one endpoint
     check(fields.size() == 1 && Iterables.getOnlyElement(fields).equals("destination"),
         "Temporarily core.action_migration only supports one endpoint called destination");
-    
+
     for (String fieldName : fields) {
       Object epProvider = endpoints.getValue(fieldName);
       check(epProvider instanceof EndpointProvider,

@@ -5377,4 +5377,38 @@ public class WorkflowTest {
             + ")\n",
         ".*Migration name 'foo[|] bad;name' doesn't conform to expected pattern.*");
   }
+
+  @Test
+  public void testCustomRevIdFormat_validUsingUnderscoreWithREV_ID() throws Exception {
+    origin.addSimpleChange(/*timestamp*/ 0);
+    extraWorkflowFields = ImmutableList.of("custom_rev_id = \"CUSTOM_REV_ID\"");
+    skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of(HEAD));
+
+    ProcessedChange change = Iterables.getOnlyElement(destination.processed);
+    assertThat(change.getRevIdLabel()).isEqualTo("CUSTOM_REV_ID");
+  }
+
+  @Test(expected = ValidationException.class)
+  public void testCustomRevIdFormat_invalidUsingHyphenWithREV_ID() throws Exception {
+    origin.addSimpleChange(/*timestamp*/ 0);
+    extraWorkflowFields = ImmutableList.of("custom_rev_id = \"CUSTOM-REV_ID\"");
+    skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of(HEAD));
+  }
+
+  @Test
+  public void testCustomRevIdFormat_validHyphenWithRevId() throws Exception {
+    origin.addSimpleChange(/*timestamp*/ 0);
+    extraWorkflowFields = ImmutableList.of("custom_rev_id = \"Custom-RevId\"");
+    skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of(HEAD));
+
+    ProcessedChange change = Iterables.getOnlyElement(destination.processed);
+    assertThat(change.getRevIdLabel()).isEqualTo("Custom-RevId");
+  }
+
+  @Test(expected = ValidationException.class)
+  public void testCustomRevIdFormat_invalidUsingUnderscoreWithRevId() throws Exception {
+    origin.addSimpleChange(/*timestamp*/ 0);
+    extraWorkflowFields = ImmutableList.of("custom_rev_id = \"CUSTOM_RevId\"");
+    skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of(HEAD));
+  }
 }
