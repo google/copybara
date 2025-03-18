@@ -2421,20 +2421,4 @@ public class GitDestinationTest {
       .isEqualTo(secondCommit.getCommit().getSha1());
   }
 
-  @Test
-  public void testDestinationReaderGetHash() throws Exception {
-    fetch = primaryBranch;
-    push = primaryBranch;
-    Files.write(workdir.resolve("test.txt"), "some content".getBytes(UTF_8));
-    Writer<GitRevision> writer = firstCommitWriter();
-    process(writer, new DummyRevision("first_commit"));
-    assertThat(
-        writer.getDestinationReader(
-            console,
-            new Baseline<>(repo().resolveReference("HEAD").getSha1(), null),
-            workdir)
-            .getHash("test.txt")).isEqualTo(
-              /*SHA256("some content")=*/"290f493c44f5d63d06b374d0a5abd292fae38b92cab2fae5efefe1b0e9347f56");
-  }
-
 }

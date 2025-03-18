@@ -100,11 +100,4 @@ public class GitDestinationReader extends DestinationReader {
   public String lastModified(String path) throws RepoException {
     return repository.lastModified(baseline.getSha1(), path);
   }
-
-  @Override
-  public String getHash(String path) throws RepoException {
-    return Hashing.sha256()
-        .hashBytes(repository.readFileBytes(baseline.getSha1(), path))
-        .toString();
-  }
 }

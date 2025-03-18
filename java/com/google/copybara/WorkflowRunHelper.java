@@ -28,6 +28,7 @@ import com.google.common.base.Splitter;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.io.MoreFiles;
 import com.google.copybara.Destination.DestinationStatus;
 import com.google.copybara.Destination.Writer;
 import com.google.copybara.Origin.Baseline;
@@ -1061,8 +1062,17 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       Path baselineWorkdir = Files.createDirectories(workdir.resolve("baseline"));
       reader.copyDestinationFilesToDirectory(baselineFiles, baselineWorkdir);
 
+      ConsistencyFile.HashGetter hashGetter;
+      if (reader.supportsGetHash()) {
+        hashGetter = reader::getHash;
+      } else {
+        var hashFunction = workflow.getDestination().getHashFunction();
+        hashGetter = (String path) -> {
+          return MoreFiles.asByteSource(baselineWorkdir.resolve(path)).hash(hashFunction).toString();
+        };
+      }
       consistencyFile.validateDirectory(
-          ConsistencyFile.filesInDir(baselineWorkdir), reader::getHash);
+          ConsistencyFile.filesInDir(baselineWorkdir), hashGetter);
       consistencyFile.reversePatches(
           baselineWorkdir, workflow.getGeneralOptions().getEnvironment());
 

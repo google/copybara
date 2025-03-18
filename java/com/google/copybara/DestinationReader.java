@@ -173,6 +173,17 @@ public abstract class DestinationReader implements StarlarkValue {
   }
 
   /**
+   * Returns true if this implementation supports {@link #getHash}.
+   *
+   * <p>If this returns false, hashes will be computed by reading the files from
+   * the local filesystem instead. An implementation should only provide
+   * getHash() if it can compute the hashes in a more efficient way.
+   */
+  public boolean supportsGetHash() {
+    return false;
+  }
+
+  /**
    * Obtain the hash of the destination file at this path.
    */
   public String getHash(String path) throws RepoException, IOException {

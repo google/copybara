@@ -93,6 +93,7 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
   @Nullable
   private Consumer<TransformResult> hook;
   @Nullable Path filePrefix;
+  public boolean supportsGetHash = true;
 
   public RecordsProcessCallDestination() {
     this(ImmutableList.of());
@@ -321,7 +322,16 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
       }
 
       @Override
+      public boolean supportsGetHash() {
+        return supportsGetHash;
+      }
+
+      @Override
       public String getHash(String path) throws RepoException {
+        if (!supportsGetHash) {
+          throw new RepoException("attempted to call getHash() despite supportsGetHash() being false");
+        }
+
         Optional<ProcessedChange> processedChange = getProcessed();
         if (processedChange.isEmpty()) {
           throw new RepoException("attempted to hash empty destination");

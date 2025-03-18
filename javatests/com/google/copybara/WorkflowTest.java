@@ -2728,15 +2728,18 @@ public class WorkflowTest {
         Glob.createGlob(ImmutableList.of(destinationFiles)),
         console());
 
-    Throwable throwable =
+    for (boolean supportsGetHash : new boolean[]{true, false}) {
+      options.testingOptions.destination.supportsGetHash = supportsGetHash;
+      Throwable throwable =
         assertThrows(
             ValidationException.class,
             () -> {
               workflow.run(workdir, ImmutableList.of("HEAD"));
             });
-    assertThat(throwable)
-        .hasMessageThat()
-        .containsMatch("has hash value \\w+ in ConsistencyFile but \\w+ in directory");
+      assertThat(throwable)
+          .hasMessageThat()
+          .containsMatch("has hash value \\w+ in ConsistencyFile but \\w+ in directory");
+    }
   }
 
   @Test
