@@ -789,6 +789,17 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + " fall back to the 'ref' param.\n"
                     + "This is intended to help migrating to the new standard of using 'main'"
                     + " without breaking users relying on the legacy default."),
+        @Param(
+            name = "import_wip_changes",
+            allowedTypes = {
+              @ParamType(type = Boolean.class),
+            },
+            defaultValue = "True",
+            named = true,
+            positional = false,
+            doc =
+                "When set to true, Copybara will migrate changes marked as Work in Progress"
+                    + " (WIP)."),
       },
       useStarlarkThread = true)
   @UsesFlags({GitOriginOptions.class, GerritOptions.class})
@@ -805,6 +816,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object describeVersion,
       Boolean ignoreGerritNoop,
       Boolean primaryBranchMigration,
+      boolean importWipChanges,
       StarlarkThread thread)
       throws EvalException {
     checkNotEmpty(url, "url");
@@ -854,7 +866,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         convertDescribeVersion(describeVersion),
         ignoreGerritNoop,
         primaryBranchMigration,
-        approvalsProvider(url));
+        approvalsProvider(url),
+        importWipChanges);
   }
 
   static final String GITHUB_PR_ORIGIN_NAME = "github_pr_origin";

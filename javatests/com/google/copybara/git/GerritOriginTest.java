@@ -240,21 +240,28 @@ public class GerritOriginTest {
 
   private void mockChange(int changeNumber) throws IOException {
     when(gitUtil
-        .httpTransport()
-        .buildRequest(eq("GET"),
-            startsWith(
-                "https://localhost:33333/changes/" + changeNumber
-                    + "?o=DETAILED_ACCOUNTS&o=DETAILED_LABELS")))
+            .httpTransport()
+            .buildRequest(
+                eq("GET"),
+                startsWith(
+                    "https://localhost:33333/changes/"
+                        + changeNumber
+                        + "?o=DETAILED_ACCOUNTS&o=DETAILED_LABELS")))
         .then(
             (Answer<LowLevelHttpRequest>)
                 invocation -> {
                   String change = changeIdFromRequest((String) invocation.getArguments()[1]);
                   return mockResponse(
                       "{"
-                          + "  \"id\" : \"my_branch-" + changeNumber + "\","
-                          + "  \"change_id\" : \"" + change + "\","
+                          + "  \"id\" : \"my_branch-"
+                          + changeNumber
+                          + "\","
+                          + "  \"change_id\" : \""
+                          + change
+                          + "\","
                           + "  \"status\" : \"NEW\","
                           + "  \"branch\" : \"my_branch\","
+                          + "  \"work_in_progress\" : \"true\","
                           + "  \"owner\" : { \"email\" : \"the_owner@example.com\"},"
                           + "  \"reviewers\": {\n"
                           + "    \"REVIEWER\": [\n"
@@ -290,6 +297,30 @@ public class GerritOriginTest {
         assertThrows(EmptyChangeException.class, () -> origin.resolve("12345"));
     assertThat(e).hasMessageThat().contains("Skipping import of change 12345 for branch my_branch");
     assertThat(describe).containsAtLeast("branch", "master");
+    // But this should work, as the last-rev needs to be resolved:
+    origin.resolve(firstRevision.getSha1());
+  }
+
+  @Test
+  public void testWorkInProgressFiltering() throws Exception {
+    mockChange(12345);
+    GerritOrigin origin =
+        skylark.eval(
+            "g",
+            "g = git.gerrit_origin("
+                + "  url = 'https://"
+                + REPO_URL
+                + "',"
+                + "  branch = 'my_branch',"
+                + "  import_wip_changes = False)");
+    ImmutableSetMultimap<String, String> describe = origin.describe(Glob.ALL_FILES);
+
+    EmptyChangeException e =
+        assertThrows(EmptyChangeException.class, () -> origin.resolve("12345"));
+    assertThat(e)
+        .hasMessageThat()
+        .contains("Skipping import of change 12345 as it is marked as Work in Progress.");
+    assertThat(describe).containsAtLeast("import_wip_changes", "false");
     // But this should work, as the last-rev needs to be resolved:
     origin.resolve(firstRevision.getSha1());
   }

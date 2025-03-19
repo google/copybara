@@ -56,6 +56,10 @@ public class ChangeInfo implements StarlarkValue {
   @Key private String updated;
   @Key private String submitted;
   @Key private boolean submittable;
+
+  @Key("work_in_progress")
+  private boolean workInProgress;
+
   @Key("_number") private long number;
   @Key private AccountInfo owner;
 
@@ -210,6 +214,14 @@ public class ChangeInfo implements StarlarkValue {
     return submittable;
   }
 
+  @StarlarkMethod(
+      name = "work_in_progress",
+      doc = "Whether the change is marked as \"Work in progress\".",
+      structField = true)
+  public boolean isWorkInProgress() {
+    return workInProgress;
+  }
+
   public long getNumber() {
     return number;
   }
@@ -326,6 +338,7 @@ public class ChangeInfo implements StarlarkValue {
         .add("updated", updated)
         .add("submitted", submitted)
         .add("submittable", submittable)
+        .add("work_in_progress", workInProgress)
         .add("number", number)
         .add("owner", owner)
         .add("submitRequirements", submitRequirements)

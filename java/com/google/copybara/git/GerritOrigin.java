@@ -75,6 +75,7 @@ public class GerritOrigin extends GitOrigin {
   @Nullable private final PatchTransformation patchTransformation;
   @Nullable private final String branch;
   private final boolean ignoreGerritNoop;
+  private final boolean importWipChanges;
 
   private GerritOrigin(
       GeneralOptions generalOptions,
@@ -94,7 +95,8 @@ public class GerritOrigin extends GitOrigin {
       boolean describeVersion,
       boolean ignoreGerritNoop,
       boolean primaryBranchMigrationMode,
-      ApprovalsProvider approvalsProvider) {
+      ApprovalsProvider approvalsProvider,
+      boolean importWipChanges) {
     super(
         generalOptions,
         repoUrl,
@@ -128,6 +130,7 @@ public class GerritOrigin extends GitOrigin {
     this.branch = branch;
     this.partialFetch = partialFetch;
     this.ignoreGerritNoop = ignoreGerritNoop;
+    this.importWipChanges = importWipChanges;
   }
 
   @Override
@@ -137,6 +140,7 @@ public class GerritOrigin extends GitOrigin {
     if (branch != null) {
       builder.put("branch", branch);
     }
+    builder.put("import_wip_changes", Boolean.toString(importWipChanges));
     return builder.build();
   }
 
@@ -162,6 +166,13 @@ public class GerritOrigin extends GitOrigin {
       throw new EmptyChangeException(String.format(
           "Skipping import of change %s for branch %s. Only tracking changes for branch %s",
           change.getChange(), response.getBranch(), branch));
+    }
+
+    if (!importWipChanges && response.isWorkInProgress()) {
+      throw new EmptyChangeException(
+          String.format(
+              "Skipping import of change %s as it is marked as Work in Progress.",
+              change.getChange()));
     }
 
     ImmutableMultimap.Builder<String, String> labels = ImmutableMultimap.builder();
@@ -205,7 +216,8 @@ public class GerritOrigin extends GitOrigin {
       boolean describeVersion,
       boolean ignoreGerritNoop,
       boolean primaryBranchMigrationMode,
-      ApprovalsProvider approvalsProvider) {
+      ApprovalsProvider approvalsProvider,
+      boolean importWipChanges) {
 
     return new GerritOrigin(
         options.get(GeneralOptions.class),
@@ -225,7 +237,8 @@ public class GerritOrigin extends GitOrigin {
         describeVersion,
         ignoreGerritNoop,
         primaryBranchMigrationMode,
-        approvalsProvider);
+        approvalsProvider,
+        importWipChanges);
   }
 
   @Override

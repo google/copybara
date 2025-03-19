@@ -2952,6 +2952,7 @@ submitted | <code><a href="#string">string</a></code><br><p>The timestamp of whe
 topic | <code><a href="#string">string</a></code><br><p>The topic to which this change belongs.</p>
 triplet_id | <code><a href="#string">string</a></code><br><p>The ID of the change in the format "'<project>~<branch>~<Change-Id>'", where 'project' and 'branch' are URL encoded. For 'branch' the refs/heads/ prefix is omitted.</p>
 updated | <code><a href="#string">string</a></code><br><p>The timestamp of when the change was last updated.</p>
+work_in_progress | <code><a href="#bool">bool</a></code><br><p>Whether the change is marked as "Work in progress".</p>
 
 
 <h4 id="returned_by.gerritapi.ChangeInfo">Returned By:</h4>
@@ -3286,7 +3287,7 @@ Implicit labels that can be used/exposed:
   - GERRIT_CC_EMAIL: Multiple value field with the email of the people/groups in cc
 
 
-<code><a href="#origin">origin</a></code> <code>git.gerrit_origin(<a href=#git.gerrit_origin.url>url</a>, <a href=#git.gerrit_origin.ref>ref</a>=None, <a href=#git.gerrit_origin.submodules>submodules</a>='NO', <a href=#git.gerrit_origin.excluded_submodules>excluded_submodules</a>=[], <a href=#git.gerrit_origin.first_parent>first_parent</a>=True, <a href=#git.gerrit_origin.partial_fetch>partial_fetch</a>=False, <a href=#git.gerrit_origin.api_checker>api_checker</a>=None, <a href=#git.gerrit_origin.patch>patch</a>=None, <a href=#git.gerrit_origin.branch>branch</a>=None, <a href=#git.gerrit_origin.describe_version>describe_version</a>=None, <a href=#git.gerrit_origin.ignore_gerrit_noop>ignore_gerrit_noop</a>=False, <a href=#git.gerrit_origin.primary_branch_migration>primary_branch_migration</a>=False)</code>
+<code><a href="#origin">origin</a></code> <code>git.gerrit_origin(<a href=#git.gerrit_origin.url>url</a>, <a href=#git.gerrit_origin.ref>ref</a>=None, <a href=#git.gerrit_origin.submodules>submodules</a>='NO', <a href=#git.gerrit_origin.excluded_submodules>excluded_submodules</a>=[], <a href=#git.gerrit_origin.first_parent>first_parent</a>=True, <a href=#git.gerrit_origin.partial_fetch>partial_fetch</a>=False, <a href=#git.gerrit_origin.api_checker>api_checker</a>=None, <a href=#git.gerrit_origin.patch>patch</a>=None, <a href=#git.gerrit_origin.branch>branch</a>=None, <a href=#git.gerrit_origin.describe_version>describe_version</a>=None, <a href=#git.gerrit_origin.ignore_gerrit_noop>ignore_gerrit_noop</a>=False, <a href=#git.gerrit_origin.primary_branch_migration>primary_branch_migration</a>=False, <a href=#git.gerrit_origin.import_wip_changes>import_wip_changes</a>=True)</code>
 
 
 <h4 id="parameters.git.gerrit_origin">Parameters:</h4>
@@ -3305,6 +3306,7 @@ Parameter | Description
 <span id=git.gerrit_origin.describe_version href=#git.gerrit_origin.describe_version>describe_version</span> | <code><a href="#bool">bool</a></code> or <code>NoneType</code><br><p>Download tags and use 'git describe' to create four labels with a meaningful version identifier:<br><br>  - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br> - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br>  -`GIT_DESCRIBE_FIRST_PARENT`: `git describe` for the first parent version.<br>  -`GIT_SEQUENTIAL_REVISION_NUMBER`: The sequential number of the commit. Falls back to the SHA1 if not applicable.<br></p>
 <span id=git.gerrit_origin.ignore_gerrit_noop href=#git.gerrit_origin.ignore_gerrit_noop>ignore_gerrit_noop</span> | <code><a href="#bool">bool</a></code><br><p>Option to not migrate Gerrit changes that do not change origin_files</p>
 <span id=git.gerrit_origin.primary_branch_migration href=#git.gerrit_origin.primary_branch_migration>primary_branch_migration</span> | <code><a href="#bool">bool</a></code><br><p>When enabled, copybara will ignore the 'ref' param if it is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the 'ref' param.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
+<span id=git.gerrit_origin.import_wip_changes href=#git.gerrit_origin.import_wip_changes>import_wip_changes</span> | <code><a href="#bool">bool</a></code><br><p>When set to true, Copybara will migrate changes marked as Work in Progress (WIP).</p>
 
 
 
