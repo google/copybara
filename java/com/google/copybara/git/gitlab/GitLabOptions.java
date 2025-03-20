@@ -16,6 +16,7 @@
 
 package com.google.copybara.git.gitlab;
 
+import com.beust.jcommander.Parameter;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.common.base.Suppliers;
@@ -25,9 +26,17 @@ import com.google.copybara.git.gitlab.api.GitLabApiTransportImpl;
 import com.google.copybara.http.auth.AuthInterceptor;
 import com.google.copybara.util.console.Console;
 import java.util.function.Supplier;
+import javax.annotation.Nullable;
 
 /** Options related to GitLab endpoints. */
 public class GitLabOptions implements Option {
+  @Parameter(
+      names = "--gitlab-destination-delete-mr-branch",
+      description = "Overwrite git.gitlab_destination delete_pr_branch field",
+      arity = 1,
+      hidden = true)
+  public @Nullable Boolean gitlabDeleteMrBranch = null;
+
   private final Supplier<HttpTransport> httpTransportSupplier =
       Suppliers.memoize(NetHttpTransport::new);
 
