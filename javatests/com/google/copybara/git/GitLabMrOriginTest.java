@@ -112,6 +112,24 @@ public class GitLabMrOriginTest {
   }
 
   @Test
+  public void resolveMergeRequest_contextRefIsPopulated() throws Exception {
+    setupGitRepo();
+    when(gitLabApi.getProject(anyString()))
+        .thenReturn(Optional.ofNullable(GSON_FACTORY.fromString("{\"id\": 1}", Project.class)));
+    when(gitLabApi.getMergeRequest(eq(1), eq(1)))
+        .thenReturn(
+            Optional.ofNullable(
+                GSON_FACTORY.fromString(
+                    "{\"id\": 12345, \"iid\": 1, \"source_branch\": \"source-branch\"}",
+                    MergeRequest.class)));
+    GitLabMrOrigin underTest = getGitLabMrOrigin(false);
+
+    GitRevision revision = underTest.resolve("1");
+
+    assertThat(revision.contextReference()).isEqualTo("refs/merge-requests/1/head");
+  }
+
+  @Test
   public void resolveMergeCommit_usingMergeCommit() throws Exception {
     setupGitRepo();
     when(gitLabApi.getProject(anyString()))

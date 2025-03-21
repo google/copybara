@@ -164,7 +164,10 @@ public class GitLabMrOrigin implements Origin<GitRevision> {
           /* tags= */ false);
     }
 
-    return repository.resolveReference(refToUse).withLabels(generateLabels(mergeRequest));
+    return repository
+        .resolveReference(refToUse)
+        .withLabels(generateLabels(mergeRequest))
+        .withContextReference(refToUse);
   }
 
   private ImmutableListMultimap<String, String> generateLabels(MergeRequest mergeRequest) {
