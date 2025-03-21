@@ -251,6 +251,90 @@ public class GitLabApiTransportImplTest {
   }
 
   @Test
+  public void testSimplePutRequest() throws Exception {
+    MockHttpTransport.Builder httpTransport = new MockHttpTransport.Builder();
+    httpTransport.setLowLevelHttpResponse(
+        new MockLowLevelHttpResponse().setContent(getExampleTestResponseJson()));
+    BearerInterceptor bearerInterceptor = getBearerInterceptor();
+    GitLabApiTransport underTest =
+        getApiTransport(
+            httpTransport.build(),
+            "https://gitlab.copybara.io/capybara/project",
+            bearerInterceptor);
+    TestRequest testRequest = new TestRequest(54321, "baracopy");
+
+    Optional<TestResponse> testResponse =
+        underTest.put(
+            "/projects/12345/test_request",
+            testRequest,
+            TestResponse.class,
+            ImmutableListMultimap.of());
+
+    assertThat(testResponse).isPresent();
+    assertThat(testResponse.get().getId()).isEqualTo(12345);
+    assertThat(testResponse.get().getDescription()).isEqualTo("capybara");
+  }
+
+  @Test
+  public void testSimplePutRequest_httpPort() throws Exception {
+    MockHttpTransport.Builder httpTransport = new MockHttpTransport.Builder();
+    httpTransport.setLowLevelHttpResponse(
+        new MockLowLevelHttpResponse().setContent(getExampleTestResponseJson()));
+    BearerInterceptor bearerInterceptor = getBearerInterceptor();
+    GitLabApiTransport underTest =
+        getApiTransport(
+            httpTransport.build(),
+            "https://gitlab.copybara.io:8080/capybara/project",
+            bearerInterceptor);
+    TestRequest testRequest = new TestRequest(54321, "baracopy");
+
+    Optional<TestResponse> unused =
+        underTest.put(
+            "/projects/12345/test_request",
+            testRequest,
+            TestResponse.class,
+            ImmutableListMultimap.of());
+
+    console
+        .assertThat()
+        .onceInLog(
+            MessageType.VERBOSE,
+            "Sending PUT request to"
+                + " https://gitlab.copybara.io:8080/api/v4/projects/12345/test_request");
+  }
+
+  @Test
+  public void testErrorPutRequest_throwsException() {
+    MockHttpTransport.Builder httpTransport = new MockHttpTransport.Builder();
+    httpTransport.setLowLevelHttpResponse(
+        new MockLowLevelHttpResponse().setStatusCode(HttpStatusCodes.STATUS_CODE_NOT_FOUND));
+    BearerInterceptor bearerInterceptor = getBearerInterceptor();
+    GitLabApiTransport underTest =
+        getApiTransport(
+            httpTransport.build(),
+            "https://gitlab.copybara.io/capybara/project",
+            bearerInterceptor);
+    TestRequest testRequest = new TestRequest(54321, "baracopy");
+
+    GitLabApiException e =
+        assertThrows(
+            GitLabApiException.class,
+            () ->
+                underTest.put(
+                    "/projects/12345/test_request",
+                    testRequest,
+                    TestResponse.class,
+                    ImmutableListMultimap.of()));
+
+    assertThat(e).hasCauseThat().isInstanceOf(HttpResponseException.class);
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "Error calling PUT on https://gitlab.copybara.io/api/v4/projects/12345/test_request");
+    assertThat(e.getResponseCode()).hasValue(HttpStatusCodes.STATUS_CODE_NOT_FOUND);
+  }
+
+  @Test
   public void testSimpleDeleteRequest() throws Exception {
     MockHttpTransport.Builder httpTransport = new MockHttpTransport.Builder();
     httpTransport.setLowLevelHttpResponse(

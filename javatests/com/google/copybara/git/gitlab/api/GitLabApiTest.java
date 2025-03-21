@@ -38,13 +38,17 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.copybara.credentials.ConstantCredentialIssuer;
 import com.google.copybara.credentials.CredentialIssuer;
+import com.google.copybara.git.gitlab.api.entities.Commit;
+import com.google.copybara.git.gitlab.api.entities.CreateMergeRequestParams;
 import com.google.copybara.git.gitlab.api.entities.GitLabApiEntity;
 import com.google.copybara.git.gitlab.api.entities.GitLabApiParams;
 import com.google.copybara.git.gitlab.api.entities.GitLabApiParams.Param;
 import com.google.copybara.git.gitlab.api.entities.ListProjectMergeRequestParams;
+import com.google.copybara.git.gitlab.api.entities.ListUsersParams;
 import com.google.copybara.git.gitlab.api.entities.MergeRequest;
-import com.google.copybara.git.gitlab.api.entities.Commit;
 import com.google.copybara.git.gitlab.api.entities.Project;
+import com.google.copybara.git.gitlab.api.entities.UpdateMergeRequestParams;
+import com.google.copybara.git.gitlab.api.entities.User;
 import com.google.copybara.http.auth.AuthInterceptor;
 import com.google.copybara.http.auth.BearerInterceptor;
 import com.google.copybara.json.GsonParserUtil;
@@ -585,6 +589,174 @@ public class GitLabApiTest {
     Optional<Commit> project = underTest.getCommit(12345, "refs/heads/cl_12345");
 
     assertThat(project).isEmpty();
+  }
+
+  @Test
+  public void getListUsers() throws Exception {
+    String json =
+        """
+[{"id": 12345}, {"id": 6789}]
+""";
+    MockHttpTransportWithCapture httpTransport = new MockHttpTransportWithCapture(json);
+    GitLabApi underTest =
+        new GitLabApi(
+            getApiTransport(
+                httpTransport,
+                "https://gitlab.copybara.io/capybara/project",
+                getBearerInterceptor()));
+
+    ImmutableList<User> response = underTest.getListUsers(new ListUsersParams("capybara"));
+
+    assertThat(response.stream().map(User::getId)).containsExactly(12345, 6789).inOrder();
+    assertThat(httpTransport.getCapturedUrls())
+        .containsExactly("https://gitlab.copybara.io/api/v4/users?username=capybara&per_page=50");
+  }
+
+  @Test
+  public void getListUsers_emptyResponse() throws Exception {
+    GitLabApi underTest = setupApiWithMockedStatusCodeResponse(STATUS_CODE_NO_CONTENT);
+
+    ImmutableList<User> response = underTest.getListUsers(new ListUsersParams("capybara"));
+
+    assertThat(response).isEmpty();
+  }
+
+  @Test
+  public void getListUsers_badHttpResponse() {
+    GitLabApi underTest = setupApiWithMockedStatusCodeResponse(STATUS_CODE_SERVER_ERROR);
+
+    GitLabApiException e =
+        assertThrows(
+            GitLabApiException.class,
+            () -> underTest.getListUsers(new ListUsersParams("capybara")));
+
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "Error calling GET on"
+                + " https://gitlab.copybara.io/api/v4/users?username=capybara&per_page=50");
+    assertThat(e).hasCauseThat().isInstanceOf(HttpResponseException.class);
+  }
+
+  @Test
+  public void createMergeRequest() throws Exception {
+    String json =
+        """
+{"iid": 1234}
+""";
+    MockHttpTransportWithCapture httpTransport = new MockHttpTransportWithCapture(json);
+    GitLabApi underTest =
+        new GitLabApi(
+            getApiTransport(
+                httpTransport,
+                "https://gitlab.copybara.io/capybara/project",
+                getBearerInterceptor()));
+
+    CreateMergeRequestParams params =
+        new CreateMergeRequestParams(
+            12345,
+            "capys_source_branch",
+            "capys_target_branch",
+            "capys_title",
+            "capys_description",
+            ImmutableList.of(1, 2, 3, 4, 5));
+    Optional<MergeRequest> response = underTest.createMergeRequest(params);
+
+    assertThat(response).isPresent();
+    assertThat(response.get().getIid()).isEqualTo(1234);
+  }
+
+  @Test
+  public void createMergeRequest_emptyResponse() throws Exception {
+    GitLabApi underTest = setupApiWithMockedStatusCodeResponse(STATUS_CODE_NO_CONTENT);
+
+    CreateMergeRequestParams params =
+        new CreateMergeRequestParams(
+            12345,
+            "capys_source_branch",
+            "capys_target_branch",
+            "capys_title",
+            "capys_description",
+            ImmutableList.of(1, 2, 3, 4, 5));
+    Optional<MergeRequest> response = underTest.createMergeRequest(params);
+
+    assertThat(response).isEmpty();
+  }
+
+  @Test
+  public void createMergeRequest_badHttpResponse() {
+    GitLabApi underTest = setupApiWithMockedStatusCodeResponse(STATUS_CODE_SERVER_ERROR);
+
+    CreateMergeRequestParams params =
+        new CreateMergeRequestParams(
+            12345,
+            "capys_source_branch",
+            "capys_target_branch",
+            "capys_title",
+            "capys_description",
+            ImmutableList.of(1, 2, 3, 4, 5));
+    GitLabApiException e =
+        assertThrows(GitLabApiException.class, () -> underTest.createMergeRequest(params));
+
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "Error calling POST on"
+                + " https://gitlab.copybara.io/api/v4/projects/12345/merge_requests");
+    assertThat(e).hasCauseThat().isInstanceOf(HttpResponseException.class);
+  }
+
+  @Test
+  public void updateMergeRequest() throws Exception {
+    String json =
+        """
+{"iid": 1234}
+""";
+    MockHttpTransportWithCapture httpTransport = new MockHttpTransportWithCapture(json);
+    GitLabApi underTest =
+        new GitLabApi(
+            getApiTransport(
+                httpTransport,
+                "https://gitlab.copybara.io/capybara/project",
+                getBearerInterceptor()));
+
+    UpdateMergeRequestParams params =
+        new UpdateMergeRequestParams(
+            12345, 99999, "capys_title", "capys_description", ImmutableList.of(1, 2, 3, 4, 5));
+    Optional<MergeRequest> response = underTest.updateMergeRequest(params);
+
+    assertThat(response).isPresent();
+    assertThat(response.get().getIid()).isEqualTo(1234);
+  }
+
+  @Test
+  public void updateMergeRequest_emptyResponse() throws Exception {
+    GitLabApi underTest = setupApiWithMockedStatusCodeResponse(STATUS_CODE_NO_CONTENT);
+
+    UpdateMergeRequestParams params =
+        new UpdateMergeRequestParams(
+            12345, 99999, "capys_title", "capys_description", ImmutableList.of(1, 2, 3, 4, 5));
+    Optional<MergeRequest> response = underTest.updateMergeRequest(params);
+
+    assertThat(response).isEmpty();
+  }
+
+  @Test
+  public void updateMergeRequest_badHttpResponse() {
+    GitLabApi underTest = setupApiWithMockedStatusCodeResponse(STATUS_CODE_SERVER_ERROR);
+
+    UpdateMergeRequestParams params =
+        new UpdateMergeRequestParams(
+            12345, 99999, "capys_title", "capys_description", ImmutableList.of(1, 2, 3, 4, 5));
+    GitLabApiException e =
+        assertThrows(GitLabApiException.class, () -> underTest.updateMergeRequest(params));
+
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "Error calling PUT on"
+                + " https://gitlab.copybara.io/api/v4/projects/12345/merge_requests/99999");
+    assertThat(e).hasCauseThat().isInstanceOf(HttpResponseException.class);
   }
 
   private static BearerInterceptor getBearerInterceptor() {

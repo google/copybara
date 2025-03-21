@@ -20,16 +20,21 @@ java_library(
     name = "entities",
     srcs = [
         "Commit.java",
+        "CreateMergeRequestParams.java",
         "GitLabApiEntity.java",
         "GitLabApiParams.java",
         "ListProjectMergeRequestParams.java",
+        "ListUsersParams.java",
         "MergeRequest.java",
         "PaginatedPageList.java",
         "Project.java",
+        "UpdateMergeRequestParams.java",
+        "User.java",
     ],
     deps = [
         "//third_party:google_http_client",
         "//third_party:guava",
+        "//third_party:jsr305",
         "//third_party:re2j",
     ],
 )

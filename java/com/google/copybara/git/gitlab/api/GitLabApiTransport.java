@@ -41,6 +41,24 @@ public interface GitLabApiTransport {
       throws GitLabApiException, ValidationException;
 
   /**
+   * Perform a PUT request on the GitLab API, for the provided path.
+   *
+   * @param <T> the class the JSON response will be parsed to
+   * @param path the path to call, e.g. projects/13422/merge_requests
+   * @param request the object to send as part of the request
+   * @param responseType the Java type that GSON should parse the response into
+   * @return the returned {@link T}, if a response is returned
+   * @throws GitLabApiException if there is an issue performing the request
+   * @throws ValidationException if there is an issue with credential issuing or retrieval
+   */
+  <T> Optional<T> put(
+      String path,
+      GitLabApiEntity request,
+      Type responseType,
+      ImmutableListMultimap<String, String> headers)
+      throws RepoException, ValidationException;
+
+  /**
    * Perform a POST request on the GitLab API, for the provided path.
    *
    * @param <T> the class the JSON response will be parsed to

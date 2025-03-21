@@ -139,10 +139,37 @@ public class GitLabApiTransportImpl implements GitLabApiTransport {
     }
   }
 
+  @Override
+  public <T> Optional<T> put(
+      String path,
+      GitLabApiEntity request,
+      Type responseType,
+      ImmutableListMultimap<String, String> headers)
+      throws GitLabApiException, ValidationException {
+    GenericUrl url = getFullEndpointGenericUrl(path);
+    try {
+      console.verboseFmt("Sending PUT request to %s", url);
+      HttpResponse httpResponse = getPutHttpResponse(request, url);
+      return Optional.ofNullable(
+          GsonParserUtil.parseHttpResponse(httpResponse, responseType, false));
+    } catch (HttpResponseException e) {
+      throw new GitLabApiException(
+          String.format("Error calling PUT on %s", url), e.getStatusCode(), e);
+    } catch (IOException e) {
+      throw new GitLabApiException(String.format("Error calling %s", url), e);
+    }
+  }
+
   private HttpResponse getPostHttpResponse(GitLabApiEntity request, GenericUrl url)
       throws IOException, ValidationException {
     return getHttpRequest(
             url, "POST", new HttpHeaders(), new JsonHttpContent(GSON_FACTORY, request))
+        .execute();
+  }
+
+  private HttpResponse getPutHttpResponse(GitLabApiEntity request, GenericUrl url)
+      throws IOException, ValidationException {
+    return getHttpRequest(url, "PUT", new HttpHeaders(), new JsonHttpContent(GSON_FACTORY, request))
         .execute();
   }
 

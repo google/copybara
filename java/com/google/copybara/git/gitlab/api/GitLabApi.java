@@ -18,14 +18,19 @@ package com.google.copybara.git.gitlab.api;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.gitlab.api.entities.Commit;
+import com.google.copybara.git.gitlab.api.entities.CreateMergeRequestParams;
 import com.google.copybara.git.gitlab.api.entities.GitLabApiEntity;
 import com.google.copybara.git.gitlab.api.entities.GitLabApiParams;
 import com.google.copybara.git.gitlab.api.entities.ListProjectMergeRequestParams;
+import com.google.copybara.git.gitlab.api.entities.ListUsersParams;
 import com.google.copybara.git.gitlab.api.entities.MergeRequest;
 import com.google.copybara.git.gitlab.api.entities.PaginatedPageList;
 import com.google.copybara.git.gitlab.api.entities.Project;
+import com.google.copybara.git.gitlab.api.entities.UpdateMergeRequestParams;
+import com.google.copybara.git.gitlab.api.entities.User;
 import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import java.util.Optional;
@@ -144,6 +149,21 @@ public class GitLabApi {
   }
 
   /**
+   * Returns a list of users that match the given criteria from the GitLab instance.
+   *
+   * @param params the parameters to use in the request
+   * @return a list of users
+   * @throws ValidationException if there is an issue fetching the provided credentials
+   * @throws GitLabApiException if there is an failure while querying data from the API
+   * @see <a href="https://docs.gitlab.com/api/users/#list-users">GitLab API List Users docs</a>
+   */
+  public ImmutableList<User> getListUsers(ListUsersParams params)
+      throws ValidationException, GitLabApiException {
+    return paginatedGet(
+        "users", TypeToken.get(User.class).getType(), ImmutableListMultimap.of(), 50, params);
+  }
+
+  /**
    * Performs a GET request on the GitLab API, for the provided path, and handles the pagination of
    * responses.
    *
@@ -182,6 +202,41 @@ public class GitLabApi {
     }
 
     return response.build();
+  }
+
+  /**
+   * Creates a merge request via the GitLab API.
+   *
+   * @param params the parameters to use in the request
+   * @return the created merge request info, if returned by the API
+   * @throws ValidationException if there is an issue fetching the provided credentials
+   * @throws GitLabApiException if there is an failure while querying this data to the API
+   */
+  public Optional<MergeRequest> createMergeRequest(CreateMergeRequestParams params)
+      throws ValidationException, RepoException {
+    return transport.post(
+        String.format("/projects/%d/merge_requests", params.projectId()),
+        params,
+        TypeToken.get(MergeRequest.class).getType(),
+        ImmutableListMultimap.of());
+  }
+
+  /**
+   * Updates a merge request via the GitLab API.
+   *
+   * @param params the parameters to use in the request
+   * @return the updated merge request info, if returned by the API
+   * @throws ValidationException if there is an issue fetching the provided credentials
+   * @throws GitLabApiException if there is an failure while querying this data to the API
+   */
+  public Optional<MergeRequest> updateMergeRequest(UpdateMergeRequestParams params)
+      throws ValidationException, RepoException {
+    return transport.put(
+        String.format(
+            "/projects/%d/merge_requests/%d", params.projectId(), params.mergeRequestIid()),
+        params,
+        TypeToken.get(MergeRequest.class).getType(),
+        ImmutableListMultimap.of());
   }
 
   private static String getPathWithPerPageParam(String path, int itemsPerPage) {
