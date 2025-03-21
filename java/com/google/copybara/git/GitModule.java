@@ -20,6 +20,7 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.copybara.config.SkylarkUtil.check;
 import static com.google.copybara.config.SkylarkUtil.checkNotEmpty;
 import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
+import static com.google.copybara.config.SkylarkUtil.convertToOptional;
 import static com.google.copybara.config.SkylarkUtil.stringToEnum;
 import static com.google.copybara.git.GitHubPrOrigin.GITHUB_BASE_BRANCH;
 import static com.google.copybara.git.GitHubPrOrigin.GITHUB_BASE_BRANCH_SHA1;
@@ -74,6 +75,7 @@ import com.google.copybara.git.GitDestination.WriterImpl.DefaultWriteHook;
 import com.google.copybara.git.GitHubPrOrigin.ReviewState;
 import com.google.copybara.git.GitHubPrOrigin.StateFilter;
 import com.google.copybara.git.GitIntegrateChanges.Strategy;
+import com.google.copybara.git.GitLabMrDestination.GitLabMrDestinationParams;
 import com.google.copybara.git.GitOrigin.SubmoduleStrategy;
 import com.google.copybara.git.gerritapi.GerritEventType;
 import com.google.copybara.git.gerritapi.SetReviewInput;
@@ -85,6 +87,7 @@ import com.google.copybara.git.github.util.GitHubUtil;
 import com.google.copybara.git.gitlab.GitLabOptions;
 import com.google.copybara.git.gitlab.api.GitLabApi;
 import com.google.copybara.git.gitlab.api.GitLabApiTransport;
+import com.google.copybara.git.gitlab.api.entities.MergeRequest.DetailedMergeStatus;
 import com.google.copybara.http.auth.AuthInterceptor;
 import com.google.copybara.transform.Replace;
 import com.google.copybara.transform.patch.PatchTransformation;
@@ -2641,7 +2644,9 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             positional = false,
             doc =
                 "An interceptor for providing credentials. This is used for inserting"
-                    + " authentication headers to GitLab API calls."),
+                    + " authentication headers to GitLab API calls.\n"
+                    + "Example: `auth_interceptor = http.bearer_auth(credentials)` will perform"
+                    + " Bearer Authentication with the GitLab API using the given credentials."),
         @Param(
             name = "partial_fetch",
             named = true,
@@ -2747,6 +2752,201 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     }
 
     return originBuilder.build();
+  }
+
+  @StarlarkMethod(
+      name = "gitlab_mr_destination",
+      doc =
+          "Creates a GitLab Merge Request destination. WARNING: This is still in an experimental"
+              + " state; please do not use.",
+      documented = false,
+      parameters = {
+        @Param(
+            name = "url",
+            named = true,
+            positional = false,
+            doc = "The URL of the GitLab repository."),
+        @Param(
+            name = "credentials",
+            allowedTypes = {
+              @ParamType(type = UsernamePasswordIssuer.class),
+              @ParamType(type = NoneType.class),
+            },
+            defaultValue = "None",
+            named = true,
+            positional = false,
+            doc = CREDENTIAL_DOC),
+        @Param(
+            name = "auth_interceptor",
+            named = true,
+            positional = false,
+            doc =
+                "An interceptor for providing credentials. This is used for inserting"
+                    + " authentication headers to GitLab API calls."),
+        @Param(
+            name = "source_branch",
+            named = true,
+            positional = false,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
+            doc = "The source branch to use for creating the merge request.",
+            defaultValue = "None"),
+        @Param(
+            name = "target_branch",
+            named = true,
+            positional = false,
+            doc = "The target branch to use for creating the merge request."),
+        @Param(
+            name = "title",
+            named = true,
+            positional = false,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
+            doc =
+                "The title to use for creating the merge request's title. This field also accepts a"
+                    + " template with labels.\n"
+                    + "Example: `title = Merge Request ${CONTEXT_REFERENCE}`",
+            defaultValue = "None"),
+        @Param(
+            name = "body",
+            named = true,
+            positional = false,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
+            doc =
+                "The body to use for creating the merge request. This field also accepts a template"
+                    + " with labels.\n"
+                    + "Example: `title = Merge Request ${CONTEXT_REFERENCE}`",
+            defaultValue = "None"),
+        @Param(
+            name = "assignees",
+            named = true,
+            positional = false,
+            allowedTypes = {
+              @ParamType(type = Sequence.class, generic1 = String.class),
+            },
+            doc =
+                "The assignees to set when creating a new merge request. The assignees must be"
+                    + " GitLab usernames or a label that can be resolved to a GitLab username. For"
+                    + " example: `assignees = [\"gitlab-user1\", \"${YOUR_LABEL}\"]`",
+            defaultValue = "[]"),
+        @Param(
+            name = "allow_empty_diff",
+            named = true,
+            positional = false,
+            doc =
+                "If `True`, Copybara migrates changes without checking existing MRs. "
+                    + "If `False`, copybara will skip pushing a change to an existing MR "
+                    + "only if the git tree of the pending migrating change is the same "
+                    + "as the existing MR.",
+            defaultValue = "False"),
+        @Param(
+            name = "allow_empty_diff_merge_statuses",
+            allowedTypes = {@ParamType(type = Sequence.class, generic1 = String.class)},
+            defaultValue = "[]",
+            named = true,
+            positional = false,
+            doc =
+                "By default, if `allow_empty_diff` is False,"
+                    + " Copybara skips uploading the change if the tree hasn't changed and it can"
+                    + " be merged. When this list is set with values from"
+                    + " https://docs.gitlab.com/api/merge_requests/#merge-status,"
+                    + " it will still upload for the configured statuses. For example, if a user"
+                    + " sets it to `['ci_must_pass', 'need_rebase']` (the recommended set to use),"
+                    + " it wouldn't skip upload if test failed in GitLab for previous export, or if"
+                    + " the change cannot be merged. **Note that this field is experimental and is"
+                    + " subject to change by GitLab without notice**. Please consult Copybara team"
+                    + " before using this field."),
+        @Param(
+            name = "partial_fetch",
+            named = true,
+            positional = false,
+            doc = "If true, partially fetch the Git repository by only fetching affected files.",
+            defaultValue = "False"),
+        @Param(
+            name = "integrates",
+            named = true,
+            positional = false,
+            allowedTypes = {
+              @ParamType(type = Sequence.class, generic1 = GitIntegrateChanges.class),
+              @ParamType(type = NoneType.class),
+            },
+            defaultValue = "None",
+            doc =
+                "Integrate changes from a url present in the migrated change"
+                    + " label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is"
+                    + " present in the message."),
+        @Param(
+            name = "checker",
+            allowedTypes = {
+              @ParamType(type = Checker.class),
+              @ParamType(type = NoneType.class),
+            },
+            defaultValue = "None",
+            doc = "A checker that validates the commit files & message.",
+            named = true,
+            positional = false),
+      })
+  @UsesFlags({GitDestinationOptions.class})
+  @SuppressWarnings("unused")
+  public GitLabMrDestination gitLabMrDestination(
+      String url,
+      Object usernamePasswordIssuer,
+      AuthInterceptor authInterceptor,
+      Object sourceBranchTemplate,
+      String targetBranch,
+      Object titleTemplate,
+      Object bodyTemplate,
+      Sequence<?> assigneeTemplates,
+      boolean allowEmptyDiff,
+      Sequence<?> allowEmptyDiffMergeStatuses,
+      boolean partialFetch,
+      Object integrates,
+      Object checker)
+      throws EvalException {
+    checkNotEmpty(url, "url");
+
+    GitLabOptions gitLabOptions = options.get(GitLabOptions.class);
+    Console console = getGeneralConsole();
+    GitLabApiTransport gitLabApiTransport =
+        GitLabOptions.getApiTransport(
+            url, gitLabOptions.getHttpTransportSupplier().get(), console, authInterceptor);
+
+    return new GitLabMrDestinationParams(
+            new GitLabApi(gitLabApiTransport),
+            URI.create(url),
+            convertToOptional(titleTemplate),
+            convertToOptional(bodyTemplate),
+            Sequence.cast(assigneeTemplates, String.class, "assignee_templates").getImmutableList(),
+            getCredentialHandler(url, usernamePasswordIssuer),
+            convertToOptional(sourceBranchTemplate),
+            targetBranch,
+            mainConfigFile,
+            allowEmptyDiff,
+            ImmutableSet.copyOf(
+                SkylarkUtil.stringListToEnumList(
+                    Sequence.cast(
+                        allowEmptyDiffMergeStatuses,
+                        String.class,
+                        "allow_empty_diff_merge_statuses"),
+                    DetailedMergeStatus.class,
+                    "allow_empty_diff_merge_statuses",
+                    console)),
+            options.get(GeneralOptions.class),
+            options.get(GitOptions.class),
+            options.get(GitDestinationOptions.class),
+            partialFetch,
+            Starlark.isNullOrNone(integrates)
+                ? defaultGitIntegrate
+                : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"),
+            convertToOptional(checker))
+        .createDestination();
   }
 
   @SuppressWarnings("unused")

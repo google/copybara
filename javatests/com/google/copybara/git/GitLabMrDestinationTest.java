@@ -55,6 +55,7 @@ import com.google.copybara.git.gitlab.api.entities.User;
 import com.google.copybara.testing.DummyChecker;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
+import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -82,6 +83,7 @@ public class GitLabMrDestinationTest {
   private OptionsBuilder optionsBuilder;
   private String mainBranchName;
   private URI repoUrl;
+  private SkylarkTestExecutor starlarkExecutor;
   private Path tempDir;
 
   @Before
@@ -110,6 +112,7 @@ public class GitLabMrDestinationTest {
             .setHomeDir(Files.createTempDirectory("home").toString());
     optionsBuilder.gitDestination.committerEmail = "no-reply@copybara.io";
     optionsBuilder.gitDestination.committerName = "Capy Bara";
+    starlarkExecutor = new SkylarkTestExecutor(optionsBuilder);
   }
 
   @Test
@@ -357,6 +360,46 @@ public class GitLabMrDestinationTest {
     ImmutableSetMultimap<String, String> results = underTest.describe(destinationFiles);
 
     assertThat(results).containsExactlyEntriesIn(expected.build());
+  }
+
+  @Test
+  public void starlark_worksCorrectly() throws Exception {
+    String starlark =
+"""
+token_issuer = credentials.static_value("project_access_token")
+
+destination = git.gitlab_mr_destination(
+  url = "https://gitlab.com/capybara/capybara",
+  credentials = credentials.username_password(
+    credentials.static_value("capybara"),
+    token_issuer
+  ),
+  auth_interceptor = http.bearer_auth(creds = token_issuer),
+  source_branch = "source-branch",
+  target_branch = "main",
+  title = "title",
+  body = "body",
+  assignees = ["capybara"],
+  allow_empty_diff = False,
+  allow_empty_diff_merge_statuses = ['CI_MUST_PASS', 'NEED_REBASE'],
+  partial_fetch = False,
+  integrates = [],
+  checker = None
+)
+""";
+    GitLabMrDestination underTest = starlarkExecutor.eval("destination", starlark);
+
+    ImmutableSetMultimap<String, String> results = underTest.describe(Glob.ALL_FILES);
+
+    assertThat(results)
+        .containsExactly(
+            "type", underTest.getType(),
+            "url", "https://gitlab.com/capybara/capybara",
+            "title_template", "title",
+            "source_branch_template", "source-branch",
+            "target_branch", "main",
+            "allow_empty_diff", "false",
+            "partial_fetch", "false");
   }
 
   private static WriterContext getWriterContext(boolean dryRun) {

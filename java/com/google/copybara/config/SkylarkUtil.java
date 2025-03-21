@@ -16,10 +16,14 @@
 
 package com.google.copybara.config;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
+
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 import com.google.copybara.starlark.StarlarkUtil;
+import com.google.copybara.util.console.Console;
 import com.google.errorprone.annotations.FormatMethod;
 import com.google.errorprone.annotations.FormatString;
 import java.util.ArrayList;
@@ -27,6 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import javax.annotation.Nullable;
 import net.starlark.java.eval.Dict;
 import net.starlark.java.eval.EvalException;
@@ -57,6 +62,20 @@ public final class SkylarkUtil {
   }
 
   /**
+   * Converts a noneable Starlark object into a Java Optional. If the object is null or None, it
+   * will be converted to an empty Optional.
+   *
+   * <p>A noneable object is an object that can be a {@link net.starlark.java.eval.NoneType}.
+   *
+   * @param obj the noneable object
+   * @return the object wrapped in an Optional
+   * @param <T> the type of the inner object
+   */
+  public static <T> Optional<T> convertToOptional(Object obj) {
+    return Optional.ofNullable(convertFromNoneable(obj, null));
+  }
+
+  /**
    * Converts a string to the corresponding enum or fail if invalid value.
    *
    * @param fieldName name of the field to convert
@@ -72,6 +91,33 @@ public final class SkylarkUtil {
       throw Starlark.errorf(
           "Invalid value '%s' for field '%s'. Valid values are: %s",
           value, fieldName, Joiner.on(", ").join(enumType.getEnumConstants()));
+    }
+  }
+
+  /**
+   * Converts a list of strings to an immutable list of correspong enum values.
+   *
+   * @param <T> the enum type
+   * @param sequence the sequence containing string values that correspond to the enum values
+   * @param enumType the enum containing the values
+   * @param fieldName the field name this is passed into in Starlark, for error messages and
+   *     logging
+   * @return the list of enum values
+   * @throws EvalException if there is an error casting this list of strings to the list of enum
+   *     values
+   */
+  public static <T extends Enum<T>> ImmutableList<T> stringListToEnumList(
+      Sequence<String> sequence, Class<T> enumType, String fieldName, Console console) throws EvalException {
+    try {
+      return sequence.stream()
+          .map(value -> Enum.valueOf(enumType, value))
+          .collect(toImmutableList());
+    } catch (IllegalArgumentException e) {
+      console.errorFmt("Failed to convert list of strings '%s' to list of enums. Cause: %s",
+          sequence.toString(), e.getMessage());
+      throw Starlark.errorf(
+          "Invalid value '%s' for field '%s'. Valid values are: %s",
+          sequence.toString(), fieldName, Joiner.on(", ").join(enumType.getEnumConstants()));
     }
   }
 
