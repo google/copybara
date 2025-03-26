@@ -25,7 +25,7 @@
   - [Command](#command)
   - [compression](#compression)
     - [compression.unzip_path](#compressionunzip_path)
-  - [Console](#console)
+  - [console](#console)
     - [console.error](#consoleerror)
     - [console.info](#consoleinfo)
     - [console.progress](#consoleprogress)
@@ -861,7 +861,7 @@ Parameter | Description
 
 
 
-## Console
+## console
 
 A console that can be used in skylark transformations to print info, warning or error messages.
 
@@ -946,7 +946,7 @@ Core functionality for creating migrations, and basic transformations.
 
 Name | Description
 ---- | -----------
-console | <code><a href="#console">Console</a></code><br><p>Returns a handle to the console object.</p>
+console | <code><a href="#console">console</a></code><br><p>Returns a handle to the console object.</p>
 main_config_path | <code><a href="#string">string</a></code><br><p>Location of the config file. This is subject to change</p>
 
 
@@ -2414,7 +2414,7 @@ Name | Description
 ---- | -----------
 action_name | <code><a href="#string">string</a></code><br><p>The name of the current action.</p>
 cli_labels | <code>dict[<a href="#string">string</a>, <a href="#string">string</a>]</code><br><p>Access labels that a user passes through flag '--labels'. For example: --labels=foo:value1,bar:value2. Then it can access in this way:cli_labels['foo'].</p>
-console | <code><a href="#console">Console</a></code><br><p>Get an instance of the console to report errors or warnings</p>
+console | <code>Console</code><br><p>Get an instance of the console to report errors or warnings</p>
 destination | <code><a href="#endpoint">endpoint</a></code><br><p>An object representing the destination. Can be used to query or modify the destination state</p>
 endpoints | <code>structure</code><br><p>An object that gives access to the API of the configured endpoints</p>
 feedback_name | <code><a href="#string">string</a></code><br><p>DEPRECATED: The name of the Feedback migration calling this action. Use migration_name instead.</p>
@@ -2490,7 +2490,7 @@ Name | Description
 ---- | -----------
 action_name | <code><a href="#string">string</a></code><br><p>The name of the current action.</p>
 cli_labels | <code>dict[<a href="#string">string</a>, <a href="#string">string</a>]</code><br><p>Access labels that a user passes through flag '--labels'. For example: --labels=foo:value1,bar:value2. Then it can access in this way:cli_labels['foo'].</p>
-console | <code><a href="#console">Console</a></code><br><p>Get an instance of the console to report errors or warnings</p>
+console | <code>Console</code><br><p>Get an instance of the console to report errors or warnings</p>
 destination | <code><a href="#endpoint">endpoint</a></code><br><p>An object representing the destination. Can be used to query or modify the destination state</p>
 effects | <code>list of destination_effect</code><br><p>The list of effects that happened in the destination</p>
 origin | <code><a href="#endpoint">endpoint</a></code><br><p>An object representing the origin. Can be used to query about the ref or modifying the origin state</p>
@@ -3819,7 +3819,7 @@ Name | Description
 ---- | -----------
 action_name | <code><a href="#string">string</a></code><br><p>The name of the current action.</p>
 cli_labels | <code>dict[<a href="#string">string</a>, <a href="#string">string</a>]</code><br><p>Access labels that a user passes through flag '--labels'. For example: --labels=foo:value1,bar:value2. Then it can access in this way:cli_labels['foo'].</p>
-console | <code><a href="#console">Console</a></code><br><p>Get an instance of the console to report errors or warnings</p>
+console | <code>Console</code><br><p>Get an instance of the console to report errors or warnings</p>
 destination_api | <code><a href="#endpoint">endpoint</a></code><br><p>Returns a handle to platform specific api, inferred from the destination url when possible.</p>
 origin_api | <code><a href="#endpoint">endpoint</a></code><br><p>Returns a handle to platform specific api, inferred from the origin url when possible.</p>
 params | <code><a href="#dict">dict</a></code><br><p>Parameters for the function if created with core.action</p>
@@ -8548,7 +8548,7 @@ Name | Description
 ---- | -----------
 author | <code><a href="#author">author</a></code><br><p>Author to be used in the change</p>
 changes | <code><a href="#changes">Changes</a></code><br><p>List of changes that will be migrated</p>
-console | <code><a href="#console">Console</a></code><br><p>Get an instance of the console to report errors or warnings</p>
+console | <code>Console</code><br><p>Get an instance of the console to report errors or warnings</p>
 message | <code><a href="#string">string</a></code><br><p>Message to be used in the change</p>
 params | <code><a href="#dict">dict</a></code><br><p>Parameters for the function if created with core.dynamic_transform</p>
 

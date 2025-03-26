@@ -28,7 +28,7 @@ import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.StarlarkValue;
 
 @StarlarkBuiltin(
-    name = "Console",
+    name = "console",
     doc =
         "A console that can be used in skylark transformations to print info, warning or"
             + " error messages.")
