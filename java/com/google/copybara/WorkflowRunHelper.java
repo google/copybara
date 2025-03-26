@@ -17,12 +17,15 @@
 package com.google.copybara;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.ImmutableListMultimap.toImmutableListMultimap;
 import static com.google.copybara.GeneralOptions.OUTPUT_ROOT_FLAG;
 import static com.google.copybara.TransformWork.COPYBARA_CONFIG_PATH_LABEL;
 import static com.google.copybara.TransformWork.COPYBARA_WORKFLOW_NAME_LABEL;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.util.FileUtil.CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
+import com.google.common.base.Ascii;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.base.Verify;
@@ -73,7 +76,6 @@ import com.google.copybara.util.console.PrefixConsole;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.re2j.Pattern;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
@@ -622,7 +624,13 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       LazyResourceLoader<Endpoint> destinationApi = c -> writer.getFeedbackEndPoint(c);
       ResourceSupplier<DestinationReader> destinationReader = () ->
           writer.getDestinationReader(console, destinationBaseline, checkoutDir);
-
+      metadata =
+          metadata.withHiddenLabels(
+              workflow.getGeneralOptions().cliLabels().entrySet().stream()
+                  .collect(
+                      toImmutableListMultimap(
+                          e -> GeneralOptions.CLI_FLAG_PREFIX + Ascii.toUpperCase(e.getKey()),
+                          e -> e.getValue())));
       TransformWork transformWork =
           new TransformWork(
                   checkoutDir,
@@ -706,7 +714,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                 getReversibleCheckIgnoreFiles().relativeTo(Paths.get("origin"));
             diff = DiffUtil.filterDiff(byteDiff, (s -> !pathMatcher.matches(Paths.get(s))));
           } else {
-            diff = new String(byteDiff, StandardCharsets.UTF_8);
+            diff = new String(byteDiff, UTF_8);
           }
         } catch (InsideGitDirException e) {
           throw new ValidationException(String.format(

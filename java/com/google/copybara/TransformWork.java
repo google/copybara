@@ -190,7 +190,7 @@ public final class TransformWork extends CheckoutFileSystem
 
   @StarlarkMethod(
       name = "params",
-      doc = "Parameters for the function if created with" + " core.dynamic_transform",
+      doc = "Parameters for the function if created with core.dynamic_transform",
       structField = true)
   public Dict<?, ?> getParams() {
     return skylarkTransformParams;
@@ -208,8 +208,12 @@ public final class TransformWork extends CheckoutFileSystem
     return metadata;
   }
 
+  public void addHiddenLabels(Dict<String, String> hiddenLabels) {
+    this.metadata = metadata.withHiddenLabels(ImmutableListMultimap.copyOf(hiddenLabels.entrySet()));
+  }
+
   public void addHiddenLabels(ImmutableMultimap<String, String> hiddenLabels) {
-    this.metadata = metadata.addHiddenLabels(hiddenLabels);
+    this.metadata = metadata.withHiddenLabels(hiddenLabels);
   }
 
   @StarlarkMethod(

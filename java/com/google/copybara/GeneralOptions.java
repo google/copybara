@@ -58,12 +58,11 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import javax.annotation.Nullable;
 
-/**
- * General options available for all the program classes.
- */
+/** General options available for all the program classes. */
 @Parameters(separators = "=")
 public final class GeneralOptions implements Option {
 
+  public static final String CLI_FLAG_PREFIX = "FLAG_";
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   public static final String NOANSI = "--noansi";
@@ -424,12 +423,14 @@ public final class GeneralOptions implements Option {
   @Parameter(
       names = "--labels",
       description =
-          "Additional flags. It has been exposed to Feedback Context, "
-              + "which can be accessed through ctx.cli_labels. "
-              + "Format: --labels=flag1:value1,flag2:value2 "
-              + "Or: --labels flag1:value1,flag2:value2 ",
-      converter = MapConverter.class,
-      hidden = true)
+          "Additional flags. Can be accessed in feedback and mirror context objects via the"
+              + " `cli_labels` field. In `core.workflow`, they are accessible as labels, but with"
+              + " names uppercased and prefixed with "
+              + CLI_FLAG_PREFIX
+              + " to avoid name clashes with existing labels. I.e. `--labels=label1:value1` will"
+              + " define a label FLAG_LABEL1Format: --labels=flag1:value1,flag2:value2 Or: --labels"
+              + " flag1:value1,flag2:value2 ",
+      converter = MapConverter.class)
   ImmutableMap<String, String> labels = ImmutableMap.of();
 
   @Parameter(

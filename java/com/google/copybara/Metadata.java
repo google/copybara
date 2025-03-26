@@ -50,7 +50,7 @@ public final class Metadata {
   /**
    * We never allow deleting hidden labels. Use a different name if you want to rename one.
    */
-  public final Metadata addHiddenLabels(ImmutableMultimap<String, String> hiddenLabels) {
+  public final Metadata withHiddenLabels(ImmutableMultimap<String, String> hiddenLabels) {
     checkNotNull(hiddenLabels, "hidden labels cannot be null");
     return new Metadata(message, author,
         ImmutableSetMultimap.<String, String>builder()
