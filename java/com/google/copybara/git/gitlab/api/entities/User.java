@@ -17,6 +17,7 @@
 package com.google.copybara.git.gitlab.api.entities;
 
 import com.google.api.client.util.Key;
+import com.google.common.annotations.VisibleForTesting;
 
 /**
  * Represents a GitLab instance user.
@@ -25,6 +26,19 @@ import com.google.api.client.util.Key;
  */
 public class User implements GitLabApiEntity {
   @Key private int id;
+
+  /** Creates a new instance of {@link User}. */
+  public User() {}
+
+  /**
+   * Creates a new User object.
+   *
+   * @param id the ID of the user
+   */
+  @VisibleForTesting
+  public User(int id) {
+    this.id = id;
+  }
 
   /**
    * Returns the numeric ID of the GitLab user

@@ -18,6 +18,7 @@ package com.google.copybara.git.gitlab.api.entities;
 
 import com.google.api.client.util.Key;
 import com.google.api.client.util.Value;
+import com.google.common.annotations.VisibleForTesting;
 
 /**
  * Represents a GitLab Merge Request.
@@ -38,6 +39,35 @@ public class MergeRequest implements GitLabApiEntity {
 
   @Key("web_url")
   private String webUrl;
+
+  /** Creates a new instance of {@link MergeRequest}. */
+  public MergeRequest() {}
+
+  /**
+   * Constructs a new instance of {@link MergeRequest} with the given parameters.
+   *
+   * @param id the ID of the GitLab project
+   * @param iid the internal ID of the merge request
+   * @param sha the SHA1 of the MR's head commit
+   * @param detailedMergeStatus the merge status of the commit
+   * @param sourceBranch the source branch of the MR
+   * @param webUrl the web URL of the MR
+   */
+  @VisibleForTesting
+  public MergeRequest(
+      int id,
+      int iid,
+      String sha,
+      DetailedMergeStatus detailedMergeStatus,
+      String sourceBranch,
+      String webUrl) {
+    this.id = id;
+    this.iid = iid;
+    this.sha = sha;
+    this.detailedMergeStatus = detailedMergeStatus;
+    this.sourceBranch = sourceBranch;
+    this.webUrl = webUrl;
+  }
 
   /**
    * Returns the ID of the merge request. When querying for an MR, use {@link #getIid()} instead.

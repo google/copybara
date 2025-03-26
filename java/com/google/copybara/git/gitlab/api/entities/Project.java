@@ -17,6 +17,7 @@
 package com.google.copybara.git.gitlab.api.entities;
 
 import com.google.api.client.util.Key;
+import com.google.common.annotations.VisibleForTesting;
 
 /**
  * Represents a GitLab project.
@@ -26,6 +27,19 @@ import com.google.api.client.util.Key;
  */
 public class Project implements GitLabApiEntity {
   @Key private int id;
+
+  /** Creates a new instance of {@link Project}. */
+  public Project() {}
+
+  /**
+   * Constructs a new instance of {@link Project} with the given parameters.
+   *
+   * @param id the project ID
+   */
+  @VisibleForTesting
+  public Project(int id) {
+    this.id = id;
+  }
 
   /**
    * Returns the numeric ID of the project.
