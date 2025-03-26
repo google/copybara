@@ -62,26 +62,35 @@ public class CoreTest {
 
   @Test
   public void testLambdaName_top_level() throws Exception {
-    assertThat(skylark.<StarlarkAction>eval("some", ""
-        + "some = core.action(impl = lambda x: x*2)").getName())
+    assertThat(
+            skylark
+                .<StarlarkAction>eval("some", "" + "some = core.action(impl = lambda x: x*2)")
+                .getName())
         .isEqualTo("lambda");
   }
 
   @Test
   public void testLambdaName_caller_name() throws Exception {
-    assertThat(skylark.<StarlarkAction>eval("some", ""
-        + "def create_f(n):\n"
-        + "    return core.action(impl = lambda x: x*n)\n"
-        + "some = create_f(3)").getName())
+    assertThat(
+            skylark
+                .<StarlarkAction>eval(
+                    "some",
+                    ""
+                        + "def create_f(n):\n"
+                        + "    return core.action(impl = lambda x: x*n)\n"
+                        + "some = create_f(3)")
+                .getName())
         .isEqualTo("create_f");
   }
 
   @Test
   public void testLambdaName_no_rename_raw_lambda() throws Exception {
-    assertThat(skylark.<StarlarkCallable>eval("some", ""
-        + "def create_f(n):\n"
-        + "    return lambda x: x*n\n"
-        + "some = create_f(3)").getName())
+    assertThat(
+            skylark
+                .<StarlarkCallable>eval(
+                    "some",
+                    "" + "def create_f(n):\n" + "    return lambda x: x*n\n" + "some = create_f(3)")
+                .getName())
         .isEqualTo("lambda");
   }
 
@@ -97,14 +106,27 @@ public class CoreTest {
   }
 
   @Test
+  public void testDuplicateName() {
+    ValidationException expected =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                skylark.eval(
+                    "f", "core.transform([], name='foo')\ncore.transform([], name='foo')\n"));
+    assertThat(expected).hasMessageThat().contains("Name `foo` already used.");
+  }
+
+  @Test
   public void testInvalidReverse_hasLocation() {
     ValidationException expected =
-        assertThrows(ValidationException.class, () -> skylark.eval("f", 
-            "f = core.reverse([core.replace("
-                + "before = '${x}', after = '#', regex_groups = {'x': '.*'},),])"));
-    assertThat(expected)
-        .hasMessageThat()
-        .contains("at copy.bara.sky:1:31");
+        assertThrows(
+            ValidationException.class,
+            () ->
+                skylark.eval(
+                    "f",
+                    "f = core.reverse([core.replace("
+                        + "before = '${x}', after = '#', regex_groups = {'x': '.*'},),])"));
+    assertThat(expected).hasMessageThat().contains("at copy.bara.sky:1:31");
   }
 
   @Test

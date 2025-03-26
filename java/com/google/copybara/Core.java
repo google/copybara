@@ -81,6 +81,7 @@ import com.google.re2j.Pattern;
 import java.nio.charset.Charset;
 import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.UnsupportedCharsetException;
+import java.util.HashSet;
 import java.util.IllegalFormatException;
 import java.util.Map;
 import java.util.Objects;
@@ -568,6 +569,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     Sequence sequenceTransform =
         Sequence.fromConfig(
             generalOptions.profiler(),
+            null,
             workflowOptions,
             transformations,
             "transformations",
@@ -699,6 +701,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       throws EvalException {
     return Sequence.fromConfig(
         generalOptions.profiler(),
+        null,
         workflowOptions,
         transformations,
         "transformations",
@@ -1719,6 +1722,8 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         workflowOptions.parallelizer());
   }
 
+  private final HashSet<String> transformNames = new HashSet<>();
+
   @SuppressWarnings("unused")
   @StarlarkMethod(
       name = "transform",
@@ -1756,6 +1761,16 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             positional = false,
             defaultValue = "None"),
         @Param(
+            name = "name",
+            named = true,
+            positional = false,
+            defaultValue = "None",
+            doc =
+                "Optional string identifier to name this transform. This can be used for better"
+                    + " output readability or with the "
+                    + WorkflowOptions.SKIP_TRANSFORM_FLAG_NAME
+                    + " flag."),
+        @Param(
             name = "ignore_noop",
             allowedTypes = {
               @ParamType(type = Boolean.class),
@@ -1792,6 +1807,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   public Transformation transform(
       net.starlark.java.eval.Sequence<?> transformations, // <Transformation>
       Object reversal,
+      Object name,
       Object ignoreNoop,
       Object noopBehaviorString)
       throws EvalException, ValidationException {
@@ -1809,9 +1825,14 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     } else if (Boolean.FALSE.equals(ignoreNoop)) {
       noopBehavior = Sequence.NoopBehavior.FAIL_IF_ANY_NOOP;
     }
+    String convertedName = convertFromNoneable(name, null);
+    if (convertedName != null && !transformNames.add(convertedName)) {
+      throw new ValidationException(String.format("Name `%s` already used.", convertedName));
+    }
     Sequence forward =
         Sequence.fromConfig(
             generalOptions.profiler(),
+            convertedName,
             workflowOptions,
             transformations,
             "transformations",
@@ -1832,6 +1853,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     Sequence reverse =
         Sequence.fromConfig(
             generalOptions.profiler(),
+            convertedName,
             workflowOptions,
             reverseList,
             "reversal",

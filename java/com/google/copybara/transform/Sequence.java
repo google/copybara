@@ -33,8 +33,10 @@ import com.google.copybara.profiler.Profiler.ProfilerTask;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.logging.Logger;
+import javax.annotation.Nullable;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.StarlarkThread;
 
@@ -43,6 +45,7 @@ import net.starlark.java.eval.StarlarkThread;
  */
 public class Sequence implements Transformation {
 
+  private final Optional<String> name;
   private final Profiler profiler;
   private final WorkflowOptions workflowOptions;
   private final ImmutableList<Transformation> sequence;
@@ -53,10 +56,12 @@ public class Sequence implements Transformation {
   @VisibleForTesting
   Sequence(
       Profiler profiler,
+      Optional<String> name,
       WorkflowOptions workflowOptions,
       ImmutableList<Transformation> sequence,
       NoopBehavior noopBehavior) {
     this.profiler = Preconditions.checkNotNull(profiler);
+    this.name = Preconditions.checkNotNull(name);
     this.workflowOptions = workflowOptions;
     this.sequence = Preconditions.checkNotNull(sequence);
     this.noopBehavior = noopBehavior;
@@ -69,6 +74,14 @@ public class Sequence implements Transformation {
     List<Transformation> transformationList = getTransformations();
 
     boolean someTransformWasSuccess = false;
+
+    if (name.isPresent()) {
+      if (workflowOptions.skipTransforms.contains(name.get())) {
+        work.getConsole().warnFmt("Skipping transform block %s", name.get());
+        return TransformationStatus.success();
+      }
+      work.getConsole().progressFmt("Running transform block %s", name.get());
+    }
     for (int i = 0; i < transformationList.size(); i++) {
       // Only check the cache in between consecutive Transforms
       if (i != 0) {
@@ -108,8 +121,11 @@ public class Sequence implements Transformation {
       Transformation transform, int currentTransformIndex, int transformListSize) {
       String transformMsg = transform.describe();
       if (transformListSize > 1) {
-        transformMsg =
-          String.format(
+        transformMsg = name.isPresent() ?
+            String.format(
+            "[%2d/%d] Transform block %s - %s", currentTransformIndex + 1, transformListSize,
+                name.get(), transformMsg)
+         : String.format(
               "[%2d/%d] Transform %s", currentTransformIndex + 1, transformListSize, transformMsg);
       }
       return transformMsg;
@@ -150,7 +166,7 @@ public class Sequence implements Transformation {
     for (Transformation element : sequence) {
       list.add(element.reverse());
     }
-    return new Sequence(profiler, workflowOptions, list.build().reverse(), noopBehavior);
+    return new Sequence(profiler, name, workflowOptions, list.build().reverse(), noopBehavior);
   }
 
   @VisibleForTesting
@@ -159,11 +175,11 @@ public class Sequence implements Transformation {
   }
 
   /**
-   * returns a string like "Sequence[a, b, c]"
+   * returns a string like "Sequence foobar: [a, b, c]"
    */
   @Override
   public String toString() {
-    return "Sequence" + sequence;
+    return String.format("Sequence%s: %s", name.map(s -> " " + s).orElse(""), sequence);
   }
 
   @Override
@@ -178,6 +194,7 @@ public class Sequence implements Transformation {
    */
   public static Sequence fromConfig(
       Profiler profiler,
+      @Nullable String name,
       WorkflowOptions workflowOptions,
       net.starlark.java.eval.Sequence<?> elements,
       String description,
@@ -186,11 +203,13 @@ public class Sequence implements Transformation {
       NoopBehavior noopBehavior)
       throws EvalException {
     ImmutableList.Builder<Transformation> transformations = ImmutableList.builder();
+    Optional<String> nameValue = Optional.ofNullable(name);
     for (Object element : elements) {
       transformations.add(
           transformWrapper.apply(toTransformation(element, description, printHandler)));
     }
-    return new Sequence(profiler, workflowOptions, transformations.build(), noopBehavior);
+    return new Sequence(
+        profiler, nameValue, workflowOptions , transformations.build(), noopBehavior);
   }
 
   /**

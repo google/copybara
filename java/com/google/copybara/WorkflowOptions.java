@@ -20,6 +20,7 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.authoring.Author;
@@ -46,6 +47,7 @@ public class WorkflowOptions implements Option {
   static final FluentLogger logger = FluentLogger.forEnclosingClass();
   protected static final String CHANGE_REQUEST_FROM_SOT_LIMIT_FLAG =
       "--change-request-from-sot-limit";
+  public static final String SKIP_TRANSFORM_FLAG_NAME = "--skip-transforms";
 
   @Parameter(
       names = {CHANGE_REQUEST_PARENT_FLAG, CHANGE_REQUEST_PARENT_FLAG_ALT},
@@ -289,6 +291,10 @@ public class WorkflowOptions implements Option {
               + " uses an import baseline instead. A new consistency file will still be generated.",
       arity = 1)
   public boolean disableConsistencyMergeImport = false;
+
+  @Parameter(names = SKIP_TRANSFORM_FLAG_NAME,
+      description = "List of transform names that should be skipped.")
+  public List<String> skipTransforms = ImmutableList.of();
 
   @Nullable
   public Author getDefaultAuthorFlag() throws EvalException {

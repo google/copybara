@@ -1820,7 +1820,7 @@ Would replace texts like TODO(b/123, aaa) with TODO(b/123, foo)
 
 Groups some transformations in a transformation that can contain a particular, manually-specified, reversal, where the forward version and reversed version of the transform are represented as lists of transforms. The is useful if a transformation does not automatically reverse, or if the automatic reversal does not work for some reason.<br>If reversal is not provided, the transform will try to compute the reverse of the transformations list.
 
-<code><a href="#transformation">transformation</a></code> <code>core.transform(<a href=#core.transform.transformations>transformations</a>, <a href=#core.transform.reversal>reversal</a>=The reverse of 'transformations', <a href=#core.transform.ignore_noop>ignore_noop</a>=None, <a href=#core.transform.noop_behavior>noop_behavior</a>=NOOP_IF_ANY_NOOP)</code>
+<code><a href="#transformation">transformation</a></code> <code>core.transform(<a href=#core.transform.transformations>transformations</a>, <a href=#core.transform.reversal>reversal</a>=The reverse of 'transformations', <a href=#core.transform.name>name</a>=None, <a href=#core.transform.ignore_noop>ignore_noop</a>=None, <a href=#core.transform.noop_behavior>noop_behavior</a>=NOOP_IF_ANY_NOOP)</code>
 
 
 <h4 id="parameters.core.transform">Parameters:</h4>
@@ -1829,6 +1829,7 @@ Parameter | Description
 --------- | -----------
 <span id=core.transform.transformations href=#core.transform.transformations>transformations</span> | <code>sequence of <a href="#transformation">transformation</a></code><br><p>The list of transformations to run as a result of running this transformation.</p>
 <span id=core.transform.reversal href=#core.transform.reversal>reversal</span> | <code>sequence of <a href="#transformation">transformation</a></code> or <code>NoneType</code><br><p>The list of transformations to run as a result of running this transformation in reverse.</p>
+<span id=core.transform.name href=#core.transform.name>name</span> | <code>unknown</code><br><p>Optional string identifier to name this transform. This can be used for better output readability or with the --skip-transforms flag.</p>
 <span id=core.transform.ignore_noop href=#core.transform.ignore_noop>ignore_noop</span> | <code><a href="#bool">bool</a></code> or <code>NoneType</code><br><p>WARNING: Deprecated. Use `noop_behavior` instead.<br>In case a noop error happens in the group of transformations (Both forward and reverse), it will be ignored, but the rest of the transformations in the group will still be executed. If ignore_noop is not set, we will apply the closest parent's ignore_noop.</p>
 <span id=core.transform.noop_behavior href=#core.transform.noop_behavior>noop_behavior</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>How to handle no-op transformations:<br><ul> <li><b>'IGNORE_NOOP'</b>: Any no-ops among the wrapped transformations are ignored.</li> <li><b>'NOOP_IF_ANY_NOOP'</b>: Throws an exception as soon as a single wrapped transformation is a no-op.</li> <li><b>'NOOP_IF_ALL_NOOP'</b>: Ignores no-ops from the wrapped transformations unless they all no-op, in which case an exception is thrown.</li></ul></p>
 
@@ -1928,6 +1929,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--read-config-from-change`</span> | *boolean* | For each imported origin change, load the workflow's origin_files, destination_files and transformations from the config version of that change. The rest of the fields (more importantly, origin and destination) cannot change and the version from the first config will be used.
 <span style="white-space: nowrap;">`--read-config-from-change-disable`</span> | *boolean* | --read-config-from-change is a arity 0 flag, this flag overrides it to override it being enabled.
 <span style="white-space: nowrap;">`--same-version`</span> | *boolean* | Re-import the last version imported. This is useful for example to check that a refactor in a copy.bara.sky file doesn't introduce accidental changes.
+<span style="white-space: nowrap;">`--skip-transforms`</span> | *list* | List of transform names that should be skipped.
 <span style="white-space: nowrap;">`--squash-skip-history`</span> | *boolean* | Avoid exposing the history of changes that are being migrated. This is useful when we want to migrate a new repository but we don't want to expose all the change history to metadata.squash_notes.
 <span style="white-space: nowrap;">`--threads`</span> | *int* | Number of threads to use when running transformations that change lot of files
 <span style="white-space: nowrap;">`--threads-for-merge-import`</span> | *int* | Number of threads to use for executing the diff tool for the merge import mode.

@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -78,9 +79,7 @@ public final class SequenceTest {
       return this;
     }
 
-    /**
-     * If set, the test will fail unless the cache is hit/miss in accordance with the value.
-     */
+    /** If set, the test will fail unless the cache is hit/miss in accordance with the value. */
     public MockTransform setExpectCacheHit(boolean useCache) {
       this.expectCacheHit = useCache;
       return this;
@@ -117,7 +116,6 @@ public final class SequenceTest {
    * A Sequence should automatically validate the cache in between each child Transformation that it
    * runs.
    */
-
   @Test
   public void testSequence_treeStateBeginsUncached() throws Exception {
     TransformWork work = uncachedTreeStateTransformWork();
@@ -254,7 +252,7 @@ public final class SequenceTest {
     MockTransform t1 = new MockTransform("t1");
     MockTransform t2 = new MockTransform("t2");
 
-    Transformation t = sequence(Sequence.NoopBehavior.NOOP_IF_ANY_NOOP, t1, t2);
+    Transformation t = sequence(Optional.empty(), Sequence.NoopBehavior.NOOP_IF_ANY_NOOP, t1, t2);
     TransformationStatus status = t.transform(work);
 
     assertThat(t1.wasRun).isTrue();
@@ -270,7 +268,8 @@ public final class SequenceTest {
     MockTransform t2 = new MockTransform("t2").setNoop(true);
     MockTransform t3 = new MockTransform("t3");
 
-    Transformation t = sequence(Sequence.NoopBehavior.NOOP_IF_ANY_NOOP, t1, t2, t3);
+    Transformation t =
+        sequence(Optional.empty(), Sequence.NoopBehavior.NOOP_IF_ANY_NOOP, t1, t2, t3);
     TransformationStatus status = t.transform(work);
 
     assertThat(t1.wasRun).isTrue();
@@ -287,7 +286,7 @@ public final class SequenceTest {
     MockTransform t2 = new MockTransform("t2").setNoop(true);
     MockTransform t3 = new MockTransform("t3");
 
-    Transformation t = sequence(Sequence.NoopBehavior.IGNORE_NOOP, t1, t2, t3);
+    Transformation t = sequence(Optional.empty(), Sequence.NoopBehavior.IGNORE_NOOP, t1, t2, t3);
     TransformationStatus status = t.transform(work);
 
     assertThat(t1.wasRun).isTrue();
@@ -304,8 +303,9 @@ public final class SequenceTest {
 
     Transformation t =
         sequence(
+            Optional.empty(),
             Sequence.NoopBehavior.IGNORE_NOOP,
-            sequence(Sequence.NoopBehavior.NOOP_IF_ANY_NOOP, t1));
+            sequence(Optional.empty(), Sequence.NoopBehavior.NOOP_IF_ANY_NOOP, t1));
     TransformationStatus status = t.transform(work);
 
     assertThat(t1.wasRun).isTrue();
@@ -318,7 +318,7 @@ public final class SequenceTest {
 
     MockTransform t1 = new MockTransform("t1").setNoop(true);
 
-    Transformation t = sequence(Sequence.NoopBehavior.FAIL_IF_ANY_NOOP, t1);
+    Transformation t = sequence(Optional.empty(), Sequence.NoopBehavior.FAIL_IF_ANY_NOOP, t1);
     assertThrows(VoidOperationException.class, () -> t.transform(work));
 
     assertThat(t1.wasRun).isTrue();
@@ -332,8 +332,9 @@ public final class SequenceTest {
 
     Transformation t =
         sequence(
+            Optional.empty(),
             Sequence.NoopBehavior.IGNORE_NOOP,
-            sequence(Sequence.NoopBehavior.FAIL_IF_ANY_NOOP, t1));
+            sequence(Optional.empty(), Sequence.NoopBehavior.FAIL_IF_ANY_NOOP, t1));
     assertThrows(VoidOperationException.class, () -> t.transform(work));
 
     assertThat(t1.wasRun).isTrue();
@@ -347,8 +348,9 @@ public final class SequenceTest {
 
     Transformation t =
         sequence(
+            Optional.empty(),
             Sequence.NoopBehavior.FAIL_IF_ANY_NOOP,
-            sequence(Sequence.NoopBehavior.IGNORE_NOOP, t1));
+            sequence(Optional.empty(), Sequence.NoopBehavior.IGNORE_NOOP, t1));
     TransformationStatus status = t.transform(work);
 
     assertThat(t1.wasRun).isTrue();
@@ -363,7 +365,8 @@ public final class SequenceTest {
     MockTransform t2 = new MockTransform("t2").setNoop(true);
     MockTransform t3 = new MockTransform("t3");
 
-    Transformation t = sequence(Sequence.NoopBehavior.NOOP_IF_ALL_NOOP, t1, t2, t3);
+    Transformation t =
+        sequence(Optional.empty(), Sequence.NoopBehavior.NOOP_IF_ALL_NOOP, t1, t2, t3);
     TransformationStatus status = t.transform(work);
 
     assertThat(t1.wasRun).isTrue();
@@ -380,13 +383,41 @@ public final class SequenceTest {
     MockTransform t2 = new MockTransform("t2").setNoop(true);
     MockTransform t3 = new MockTransform("t3").setNoop(true);
 
-    Transformation t = sequence(Sequence.NoopBehavior.NOOP_IF_ALL_NOOP, t1, t2, t3);
+    Transformation t =
+        sequence(Optional.empty(), Sequence.NoopBehavior.NOOP_IF_ALL_NOOP, t1, t2, t3);
     TransformationStatus status = t.transform(work);
 
     assertThat(t1.wasRun).isTrue();
     assertThat(t2.wasRun).isTrue();
     assertThat(t3.wasRun).isTrue();
     assertThat(status.isNoop()).isTrue();
+  }
+
+  @Test
+  public void testSequence_name_skip() throws Exception {
+    TransformWork work = uncachedTreeStateTransformWork();
+    options.workflowOptions.skipTransforms = ImmutableList.of("skipme");
+    MockTransform t1 = new MockTransform("t1");
+
+    Transformation t =
+        sequence(Optional.of("skipme"), Sequence.NoopBehavior.NOOP_IF_ALL_NOOP, t1);
+    TransformationStatus status = t.transform(work);
+
+    assertThat(t1.wasRun).isFalse();
+    assertThat(status.isSuccess()).isTrue();
+  }
+
+  @Test
+  public void testSequence_name_noSkip() throws Exception {
+    TransformWork work = uncachedTreeStateTransformWork();
+    MockTransform t1 = new MockTransform("t1");
+
+    Transformation t =
+        sequence(Optional.of("skipme"), Sequence.NoopBehavior.NOOP_IF_ALL_NOOP, t1);
+    TransformationStatus status = t.transform(work);
+
+    assertThat(t1.wasRun).isTrue();
+    assertThat(status.isSuccess()).isTrue();
   }
 
   private TransformWork uncachedTreeStateTransformWork() throws IOException {
@@ -404,14 +435,19 @@ public final class SequenceTest {
   private Sequence sequence(Transformation... childTransforms) {
     return new Sequence(
         options.general.profiler(),
+        Optional.empty(),
         options.workflowOptions,
         ImmutableList.copyOf(childTransforms),
         Sequence.NoopBehavior.IGNORE_NOOP);
   }
 
-  private Sequence sequence(Sequence.NoopBehavior noopBehavior, Transformation... childTransforms) {
+  private Sequence sequence(
+      Optional<String> name,
+      Sequence.NoopBehavior noopBehavior,
+      Transformation... childTransforms) {
     return new Sequence(
         options.general.profiler(),
+        name,
         options.workflowOptions,
         ImmutableList.copyOf(childTransforms),
         noopBehavior);
