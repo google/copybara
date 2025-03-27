@@ -19,12 +19,20 @@ package com.google.copybara.git.gitlab;
 import com.beust.jcommander.Parameter;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
+import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.git.CredentialFileHandler;
+import com.google.copybara.git.GitOptions;
+import com.google.copybara.git.GitRepository;
 import com.google.copybara.git.gitlab.api.GitLabApiTransport;
 import com.google.copybara.git.gitlab.api.GitLabApiTransportImpl;
 import com.google.copybara.http.auth.AuthInterceptor;
 import com.google.copybara.util.console.Console;
+import java.io.IOException;
 import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
@@ -39,6 +47,14 @@ public class GitLabOptions implements Option {
 
   private final Supplier<HttpTransport> httpTransportSupplier =
       Suppliers.memoize(NetHttpTransport::new);
+
+  private final GeneralOptions generalOptions;
+  private final GitOptions gitOptions;
+
+  public GitLabOptions(GeneralOptions generalOptions, GitOptions gitOptions) {
+    this.generalOptions = Preconditions.checkNotNull(generalOptions);
+    this.gitOptions = Preconditions.checkNotNull(gitOptions);
+  }
 
   /**
    * Obtains a supplier that returns a global instance of an HttpTransport to be used for
@@ -66,5 +82,19 @@ public class GitLabOptions implements Option {
       Console console,
       AuthInterceptor authInterceptor) {
     return new GitLabApiTransportImpl(repoUrl, httpTransport, console, authInterceptor);
+  }
+
+  @VisibleForTesting
+  protected GitRepository getCredentialsRepo(@Nullable CredentialFileHandler creds)
+      throws RepoException {
+    GitRepository repo = gitOptions.cachedBareRepoForUrl("just_for_gitlab_api");
+    if (creds != null) {
+      try {
+        creds.install(repo, gitOptions.getConfigCredsFile(generalOptions));
+      } catch (IOException e) {
+        throw new RepoException("Unable to create creds file.", e);
+      }
+    }
+    return repo;
   }
 }

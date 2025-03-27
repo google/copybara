@@ -22,6 +22,7 @@ import com.google.api.client.http.HttpTransport;
 import com.google.copybara.credentials.ConstantCredentialIssuer;
 import com.google.copybara.git.gitlab.api.GitLabApiTransport;
 import com.google.copybara.http.auth.BearerInterceptor;
+import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.util.console.testing.TestingConsole;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,24 +32,23 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class GitLabOptionsTest {
   private TestingConsole console;
+  private final OptionsBuilder optionsBuilder = new OptionsBuilder();
+  private GitLabOptions underTest;
 
   @Before
   public void setup() {
     console = new TestingConsole();
+    underTest = new GitLabOptions(optionsBuilder.general, optionsBuilder.git);
   }
 
   @Test
   public void testHttpTransportSupplier_notNull() {
-    GitLabOptions underTest = new GitLabOptions();
-
     assertThat(underTest.getHttpTransportSupplier()).isNotNull();
     assertThat(underTest.getHttpTransportSupplier().get()).isNotNull();
   }
 
   @Test
   public void testHttpTransportSupplier_memoization() {
-    GitLabOptions underTest = new GitLabOptions();
-
     HttpTransport transport1 = underTest.getHttpTransportSupplier().get();
     HttpTransport transport2 = underTest.getHttpTransportSupplier().get();
 
@@ -58,12 +58,10 @@ public class GitLabOptionsTest {
 
   @Test
   public void testGetApiTransport() {
-    GitLabOptions gitLabOptions = new GitLabOptions();
-
     GitLabApiTransport result =
         GitLabOptions.getApiTransport(
             "http://gitlab.com/google/copybara",
-            gitLabOptions.getHttpTransportSupplier().get(),
+            underTest.getHttpTransportSupplier().get(),
             console,
             new BearerInterceptor(ConstantCredentialIssuer.createConstantSecret("test", "test")));
 
