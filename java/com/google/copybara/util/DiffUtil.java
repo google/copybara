@@ -184,10 +184,16 @@ public class DiffUtil {
       return operation;
     }
 
+    /** Git Diff status letters */
     public enum Operation {
       ADD("A"),
       DELETE("D"),
-      MODIFIED("M");
+      MODIFIED("M"),
+      COPY("C"),
+      RENAME("R"),
+      TYPE_CHANGE("T"),
+      UNMERGED("U");
+      // X is omitted because it indicates a bug
 
       private final String charType;
 

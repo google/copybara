@@ -203,12 +203,15 @@ public class DiffUtilTest {
     writeFile(left, "unchanged.txt", "");
     writeFile(left, "copied.txt", Strings.repeat("a", 100));
     writeFile(left, "moved_old_name.txt", Strings.repeat("b", 100));
+    writeSymlink(left, "symlink_left.txt", "unchanged.txt");
     writeFile(right, "copied.txt", Strings.repeat("a", 100));
     writeFile(right, "unchanged.txt", "");
     writeFile(right, "copied2.txt", Strings.repeat("a", 100));
     writeFile(right, "moved_new_name.txt", Strings.repeat("b", 100));
     writeFile(right, "modified.txt", "foo");
     writeFile(right, "added.txt", "");
+    writeFile(right, "added.txt", "");
+    writeFile(right, "symlink_left.txt", "Now a file");
 
     ImmutableList<DiffFile> result = DiffUtil.diffFiles(left, right, VERBOSE, testEnv);
     ImmutableMap<String, DiffFile> byName = Maps.uniqueIndex(result, DiffFile::getName);
@@ -221,6 +224,7 @@ public class DiffUtilTest {
     assertThat(byName.get("moved_old_name.txt").getOperation()).isEqualTo(Operation.DELETE);
     assertThat(byName.get("moved_new_name.txt").getOperation()).isEqualTo(Operation.ADD);
     assertThat(byName.get("added.txt").getOperation()).isEqualTo(Operation.ADD);
+    assertThat(byName.get("symlink_left.txt").getOperation()).isEqualTo(Operation.TYPE_CHANGE);
   }
 
   @Test
@@ -277,6 +281,12 @@ public class DiffUtilTest {
     Path filePath = parent.resolve(fileName);
     Files.createDirectories(filePath.getParent());
     Files.write(parent.resolve(filePath), fileContents.getBytes(StandardCharsets.UTF_8));
+  }
+
+  private void writeSymlink(Path parent, String fileName, String target) throws IOException {
+    Path filePath = parent.resolve(fileName);
+    Files.createDirectories(filePath.getParent());
+    Files.createSymbolicLink(parent.resolve(filePath), filePath.resolve(target));
   }
 
   private Map<String, String> setDotGitconfigContents(String contents) throws IOException {
