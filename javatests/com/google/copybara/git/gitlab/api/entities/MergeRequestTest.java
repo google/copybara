@@ -21,6 +21,7 @@ import static com.google.common.truth.Truth.assertThat;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.util.Value;
 import com.google.copybara.git.gitlab.api.entities.MergeRequest.DetailedMergeStatus;
+import com.google.copybara.git.gitlab.api.entities.MergeRequest.State;
 import com.google.testing.junit.testparameterinjector.TestParameter;
 import com.google.testing.junit.testparameterinjector.TestParameterInjector;
 import org.junit.Test;
@@ -33,13 +34,14 @@ public class MergeRequestTest {
   @Test
   public void testGsonParsing() throws Exception {
     String json =
-        """
+"""
 {
   "id": 12345,
   "iid": 98765,
   "detailed_merge_status": "mergeable",
   "source_branch": "capybara",
   "sha": "90993f8bffdf33e7a238838a56403f113cefdcbd",
+  "state": "opened",
   "web_url": "https://gitlab.com/google/copybara/-/merge_requests/1"
 }
 """;
@@ -50,6 +52,7 @@ public class MergeRequestTest {
     assertThat(underTest.getDetailedMergeStatus()).isEqualTo(DetailedMergeStatus.MERGEABLE);
     assertThat(underTest.getSourceBranch()).isEqualTo("capybara");
     assertThat(underTest.getSha()).isEqualTo("90993f8bffdf33e7a238838a56403f113cefdcbd");
+    assertThat(underTest.getState()).isEqualTo(MergeRequest.State.OPENED);
     assertThat(underTest.getWebUrl())
         .isEqualTo("https://gitlab.com/google/copybara/-/merge_requests/1");
   }
@@ -64,7 +67,7 @@ public class MergeRequestTest {
             .value();
     String json =
         String.format(
-            """
+"""
 {"detailed_merge_status": "%s"}
 """,
             gsonValueName);
@@ -72,5 +75,21 @@ public class MergeRequestTest {
     MergeRequest underTest = GSON_FACTORY.fromString(json, MergeRequest.class);
 
     assertThat(underTest.getDetailedMergeStatus()).isEqualTo(detailedMergeStatus);
+  }
+
+  @Test
+  public void stateField_gsonParsingWorksSuccessfully(@TestParameter State state) throws Exception {
+    String gsonValueName =
+        State.class.getField(state.name()).getAnnotationsByType(Value.class)[0].value();
+    String json =
+        String.format(
+"""
+{"state": "%s"}
+""",
+            gsonValueName);
+
+    MergeRequest underTest = GSON_FACTORY.fromString(json, MergeRequest.class);
+
+    assertThat(underTest.getState()).isEqualTo(state);
   }
 }

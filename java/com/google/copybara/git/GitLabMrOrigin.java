@@ -17,6 +17,8 @@
 package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.copybara.git.gitlab.api.entities.MergeRequest.State.CLOSED;
+import static com.google.copybara.git.gitlab.api.entities.MergeRequest.State.MERGED;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -96,8 +98,7 @@ public class GitLabMrOrigin implements Origin<GitRevision> {
            copybara path/to/copy.bara.sky workflow_name merge_request_number
         """);
 
-    // TODO: b/393384198 - Ensure we don't handle closed merge requests, and have a way to filter
-    // MRs with missing approvals, etc.
+    // TODO: b/393384198 - Have a way to filter MRs with missing approvals, etc.
     console.progressFmt("Parsing Merge Request reference %s at %s", reference, repoUrl.toString());
     int mergeRequestId = parseReference(reference);
 
@@ -122,6 +123,15 @@ public class GitLabMrOrigin implements Origin<GitRevision> {
                     new RepoException(
                         String.format(
                             "Could not get Merge Request info for ID %s.", mergeRequestId)));
+
+    ValidationException.checkCondition(
+        mergeRequest.getState() != CLOSED && mergeRequest.getState() != MERGED,
+        String.format(
+            """
+            The merge request %s must not be marked as closed or merged.
+            """,
+            mergeRequest.getWebUrl()));
+
     console.progressFmt("Fetching Merge Request %s from origin %s", mergeRequest.getIid(), repoUrl);
     return getRevisionForMr(mergeRequest);
   }

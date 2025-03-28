@@ -195,6 +195,62 @@ public class GitLabMrOriginTest {
   }
 
   @Test
+  public void resolveMergeRequest_mrIsClosed_validationException() throws Exception {
+    setupGitRepo();
+    when(gitLabApi.getProject(anyString()))
+        .thenReturn(Optional.ofNullable(GSON_FACTORY.fromString("{\"id\": 1}", Project.class)));
+    when(gitLabApi.getMergeRequest(eq(1), eq(1)))
+        .thenReturn(
+            Optional.ofNullable(
+                GSON_FACTORY.fromString(
+                    """
+                    {
+                      "id": 12345,
+                      "iid": 1,
+                      "source_branch": "source-branch",
+                      "state": "closed",
+                      "web_url": "https://capy.com/bara"
+                    }
+                    """,
+                    MergeRequest.class)));
+    GitLabMrOrigin underTest = getGitLabMrOrigin(false);
+
+    ValidationException e = assertThrows(ValidationException.class, () -> underTest.resolve("1"));
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "The merge request https://capy.com/bara must not be" + " marked as closed or merged.");
+  }
+
+  @Test
+  public void resolveMergeRequest_mrIsMerged_validationException() throws Exception {
+    setupGitRepo();
+    when(gitLabApi.getProject(anyString()))
+        .thenReturn(Optional.ofNullable(GSON_FACTORY.fromString("{\"id\": 1}", Project.class)));
+    when(gitLabApi.getMergeRequest(eq(1), eq(1)))
+        .thenReturn(
+            Optional.ofNullable(
+                GSON_FACTORY.fromString(
+                    """
+                    {
+                      "id": 12345,
+                      "iid": 1,
+                      "source_branch": "source-branch",
+                      "state": "merged",
+                      "web_url": "https://capy.com/bara"
+                    }
+                    """,
+                    MergeRequest.class)));
+    GitLabMrOrigin underTest = getGitLabMrOrigin(false);
+
+    ValidationException e = assertThrows(ValidationException.class, () -> underTest.resolve("1"));
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "The merge request https://capy.com/bara must not be" + " marked as closed or merged.");
+  }
+
+  @Test
   public void resolveMergeRequest_usesCredentialFileHandlerCorrectly() throws Exception {
     credentialFileHandler = Optional.ofNullable(Mockito.mock(CredentialFileHandler.class));
     when(credentialFileHandler.get().getUsername()).thenReturn("user");
@@ -248,7 +304,7 @@ public class GitLabMrOriginTest {
   @Test
   public void starlarkGitModule_returnsOriginSuccessfully() throws Exception {
     String starlark =
-        """
+"""
 token_issuer = credentials.static_value("project_access_token")
 
 origin = git.gitlab_mr_origin(
@@ -283,7 +339,7 @@ origin = git.gitlab_mr_origin(
   @Test
   public void starlarkGitModule_gitlabMrOriginUrlEmpty_throwsException() {
     String starlark =
-        """
+"""
 token_issuer = credentials.static_value("project_access_token")
 
 origin = git.gitlab_mr_origin(

@@ -37,6 +37,8 @@ public class MergeRequest implements GitLabApiEntity {
   @Key("source_branch")
   private String sourceBranch;
 
+  @Key private State state;
+
   @Key("web_url")
   private String webUrl;
 
@@ -52,6 +54,7 @@ public class MergeRequest implements GitLabApiEntity {
    * @param detailedMergeStatus the merge status of the commit
    * @param sourceBranch the source branch of the MR
    * @param webUrl the web URL of the MR
+   * @param state the state of the MR
    */
   @VisibleForTesting
   public MergeRequest(
@@ -60,13 +63,15 @@ public class MergeRequest implements GitLabApiEntity {
       String sha,
       DetailedMergeStatus detailedMergeStatus,
       String sourceBranch,
-      String webUrl) {
+      String webUrl,
+      State state) {
     this.id = id;
     this.iid = iid;
     this.sha = sha;
     this.detailedMergeStatus = detailedMergeStatus;
     this.sourceBranch = sourceBranch;
     this.webUrl = webUrl;
+    this.state = state;
   }
 
   /**
@@ -127,6 +132,15 @@ public class MergeRequest implements GitLabApiEntity {
   }
 
   /**
+   * Returns the state of the merge request.
+   *
+   * @return the state
+   */
+  public State getState() {
+    return state;
+  }
+
+  /**
    * Represents all possible merge statuses for a merge request.
    *
    * @see <a href="https://docs.gitlab.com/api/merge_requests/#merge-status">GitLab Merge status
@@ -177,5 +191,22 @@ public class MergeRequest implements GitLabApiEntity {
     LOCKED_PATHS,
     @Value("locked_lfs_files")
     LOCKED_LFS_FILES
+  }
+
+  /**
+   * Represents the possible states of a merge request.
+   *
+   * @see <a href="https://docs.gitlab.com/api/merge_requests/#response">Get Single MR response
+   *     documentation</a> for more information
+   */
+  public enum State {
+    @Value("opened")
+    OPENED,
+    @Value("closed")
+    CLOSED,
+    @Value("merged")
+    MERGED,
+    @Value("locked")
+    LOCKED
   }
 }
