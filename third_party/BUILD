@@ -51,9 +51,19 @@ java_plugin(
     ],
 )
 
+java_plugin(
+    name = "autobuilder_plugin",
+    processor_class = "com.google.auto.value.processor.AutoBuilderProcessor",
+    deps = [
+        "@copybara_maven//:com_google_auto_value_auto_value",
+        "@copybara_maven//:com_google_auto_value_auto_value_annotations",
+    ],
+)
+
 java_library(
     name = "autovalue",
     exported_plugins = [
+        ":autobuilder_plugin",
         ":autovalue_plugin",
     ],
     # TODO(matvore): What to export to give access to @AutoValue annotation
