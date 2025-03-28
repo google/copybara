@@ -107,10 +107,12 @@ public class MigrateCmdTest {
   }
   @Test
   public void updateGitCacheRepoPrefixForPartialFetchOfOrigin() throws Exception {
-    getMigrateCmd(getConfigInfo(/*partialFetch=*/"True"))
-        .run(new CommandEnv(temp,
-            optionsBuilder.build(),
-            ImmutableList.of(temp.resolve("copy.bara.sky").toString(), "default")));
+    MigrateCmd cmd = getMigrateCmd(getConfigInfo(/* partialFetch= */ "True"));
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(
+            cmd, ImmutableList.of(temp.resolve("copy.bara.sky").toString(), "default"));
+
+    cmd.run(commandEnv);
 
     assertThat(
             Files.exists(
@@ -121,15 +123,24 @@ public class MigrateCmdTest {
 
   @Test
   public void checkGitCacheRepoNameForNonPartialFetch() throws Exception {
-    getMigrateCmd(getConfigInfo(/*partialFetch=*/"False"))
-        .run(new CommandEnv(temp,
-            optionsBuilder.build(),
-            ImmutableList.of(temp.resolve("copy.bara.sky").toString(), "default")));
+    MigrateCmd cmd = getMigrateCmd(getConfigInfo(/* partialFetch= */ "False"));
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(
+            cmd, ImmutableList.of(temp.resolve("copy.bara.sky").toString(), "default"));
+
+    cmd.run(commandEnv);
 
     assertThat(
             Files.exists(
                 FileUtil.resolveDirInCache(url, outPut.resolve("cache").resolve("git_repos"))))
         .isTrue();
+  }
+
+  private CommandEnv prepAndGetCommandEnv(MigrateCmd cmd, ImmutableList<String> args)
+      throws Exception {
+    CommandEnv commandEnv = new CommandEnv(temp, optionsBuilder.build(), args);
+    commandEnv.parseConfigFileArgs(cmd, /* usesSourceRef= */ true);
+    return commandEnv;
   }
 
   private String git(Path dir, String... params) throws RepoException {

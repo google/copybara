@@ -67,7 +67,7 @@ public class InfoCmd implements CopybaraCmd {
   @Override
   public ExitCode run(CommandEnv commandEnv)
       throws ValidationException, IOException, RepoException {
-    ConfigFileArgs configFileArgs = commandEnv.parseConfigFileArgs(this,  /*useSourceRef*/false);
+    ConfigFileArgs configFileArgs = commandEnv.getConfigFileArgs();
     Console console = commandEnv.getOptions().get(GeneralOptions.class).console();
     ConfigWithDependencies config = configLoaderProvider
         .newLoader(configFileArgs.getConfigPath(), configFileArgs.getSourceRef())

@@ -131,9 +131,8 @@ public class InfoTest {
         + "    destination = 'https://example.com/mirror2',"
         + ")\n\n"
         + "";
-    ExitCode code = info.run(new CommandEnv(temp,
-            skylark.createModuleSet().getOptions(),
-            ImmutableList.of("copy.bara.sky")));
+    CommandEnv commandEnv = prepAndGetCommandEnv(info, ImmutableList.of("copy.bara.sky"));
+    ExitCode code = info.run(commandEnv);
 
     assertThat(code).isEqualTo(SUCCESS);
 
@@ -180,10 +179,10 @@ public class InfoTest {
             dummyDestinationDescription,
             ImmutableList.of(workflow),
             ImmutableList.of(testVersion));
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(info, ImmutableList.of("copy.bara.sky", "workflow"));
     Mockito.<Info<? extends Revision>>when(migration.getInfo()).thenReturn(mockedInfo);
-    info.run(new CommandEnv(temp,
-        optionsBuilder.build(),
-        ImmutableList.of("copy.bara.sky", "workflow")));
+    info.run(commandEnv);
     assertThat(eventMonitor.infoFinishedEvent).isNotNull();
     assertThat(eventMonitor.infoFinishedEvent.getInfo()).isEqualTo(mockedInfo);
     console
@@ -232,12 +231,10 @@ public class InfoTest {
         ImmutableList.of(workflow));
     Mockito.<Info<? extends Revision>>when(migration.getInfo()).thenReturn(mockedInfo);
 
-    // Copybara copybara = new Copybara(new ConfigValidator() {}, migration -> {});
-    // copybara.info(optionsBuilder.build(), config, "workflow");
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(info, ImmutableList.of("copy.bara.sky", "workflow"));
 
-    info.run(new CommandEnv(temp,
-        optionsBuilder.build(),
-        ImmutableList.of("copy.bara.sky", "workflow")));
+    info.run(commandEnv);
 
     assertThat(eventMonitor.infoFinishedEvent).isNotNull();
     assertThat(eventMonitor.infoFinishedEvent.getInfo()).isEqualTo(mockedInfo);
@@ -247,6 +244,13 @@ public class InfoTest {
         .onceInLog(MessageType.INFO, ".*Date.*Revision.*Description.*Author.*")
         .onceInLog(MessageType.INFO, ".*2018-11-07 15:06:19.*2222.*First change.*Foo <Bar>.*")
         .onceInLog(MessageType.INFO, ".*N/A.*Third change.*Foo <Bar>.*");
+  }
+
+  private CommandEnv prepAndGetCommandEnv(InfoCmd cmd, ImmutableList<String> args)
+      throws Exception {
+    CommandEnv commandEnv = new CommandEnv(temp, optionsBuilder.build(), args);
+    commandEnv.parseConfigFileArgs(cmd, /* usesSourceRef= */ true);
+    return commandEnv;
   }
 
   private Change<DummyRevision> newChange(

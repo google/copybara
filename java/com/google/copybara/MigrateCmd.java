@@ -58,8 +58,7 @@ public class MigrateCmd implements CopybaraCmd {
   @Override
   public ExitCode run(CommandEnv commandEnv)
       throws RepoException, ValidationException, IOException {
-    ConfigFileArgs configFileArgs = commandEnv.parseConfigFileArgs(this,
-        /*useSourceRef*/true);
+    ConfigFileArgs configFileArgs = commandEnv.getConfigFileArgs();
     ImmutableList<String> sourceRefs = configFileArgs.getSourceRefs();
     String workflowName = configFileArgs.getWorkflowName();
     updateEnvironment(workflowName);

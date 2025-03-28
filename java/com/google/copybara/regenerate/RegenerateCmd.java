@@ -50,7 +50,7 @@ public class RegenerateCmd implements CopybaraCmd {
   @Override
   public ExitCode run(CommandEnv commandEnv)
       throws ValidationException, IOException, RepoException {
-    ConfigFileArgs configFileArgs = commandEnv.parseConfigFileArgs(this, /*useSourceRef*/ true);
+    ConfigFileArgs configFileArgs = commandEnv.getConfigFileArgs();
     ImmutableList<String> sourceRefs = configFileArgs.getSourceRefs();
     if (sourceRefs.size() > 1) {
       throw new CommandLineException(

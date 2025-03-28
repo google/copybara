@@ -84,6 +84,14 @@ public class Main {
 
   private static final String COPYBARA_NAMESPACE = "com.google.copybara";
 
+  private static final ImmutableMap<String, Boolean>
+      COMMAND_NAMES_THAT_USE_CONFIG_FILES_TO_USE_SOURCE_REF =
+          ImmutableMap.of(
+              "migrate", true,
+              "info", false,
+              "validate", false,
+              "regenerate", true);
+
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
   private static final String BUILD_DATA_PROPERTIES = "/build-data.properties";
   public static final String BUILD_LABEL = "Build label";
@@ -245,6 +253,12 @@ public class Main {
       Path baseWorkdir = mainArgs.getBaseWorkdir(generalOptions, generalOptions.getFileSystem());
 
       commandEnv = new CommandEnv(baseWorkdir, options, cmdToRun.getArgs(), mainArgs);
+      if (COMMAND_NAMES_THAT_USE_CONFIG_FILES_TO_USE_SOURCE_REF.containsKey(subcommand.name())) {
+        commandEnv.parseConfigFileArgs(
+            subcommand,
+            /*useSourceRef*/ COMMAND_NAMES_THAT_USE_CONFIG_FILES_TO_USE_SOURCE_REF.get(
+                subcommand.name()));
+      }
       initMonitoringEnvironment(commandEnv, cmdToRun.getArgs());
       generalOptions.console().progressFmt("Running %s", subcommand.name());
 

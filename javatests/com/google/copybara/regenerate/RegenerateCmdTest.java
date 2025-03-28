@@ -205,12 +205,10 @@ public class RegenerateCmdTest {
 
     RegenerateCmd cmd = getCmd(getImportAutopatchesConfigString());
 
-    ExitCode exitCode =
-        cmd.run(
-            new CommandEnv(
-                workdir,
-                options.build(),
-                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()), cmd);
+
+    ExitCode exitCode = cmd.run(commandEnv);
 
     verify(patchRegenerator)
         .updateChange(
@@ -234,12 +232,10 @@ public class RegenerateCmdTest {
 
     RegenerateCmd cmd = getCmd(getImportAutopatchesConfigString());
 
-    ExitCode exitCode =
-        cmd.run(
-            new CommandEnv(
-                workdir,
-                options.build(),
-                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()), cmd);
+
+    ExitCode exitCode = cmd.run(commandEnv);
 
     verify(patchRegenerator)
         .updateChange(
@@ -267,12 +263,10 @@ public class RegenerateCmdTest {
 
     RegenerateCmd cmd = getCmd(getImportAutopatchesConfigString());
 
-    ExitCode exitCode =
-        cmd.run(
-            new CommandEnv(
-                workdir,
-                options.build(),
-                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()), cmd);
+
+    ExitCode exitCode = cmd.run(commandEnv);
 
     assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
     verify(patchRegenerator)
@@ -307,12 +301,10 @@ public class RegenerateCmdTest {
 
     RegenerateCmd cmd = getCmd(getImportAutopatchesConfigString());
 
-    ExitCode exitCode =
-        cmd.run(
-            new CommandEnv(
-                workdir,
-                options.build(),
-                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()), cmd);
+
+    ExitCode exitCode = cmd.run(commandEnv);
 
     assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
     verify(patchRegenerator)
@@ -346,12 +338,10 @@ public class RegenerateCmdTest {
 
     RegenerateCmd cmd = getCmd(getImportAutopatchesConfigString());
 
-    ExitCode exitCode =
-        cmd.run(
-            new CommandEnv(
-                workdir,
-                options.build(),
-                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()), cmd);
+
+    ExitCode exitCode = cmd.run(commandEnv);
 
     assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
 
@@ -378,14 +368,13 @@ public class RegenerateCmdTest {
 
     RegenerateCmd cmd = getCmd(getImportAutopatchesConfigString());
 
-    ExitCode exitCode =
-        cmd.run(
-            new CommandEnv(
-                workdir,
-                options.build(),
-                // pass in the first change as the source ref
-                ImmutableList.of(
-                    testRoot.resolve("copy.bara.sky").toString(), "default", firstChangeRef)));
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(
+            ImmutableList.of(
+                testRoot.resolve("copy.bara.sky").toString(), "default", firstChangeRef),
+            cmd);
+
+    ExitCode exitCode = cmd.run(commandEnv);
 
     assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
     verify(patchRegenerator)
@@ -422,13 +411,11 @@ public class RegenerateCmdTest {
 
     RegenerateCmd cmd = getCmd(getImportAutopatchesConfigString());
 
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()), cmd);
+
     // should not throw
-    ExitCode exitCode =
-        cmd.run(
-            new CommandEnv(
-                workdir,
-                options.build(),
-                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
+    ExitCode exitCode = cmd.run(commandEnv);
 
     assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
     verify(patchRegenerator).updateChange(any(), any(), any(), eq("bar"));
@@ -446,13 +433,11 @@ public class RegenerateCmdTest {
 
     RegenerateCmd cmd = getCmd(getImportAutopatchesConfigString());
 
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()), cmd);
+
     // should not throw
-    ExitCode exitCode =
-        cmd.run(
-            new CommandEnv(
-                workdir,
-                options.build(),
-                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
+    ExitCode exitCode = cmd.run(commandEnv);
 
     assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
     // target from options, not from infer
@@ -470,15 +455,10 @@ public class RegenerateCmdTest {
 
     RegenerateCmd cmd = getCmd(getImportAutopatchesConfigString());
 
-    Throwable t =
-        assertThrows(
-            ValidationException.class,
-            () ->
-                cmd.run(
-                    new CommandEnv(
-                        workdir,
-                        options.build(),
-                        ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()))));
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()), cmd);
+
+    Throwable t = assertThrows(ValidationException.class, () -> cmd.run(commandEnv));
     assertThat(t)
         .hasMessageThat()
         .contains("Regen target was neither supplied nor able to be inferred.");
@@ -499,12 +479,10 @@ public class RegenerateCmdTest {
 
     RegenerateCmd cmd = getCmd(getImportAutopatchesConfigString());
 
-    ExitCode exitCode =
-        cmd.run(
-            new CommandEnv(
-                workdir,
-                options.build(),
-                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()), cmd);
+
+    ExitCode exitCode = cmd.run(commandEnv);
 
     assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
 
@@ -531,12 +509,10 @@ public class RegenerateCmdTest {
 
     RegenerateCmd cmd = getCmd(getImportAutopatchesConfigString());
 
-    ExitCode exitCode =
-        cmd.run(
-            new CommandEnv(
-                workdir,
-                options.build(),
-                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()), cmd);
+
+    ExitCode exitCode = cmd.run(commandEnv);
 
     assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
 
@@ -561,12 +537,10 @@ public class RegenerateCmdTest {
     setupBaselineConsistencyFile("foo", "foo");
     RegenerateCmd cmd = getCmd(getConsistencyFileConfigString());
 
-    ExitCode exitCode =
-        cmd.run(
-            new CommandEnv(
-                workdir,
-                options.build(),
-                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()), cmd);
+
+    ExitCode exitCode = cmd.run(commandEnv);
 
     ArgumentCaptor<Path> pathArg = ArgumentCaptor.forClass(Path.class);
     verify(patchRegenerator)
@@ -593,12 +567,10 @@ public class RegenerateCmdTest {
 
     RegenerateCmd cmd = getCmd(getConsistencyFileConfigString());
 
-    ExitCode exitCode =
-        cmd.run(
-            new CommandEnv(
-                workdir,
-                options.build(),
-                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()), cmd);
+
+    ExitCode exitCode = cmd.run(commandEnv);
 
     ArgumentCaptor<Path> pathArg = ArgumentCaptor.forClass(Path.class);
     verify(patchRegenerator)
@@ -637,12 +609,10 @@ public class RegenerateCmdTest {
 
     RegenerateCmd cmd = getCmd(getConsistencyFileConfigString());
 
-    ExitCode exitCode =
-        cmd.run(
-            new CommandEnv(
-                workdir,
-                options.build(),
-                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()), cmd);
+
+    ExitCode exitCode = cmd.run(commandEnv);
     assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
 
     ArgumentCaptor<Path> pathArg = ArgumentCaptor.forClass(Path.class);
@@ -665,13 +635,11 @@ public class RegenerateCmdTest {
         pathArg.getValue(), destinationPath("bar"), CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
     writeDestination("foobar", testfile, "foobar");
 
+    commandEnv =
+        prepAndGetCommandEnv(ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()), cmd);
+
     clearDir(workdir);
-    exitCode =
-        cmd.run(
-            new CommandEnv(
-                workdir,
-                options.build(),
-                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
+    exitCode = cmd.run(commandEnv);
     verify(patchRegenerator)
         .updateChange(
             any(),
@@ -715,12 +683,10 @@ public class RegenerateCmdTest {
 
     RegenerateCmd cmd = getCmd(getConsistencyFileConfigString());
 
-    ExitCode exitCode =
-        cmd.run(
-            new CommandEnv(
-                workdir,
-                options.build(),
-                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()), cmd);
+
+    ExitCode exitCode = cmd.run(commandEnv);
     assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
 
     ArgumentCaptor<Path> pathArg = ArgumentCaptor.forClass(Path.class);
@@ -762,12 +728,10 @@ public class RegenerateCmdTest {
 
     RegenerateCmd cmd = getCmd(getConsistencyFileConfigString());
 
-    ExitCode exitCode =
-        cmd.run(
-            new CommandEnv(
-                workdir,
-                options.build(),
-                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()), cmd);
+
+    ExitCode exitCode = cmd.run(commandEnv);
     assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
 
     ArgumentCaptor<Path> pathArg = ArgumentCaptor.forClass(Path.class);
@@ -806,12 +770,10 @@ public class RegenerateCmdTest {
 
     RegenerateCmd cmd = getCmd(getConsistencyFileConfigString());
 
-    ExitCode exitCode =
-        cmd.run(
-            new CommandEnv(
-                workdir,
-                options.build(),
-                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()), cmd);
+
+    ExitCode exitCode = cmd.run(commandEnv);
     assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
 
     ArgumentCaptor<Path> pathArg = ArgumentCaptor.forClass(Path.class);
@@ -857,12 +819,10 @@ public class RegenerateCmdTest {
 
     RegenerateCmd cmd = getCmd(getConsistencyFileConfigString());
 
-    ExitCode exitCode =
-        cmd.run(
-            new CommandEnv(
-                workdir,
-                options.build(),
-                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()), cmd);
+
+    ExitCode exitCode = cmd.run(commandEnv);
     assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
 
     ArgumentCaptor<Path> pathArg = ArgumentCaptor.forClass(Path.class);
@@ -880,6 +840,13 @@ public class RegenerateCmdTest {
     // reversing the diff should leave the consistency file as-is
     // (the diff should not include a patch that generates the consistency file)
     assertThatPath(pathArg.getValue()).containsFiles(CONSISTENCY_FILE_PATH);
+  }
+
+  private CommandEnv prepAndGetCommandEnv(ImmutableList<String> args, RegenerateCmd cmd)
+      throws Exception {
+    CommandEnv commandEnv = new CommandEnv(workdir, options.build(), args);
+    commandEnv.parseConfigFileArgs(cmd, true);
+    return commandEnv;
   }
 
   private RegenerateCmd getCmd(String configString) {
