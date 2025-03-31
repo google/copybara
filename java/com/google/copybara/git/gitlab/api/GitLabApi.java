@@ -29,6 +29,8 @@ import com.google.copybara.git.gitlab.api.entities.ListUsersParams;
 import com.google.copybara.git.gitlab.api.entities.MergeRequest;
 import com.google.copybara.git.gitlab.api.entities.PaginatedPageList;
 import com.google.copybara.git.gitlab.api.entities.Project;
+import com.google.copybara.git.gitlab.api.entities.SetExternalStatusCheckParams;
+import com.google.copybara.git.gitlab.api.entities.SetExternalStatusCheckResponse;
 import com.google.copybara.git.gitlab.api.entities.UpdateMergeRequestParams;
 import com.google.copybara.git.gitlab.api.entities.User;
 import com.google.gson.reflect.TypeToken;
@@ -255,5 +257,16 @@ public class GitLabApi {
       return Optional.empty();
     }
     return Optional.of(path.substring(lastQuestionMarkIndex + 1));
+  }
+
+  public Optional<SetExternalStatusCheckResponse> setExternalStatusCheck(
+      SetExternalStatusCheckParams params) throws ValidationException, RepoException {
+    return transport.post(
+        String.format(
+            "projects/%d/merge_requests/%d/status_check_responses",
+            params.projectId(), params.mergeRequestIid()),
+        params,
+        TypeToken.get(SetExternalStatusCheckResponse.class).getType(),
+        ImmutableListMultimap.of());
   }
 }

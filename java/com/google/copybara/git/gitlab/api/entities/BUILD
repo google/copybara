@@ -21,6 +21,7 @@ java_library(
     srcs = [
         "Commit.java",
         "CreateMergeRequestParams.java",
+        "ExternalStatusCheck.java",
         "GitLabApiEntity.java",
         "GitLabApiParams.java",
         "ListProjectMergeRequestParams.java",
@@ -28,6 +29,8 @@ java_library(
         "MergeRequest.java",
         "PaginatedPageList.java",
         "Project.java",
+        "SetExternalStatusCheckParams.java",
+        "SetExternalStatusCheckResponse.java",
         "UpdateMergeRequestParams.java",
         "User.java",
     ],

@@ -20,12 +20,15 @@ all_tests(
     tags = ["local"],
     tests = [
         "CreateMergeRequestParamsTest.java",
+        "ExternalStatusCheckTest.java",
         "GitLabApiParamsTest.java",
         "ListProjectMergeRequestParamsTest.java",
         "ListUsersParamsTest.java",
         "MergeRequestTest.java",
         "PaginatedPageListTest.java",
         "ProjectTest.java",
+        "SetExternalStatusCheckParamsTest.java",
+        "SetExternalStatusCheckResponseTest.java",
         "UpdateMergeRequestParamsTest.java",
     ],
     deps = [

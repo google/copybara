@@ -46,6 +46,8 @@ import com.google.copybara.git.gitlab.api.entities.GitLabApiParams.Param;
 import com.google.copybara.git.gitlab.api.entities.ListProjectMergeRequestParams;
 import com.google.copybara.git.gitlab.api.entities.ListUsersParams;
 import com.google.copybara.git.gitlab.api.entities.MergeRequest;
+import com.google.copybara.git.gitlab.api.entities.SetExternalStatusCheckParams;
+import com.google.copybara.git.gitlab.api.entities.SetExternalStatusCheckResponse;
 import com.google.copybara.git.gitlab.api.entities.Project;
 import com.google.copybara.git.gitlab.api.entities.UpdateMergeRequestParams;
 import com.google.copybara.git.gitlab.api.entities.User;
@@ -272,7 +274,7 @@ public class GitLabApiTest {
   @Test
   public void testGetMergeRequest() throws Exception {
     String json =
-        """
+"""
 {
   "id": 12345
 }
@@ -497,7 +499,7 @@ public class GitLabApiTest {
   @Test
   public void testGetProject() throws Exception {
     String json =
-        """
+"""
 {
   "id": 12345
 }
@@ -547,7 +549,7 @@ public class GitLabApiTest {
   @Test
   public void testGetCommit() throws Exception {
     String json =
-        """
+"""
 {
   "id": 12345
 }
@@ -594,7 +596,7 @@ public class GitLabApiTest {
   @Test
   public void getListUsers() throws Exception {
     String json =
-        """
+"""
 [{"id": 12345}, {"id": 6789}]
 """;
     MockHttpTransportWithCapture httpTransport = new MockHttpTransportWithCapture(json);
@@ -639,9 +641,60 @@ public class GitLabApiTest {
   }
 
   @Test
+  public void setExternalStatusCheck() throws Exception {
+    String json =
+"""
+{"id": 12345, "merge_request": {"iid": 99999}, "external_status_check": {"id": 12345}}
+""";
+    MockHttpTransportWithCapture httpTransport = new MockHttpTransportWithCapture(json);
+    GitLabApi underTest =
+        new GitLabApi(
+            getApiTransport(
+                httpTransport,
+                "https://gitlab.copybara.io/capybara/project",
+                getBearerInterceptor()));
+
+    SetExternalStatusCheckParams params =
+        new SetExternalStatusCheckParams(12345, 99999, "shaValue", 12345, "passed");
+    Optional<SetExternalStatusCheckResponse> response = underTest.setExternalStatusCheck(params);
+
+    assertThat(response).isPresent();
+    assertThat(response.get().getMergeRequest().getIid()).isEqualTo(99999);
+    assertThat(response.get().getExternalStatusCheck().getStatusCheckId()).isEqualTo(12345);
+  }
+
+  @Test
+  public void setExternalStatusCheck_emptyResponse() throws Exception {
+    GitLabApi underTest = setupApiWithMockedStatusCodeResponse(STATUS_CODE_NO_CONTENT);
+
+    SetExternalStatusCheckParams params =
+        new SetExternalStatusCheckParams(12345, 99999, "shaValue", 12345, "passed");
+    Optional<SetExternalStatusCheckResponse> response = underTest.setExternalStatusCheck(params);
+
+    assertThat(response).isEmpty();
+  }
+
+  @Test
+  public void setExternalStatusCheck_badHttpResponse() {
+    GitLabApi underTest = setupApiWithMockedStatusCodeResponse(STATUS_CODE_SERVER_ERROR);
+
+    SetExternalStatusCheckParams params =
+        new SetExternalStatusCheckParams(12345, 99999, "shaValue", 12345, "passed");
+
+    GitLabApiException e =
+        assertThrows(GitLabApiException.class, () -> underTest.setExternalStatusCheck(params));
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "Error calling POST on"
+                + " https://gitlab.copybara.io/api/v4/projects/12345/merge_requests/99999/status_check_responses");
+    assertThat(e).hasCauseThat().isInstanceOf(HttpResponseException.class);
+  }
+
+  @Test
   public void createMergeRequest() throws Exception {
     String json =
-        """
+"""
 {"iid": 1234}
 """;
     MockHttpTransportWithCapture httpTransport = new MockHttpTransportWithCapture(json);
@@ -709,7 +762,7 @@ public class GitLabApiTest {
   @Test
   public void updateMergeRequest() throws Exception {
     String json =
-        """
+"""
 {"iid": 1234}
 """;
     MockHttpTransportWithCapture httpTransport = new MockHttpTransportWithCapture(json);
