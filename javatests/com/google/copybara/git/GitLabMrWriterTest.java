@@ -43,6 +43,7 @@ import com.google.copybara.git.gitlab.api.entities.CreateMergeRequestParams;
 import com.google.copybara.git.gitlab.api.entities.ListProjectMergeRequestParams;
 import com.google.copybara.git.gitlab.api.entities.ListUsersParams;
 import com.google.copybara.git.gitlab.api.entities.MergeRequest;
+import com.google.copybara.git.gitlab.api.entities.MergeRequest.State;
 import com.google.copybara.git.gitlab.api.entities.Project;
 import com.google.copybara.git.gitlab.api.entities.UpdateMergeRequestParams;
 import com.google.copybara.git.gitlab.api.entities.User;
@@ -487,7 +488,8 @@ public final class GitLabMrWriterTest {
         "sha1",
         MergeRequest.DetailedMergeStatus.MERGEABLE,
         "source-branch",
-        "https://gitlab.com/test/test/merge_requests/" + mrId);
+        "https://gitlab.com/test/test/merge_requests/" + mrId,
+        State.OPENED);
   }
 
   private ZonedDateTime getNowDateTime() {

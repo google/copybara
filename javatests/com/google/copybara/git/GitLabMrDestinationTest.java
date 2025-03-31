@@ -48,6 +48,7 @@ import com.google.copybara.git.gitlab.api.entities.ListProjectMergeRequestParams
 import com.google.copybara.git.gitlab.api.entities.ListUsersParams;
 import com.google.copybara.git.gitlab.api.entities.MergeRequest;
 import com.google.copybara.git.gitlab.api.entities.MergeRequest.DetailedMergeStatus;
+import com.google.copybara.git.gitlab.api.entities.MergeRequest.State;
 import com.google.copybara.git.gitlab.api.entities.Project;
 import com.google.copybara.git.gitlab.api.entities.UpdateMergeRequestParams;
 import com.google.copybara.git.gitlab.api.entities.User;
@@ -194,7 +195,8 @@ public class GitLabMrDestinationTest {
                     "aaaa",
                     DetailedMergeStatus.NOT_APPROVED,
                     "source-branch",
-                    "web-url")));
+                    "web-url",
+                    State.OPENED)));
     WriterContext writerContext = getWriterContext(false);
     TransformResult transformResult =
         TransformResults.of(tempDir, new DummyRevision("1").withContextReference("contextRef"));
@@ -251,7 +253,8 @@ public class GitLabMrDestinationTest {
                     "aaaa",
                     DetailedMergeStatus.NOT_APPROVED,
                     "source-branch-contextRef",
-                    "web-url")));
+                    "web-url",
+                    State.OPENED)));
     GitLabMrWriter underTest =
         getGitLabMrDestination(
                 Optional.empty(),
@@ -287,7 +290,13 @@ public class GitLabMrDestinationTest {
   public void write_updateMrWorksCorrectly() throws Exception {
     MergeRequest mr =
         new MergeRequest(
-            12345, 54321, "aaaa", DetailedMergeStatus.NOT_APPROVED, "source-branch", "web-url");
+            12345,
+            54321,
+            "aaaa",
+            DetailedMergeStatus.NOT_APPROVED,
+            "source-branch",
+            "web-url",
+            State.OPENED);
     when(gitLabApi.getProject(anyString())).thenReturn(Optional.of(new Project(12345)));
     when(gitLabApi.getProjectMergeRequests(anyInt(), any(ListProjectMergeRequestParams.class)))
         .thenReturn(ImmutableList.of(mr));
