@@ -96,6 +96,28 @@ public class GitLabMrOriginTest {
   }
 
   @Test
+  public void resolveLastRev() throws Exception {
+    setupGitRepo();
+    GitLabMrOrigin underTest = getGitLabMrOrigin(false);
+
+    GitRevision revision =
+        underTest.resolveLastRev(testRepo.resolveReference("source-branch").getSha1());
+
+    assertThat(revision.getSha1()).isEqualTo(testRepo.resolveReference("source-branch").getSha1());
+  }
+
+  @Test
+  public void resolveLastRev_notValidSha1() throws Exception {
+    setupGitRepo();
+    GitLabMrOrigin underTest = getGitLabMrOrigin(false);
+
+    ValidationException e =
+        assertThrows(ValidationException.class, () -> underTest.resolveLastRev("main"));
+
+    assertThat(e).hasMessageThat().contains("'main' is not a valid SHA.");
+  }
+
+  @Test
   public void resolveMergeRequest() throws Exception {
     setupGitRepo();
     when(gitLabApi.getProject(anyString()))

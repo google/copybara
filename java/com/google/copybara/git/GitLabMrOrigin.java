@@ -29,6 +29,7 @@ import com.google.copybara.Endpoint;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Origin;
 import com.google.copybara.authoring.Authoring;
+import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitOrigin.ReaderImpl;
@@ -139,6 +140,21 @@ public class GitLabMrOrigin implements Origin<GitRevision> {
     return getRevisionForMr(mergeRequest);
   }
 
+  @Override
+  public GitRevision resolveLastRev(String reference) throws RepoException, ValidationException {
+    reference = reference.trim();
+    String sha1 = GitRevision.COMPLETE_SHA1_PATTERN.matcher(reference).matches() ? reference : null;
+    GitRepository repo = getRepository();
+
+    if (sha1 != null) {
+      doFetch(repo, ImmutableList.of(sha1));
+      return repo.resolveReference(sha1);
+    } else {
+      throw new CannotResolveRevisionException(
+          String.format("'%s' is not a valid SHA.", reference));
+    }
+  }
+
   private static int parseReference(String reference) throws ValidationException {
     // For now, we just support the numeric ID as a reference. If we realize that we need to support
     // SHA1s or a full ref path, we should change the below.
@@ -166,21 +182,26 @@ public class GitLabMrOrigin implements Origin<GitRevision> {
     refspecs.add(
         "refs/heads/" + mergeRequest.getSourceBranch() + ":" + getMrBaseLocalFullRef(mergeRequest));
     GitRepository repository = getRepository();
-    try (ProfilerTask ignore = generalOptions.profiler().start("fetch")) {
-      repository.fetch(
-          repoUrl.toString(),
-          /* prune= */ false,
-          generalOptions.isForced(),
-          refspecs.build(),
-          partialFetch,
-          Optional.empty(),
-          /* tags= */ false);
-    }
+    doFetch(repository, refspecs.build());
 
     return repository
         .resolveReference(refToUse)
         .withLabels(generateLabels(mergeRequest))
         .withContextReference(refToUse);
+  }
+
+  private void doFetch(GitRepository repository, ImmutableList<String> refspecs)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = generalOptions.profiler().start("fetch")) {
+      repository.fetch(
+          repoUrl.toString(),
+          /* prune= */ false,
+          generalOptions.isForced(),
+          refspecs,
+          partialFetch,
+          Optional.empty(),
+          /* tags= */ false);
+    }
   }
 
   private ImmutableListMultimap<String, String> generateLabels(MergeRequest mergeRequest) {
