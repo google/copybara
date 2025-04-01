@@ -2429,10 +2429,10 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             named = true,
             defaultValue = "[]",
             doc =
-                "The list of the reviewers will be added to gerrit change reviewer listThe element"
-                    + " in the list is: an email, for example: \"foo@example.com\" or label for"
-                    + " example: ${SOME_GERRIT_REVIEWER}. These are under the condition of"
-                    + " assuming that users have registered to gerrit repos"),
+                "The list of the reviewers to add. Each element in the list is:"
+                    + " an email (e.g. `\"foo@example.com\"` or label (e.g. "
+                    + " `\"${SOME_GERRIT_REVIEWER}`). These assume that users have already"
+                    + " registered on the Gerrit host and has access to the repos."),
         @Param(
             name = "cc",
             named = true,
@@ -2523,16 +2523,16 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + "is used, that checker will only apply to API calls.",
             named = true,
             positional = false),
-          @Param(
-              name = "credentials",
-              allowedTypes = {
-                  @ParamType(type = UsernamePasswordIssuer.class),
-                  @ParamType(type = NoneType.class),
-              },
-              defaultValue = "None",
-              named = true,
-              positional = false,
-              doc = CREDENTIAL_DOC)
+        @Param(
+            name = "credentials",
+            allowedTypes = {
+              @ParamType(type = UsernamePasswordIssuer.class),
+              @ParamType(type = NoneType.class),
+            },
+            defaultValue = "None",
+            named = true,
+            positional = false,
+            doc = CREDENTIAL_DOC)
       },
       useStarlarkThread = true)
   @UsesFlags({GitDestinationOptions.class, GerritOptions.class})
