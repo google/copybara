@@ -22,6 +22,7 @@ import com.google.api.client.json.JsonParser;
 import com.google.api.client.json.JsonToken;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.git.gitlab.api.entities.UpdateMergeRequestParams.StateEvent;
 import java.util.ArrayList;
 import java.util.Collection;
 import org.junit.Test;
@@ -40,7 +41,8 @@ public class UpdateMergeRequestParamsTest {
             /* mergeRequestIid= */ 99999,
             "titleValue",
             "descriptionValue",
-            /* assigneeIds= */ ImmutableList.of(1, 2, 3, 4, 5));
+            /* assigneeIds= */ ImmutableList.of(1, 2, 3, 4, 5),
+            StateEvent.REOPEN);
 
     String json = GSON_FACTORY.toString(underTest);
 
@@ -60,6 +62,9 @@ public class UpdateMergeRequestParamsTest {
     jsonParser.skipToKey("assignee_ids");
     Collection<Integer> assigneeIds = jsonParser.parseArray(ArrayList.class, Integer.class);
     assertThat(assigneeIds).containsExactly(1, 2, 3, 4, 5).inOrder();
+    jsonParser = GSON_FACTORY.createJsonParser(json);
+    jsonParser.skipToKey("state_event");
+    assertThat(jsonParser.parse(StateEvent.class)).isEqualTo(StateEvent.REOPEN);
   }
 
   @Test
@@ -70,7 +75,8 @@ public class UpdateMergeRequestParamsTest {
             /* mergeRequestIid= */ 99999,
             /* title= */ null,
             /* description= */ null,
-            /* assigneeIds= */ ImmutableList.of(1, 2, 3, 4, 5));
+            /* assigneeIds= */ ImmutableList.of(1, 2, 3, 4, 5),
+            /* stateEvent= */ null);
 
     String json = GSON_FACTORY.toString(underTest);
 
@@ -80,6 +86,9 @@ public class UpdateMergeRequestParamsTest {
     assertThat(jsonParser.getCurrentToken()).isEqualTo(JsonToken.END_OBJECT);
     jsonParser = GSON_FACTORY.createJsonParser(json);
     jsonParser.skipToKey("description");
+    assertThat(jsonParser.getCurrentToken()).isEqualTo(JsonToken.END_OBJECT);
+    jsonParser = GSON_FACTORY.createJsonParser(json);
+    jsonParser.skipToKey("state_event");
     assertThat(jsonParser.getCurrentToken()).isEqualTo(JsonToken.END_OBJECT);
   }
 }

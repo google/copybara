@@ -38,8 +38,10 @@ import com.google.copybara.git.gitlab.api.entities.CreateMergeRequestParams;
 import com.google.copybara.git.gitlab.api.entities.ListProjectMergeRequestParams;
 import com.google.copybara.git.gitlab.api.entities.ListUsersParams;
 import com.google.copybara.git.gitlab.api.entities.MergeRequest;
+import com.google.copybara.git.gitlab.api.entities.MergeRequest.State;
 import com.google.copybara.git.gitlab.api.entities.Project;
 import com.google.copybara.git.gitlab.api.entities.UpdateMergeRequestParams;
+import com.google.copybara.git.gitlab.api.entities.UpdateMergeRequestParams.StateEvent;
 import com.google.copybara.git.gitlab.api.entities.User;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
@@ -247,6 +249,11 @@ public class GitLabMrWriter extends WriterImpl<GitLabMrDestination.GitLabWriterS
           params.sourceBranch(),
           params.targetBranch(),
           assignees);
+      StateEvent newState = null;
+      if (mergeRequest.getState() == State.CLOSED) {
+        console.warnFmt("Existing MR %s is closed, reopening.", mergeRequest.getIid());
+        newState = StateEvent.REOPEN;
+      }
       Optional<MergeRequest> updatedMr =
           params
               .gitLabApi()
@@ -256,7 +263,8 @@ public class GitLabMrWriter extends WriterImpl<GitLabMrDestination.GitLabWriterS
                       mergeRequest.getIid(),
                       title,
                       description,
-                      mapAssigneeUsernamesToIds(assignees, console)));
+                      mapAssigneeUsernamesToIds(assignees, console),
+                      newState));
       if (updatedMr.isPresent()) {
         console.progressFmt("Updated MR located at %s", updatedMr.get().getWebUrl());
         results.add(

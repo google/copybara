@@ -21,6 +21,8 @@ import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -46,6 +48,7 @@ import com.google.copybara.git.gitlab.api.entities.MergeRequest;
 import com.google.copybara.git.gitlab.api.entities.MergeRequest.State;
 import com.google.copybara.git.gitlab.api.entities.Project;
 import com.google.copybara.git.gitlab.api.entities.UpdateMergeRequestParams;
+import com.google.copybara.git.gitlab.api.entities.UpdateMergeRequestParams.StateEvent;
 import com.google.copybara.git.gitlab.api.entities.User;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
@@ -213,7 +216,7 @@ public final class GitLabMrWriterTest {
     when(gitLabApi.getProjectMergeRequests(anyInt(), any(ListProjectMergeRequestParams.class)))
         .thenReturn(ImmutableList.of());
     when(gitLabApi.createMergeRequest(createMrParamsCaptor.capture()))
-        .thenReturn(Optional.of(getMergeRequest(projectId, mrId)));
+        .thenReturn(Optional.of(getMergeRequest(projectId, mrId, State.OPENED)));
     when(gitLabApi.getListUsers(any(ListUsersParams.class)))
         .thenReturn(ImmutableList.of(new User(userId)));
 
@@ -268,7 +271,7 @@ public final class GitLabMrWriterTest {
     when(gitLabApi.getProjectMergeRequests(anyInt(), any(ListProjectMergeRequestParams.class)))
         .thenReturn(ImmutableList.of());
     when(gitLabApi.createMergeRequest(createMrParamsCaptor.capture()))
-        .thenReturn(Optional.of(getMergeRequest(projectId, mrId)));
+        .thenReturn(Optional.of(getMergeRequest(projectId, mrId, State.OPENED)));
     when(gitLabApi.getListUsers(listUsersParamsCaptor.capture()))
         .thenReturn(ImmutableList.of(new User(userId)));
 
@@ -357,7 +360,7 @@ public final class GitLabMrWriterTest {
     when(gitLabApi.getProjectMergeRequests(anyInt(), any(ListProjectMergeRequestParams.class)))
         .thenReturn(ImmutableList.of());
     when(gitLabApi.createMergeRequest(any(CreateMergeRequestParams.class)))
-        .thenReturn(Optional.of(getMergeRequest(projectId, mrId)));
+        .thenReturn(Optional.of(getMergeRequest(projectId, mrId, State.OPENED)));
     // Return 2 users for a username, which we expect not to happen.
     when(gitLabApi.getListUsers(any(ListUsersParams.class)))
         .thenReturn(ImmutableList.of(new User(123), new User(456)));
@@ -397,9 +400,9 @@ public final class GitLabMrWriterTest {
         ArgumentCaptor.forClass(UpdateMergeRequestParams.class);
     // Return a merge request so we end up updating it.
     when(gitLabApi.getProjectMergeRequests(anyInt(), any(ListProjectMergeRequestParams.class)))
-        .thenReturn(ImmutableList.of(getMergeRequest(projectId, mrId)));
+        .thenReturn(ImmutableList.of(getMergeRequest(projectId, mrId, State.OPENED)));
     when(gitLabApi.updateMergeRequest(updateMrParamsCaptor.capture()))
-        .thenReturn(Optional.of(getMergeRequest(projectId, mrId)));
+        .thenReturn(Optional.of(getMergeRequest(projectId, mrId, State.OPENED)));
     when(gitLabApi.getListUsers(any(ListUsersParams.class)))
         .thenReturn(ImmutableList.of(new User(userId)));
     writerContext =
@@ -439,6 +442,58 @@ public final class GitLabMrWriterTest {
   }
 
   @Test
+  public void updateExistingMergeRequest_closedMrIsReopened() throws Exception {
+    int userId = 55;
+    int projectId = 878787;
+    int mrId = 12345;
+    ArgumentCaptor<UpdateMergeRequestParams> updateMrParamsCaptor =
+        ArgumentCaptor.forClass(UpdateMergeRequestParams.class);
+    // Return a merge request so we end up updating it.
+    when(gitLabApi.getProjectMergeRequests(anyInt(), any(ListProjectMergeRequestParams.class)))
+        .thenReturn(ImmutableList.of(getMergeRequest(projectId, mrId, State.CLOSED)));
+    when(gitLabApi.updateMergeRequest(updateMrParamsCaptor.capture()))
+        .thenReturn(Optional.of(getMergeRequest(projectId, mrId, State.OPENED)));
+    when(gitLabApi.getListUsers(any(ListUsersParams.class)))
+        .thenReturn(ImmutableList.of(new User(userId)));
+    writerContext =
+        new WriterContext(
+            "workflowName",
+            "workflowIdentityUser",
+            /* dryRun= */ false,
+            new DummyRevision("capybara"),
+            Glob.ALL_FILES.roots());
+    GitLabMrWriter underTest =
+        getGitLabMrWriter(
+            new Project(projectId),
+            /* checker= */ Optional.empty(),
+            Optional.of("titleTemplate"),
+            Optional.of("bodyTemplate"),
+            ImmutableList.of("assignee1"),
+            /* integrates= */ getWriterState());
+
+    ImmutableList<DestinationEffect> result =
+        underTest.write(getTransformResult(ImmutableMultimap.of()), Glob.ALL_FILES, console);
+
+    verify(gitLabApi).updateMergeRequest(eq(new UpdateMergeRequestParams(projectId, mrId,
+        "titleTemplate", "bodyTemplate", ImmutableList.of(userId), StateEvent.REOPEN)));
+    assertThat(result).hasSize(2);
+    assertThat(result)
+        .contains(
+            new DestinationEffect(
+                DestinationEffect.Type.UPDATED,
+                "Merge Request https://gitlab.com/test/test/merge_requests/" + mrId + " updated",
+                TransformWorks.EMPTY_CHANGES.getCurrent(),
+                new DestinationEffect.DestinationRef(
+                    "" + mrId,
+                    "merge_request",
+                    "https://gitlab.com/test/test/merge_requests/" + mrId)));
+    assertThat(updateMrParamsCaptor.getValue().title()).isEqualTo("titleTemplate");
+    assertThat(updateMrParamsCaptor.getValue().description()).isEqualTo("bodyTemplate");
+    assertThat(updateMrParamsCaptor.getValue().projectId()).isEqualTo(projectId);
+    assertThat(updateMrParamsCaptor.getValue().assigneeIds()).containsExactly(userId);
+  }
+
+  @Test
   public void updateExistingMergeRequest_noMrResponseThrowsRepoException() throws Exception {
     int userId = 55;
     int projectId = 878787;
@@ -447,7 +502,7 @@ public final class GitLabMrWriterTest {
         ArgumentCaptor.forClass(UpdateMergeRequestParams.class);
     // Return a merge request so we end up updating it.
     when(gitLabApi.getProjectMergeRequests(anyInt(), any(ListProjectMergeRequestParams.class)))
-        .thenReturn(ImmutableList.of(getMergeRequest(projectId, mrId)));
+        .thenReturn(ImmutableList.of(getMergeRequest(projectId, mrId, State.OPENED)));
     when(gitLabApi.updateMergeRequest(updateMrParamsCaptor.capture())).thenReturn(Optional.empty());
     when(gitLabApi.getListUsers(any(ListUsersParams.class)))
         .thenReturn(ImmutableList.of(new User(userId)));
@@ -481,7 +536,7 @@ public final class GitLabMrWriterTest {
                 + " about the new merge request");
   }
 
-  private static MergeRequest getMergeRequest(int projectId, int mrId) {
+  private static MergeRequest getMergeRequest(int projectId, int mrId, State state) {
     return new MergeRequest(
         projectId,
         mrId,
@@ -489,7 +544,7 @@ public final class GitLabMrWriterTest {
         MergeRequest.DetailedMergeStatus.MERGEABLE,
         "source-branch",
         "https://gitlab.com/test/test/merge_requests/" + mrId,
-        State.OPENED);
+        state);
   }
 
   private ZonedDateTime getNowDateTime() {

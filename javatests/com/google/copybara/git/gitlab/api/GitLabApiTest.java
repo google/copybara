@@ -722,7 +722,8 @@ public class GitLabApiTest {
 
     UpdateMergeRequestParams params =
         new UpdateMergeRequestParams(
-            12345, 99999, "capys_title", "capys_description", ImmutableList.of(1, 2, 3, 4, 5));
+            12345, 99999, "capys_title", "capys_description", ImmutableList.of(1, 2, 3, 4, 5),
+            null);
     Optional<MergeRequest> response = underTest.updateMergeRequest(params);
 
     assertThat(response).isPresent();
@@ -735,7 +736,8 @@ public class GitLabApiTest {
 
     UpdateMergeRequestParams params =
         new UpdateMergeRequestParams(
-            12345, 99999, "capys_title", "capys_description", ImmutableList.of(1, 2, 3, 4, 5));
+            12345, 99999, "capys_title", "capys_description", ImmutableList.of(1, 2, 3, 4, 5),
+            null);
     Optional<MergeRequest> response = underTest.updateMergeRequest(params);
 
     assertThat(response).isEmpty();
@@ -747,7 +749,8 @@ public class GitLabApiTest {
 
     UpdateMergeRequestParams params =
         new UpdateMergeRequestParams(
-            12345, 99999, "capys_title", "capys_description", ImmutableList.of(1, 2, 3, 4, 5));
+            12345, 99999, "capys_title", "capys_description", ImmutableList.of(1, 2, 3, 4, 5),
+            null);
     GitLabApiException e =
         assertThrows(GitLabApiException.class, () -> underTest.updateMergeRequest(params));
 

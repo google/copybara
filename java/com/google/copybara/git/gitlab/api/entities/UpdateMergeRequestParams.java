@@ -17,6 +17,7 @@
 package com.google.copybara.git.gitlab.api.entities;
 
 import com.google.api.client.util.Key;
+import com.google.api.client.util.Value;
 import java.util.List;
 import javax.annotation.Nullable;
 
@@ -29,11 +30,24 @@ import javax.annotation.Nullable;
  * @param description the description for the merge request. Will be used if this value is not null
  * @param assigneeIds the IDs of the users to assign the merge request to. Provide an empty value to
  *     unassign all assignees
+ * @param stateEvent the state to update the merge request too
  */
 public record UpdateMergeRequestParams(
     @Key("id") int projectId,
     @Key("merge_request_iid") int mergeRequestIid,
     @Key @Nullable String title,
     @Key @Nullable String description,
-    @Key("assignee_ids") List<Integer> assigneeIds)
-    implements GitLabApiEntity {}
+    @Key("assignee_ids") List<Integer> assigneeIds,
+    @Key("state_event") @Nullable StateEvent stateEvent)
+    implements GitLabApiEntity {
+
+  /**
+   * Represents the states that we can update a merge request to.
+   */
+  public enum StateEvent {
+    @Value("close")
+    CLOSE,
+    @Value("reopen")
+    REOPEN
+  }
+}

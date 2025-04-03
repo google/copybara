@@ -317,7 +317,9 @@ public class GitLabMrDestinationTest {
 
     verify(gitLabApi)
         .updateMergeRequest(
-            eq(new UpdateMergeRequestParams(12345, 54321, "title", "body", ImmutableList.of(999))));
+            eq(new UpdateMergeRequestParams(12345, 54321, "title", "body", ImmutableList.of(999),
+                null
+                )));
 
     Optional<DestinationEffect> commitCreated =
         effects.stream().filter(e -> e.getDestinationRef().getType().equals("commit")).findFirst();
