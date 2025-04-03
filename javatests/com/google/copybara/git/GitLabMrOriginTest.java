@@ -36,12 +36,15 @@ import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
 import com.google.copybara.credentials.ConstantCredentialIssuer;
+import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitOrigin.SubmoduleStrategy;
 import com.google.copybara.git.gitlab.GitLabUtil;
 import com.google.copybara.git.gitlab.api.GitLabApi;
 import com.google.copybara.git.gitlab.api.entities.MergeRequest;
+import com.google.copybara.git.gitlab.api.entities.MergeRequest.DetailedMergeStatus;
+import com.google.copybara.git.gitlab.api.entities.MergeRequest.State;
 import com.google.copybara.git.gitlab.api.entities.Project;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
@@ -99,10 +102,7 @@ public class GitLabMrOriginTest {
         .thenReturn(Optional.ofNullable(GSON_FACTORY.fromString("{\"id\": 1}", Project.class)));
     when(gitLabApi.getMergeRequest(eq(1), eq(1)))
         .thenReturn(
-            Optional.ofNullable(
-                GSON_FACTORY.fromString(
-                    "{\"id\": 12345, \"iid\": 1, \"source_branch\": \"source-branch\"}",
-                    MergeRequest.class)));
+            Optional.ofNullable(getMergeRequest()));
     GitLabMrOrigin underTest = getGitLabMrOrigin(false);
 
     GitRevision revision = underTest.resolve("1");
@@ -118,10 +118,7 @@ public class GitLabMrOriginTest {
         .thenReturn(Optional.ofNullable(GSON_FACTORY.fromString("{\"id\": 1}", Project.class)));
     when(gitLabApi.getMergeRequest(eq(1), eq(1)))
         .thenReturn(
-            Optional.ofNullable(
-                GSON_FACTORY.fromString(
-                    "{\"id\": 12345, \"iid\": 1, \"source_branch\": \"source-branch\"}",
-                    MergeRequest.class)));
+            Optional.ofNullable(getMergeRequest()));
     GitLabMrOrigin underTest = getGitLabMrOrigin(false);
 
     GitRevision revision = underTest.resolve("1");
@@ -137,9 +134,7 @@ public class GitLabMrOriginTest {
     when(gitLabApi.getMergeRequest(eq(1), eq(1)))
         .thenReturn(
             Optional.ofNullable(
-                GSON_FACTORY.fromString(
-                    "{\"id\": 12345, \"iid\": 1, \"source_branch\": \"source-branch\"}",
-                    MergeRequest.class)));
+                getMergeRequest()));
     GitLabMrOrigin underTest = getGitLabMrOrigin(true);
 
     GitRevision revision = underTest.resolve("1");
@@ -176,22 +171,25 @@ public class GitLabMrOriginTest {
   }
 
   @Test
-  public void resolveMergeRequest_originHasBaseBranchRefLabel() throws Exception {
+  public void resolveMergeRequest_labelsSetCorrectly() throws Exception {
     setupGitRepo();
     when(gitLabApi.getProject(anyString()))
         .thenReturn(Optional.ofNullable(GSON_FACTORY.fromString("{\"id\": 1}", Project.class)));
     when(gitLabApi.getMergeRequest(eq(1), eq(1)))
         .thenReturn(
-            Optional.ofNullable(
-                GSON_FACTORY.fromString(
-                    "{\"id\": 12345, \"iid\": 1, \"source_branch\": \"source-branch\"}",
-                    MergeRequest.class)));
+            Optional.ofNullable(getMergeRequest()));
     GitLabMrOrigin underTest = getGitLabMrOrigin(false);
 
     GitRevision revision = underTest.resolve("1");
 
     assertThat(revision.associatedLabels())
         .containsEntry(GitLabMrOrigin.GITLAB_BASE_BRANCH_REF, "refs/merge-requests/1/base");
+    assertThat(revision.associatedLabels())
+        .containsEntry(GitLabMrOrigin.GITLAB_MR_TITLE, "title");
+    assertThat(revision.associatedLabels())
+        .containsEntry(GitLabMrOrigin.GITLAB_MR_DESCRIPTION, "description");
+    assertThat(revision.associatedLabels())
+        .containsEntry(GitLabMrOrigin.GITLAB_MR_URL, "https://gitlab.com/example/1");
   }
 
   @Test
@@ -209,7 +207,9 @@ public class GitLabMrOriginTest {
                       "iid": 1,
                       "source_branch": "source-branch",
                       "state": "closed",
-                      "web_url": "https://capy.com/bara"
+                      "web_url": "https://gitlab.com/example/1",
+                      "title": "title",
+                      "description": "description"
                     }
                     """,
                     MergeRequest.class)));
@@ -219,7 +219,7 @@ public class GitLabMrOriginTest {
     assertThat(e)
         .hasMessageThat()
         .contains(
-            "The merge request https://capy.com/bara must not be" + " marked as closed or merged.");
+            "The merge request https://gitlab.com/example/1 must not be" + " marked as closed or merged.");
   }
 
   @Test
@@ -237,7 +237,9 @@ public class GitLabMrOriginTest {
                       "iid": 1,
                       "source_branch": "source-branch",
                       "state": "merged",
-                      "web_url": "https://capy.com/bara"
+                      "web_url": "https://gitlab.com/example/1",
+                      "title": "title",
+                      "description": "description"
                     }
                     """,
                     MergeRequest.class)));
@@ -247,7 +249,7 @@ public class GitLabMrOriginTest {
     assertThat(e)
         .hasMessageThat()
         .contains(
-            "The merge request https://capy.com/bara must not be" + " marked as closed or merged.");
+            "The merge request https://gitlab.com/example/1 must not be" + " marked as closed or merged.");
   }
 
   @Test
@@ -260,10 +262,7 @@ public class GitLabMrOriginTest {
         .thenReturn(Optional.ofNullable(GSON_FACTORY.fromString("{\"id\": 1}", Project.class)));
     when(gitLabApi.getMergeRequest(eq(1), eq(1)))
         .thenReturn(
-            Optional.ofNullable(
-                GSON_FACTORY.fromString(
-                    "{\"id\": 12345, \"iid\": 1, \"source_branch\": \"source-branch\"}",
-                    MergeRequest.class)));
+            Optional.ofNullable(getMergeRequest()));
     GitLabMrOrigin underTest = getGitLabMrOrigin(false);
 
     GitRevision unused = underTest.resolve("1");
@@ -279,10 +278,7 @@ public class GitLabMrOriginTest {
         .thenReturn(Optional.ofNullable(GSON_FACTORY.fromString("{\"id\": 1}", Project.class)));
     when(gitLabApi.getMergeRequest(eq(1), eq(1)))
         .thenReturn(
-            Optional.ofNullable(
-                GSON_FACTORY.fromString(
-                    "{\"id\": 12345, \"iid\": 1, \"source_branch\": \"source-branch\"}",
-                    MergeRequest.class)));
+            Optional.ofNullable(getMergeRequest()));
     GitLabMrOrigin origin = getGitLabMrOrigin(false);
     GitRevision startRevision = getGitLabMrOrigin(true).resolve("1");
     GitRevision baseline = origin.resolve("1");
@@ -399,6 +395,20 @@ origin = git.gitlab_mr_origin(
         "update-ref",
         "refs/merge-requests/1/merge",
         testRepo.resolveReference("merge-branch").getSha1());
+  }
+  
+  private MergeRequest getMergeRequest() throws RepoException, CannotResolveRevisionException {
+    return new MergeRequest(
+        12345,
+        1,
+        testRepo.resolveReference("source-branch").getSha1(),
+        "title",
+        "description",
+        DetailedMergeStatus.MERGEABLE,
+        "source-branch",
+        "https://gitlab.com/example/1",
+        State.OPENED
+    );
   }
 
   private GitLabMrOrigin getGitLabMrOrigin(boolean useMergeCommit) {

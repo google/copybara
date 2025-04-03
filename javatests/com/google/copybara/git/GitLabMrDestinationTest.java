@@ -196,7 +196,7 @@ public class GitLabMrDestinationTest {
                     12345,
                     54321,
                     "aaaa",
-                    DetailedMergeStatus.NOT_APPROVED,
+                    "title", "description", DetailedMergeStatus.NOT_APPROVED,
                     "source-branch",
                     "web-url",
                     State.OPENED)));
@@ -254,6 +254,8 @@ public class GitLabMrDestinationTest {
                     12345,
                     54321,
                     "aaaa",
+                    "title",
+                    "description",
                     DetailedMergeStatus.NOT_APPROVED,
                     "source-branch-contextRef",
                     "web-url",
@@ -296,7 +298,7 @@ public class GitLabMrDestinationTest {
             12345,
             54321,
             "aaaa",
-            DetailedMergeStatus.NOT_APPROVED,
+            "title", "description", DetailedMergeStatus.NOT_APPROVED,
             "source-branch",
             "web-url",
             State.OPENED);

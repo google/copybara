@@ -541,6 +541,8 @@ public final class GitLabMrWriterTest {
         projectId,
         mrId,
         "sha1",
+        "title",
+        "description",
         MergeRequest.DetailedMergeStatus.MERGEABLE,
         "source-branch",
         "https://gitlab.com/test/test/merge_requests/" + mrId,

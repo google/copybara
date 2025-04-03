@@ -51,6 +51,9 @@ import javax.annotation.Nullable;
  * An {@link Origin} that reads {@link GitRevision}s from Merge Requests of a given GitLab Project.
  */
 public class GitLabMrOrigin implements Origin<GitRevision> {
+  public static final String GITLAB_MR_TITLE = "GITLAB_MR_TITLE";
+  public static final String GITLAB_MR_URL = "GITLAB_MR_URL";
+  public static final String GITLAB_MR_DESCRIPTION = "GITLAB_MR_DESCRIPTION";
   protected static final String GITLAB_BASE_BRANCH_REF = "GITLAB_BASE_BRANCH_REF";
   private final GitLabApi gitLabApi;
   private final Console console;
@@ -182,7 +185,12 @@ public class GitLabMrOrigin implements Origin<GitRevision> {
 
   private ImmutableListMultimap<String, String> generateLabels(MergeRequest mergeRequest) {
     ImmutableListMultimap.Builder<String, String> labels = ImmutableListMultimap.builder();
-    return labels.put(GITLAB_BASE_BRANCH_REF, getMrBaseLocalFullRef(mergeRequest)).build();
+    return labels
+        .put(GITLAB_BASE_BRANCH_REF, getMrBaseLocalFullRef(mergeRequest))
+        .put(GITLAB_MR_TITLE, mergeRequest.getTitle())
+        .put(GITLAB_MR_URL, mergeRequest.getWebUrl())
+        .put(GITLAB_MR_DESCRIPTION, mergeRequest.getDescription())
+        .build();
   }
 
   private String getMrHeadFullRef(MergeRequest mergeRequest) {

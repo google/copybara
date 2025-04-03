@@ -30,7 +30,8 @@ public class MergeRequest implements GitLabApiEntity {
   @Key private int id;
   @Key private int iid;
   @Key private String sha;
-
+  @Key private String title;
+  @Key private String description;
   @Key("detailed_merge_status")
   private DetailedMergeStatus detailedMergeStatus;
 
@@ -51,6 +52,8 @@ public class MergeRequest implements GitLabApiEntity {
    * @param id the ID of the GitLab project
    * @param iid the internal ID of the merge request
    * @param sha the SHA1 of the MR's head commit
+   * @param title the title of the MR
+   * @param description the description of the MR
    * @param detailedMergeStatus the merge status of the commit
    * @param sourceBranch the source branch of the MR
    * @param webUrl the web URL of the MR
@@ -61,6 +64,8 @@ public class MergeRequest implements GitLabApiEntity {
       int id,
       int iid,
       String sha,
+      String title,
+      String description,
       DetailedMergeStatus detailedMergeStatus,
       String sourceBranch,
       String webUrl,
@@ -68,6 +73,8 @@ public class MergeRequest implements GitLabApiEntity {
     this.id = id;
     this.iid = iid;
     this.sha = sha;
+    this.title = title;
+    this.description = description;
     this.detailedMergeStatus = detailedMergeStatus;
     this.sourceBranch = sourceBranch;
     this.webUrl = webUrl;
@@ -91,6 +98,22 @@ public class MergeRequest implements GitLabApiEntity {
    */
   public int getIid() {
     return iid;
+  }
+
+  /**
+   * Returns the title of the MR.
+   * @return the title
+   */
+  public String getTitle() {
+    return title;
+  }
+
+  /**
+   * Returns the description of the MR.
+   * @return the description
+   */
+  public String getDescription() {
+    return description;
   }
 
   /**
