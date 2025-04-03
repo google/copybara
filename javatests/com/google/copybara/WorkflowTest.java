@@ -400,7 +400,7 @@ public class WorkflowTest {
     assertThat(e)
         .hasMessageThat()
         .contains(
-            "Not migrating ref 0, its fixed ref beaver did not match the expected fixed ref"
+            "Not migrating ref HEAD, its fixed ref beaver did not match the expected fixed ref"
                 + " capybara.");
   }
 

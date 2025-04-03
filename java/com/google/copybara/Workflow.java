@@ -63,6 +63,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
@@ -344,7 +345,9 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       throw new EmptyChangeException(
           String.format(
               "Not migrating ref %s, its fixed ref %s did not match the expected fixed ref %s.",
-              resolvedRef.asString(), resolvedRef.fixedReference(), expectedFixedRef));
+              Optional.ofNullable(resolvedRef.contextReference()).orElse(resolvedRef.asString()),
+              resolvedRef.fixedReference(),
+              expectedFixedRef));
     }
   }
 
