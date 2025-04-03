@@ -120,7 +120,7 @@ public class Main {
 
   protected ExitCode run(String[] args) {
     // We need a console before parsing the args because it could fail with wrong
-    // arguments and we need to show the error.
+    // arguments and we need to show the error. TEST TEST TEST
     this.console = getConsole(args);
     // Configure logs location correctly before anything else. We want to write to the
     // correct location in case of any error.
