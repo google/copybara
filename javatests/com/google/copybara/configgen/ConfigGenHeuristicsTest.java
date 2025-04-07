@@ -73,7 +73,18 @@ public class ConfigGenHeuristicsTest {
   public void testIgnoreCarriageReturn() throws IOException {
     writeFile(origin, "fileA", "aaa\n".repeat(20));
     writeFile(destination, "fileB", "aaa\r\n".repeat(20) + "CHANGED");
-    ConfigGenHeuristics.Result result = createHeuristics(true).run();
+    ConfigGenHeuristics.Result result =
+        createHeuristics(/* ignoreCarriageReturn= */ true, /* ignoreWhitespace= */ false).run();
+
+    globMatches(result.getOriginGlob(), "a/b/c/fileA");
+  }
+
+  @Test
+  public void testIgnoreWhitespace() throws IOException {
+    writeFile(origin, "fileA", "aaa                 \n".repeat(20));
+    writeFile(destination, "fileB", "aaa \n".repeat(20) + "CHANGED");
+    ConfigGenHeuristics.Result result =
+        createHeuristics(/* ignoreCarriageReturn= */ false, /* ignoreWhitespace= */ true).run();
 
     globMatches(result.getOriginGlob(), "a/b/c/fileA");
   }
@@ -251,11 +262,12 @@ public class ConfigGenHeuristicsTest {
   }
 
   private ConfigGenHeuristics createHeuristics() {
-    return createHeuristics(false);
+    return createHeuristics(/* ignoreCarriageReturn= */ false, /* ignoreWhitespace= */ false);
   }
 
-  private ConfigGenHeuristics createHeuristics(boolean ignoreCarriageReturn) {
+  private ConfigGenHeuristics createHeuristics(
+      boolean ignoreCarriageReturn, boolean ignoreWhitespace) {
     return new ConfigGenHeuristics(
-        origin, destination, destinationOnlyPaths, 30, ignoreCarriageReturn);
+        origin, destination, destinationOnlyPaths, 30, ignoreCarriageReturn, ignoreWhitespace);
   }
 }

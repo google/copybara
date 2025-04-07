@@ -98,6 +98,7 @@ public class GeneratorCmd implements OnboardingCmd {
         new ConfigHeuristicsInputProvider(
             commandEnv.getOptions().get(GitOptions.class),
             commandEnv.getOptions().get(GeneralOptions.class),
+            commandEnv.getOptions().get(GeneratorOptions.class),
             ImmutableSet.of(),
             PERCENTAGE_SIMILAR,
             console),

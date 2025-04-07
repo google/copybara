@@ -67,6 +67,7 @@ public class ConfigGenHeuristics {
   private final ImmutableSet<Path> destinationOnlyPaths;
   private final int percentSimilar;
   private final boolean ignoreCarriageReturn;
+  private final boolean ignoreWhitespace;
 
   /**
    * Creates the Generator object
@@ -84,12 +85,14 @@ public class ConfigGenHeuristics {
       Path destination,
       ImmutableSet<Path> destinationOnlyPaths,
       int percentSimilar,
-      boolean ignoreCarriageReturn) {
+      boolean ignoreCarriageReturn,
+      boolean ignoreWhitespace) {
     this.origin = checkNotNull(origin);
     this.destination = checkNotNull(destination);
     this.destinationOnlyPaths = checkNotNull(destinationOnlyPaths);
     this.percentSimilar = percentSimilar;
     this.ignoreCarriageReturn = ignoreCarriageReturn;
+    this.ignoreWhitespace = ignoreWhitespace;
   }
 
   /** Result of the config generation */
@@ -134,7 +137,12 @@ public class ConfigGenHeuristics {
     ImmutableSet<Path> g3Files = listFiles(destination);
     SimilarityDetector similarityDetector =
         SimilarityDetector.create(
-            origin, gitFiles, destinationOnlyPaths, percentSimilar, ignoreCarriageReturn);
+            origin,
+            gitFiles,
+            destinationOnlyPaths,
+            percentSimilar,
+            ignoreCarriageReturn,
+            ignoreWhitespace);
     // Map of destination file paths to origin file paths with similarity score.
     Map<Path, PathAndScore> destinationToOriginMapping = new TreeMap<>();
 
@@ -499,9 +507,11 @@ public class ConfigGenHeuristics {
         ImmutableSet<Path> files,
         ImmutableSet<Path> destinationOnlyPaths,
         int percentSimilar,
-        boolean ignoreCarriageReturn)
+        boolean ignoreCarriageReturn,
+        boolean ignoreWhitespace)
         throws IOException {
-      RenameDetector<Path> similarLines = new RenameDetector<>(ignoreCarriageReturn);
+      RenameDetector<Path> similarLines =
+          new RenameDetector<>(ignoreCarriageReturn, ignoreWhitespace);
       HashMultimap<String, Path> hashes = HashMultimap.create(files.size(), 1);
       for (Path file : files) {
         byte[] bytes = Files.readAllBytes(parent.resolve(file));

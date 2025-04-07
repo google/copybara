@@ -52,4 +52,19 @@ public class GeneratorOptions implements Option {
       names = "--new-package",
       description = "Whether or not files from this package exist in the destination.")
   public boolean newPackage;
+
+  @Parameter(
+      names = "--compute-glob-ignore-carriage-return",
+      description =
+          "Whether to ignore carriage return characters in file content comparisons during glob"
+              + " generation.",
+      arity = 1)
+  public boolean computeGlobIgnoreCarriageReturn = true;
+
+  @Parameter(
+      names = "--compute-glob-ignore-whitespace",
+      description =
+          "Whether to ignore whitespace in file content comparisons during glob generation.",
+      arity = 1)
+  public boolean computeGlobIgnoreWhitespace = true;
 }

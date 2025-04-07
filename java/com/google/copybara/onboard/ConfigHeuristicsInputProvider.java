@@ -59,6 +59,7 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
 
   private final GitOptions gitOptions;
   private final GeneralOptions generalOptions;
+  private final GeneratorOptions generatorOptions;
   private final ImmutableSet<Path> destinationOnlyPaths;
   private final int percentSimilar;
   private final Console console;
@@ -66,11 +67,13 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
   public ConfigHeuristicsInputProvider(
       GitOptions gitOptions,
       GeneralOptions generalOptions,
+      GeneratorOptions generatorOptions,
       ImmutableSet<Path> destinationOnlyPaths,
       int percentSimilar,
       Console console) {
     this.gitOptions = gitOptions;
     this.generalOptions = generalOptions;
+    this.generatorOptions = generatorOptions;
     this.destinationOnlyPaths = destinationOnlyPaths;
     this.percentSimilar = percentSimilar;
     this.console = console;
@@ -140,7 +143,8 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
               destination,
               destinationOnlyPaths,
               percentSimilar,
-              generalOptions.isTemporaryFeature("GENERATOR_IGNORE_CARRIAGE_RETURN", true));
+              generatorOptions.computeGlobIgnoreCarriageReturn,
+              generatorOptions.computeGlobIgnoreWhitespace);
 
       console.progressFmt("Computing globs");
       cached = Optional.of(heuristics.run());

@@ -61,6 +61,7 @@ public class ConfigHeuristicsInputProviderTest {
   protected TestingConsole console;
   protected OptionsBuilder optionsBuilder;
   protected GeneralOptions generalOptions;
+  protected GeneratorOptions generatorOptions;
 
   @Before
   public void setup() throws Exception {
@@ -68,11 +69,11 @@ public class ConfigHeuristicsInputProviderTest {
     repoGitDir = Files.createTempDirectory("GitDestinationTest-repoGitDir");
     workDir = Files.createTempDirectory("workdir");
     destination = Files.createTempDirectory("destination");
-    
     optionsBuilder = getOptionsBuilder(console);
     String unused = git("init", "--bare", repoGitDir.toString());
     generalOptions = optionsBuilder.general;
     gitOptions = optionsBuilder.git;
+    generatorOptions = optionsBuilder.generator;
     origin =
         GitRepository.newBareRepo(
             repoGitDir,
@@ -118,7 +119,7 @@ public class ConfigHeuristicsInputProviderTest {
 
     ConfigHeuristicsInputProvider inputProvider =
         new ConfigHeuristicsInputProvider(
-            gitOptions, generalOptions, ImmutableSet.of(), 30, console);
+            gitOptions, generalOptions, generatorOptions, ImmutableSet.of(), 30, console);
     Optional<Glob> glob = inputProvider.resolve(Inputs.ORIGIN_GLOB, resolver);
 
     // The result is an empty glob rather than glob(include = ["**"], exclude = ["**"])
@@ -155,7 +156,7 @@ public class ConfigHeuristicsInputProviderTest {
         };
     ConfigHeuristicsInputProvider inputProvider =
         new ConfigHeuristicsInputProvider(
-            gitOptions, generalOptions, ImmutableSet.of(), 30, console);
+            gitOptions, generalOptions, generatorOptions, ImmutableSet.of(), 30, console);
 
     DestinationExcludePaths paths =
         inputProvider.resolve(Inputs.DESTINATION_EXCLUDE_PATHS, resolver).get();
@@ -201,7 +202,7 @@ public class ConfigHeuristicsInputProviderTest {
 
     ConfigHeuristicsInputProvider inputProvider =
         new ConfigHeuristicsInputProvider(
-            gitOptions, generalOptions, ImmutableSet.of(), 30, console);
+            gitOptions, generalOptions, generatorOptions, ImmutableSet.of(), 30, console);
     Glob expectedGlob = Glob.createGlob(ImmutableList.of("**"), ImmutableList.of("bar.txt"));
     Optional<Glob> glob = inputProvider.resolve(Inputs.ORIGIN_GLOB, resolver);
 

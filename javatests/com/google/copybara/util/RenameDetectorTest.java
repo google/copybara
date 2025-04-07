@@ -49,7 +49,8 @@ public final class RenameDetectorTest {
 
   @Test
   public void identifiesIdenticalContentWithHigherScore() throws Exception {
-    RenameDetector<String> detector = new RenameDetector<>(false);
+    RenameDetector<String> detector =
+        new RenameDetector<>(/* ignoreCarriageReturn= */ false, /* ignoreWhitespace= */ false);
     detector.addPriorFile("foo", new Bytes("xyz"));
     detector.addPriorFile("bar", new Bytes("xy"));
     detector.addPriorFile("baz", new Bytes("x"));
@@ -69,19 +70,23 @@ public final class RenameDetectorTest {
 
   @Test
   public void emptyPriorFile() throws Exception {
-    RenameDetector<String> detector = new RenameDetector<>(false);
+    RenameDetector<String> detector =
+        new RenameDetector<>(/* ignoreCarriageReturn= */ false, /* ignoreWhitespace= */ false);
     detector.addPriorFile("foo", new Bytes(""));
     detector.addPriorFile("bar", new Bytes("xy\nxy\naa\n"));
 
     List<Score<String>> result = detector.scoresForLaterFile(new Bytes("xy\nxy\nbb\n"));
     Score<String> top = result.stream().max(Comparator.comparingInt(Score::getScore))
         .get();
+
     assertThat(top.getKey()).isEqualTo("bar");
   }
 
   @Test
   public void emptyFiles() throws Exception {
-    RenameDetector<String> detector = new RenameDetector<>(false);
+    RenameDetector<String> detector =
+        new RenameDetector<>(/* ignoreCarriageReturn= */ false, /* ignoreWhitespace= */ false);
+
     detector.addPriorFile("foo", new Bytes(""));
 
     assertThat(detector.scoresForLaterFile(new Bytes(""))).isEmpty();
@@ -89,70 +94,85 @@ public final class RenameDetectorTest {
 
   @Test
   public void emptyLaterFile() throws Exception {
-    RenameDetector<String> detector = new RenameDetector<>(false);
+    RenameDetector<String> detector =
+        new RenameDetector<>(/* ignoreCarriageReturn= */ false, /* ignoreWhitespace= */ false);
     detector.addPriorFile("foo", new Bytes("a"));
     detector.addPriorFile("bar", new Bytes("b\nc\n"));
 
     List<Score<String>> result = detector.scoresForLaterFile(new Bytes(""));
+
     assertThat(result).isEmpty();
   }
 
   @Test
   public void orderOfBytesMatters() throws Exception {
-    RenameDetector<String> detector = new RenameDetector<>(false);
+    RenameDetector<String> detector =
+        new RenameDetector<>(/* ignoreCarriageReturn= */ false, /* ignoreWhitespace= */ false);
     detector.addPriorFile("foo", new Bytes("ab"));
     detector.addPriorFile("bar", new Bytes("ba"));
 
     List<Score<String>> result = detector.scoresForLaterFile(new Bytes("ab"));
+
     assertThat(result).hasSize(1);
   }
 
   @Test
   public void canReturnMultipleFiles() throws Exception {
-    RenameDetector<String> detector = new RenameDetector<>(false);
+    RenameDetector<String> detector =
+        new RenameDetector<>(/* ignoreCarriageReturn= */ false, /* ignoreWhitespace= */ false);
     detector.addPriorFile("foo", new Bytes("asdf"));
     detector.addPriorFile("bar", new Bytes("asdf"));
 
     List<Score<String>> result = detector.scoresForLaterFile(new Bytes("asdf"));
+
     assertThat(result).hasSize(2);
   }
 
   @Test
   public void usesOddFactorInHash() throws Exception {
-    RenameDetector<String> detector = new RenameDetector<>(false);
+    RenameDetector<String> detector =
+        new RenameDetector<>(/* ignoreCarriageReturn= */ false, /* ignoreWhitespace= */ false);
     detector.addPriorFile("foo", new Bytes("baaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
     detector.addPriorFile("bar", new Bytes("caaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
 
     List<Score<String>> result =
         detector.scoresForLaterFile(new Bytes("caaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
+
     assertThat(result).hasSize(1);
   }
 
   @Test
   public void closesPriorFile() throws Exception {
-    RenameDetector<String> detector = new RenameDetector<>(false);
+    RenameDetector<String> detector =
+        new RenameDetector<>(/* ignoreCarriageReturn= */ false, /* ignoreWhitespace= */ false);
     Bytes bytes = new Bytes("asdf");
 
     assertThat(bytes.isClosed).isFalse();
+
     detector.addPriorFile("", bytes);
     assertThat(bytes.isClosed).isTrue();
   }
 
   @Test
   public void closesLaterFile() throws Exception {
-    RenameDetector<String> detector = new RenameDetector<>(false);
+    RenameDetector<String> detector =
+        new RenameDetector<>(/* ignoreCarriageReturn= */ false, /* ignoreWhitespace= */ false);
+
     Bytes bytes = new Bytes("asdf");
 
     assertThat(bytes.isClosed).isFalse();
+
     detector.scoresForLaterFile(bytes);
     assertThat(bytes.isClosed).isTrue();
   }
 
   @Test
   public void oneLineMatchIsBetterThanNoLinesMatching() throws Exception {
-    RenameDetector<String> detector = new RenameDetector<>(false);
+    RenameDetector<String> detector =
+        new RenameDetector<>(/* ignoreCarriageReturn= */ false, /* ignoreWhitespace= */ false);
     detector.addPriorFile("foo", new Bytes("asdf\njkl;"));
     detector.addPriorFile("bar", new Bytes("aaaa\nbbbb"));
+
     List<Score<String>> result = detector.scoresForLaterFile(new Bytes("aaaa\ncccc"));
 
     assertThat(result).hasSize(1);
@@ -163,9 +183,11 @@ public final class RenameDetectorTest {
 
   @Test
   public void matchingLinesHaveDifferentNumberOfInterleavingLines1() throws Exception {
-    RenameDetector<TestKey> detector = new RenameDetector<>(false);
+    RenameDetector<TestKey> detector =
+        new RenameDetector<>(/* ignoreCarriageReturn= */ false, /* ignoreWhitespace= */ false);
     detector.addPriorFile(TestKey.BAR, new Bytes("1234\naaaa\nbbbb"));
     detector.addPriorFile(TestKey.FOO, new Bytes("asdf\njkl;"));
+
     List<Score<TestKey>> result = detector.scoresForLaterFile(new Bytes("aaaa\ncccc"));
 
     assertThat(result).hasSize(1);
@@ -174,9 +196,11 @@ public final class RenameDetectorTest {
 
   @Test
   public void matchingLinesHaveDifferentNumberOfInterleavingLines2() throws Exception {
-    RenameDetector<TestKey> detector = new RenameDetector<>(false);
+    RenameDetector<TestKey> detector =
+        new RenameDetector<>(/* ignoreCarriageReturn= */ false, /* ignoreWhitespace= */ false);
     detector.addPriorFile(TestKey.BAR, new Bytes("aaaa\nbbbb\ncccc"));
     detector.addPriorFile(TestKey.FOO, new Bytes("asdf\njkl;"));
+
     List<Score<TestKey>> result = detector.scoresForLaterFile(new Bytes("aaaa\ncccc"));
 
     assertThat(result).hasSize(1);
@@ -186,11 +210,13 @@ public final class RenameDetectorTest {
 
   @Test
   public void sortsScoreListDecreasingly() throws Exception {
-    RenameDetector<TestKey> detector = new RenameDetector<>(false);
+    RenameDetector<TestKey> detector =
+        new RenameDetector<>(/* ignoreCarriageReturn= */ false, /* ignoreWhitespace= */ false);
     detector.addPriorFile(TestKey.FOO, new Bytes("aaaa\ndddd\ncccc"));
     detector.addPriorFile(TestKey.BAR, new Bytes("aaaa\nbbbb\ncccc"));
     detector.addPriorFile(TestKey.BAZ, new Bytes("aaaa\ndddd\nffff"));
     detector.addPriorFile(TestKey.BLAH, new Bytes("not a match at all!"));
+
     List<Score<TestKey>> result = detector.scoresForLaterFile(new Bytes("aaaa\nbbbb\ncccc"));
 
     assertThat(result).hasSize(3);
@@ -201,12 +227,14 @@ public final class RenameDetectorTest {
 
   @Test
   public void removedContentInLaterFileReducesScore() throws Exception {
-    RenameDetector<TestKey> detector = new RenameDetector<>(false);
+    RenameDetector<TestKey> detector =
+        new RenameDetector<>(/* ignoreCarriageReturn= */ false, /* ignoreWhitespace= */ false);
     detector.addPriorFile(TestKey.FOO, new Bytes("aaaa\nbbbb\ncccc\ndddd\neeee"));
     detector.addPriorFile(TestKey.BAR, new Bytes("aaaa\nbbbb\ncccc"));
     detector.addPriorFile(TestKey.BAZ, new Bytes("0000\naaaa\nbbbb\ncccc"));
 
     List<Score<TestKey>> result = detector.scoresForLaterFile(new Bytes("aaaa\nbbbb"));
+
     assertThat(result).hasSize(3);
     // BAR has only 1 line more than later file - it should have the highest score.
     assertThat(result.get(0).getKey()).isEqualTo(TestKey.BAR);
@@ -219,13 +247,15 @@ public final class RenameDetectorTest {
 
   @Test
   public void addedContentInLaterFileReducesScore() throws Exception {
-    RenameDetector<TestKey> detector = new RenameDetector<>(false);
+    RenameDetector<TestKey> detector =
+        new RenameDetector<>(/* ignoreCarriageReturn= */ false, /* ignoreWhitespace= */ false);
 
     detector.addPriorFile(TestKey.FOO, new Bytes("aaaa\nbbbb"));
     detector.addPriorFile(TestKey.BAR, new Bytes("aaaa\nbbbb\ncccc"));
     detector.addPriorFile(TestKey.BAZ, new Bytes(""));
 
     List<Score<TestKey>> result = detector.scoresForLaterFile(new Bytes("aaaa\nbbbb\ncccc\ndddd"));
+
     assertThat(result).hasSize(2);
     // BAR has only 1 line less than later file - it should have the highest score.
     assertThat(result.get(0).getKey()).isEqualTo(TestKey.BAR);
@@ -236,12 +266,14 @@ public final class RenameDetectorTest {
 
   @Test
   public void matchSmallSourceFile() throws Exception {
-    RenameDetector<TestKey> detector = new RenameDetector<>(false);
+    RenameDetector<TestKey> detector =
+        new RenameDetector<>(/* ignoreCarriageReturn= */ false, /* ignoreWhitespace= */ false);
 
     detector.addPriorFile(TestKey.FOO, new Bytes("aaaa\n"));
 
     List<Score<TestKey>> result =
         detector.scoresForLaterFile(new Bytes("aaaa\nbbbb\ncccc\ndddd\neeeee"));
+
     assertThat(result).hasSize(1);
     // BAR has only 1 line less than later file - it should have the highest score.
     assertThat(result.get(0).getKey()).isEqualTo(TestKey.FOO);
@@ -250,12 +282,56 @@ public final class RenameDetectorTest {
 
   @Test
   public void ignoreLineEndingDifferences() throws Exception {
-    RenameDetector<String> detector = new RenameDetector<>(true);
+    RenameDetector<String> detector =
+        new RenameDetector<>(/* ignoreCarriageReturn= */ true, /* ignoreWhitespace= */ false);
     detector.addPriorFile("foo", new Bytes("foo\r\nbar\r\nbaz\r\n"));
     detector.addPriorFile("bar", new Bytes("foo\n"));
 
     List<Score<String>> result = detector.scoresForLaterFile(new Bytes("foo\nbar\nbaz\n"));
+
     // foo should have the highest score, if we ignore line endings.
+    assertThat(result.get(0).getKey()).isEqualTo("foo");
+    assertThat(result.get(0).getScore()).isGreaterThan(0);
+  }
+
+  @Test
+  public void ignoreWhitespaceDifferences() throws Exception {
+    RenameDetector<String> detector =
+        new RenameDetector<>(/* ignoreCarriageReturn= */ false, /* ignoreWhitespace= */ true);
+    detector.addPriorFile("foo", new Bytes("  foo    bar  baz"));
+    detector.addPriorFile("bar", new Bytes("foo   bar   bat"));
+
+    List<Score<String>> result = detector.scoresForLaterFile(new Bytes("foo   bar   baz"));
+
+    // foo should have the highest score, if we ignore whitespaces.
+    assertThat(result.get(0).getKey()).isEqualTo("foo");
+    assertThat(result.get(0).getScore()).isGreaterThan(0);
+  }
+
+  @Test
+  public void ignoreTabDifferences() throws Exception {
+    RenameDetector<String> detector =
+        new RenameDetector<>(/* ignoreCarriageReturn= */ false, /* ignoreWhitespace= */ true);
+    detector.addPriorFile("foo", new Bytes("foo\tbar\tbaz"));
+    detector.addPriorFile("bar", new Bytes("foo\t\t\tbar\t\tbat"));
+
+    List<Score<String>> result = detector.scoresForLaterFile(new Bytes("foo   bar   baz"));
+
+    // foo should have the highest score, if we ignore tabs.
+    assertThat(result.get(0).getKey()).isEqualTo("foo");
+    assertThat(result.get(0).getScore()).isGreaterThan(0);
+  }
+
+  @Test
+  public void ignoreMixedTabAndWhitespaceDifferences() throws Exception {
+    RenameDetector<String> detector =
+        new RenameDetector<>(/* ignoreCarriageReturn= */ false, /* ignoreWhitespace= */ true);
+    detector.addPriorFile("foo", new Bytes("foo    \t    bar\t\t\t\tbaz"));
+    detector.addPriorFile("bar", new Bytes("foo\t\t\t\t\t\tbar        bat"));
+
+    List<Score<String>> result = detector.scoresForLaterFile(new Bytes("foo   bar   baz"));
+
+    // foo should have the highest score, if we ignore tabs.
     assertThat(result.get(0).getKey()).isEqualTo("foo");
     assertThat(result.get(0).getScore()).isGreaterThan(0);
   }

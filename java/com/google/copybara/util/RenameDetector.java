@@ -37,11 +37,13 @@ import java.util.List;
  */
 public final class RenameDetector<I> {
   private final boolean ignoreCarriageReturn;
+  private final boolean ignoreWhitespace;
 
   private final List<PriorFile<I>> priorFiles = new ArrayList<>();
 
-  public RenameDetector(boolean ignoreCarriageReturn) {
+  public RenameDetector(boolean ignoreCarriageReturn, boolean ignoreWhitespace) {
     this.ignoreCarriageReturn = ignoreCarriageReturn;
+    this.ignoreWhitespace = ignoreWhitespace;
   }
 
   private static final class PriorFile<I> {
@@ -63,10 +65,12 @@ public final class RenameDetector<I> {
 
     int hash;
     final boolean ignoreCarriageReturn;
+    final boolean ignoreWhitespace;
     final HashSet<Integer> hashes = new HashSet<>();
 
-    HashingByteProcessor(boolean ignoreCarriageReturn) {
+    HashingByteProcessor(boolean ignoreCarriageReturn, boolean ignoreWhitespace) {
       this.ignoreCarriageReturn = ignoreCarriageReturn;
+      this.ignoreWhitespace = ignoreWhitespace;
     }
 
     @Override
@@ -75,6 +79,9 @@ public final class RenameDetector<I> {
         byte b = buf[off++];
         if (ignoreCarriageReturn && b == '\r') {
           // Skip carriage return in Windows-style line endings when hashing.
+          continue;
+        }
+        if (ignoreWhitespace && (b == ' ' || b == '\t')) {
           continue;
         }
 
@@ -102,7 +109,8 @@ public final class RenameDetector<I> {
    */
   private int[] hashes(InputStream input) throws IOException {
     try {
-      return ByteStreams.readBytes(input, new HashingByteProcessor(ignoreCarriageReturn));
+      return ByteStreams.readBytes(
+          input, new HashingByteProcessor(ignoreCarriageReturn, ignoreWhitespace));
     } finally {
       input.close();
     }
