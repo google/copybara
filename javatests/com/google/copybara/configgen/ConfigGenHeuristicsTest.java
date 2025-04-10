@@ -180,6 +180,25 @@ public class ConfigGenHeuristicsTest {
   }
 
   @Test
+  public void moves_areReturnedInCorrectOrder() throws IOException {
+    writeFile(origin, "fileA", "foo1");
+    writeFile(origin, "fileB", "foo2");
+    writeFile(origin, "package/fileC", "foo3");
+    writeFile(origin, "res/LICENSE/fileD", "XXX");
+    writeFile(destination, "src/main/fileA", "foo1");
+    writeFile(destination, "src/main/fileB", "foo2");
+    writeFile(destination, "src/main/package/fileC", "foo3");
+    writeFile(destination, "LICENSE", "XXX");
+
+    ConfigGenHeuristics.Result result = createHeuristics().run();
+
+    assertThat(result.getTransformations().getMoves())
+        .containsExactly(
+            new GeneratorMove("res/LICENSE/fileD", "LICENSE"), new GeneratorMove("", "src/main"))
+        .inOrder();
+  }
+
+  @Test
   public void testNonEmptyIncludes() throws IOException {
     writeFile(origin, "a/b/include/fileA", "foo1");
     writeFile(origin, "a/b/include/fileB", "foo2");

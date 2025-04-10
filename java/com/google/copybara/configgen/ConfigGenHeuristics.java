@@ -24,6 +24,8 @@ import static java.util.stream.Collectors.joining;
 import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -172,7 +174,7 @@ public class ConfigGenHeuristics {
                         e -> e.orElseThrow().getKey())));
 
     IncludesGlob originGlob = getOriginGlob(gitFiles, similarFiles, g3Files);
-    ImmutableSet<GeneratorMove> moves = generateMoves(similarFiles);
+    ImmutableList<GeneratorMove> moves = generateMoves(similarFiles);
     DestinationExcludePaths destinationExcludePaths =
         new DestinationExcludePaths(
             getDestinationExcludePaths(g3Files, similarFiles, destinationOnlyPaths));
@@ -237,9 +239,9 @@ public class ConfigGenHeuristics {
    * can see how to fix it. The expectation is that normally this should be fast because we find
    * common directories that move large amount of files.
    */
-  private ImmutableSet<GeneratorMove> generateMoves(Map<Path, Path> similarFiles) {
+  private ImmutableList<GeneratorMove> generateMoves(Map<Path, Path> similarFiles) {
     ArrayDeque<Entry<Path, Path>> set = new ArrayDeque<>(similarFiles.entrySet());
-    ImmutableSet.Builder<GeneratorMove> result = ImmutableSet.builder();
+    MovesTrie result = new MovesTrie();
     files:
     while (!set.isEmpty()) {
       Entry<Path, Path> entry = set.remove();
@@ -282,13 +284,13 @@ public class ConfigGenHeuristics {
         } else {
           // Successfully moves a bunch of files with a directory move
           set.removeAll(includedPaths);
-          result.add(new GeneratorMove(originPrefix.toString(), destPrefix.toString()));
+          result.insertMove(new GeneratorMove(originPrefix.toString(), destPrefix.toString()));
           continue files;
         }
       }
-      result.add(new GeneratorMove(origin.toString(), dest.toString()));
+      result.insertMove(new GeneratorMove(origin.toString(), dest.toString()));
     }
-    return result.build();
+    return result.getMovesInOrder();
   }
 
   /** TODO(malcon): Used for debugging what is going on. Can be removed in the future */
@@ -587,13 +589,13 @@ public class ConfigGenHeuristics {
 
   /** Represents a collection of transformations to be included in the generation */
   public static class GeneratorTransformations {
-    private final ImmutableSet<GeneratorMove> moves;
+    private final ImmutableList<GeneratorMove> moves;
 
-    public GeneratorTransformations(ImmutableSet<GeneratorMove> moves) {
+    public GeneratorTransformations(ImmutableList<GeneratorMove> moves) {
       this.moves = moves;
     }
 
-    public ImmutableSet<GeneratorMove> getMoves() {
+    public ImmutableList<GeneratorMove> getMoves() {
       return moves;
     }
   }
@@ -617,6 +619,88 @@ public class ConfigGenHeuristics {
     @Override
     public String toString() {
       return paths.stream().map(Path::toString).collect(joining(", "));
+    }
+  }
+
+  /**
+   * A prefix tree (trie) used to maintain the order of core.move transforms, such that each
+   * transform does not interfere with the operations of another. This is accomplished by using the
+   * prefix tree to return transforms that move child directories/files before those that move
+   * parent directories in the origin.
+   *
+   * <p>Consider the following scenario, where you have two transforms: <code>
+   * core.move("", "src/main")
+   * </code> and <code>core.move("res/META-INF/default.license", "LICENSE")</code>
+   *
+   * <p>In this case, you want <code>core.move("res/META-INF/default.license", "LICENSE")</code> to
+   * run before <code>core.move("", "src/main")</code>. If <code>core.move("", "src/main")</code>
+   * runs first, then <code>
+   * res/META-INF/default.license</code> will be moved to <code>
+   * src/main/res/META-INF/default.license</code>, and the remaining transform will error out with a
+   * no-op.
+   */
+  private static class MovesTrie {
+    private final MovesTrieNode root;
+
+    private static class MovesTrieNode {
+      private final ImmutableMap.Builder<Path, MovesTrieNode> children = ImmutableMap.builder();
+      private Optional<GeneratorMove> move = Optional.empty();
+
+      private MovesTrieNode() {}
+
+      private Optional<GeneratorMove> getMove() {
+        return move;
+      }
+
+      private void setMove(GeneratorMove move) {
+        this.move = Optional.of(move);
+      }
+
+      private void addChildren(Path path, MovesTrieNode node) {
+        children.put(path, node);
+      }
+
+      private ImmutableMap<Path, MovesTrieNode> getChildren() {
+        return children.buildKeepingLast();
+      }
+    }
+
+    private MovesTrie() {
+      this.root = new MovesTrieNode();
+    }
+
+    private void insertMove(GeneratorMove move) {
+      MovesTrieNode currentNode = root;
+
+      // Edge case - if the before path is an empty path, this means it's moving the root.
+      if (move.getBefore().isEmpty()) {
+        currentNode.setMove(move);
+        return;
+      }
+
+      for (Path names : Path.of(move.getBefore())) {
+        if (!currentNode.getChildren().containsKey(names)) {
+          MovesTrieNode newNode = new MovesTrieNode();
+          currentNode.addChildren(names, newNode);
+        }
+        currentNode = currentNode.getChildren().get(names);
+      }
+      currentNode.setMove(move);
+    }
+
+    private ImmutableList<GeneratorMove> getMovesInOrder() {
+      return getMovesInOrder(root);
+    }
+
+    private ImmutableList<GeneratorMove> getMovesInOrder(MovesTrieNode startNode) {
+      ImmutableList.Builder<GeneratorMove> moves = ImmutableList.builder();
+
+      for (MovesTrieNode child : startNode.getChildren().values()) {
+        moves.addAll(getMovesInOrder(child));
+      }
+
+      startNode.getMove().ifPresent(moves::add);
+      return moves.build();
     }
   }
 }
