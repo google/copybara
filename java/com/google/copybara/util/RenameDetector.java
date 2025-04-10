@@ -138,21 +138,21 @@ public final class RenameDetector<I> {
    * Hashes a single file in the later revision so it can be checked for similarities with all files
    * in the prior revision added previously. Closes {@code input} before returning.
    *
-   * <p>The algorithm used is based on, but not equivalent to, the Git algorithm implemented in
-   * <a href="https://github.com/git/git/blob/master/diffcore-rename.c">diffcore-rename.c</a>. Both
+   * <p>The algorithm used is based on, but not equivalent to, the Git algorithm implemented in <a
+   * href="https://github.com/git/git/blob/master/diffcore-rename.c">diffcore-rename.c</a>. Both
    * algorithms hash every line of every file, store a list of the hash-codes for each file, and
    * then check the number of shared hash-codes between files to estimate their similarity.
    *
-   * <p>The Git algorithm has a concept of a minimum score. i.e. if two files have < X%
-   * similarity, they will not be returned in the results. This allows some file comparisons to be
-   * skipped because of large differences in size. That is not implemented here: all similarities
-   * greater than 0% (one or more shared lines) are returned.
+   * <p>The Git algorithm has a concept of a minimum score. i.e. if two files have < X% similarity,
+   * they will not be returned in the results. This allows some file comparisons to be skipped
+   * because of large differences in size. That is not implemented here: all similarities greater
+   * than 0% (one or more shared lines) are returned.
    *
    * <p>When calling this method, the later file is checked against all the prior files added with
    * {@link #addPriorFile(Object,InputStream)}, scored based on the number of shared hashes, and
    * files with a score greater than 0 are returned.
    */
-  public List<Score<I>> scoresForLaterFile(InputStream input) throws IOException {
+  public ImmutableList<Score<I>> scoresForLaterFile(InputStream input) throws IOException {
     List<Score<I>> results = new ArrayList<>();
     int[] laterHashes = hashes(input);
     if (isEmpty(laterHashes)) {
@@ -186,7 +186,7 @@ public final class RenameDetector<I> {
 
     results.sort((a, b) -> Integer.compare(b.score, a.score));
 
-    return results;
+    return ImmutableList.copyOf(results);
   }
 
   private static boolean isEmpty(int[] hashes) {
