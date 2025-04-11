@@ -1,4 +1,4 @@
-# Copyright 2018 Google Inc.
+# Copyright 2018 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,7 +31,6 @@ CORE = [
     "NonFastForwardRepositoryException.java",
     "RebaseConflictException.java",
     "Refspec.java",
-    "GitOptions.java",
 ]
 
 CREDS = [
@@ -103,6 +102,34 @@ java_library(
     srcs = CORE,
     javacopts = JAVACOPTS,
     deps = [
+        ":environment",
+        "//java/com/google/copybara:base",
+        "//java/com/google/copybara:general_options",
+        "//java/com/google/copybara/authoring",
+        "//java/com/google/copybara/credentials",
+        "//java/com/google/copybara/exception",
+        "//java/com/google/copybara/jcommander:splitters",
+        "//java/com/google/copybara/jcommander:validators",
+        "//java/com/google/copybara/revision",
+        "//java/com/google/copybara/util",
+        "//third_party:error_prone",
+        "//third_party:flogger",
+        "//third_party:guava",
+        "//third_party:jcommander",
+        "//third_party:jsr305",
+        "//third_party:re2j",
+        "//third_party:shell",
+    ],
+)
+
+java_library(
+    name = "git_options",
+    srcs = [
+        "GitOptions.java",
+    ],
+    javacopts = JAVACOPTS,
+    deps = [
+        ":core",
         ":environment",
         "//java/com/google/copybara:base",
         "//java/com/google/copybara:general_options",

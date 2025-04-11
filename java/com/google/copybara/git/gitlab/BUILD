@@ -18,13 +18,16 @@ package(default_visibility = ["//visibility:public"])
 
 java_library(
     name = "git_lab_options",
-    srcs = ["GitLabOptions.java"],
+    srcs = [
+        "GitLabOptions.java",
+    ],
     deps = [
         "//java/com/google/copybara:general_options",
         "//java/com/google/copybara:options",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/git:core",
         "//java/com/google/copybara/git:creds",
+        "//java/com/google/copybara/git:git_options",
         "//java/com/google/copybara/git/gitlab/api:gitlab_api",
         "//java/com/google/copybara/http/auth",
         "//java/com/google/copybara/util/console",
