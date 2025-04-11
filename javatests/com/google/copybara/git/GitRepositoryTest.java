@@ -385,6 +385,36 @@ public class GitRepositoryTest {
   }
 
   @Test
+  public void tesTopo() throws Exception {
+    Files.write(workdir.resolve("foo.txt"), "".getBytes(UTF_8));
+    repository.add().all().run();
+    repository.simpleCommand("commit", "-m", "first");
+    repository.branch("foo").run();
+    repository.forceCheckout("foo");
+    Files.write(workdir.resolve("bar.txt"), "".getBytes(UTF_8));
+    repository.add().all().run();
+    repository.simpleCommand("commit", "-m", "branch change");
+    repository.forceCheckout(defaultBranch);
+    Files.write(workdir.resolve("foo.txt"), "modified".getBytes(UTF_8));
+    repository.add().all().run();
+    repository.simpleCommand("commit", "-m", "second");
+    repository
+        .merge("foo", ImmutableList.of())
+        .withFFMode("--ff")
+        .withMessage("")
+        .run(ImmutableMap.of("google.foo", "true", "google.bar", "false"));
+    ImmutableList<GitLogEntry> log =
+        repository
+            .log(defaultBranch)
+            .includeFiles(true)
+            .firstParent(false)
+            .topoOrder(true)
+            .run();
+    assertThat(log.get(2).getBody()).contains("second");
+    assertThat(log.get(3).getBody()).contains("first");
+  }
+
+  @Test
   public void testRebase() throws Exception {
     simpleChange(repository, "foo.txt", "", "first");
     repository.branch("foo").run();

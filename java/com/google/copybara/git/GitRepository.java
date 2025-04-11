@@ -2489,6 +2489,8 @@ public class GitRepository {
     private final int batchSize;
     private final boolean includeTags;
     private final boolean noWalk;
+
+    private final boolean topoOrder;
     private final GitRepository repo;
 
     @Nullable
@@ -2508,7 +2510,8 @@ public class GitRepository {
         int skip,
         int batchSize,
         boolean includeTags,
-        boolean noWalk) {
+        boolean noWalk,
+        boolean topoOrder) {
       this.limit = limit;
       this.paths = paths;
       this.refExpr = refExpr;
@@ -2522,6 +2525,7 @@ public class GitRepository {
       this.batchSize = batchSize;
       this.includeTags = includeTags;
       this.noWalk = noWalk;
+      this.topoOrder = topoOrder;
     }
 
     static LogCmd create(GitRepository repository, String refExpr) {
@@ -2538,7 +2542,8 @@ public class GitRepository {
           /* skip= */ 0,
           /* batchSize= */ 0,
           /* includeTags= */ false,
-          /* noWalk= */ false);
+          /* noWalk= */ false,
+          /* topoOrder= */ false);
     }
 
     /**
@@ -2560,7 +2565,8 @@ public class GitRepository {
           skip,
           batchSize,
           includeTags,
-          noWalk);
+          noWalk,
+          topoOrder);
     }
 
     /**
@@ -2582,7 +2588,8 @@ public class GitRepository {
           skip,
           batchSize,
           includeTags,
-          noWalk);
+          noWalk,
+          topoOrder);
     }
 
     /** Read in batches of siz {@code batchSize} commits. Should be >= 0. */
@@ -2602,7 +2609,8 @@ public class GitRepository {
           skip,
           batchSize,
           includeTags,
-          noWalk);
+          noWalk,
+          topoOrder);
     }
 
     /**
@@ -2624,7 +2632,8 @@ public class GitRepository {
           skip,
           batchSize,
           includeTags,
-          noWalk);
+          noWalk,
+          topoOrder);
     }
 
     /**
@@ -2645,7 +2654,28 @@ public class GitRepository {
           skip,
           batchSize,
           includeTags,
-          noWalk);
+          noWalk,
+          topoOrder);
+    }
+
+    /** Set if --topo-order should be used in 'git log'. */
+    @CheckReturnValue
+    LogCmd topoOrder(boolean topoOrder) {
+      return new LogCmd(
+          repo,
+          refExpr,
+          limit,
+          paths,
+          firstParent,
+          includeStat,
+          includeBody,
+          grepString,
+          includeMergeDiff,
+          skip,
+          batchSize,
+          includeTags,
+          noWalk,
+          topoOrder);
     }
 
     /** If files affected by the commit should be included in the response. */
@@ -2664,7 +2694,8 @@ public class GitRepository {
           skip,
           batchSize,
           includeTags,
-          noWalk);
+          noWalk,
+          topoOrder);
     }
 
     /**
@@ -2685,7 +2716,8 @@ public class GitRepository {
           skip,
           batchSize,
           includeTags,
-          noWalk);
+          noWalk,
+          topoOrder);
     }
 
     /**
@@ -2706,7 +2738,8 @@ public class GitRepository {
           skip,
           batchSize,
           includeTags,
-          noWalk);
+          noWalk,
+          topoOrder);
     }
 
     /**
@@ -2727,7 +2760,8 @@ public class GitRepository {
           skip,
           batchSize,
           includeTags,
-          noWalk);
+          noWalk,
+          topoOrder);
     }
 
     /** Include tags in the response. */
@@ -2746,7 +2780,8 @@ public class GitRepository {
           skip,
           batchSize,
           includeTags,
-          noWalk);
+          noWalk,
+          topoOrder);
     }
 
     /** If the ancestors of commits should be included in the output. */
@@ -2765,7 +2800,8 @@ public class GitRepository {
           skip,
           batchSize,
           includeTags,
-          noWalk);
+          noWalk,
+          topoOrder);
     }
 
     /**
@@ -2798,6 +2834,10 @@ public class GitRepository {
 
       if (noWalk) {
         cmd.add("--no-walk");
+      }
+
+      if (topoOrder) {
+        cmd.add("--topo-order");
       }
 
       if (!Strings.isNullOrEmpty(grepString)) {

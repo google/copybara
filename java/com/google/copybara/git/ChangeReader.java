@@ -33,6 +33,7 @@ import com.google.copybara.git.GitRepository.LogCmd;
 import com.google.copybara.revision.Change;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
@@ -50,6 +51,7 @@ class ChangeReader {
   private final String url;
   private final boolean firstParent;
   private final boolean partialFetch;
+  private final boolean topoOrder;
   private final int skip;
   private final int batchSize;
 
@@ -57,7 +59,7 @@ class ChangeReader {
 
   private ChangeReader(@Nullable Authoring authoring, GitRepository repository, int limit,
       Iterable<String> roots, boolean includeBranchCommitLogs, @Nullable String url,
-      boolean firstParent, boolean partialFetch, int skip, int batchSize,
+      boolean firstParent, boolean partialFetch, boolean topoOrder, int skip, int batchSize,
       @Nullable String grepString) {
     this.authoring = authoring;
     this.repository = checkNotNull(repository, "repository");
@@ -67,6 +69,7 @@ class ChangeReader {
     this.url = url;
     this.firstParent = firstParent;
     this.partialFetch = partialFetch;
+    this.topoOrder = topoOrder;
     this.skip = skip;
     this.batchSize = batchSize;
     this.grepString = grepString;
@@ -88,7 +91,7 @@ class ChangeReader {
   ImmutableList<Change<GitRevision>> run(
       String refExpression, ImmutableMap<String, ImmutableListMultimap<String, String>> labels)
       throws RepoException, ValidationException {
-    LogCmd logCmd = repository.log(refExpression).firstParent(firstParent);
+    LogCmd logCmd = repository.log(refExpression).firstParent(firstParent).topoOrder(topoOrder);
     if (limit != -1) {
       logCmd = logCmd.withLimit(limit);
     }
@@ -109,6 +112,7 @@ class ChangeReader {
     if (partialFetch) {
       logCmd = logCmd.withPaths(roots);
     }
+
     // Log command does not filter by roots here because of how git log works. Some commits (e.g.
     // fake merges) might not include the files in the log, and filtering here would return
     // incorrect results. We do filter later on the changes to match the actual glob.
@@ -200,6 +204,7 @@ class ChangeReader {
     private boolean includeBranchCommitLogs = false;
     private String url;
     private boolean firstParent;
+    private boolean topoOrder;
     private boolean partialFetch;
     private int skip;
     private int batchSize;
@@ -255,6 +260,12 @@ class ChangeReader {
       return this;
     }
 
+    @CanIgnoreReturnValue
+    Builder setTopoOrder(boolean topoOrder) {
+      this.topoOrder = topoOrder;
+      return this;
+    }
+
     Builder setIncludeBranchCommitLogs(boolean includeBranchCommitLogs) {
       this.includeBranchCommitLogs = includeBranchCommitLogs;
       return this;
@@ -284,7 +295,7 @@ class ChangeReader {
     ChangeReader build() {
       return new ChangeReader(
           authoring, repository, limit, roots, includeBranchCommitLogs, url,
-          firstParent, partialFetch, skip, batchSize, grepString);
+          firstParent, partialFetch, topoOrder, skip, batchSize, grepString);
     }
   }
 

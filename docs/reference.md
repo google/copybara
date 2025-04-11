@@ -3323,6 +3323,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--gerrit-topic`</span> | *string* | Gerrit topic to use
 <span style="white-space: nowrap;">`--git-fuzzy-last-rev`</span> | *boolean* | By default Copybara will try to migrate the revision listed as the version in the metadata file from github. This flag tells Copybara to first find the git tag which most closely matches the metadata version, and use that for the migration.
 <span style="white-space: nowrap;">`--git-origin-log-batch`</span> | *int* | Read the origin git log in batches of n commits. Might be needed for large migrations resulting in git logs of more than 1 GB.
+<span style="white-space: nowrap;">`--git-origin-non-linear-history`</span> | *boolean* | Read the full git log and skip changes before the from ref rather than using a log path.
 <span style="white-space: nowrap;">`--git-origin-rebase-ref`</span> | *string* | When importing a change from a Git origin ref, it will be rebased to this ref, if set. A common use case: importing a Github PR, rebase it to the main branch (usually 'master'). Note that, if the repo uses submodules, they won't be rebased.
 <span style="white-space: nowrap;">`--nogit-origin-version-selector`</span> | *boolean* | Disable the version selector for the migration. Only useful for forcing a migration to the passed version in the CLI
 
@@ -3464,6 +3465,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--allstar-app-ids`</span> | *list* | Flag used to set AllStar GitHub app id aliases. See https://github.com/ossf/allstar.
 <span style="white-space: nowrap;">`--git-fuzzy-last-rev`</span> | *boolean* | By default Copybara will try to migrate the revision listed as the version in the metadata file from github. This flag tells Copybara to first find the git tag which most closely matches the metadata version, and use that for the migration.
 <span style="white-space: nowrap;">`--git-origin-log-batch`</span> | *int* | Read the origin git log in batches of n commits. Might be needed for large migrations resulting in git logs of more than 1 GB.
+<span style="white-space: nowrap;">`--git-origin-non-linear-history`</span> | *boolean* | Read the full git log and skip changes before the from ref rather than using a log path.
 <span style="white-space: nowrap;">`--git-origin-rebase-ref`</span> | *string* | When importing a change from a Git origin ref, it will be rebased to this ref, if set. A common use case: importing a Github PR, rebase it to the main branch (usually 'master'). Note that, if the repo uses submodules, they won't be rebased.
 <span style="white-space: nowrap;">`--github-api-bearer-auth`</span> | *boolean* | If using a token for GitHub access, bearer auth might be required
 <span style="white-space: nowrap;">`--github-destination-delete-pr-branch`</span> | *boolean* | Overwrite git.github_destination delete_pr_branch field
@@ -3625,6 +3627,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--allstar-app-ids`</span> | *list* | Flag used to set AllStar GitHub app id aliases. See https://github.com/ossf/allstar.
 <span style="white-space: nowrap;">`--git-fuzzy-last-rev`</span> | *boolean* | By default Copybara will try to migrate the revision listed as the version in the metadata file from github. This flag tells Copybara to first find the git tag which most closely matches the metadata version, and use that for the migration.
 <span style="white-space: nowrap;">`--git-origin-log-batch`</span> | *int* | Read the origin git log in batches of n commits. Might be needed for large migrations resulting in git logs of more than 1 GB.
+<span style="white-space: nowrap;">`--git-origin-non-linear-history`</span> | *boolean* | Read the full git log and skip changes before the from ref rather than using a log path.
 <span style="white-space: nowrap;">`--git-origin-rebase-ref`</span> | *string* | When importing a change from a Git origin ref, it will be rebased to this ref, if set. A common use case: importing a Github PR, rebase it to the main branch (usually 'master'). Note that, if the repo uses submodules, they won't be rebased.
 <span style="white-space: nowrap;">`--github-api-bearer-auth`</span> | *boolean* | If using a token for GitHub access, bearer auth might be required
 <span style="white-space: nowrap;">`--github-destination-delete-pr-branch`</span> | *boolean* | Overwrite git.github_destination delete_pr_branch field
@@ -3779,6 +3782,7 @@ Name | Type | Description
 ---- | ---- | -----------
 <span style="white-space: nowrap;">`--git-fuzzy-last-rev`</span> | *boolean* | By default Copybara will try to migrate the revision listed as the version in the metadata file from github. This flag tells Copybara to first find the git tag which most closely matches the metadata version, and use that for the migration.
 <span style="white-space: nowrap;">`--git-origin-log-batch`</span> | *int* | Read the origin git log in batches of n commits. Might be needed for large migrations resulting in git logs of more than 1 GB.
+<span style="white-space: nowrap;">`--git-origin-non-linear-history`</span> | *boolean* | Read the full git log and skip changes before the from ref rather than using a log path.
 <span style="white-space: nowrap;">`--git-origin-rebase-ref`</span> | *string* | When importing a change from a Git origin ref, it will be rebased to this ref, if set. A common use case: importing a Github PR, rebase it to the main branch (usually 'master'). Note that, if the repo uses submodules, they won't be rebased.
 <span style="white-space: nowrap;">`--nogit-origin-version-selector`</span> | *boolean* | Disable the version selector for the migration. Only useful for forcing a migration to the passed version in the CLI
 

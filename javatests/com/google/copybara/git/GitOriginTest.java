@@ -16,6 +16,7 @@
 
 package com.google.copybara.git;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
@@ -866,11 +867,11 @@ public class GitOriginTest {
     ImmutableList<Change<GitRevision>> headChange =
         changes.stream()
             .filter(change -> change.getRevision().getSha1().equals(headSHA))
-            .collect(ImmutableList.toImmutableList());
+            .collect(toImmutableList());
     ImmutableList<Change<GitRevision>> notHeadChanges =
         changes.stream()
             .filter(change -> !change.getRevision().getSha1().equals(headSHA))
-            .collect(ImmutableList.toImmutableList());
+            .collect(toImmutableList());
     assertThat(Iterables.getOnlyElement(headChange).getRevision().associatedLabel("MY_LABEL_KEY"))
         .isEqualTo(ImmutableList.of("MY_LABEL_VALUE"));
     assertThat(notHeadChanges).isNotEmpty();
@@ -963,9 +964,7 @@ public class GitOriginTest {
 
     ImmutableList<Change<GitRevision>> tags = newReader().getVersions();
     ImmutableList<String> tagNames =
-        tags.stream()
-            .map(t -> t.getRevision().contextReference())
-            .collect(ImmutableList.toImmutableList());
+        tags.stream().map(t -> t.getRevision().contextReference()).collect(toImmutableList());
 
     assertThat(tagNames).containsExactly("1.0.1", "1.0.2", "1.0.3");
   }
@@ -1480,6 +1479,56 @@ public class GitOriginTest {
         .contains(ChangeReader.BRANCH_COMMIT_LOG_HEADING);
     assertThat(changes.get(1).getMessage())
         .contains("i hope this is included in the migrated message!");
+  }
+
+  @Test
+  public void canResumeFromBranch() throws Exception {
+    git("checkout", "-b", "the-branch");
+    Files.write(remote.resolve("branch-file.txt"), new byte[0]);
+    git("add", "branch-file.txt");
+    git("commit", "-m", "i hope this is included in the migrated message!");
+    Files.write(remote.resolve("branch-file.txt"), new byte[] {12});
+    git("add", "branch-file.txt");
+    git("commit", "-m", "i hope this too is included in the migrated message!");
+    git("checkout", defaultBranch);
+    git("checkout", "-b", "other-branch");
+    Files.write(remote.resolve("branch-file2.txt"), new byte[0]);
+    git("add", "branch-file2.txt");
+    git("commit", "-m", "Other branch!");
+    String branch2 = repo.parseRef("HEAD");
+    Files.write(remote.resolve("branch-file2.txt"), new byte[] {12});
+    git("add", "branch-file2.txt");
+    git("commit", "-m", "other branch2!");
+    git("merge", "the-branch");
+    git("checkout", defaultBranch);
+
+    // Make a commit on mainline so that Git doesn't turn this into a fast-forward.
+    Files.write(remote.resolve("mainline-file.txt"), new byte[0]);
+    git("add", "mainline-file.txt");
+    git("commit", "-m", "mainline message!");
+
+    git("merge", "other-branch");
+    options.gitOrigin.historyIsNonLinear = true;
+    moreOriginArgs = "first_parent = False";
+    origin = origin();
+    List<Change<GitRevision>> changes =
+        newReader().changes(null, origin.resolve("HEAD")).getChanges();
+    List<Change<GitRevision>> handledChanges =
+        changes.stream()
+            .takeWhile(c -> !c.getRevision().getSha1().equals(branch2))
+            .collect(toImmutableList());
+    assertThat(changes).hasSize(8);
+    assertThat(changes.get(0).getMessage()).contains("first file");
+
+    List<Change<GitRevision>> changesWithRev =
+        newReader().changes(origin.resolve(branch2), origin.resolve("HEAD")).getChanges();
+    assertWithMessage(
+            String.format(
+                "%s\n\n skipped to %s\n\nnot to contain any in\n%s",
+                changes, branch2, handledChanges))
+        .that(changesWithRev)
+        .containsNoneIn(handledChanges);
+    assertThat(changesWithRev).hasSize(5);
   }
 
   @SuppressWarnings("unchecked")

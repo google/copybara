@@ -55,6 +55,11 @@ public class GitOriginOptions implements Option {
       + " n commits. Might be needed for large migrations resulting in git logs of more than 1 GB.")
   int gitOriginLogBatchSize = 0;
 
+  @Parameter(names = "--git-origin-non-linear-history", arity = 1,
+      description = "Read the full git log and skip changes before the from ref rather than using "
+          + "a log path.")
+  boolean historyIsNonLinear = false;
+
   public boolean useGitVersionSelector() {
     return !noGitVersionSelector;
   }

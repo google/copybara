@@ -18,6 +18,7 @@ package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Strings.nullToEmpty;
+import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.copybara.Origin.Reader.ChangesResponse.noChanges;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.git.GitModule.PRIMARY_BRANCHES;
@@ -569,18 +570,28 @@ public class GitOrigin implements Origin<GitRevision> {
     @Override
     public ChangesResponse<GitRevision> changes(@Nullable GitRevision fromRef, GitRevision toRef)
         throws RepoException, ValidationException {
-
-      String refRange = fromRef == null
+      String refRange = fromRef == null || gitOriginOptions.historyIsNonLinear
           ? toRef.getSha1()
           : fromRef.getSha1() + ".." + toRef.getSha1();
       ChangeReader changeReader = changeReaderBuilder(repoUrl)
           .setFirstParent(firstParent)
+          .setTopoOrder(gitOriginOptions.historyIsNonLinear)
           .build();
       // toRef might already have labels that we want to maintain in the toRef copy when we return
       // (fromRef, toRef] (that includes toRef).
       ImmutableMap<String, ImmutableListMultimap<String, String>> labelsToPropagate =
           ImmutableMap.of(toRef.getSha1(), toRef.associatedLabels());
       ImmutableList<Change<GitRevision>> gitChanges = changeReader.run(refRange, labelsToPropagate);
+      if (gitOriginOptions.historyIsNonLinear && fromRef != null) {
+        // This is to have a consistent git history (as long as no more merges are added).
+        // There is a potential issue if the re-ordering in forChangesWithMerges changes its order
+        // but adding handling for conditional changes would add more complexity.
+        ImmutableList<Change<GitRevision>> all = gitChanges;
+        gitChanges = gitChanges.stream()
+            .dropWhile(c -> !c.getRevision().getSha1().equals(fromRef.getSha1()))
+            .skip(1)
+            .collect(toImmutableList());
+      }
       if (!gitChanges.isEmpty()) {
         return ChangesResponse.forChangesWithMerges(gitChanges);
       }
