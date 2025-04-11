@@ -191,10 +191,12 @@ public class WorkflowOptions implements Option {
       description = "Disable smart prunning")
   boolean noSmartPrune = false;
 
-  @Parameter(names = "--to-folder",
-  description =  "Sometimes a user wants to test what the outcome would be for a workflow without"
-      + " changing the configuration or adding an auxiliary testing workflow. This flags allows"
-      + "to change an existing workflow to use folder.destination")
+  @Parameter(
+      names = "--to-folder",
+      description =
+          "Sometimes a user wants to test what the outcome would be for a workflow without changing"
+              + " the configuration or adding an auxiliary testing workflow. This flag allows to"
+              + " change an existing workflow to use folder.destination")
   boolean toFolder = false;
 
   public WorkflowOptions(WorkflowOptions other) {
