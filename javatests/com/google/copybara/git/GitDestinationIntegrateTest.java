@@ -145,7 +145,7 @@ public class GitDestinationIntegrateTest {
         repo().log(primaryBranch).withLimit(1).run());
     // Make sure merge with unrelated repo didn't happen and that the parent is the previous
     // change for the this repo.
-    assertThat(commit.getParents()).containsExactly(previous.getCommit());
+    assertThat(commit.parents()).containsExactly(previous.commit());
   }
 
   @Test
@@ -186,22 +186,22 @@ public class GitDestinationIntegrateTest {
 
     GitLogEntry feature1Merge = getLastMigratedChange(primaryBranch + "^1");
 
-    assertThat(feature1Merge.getFiles()).containsExactly("test.txt", "ignore_me");
+    assertThat(feature1Merge.files()).containsExactly("test.txt", "ignore_me");
 
-    assertThat(feature1Merge.getBody()).isEqualTo("Merge of " + feature1.getSha1() + "\n"
+    assertThat(feature1Merge.body()).isEqualTo("Merge of " + feature1.getSha1() + "\n"
         + "\n"
         + DummyOrigin.LABEL_NAME + ": test\n");
 
-    assertThat(Lists.transform(feature1Merge.getParents(), GitRevision::getSha1))
-        .isEqualTo(Lists.newArrayList(previous.getCommit().getSha1(), feature1.getSha1()));
+    assertThat(Lists.transform(feature1Merge.parents(), GitRevision::getSha1))
+        .isEqualTo(Lists.newArrayList(previous.commit().getSha1(), feature1.getSha1()));
 
     GitLogEntry feature2Merge = getLastMigratedChange(primaryBranch);
-    assertThat(feature2Merge.getBody()).isEqualTo("Merge of " + feature2.getSha1() + "\n"
+    assertThat(feature2Merge.body()).isEqualTo("Merge of " + feature2.getSha1() + "\n"
         + "\n"
         + DummyOrigin.LABEL_NAME + ": test\n");
 
-    assertThat(Lists.transform(feature2Merge.getParents(), GitRevision::getSha1))
-        .isEqualTo(Lists.newArrayList(feature1Merge.getCommit().getSha1(), feature2.getSha1()));
+    assertThat(Lists.transform(feature2Merge.parents(), GitRevision::getSha1))
+        .isEqualTo(Lists.newArrayList(feature1Merge.commit().getSha1(), feature2.getSha1()));
   }
 
   /**
@@ -240,7 +240,7 @@ public class GitDestinationIntegrateTest {
 
     GitLogEntry featureMerge = getLastMigratedChange(primaryBranch, repo);
 
-    assertThat(featureMerge.getBody()).isEqualTo("Merge of " + feature.getSha1() + "\n"
+    assertThat(featureMerge.body()).isEqualTo("Merge of " + feature.getSha1() + "\n"
         + "\n"
         + DummyOrigin.LABEL_NAME + ": the_rev\n");
     WriterContext writerContext =
@@ -284,22 +284,22 @@ public class GitDestinationIntegrateTest {
         .containsNoMoreFiles();
 
     GitLogEntry feature1Merge = getLastMigratedChange(primaryBranch + "^1");
-    assertThat(feature1Merge.getBody()).isEqualTo("Merge of " + feature1.getSha1() + "\n"
+    assertThat(feature1Merge.body()).isEqualTo("Merge of " + feature1.getSha1() + "\n"
         + "\n"
         + DummyOrigin.LABEL_NAME + ": test\n");
 
-    assertThat(Lists.transform(feature1Merge.getParents(), GitRevision::getSha1))
-        .isEqualTo(Lists.newArrayList(previous.getCommit().getSha1(), feature1.getSha1()));
+    assertThat(Lists.transform(feature1Merge.parents(), GitRevision::getSha1))
+        .isEqualTo(Lists.newArrayList(previous.commit().getSha1(), feature1.getSha1()));
 
     GitLogEntry feature2Merge = getLastMigratedChange(primaryBranch);
-    assertThat(feature2Merge.getBody()).isEqualTo("Merge of " + feature2.getSha1() + "\n"
+    assertThat(feature2Merge.body()).isEqualTo("Merge of " + feature2.getSha1() + "\n"
         + "\n"
         + DummyOrigin.LABEL_NAME + ": test\n");
 
-    assertThat(feature1Merge.getFiles()).containsExactly("test.txt");
+    assertThat(feature1Merge.files()).containsExactly("test.txt");
 
-    assertThat(Lists.transform(feature2Merge.getParents(), GitRevision::getSha1))
-        .isEqualTo(Lists.newArrayList(feature1Merge.getCommit().getSha1(), feature2.getSha1()));
+    assertThat(Lists.transform(feature2Merge.parents(), GitRevision::getSha1))
+        .isEqualTo(Lists.newArrayList(feature1Merge.commit().getSha1(), feature2.getSha1()));
   }
 
   private GitDestination destination(Strategy strategy) throws ValidationException {
@@ -343,12 +343,12 @@ public class GitDestinationIntegrateTest {
         .containsNoMoreFiles();
 
     GitLogEntry afterChange = getLastMigratedChange(primaryBranch);
-    assertThat(afterChange.getBody()).isEqualTo("Test change\n"
+    assertThat(afterChange.body()).isEqualTo("Test change\n"
         + "\n"
         + DummyOrigin.LABEL_NAME + ": test\n");
 
-    assertThat(Lists.transform(afterChange.getParents(), GitRevision::getSha1))
-        .isEqualTo(Lists.newArrayList(previous.getCommit().getSha1()));
+    assertThat(Lists.transform(afterChange.parents(), GitRevision::getSha1))
+        .isEqualTo(Lists.newArrayList(previous.commit().getSha1()));
   }
 
   @Test
@@ -384,12 +384,12 @@ public class GitDestinationIntegrateTest {
         .containsNoMoreFiles();
 
     GitLogEntry afterChange = getLastMigratedChange(primaryBranch);
-    assertThat(afterChange.getBody()).isEqualTo("Merge of " + prHead.getSha1() + "\n"
+    assertThat(afterChange.body()).isEqualTo("Merge of " + prHead.getSha1() + "\n"
         + "\n"
         + DummyOrigin.LABEL_NAME + ": test\n");
 
-    assertThat(Lists.transform(afterChange.getParents(), GitRevision::getSha1))
-        .isEqualTo(Lists.newArrayList(previous.getCommit().getSha1(), prHead.getSha1()));
+    assertThat(Lists.transform(afterChange.parents(), GitRevision::getSha1))
+        .isEqualTo(Lists.newArrayList(previous.commit().getSha1(), prHead.getSha1()));
   }
 
   @Test
@@ -441,13 +441,13 @@ public class GitDestinationIntegrateTest {
         .containsNoMoreFiles();
 
     GitLogEntry merge = getLastMigratedChange(primaryBranch);
-    assertThat(merge.getBody()).isEqualTo(
+    assertThat(merge.body()).isEqualTo(
         "Merge pull request #20 from some_user:1234-foo.bar.baz%3\n"
             + "\n"
             + "DummyOrigin-RevId: test\n");
 
-    assertThat(Lists.transform(merge.getParents(), GitRevision::getSha1))
-        .isEqualTo(Lists.newArrayList(previous.getCommit().getSha1(), secondChange.getSha1()));
+    assertThat(Lists.transform(merge.parents(), GitRevision::getSha1))
+        .isEqualTo(Lists.newArrayList(previous.commit().getSha1(), secondChange.getSha1()));
 
     assertThat(console.getMessages().stream()
         .filter(e -> e.getType() == MessageType.WARNING)
@@ -512,13 +512,13 @@ public class GitDestinationIntegrateTest {
         .containsNoMoreFiles();
 
     GitLogEntry merge = getLastMigratedChange(primaryBranch);
-    assertThat(merge.getBody()).isEqualTo("Merge Gerrit change 1020 Patch Set 1\n"
+    assertThat(merge.body()).isEqualTo("Merge Gerrit change 1020 Patch Set 1\n"
         + "\n"
         + "DummyOrigin-RevId: test\n"
         + "Change-Id: " + CHANGE_ID + "\n");
 
-    assertThat(Lists.transform(merge.getParents(), GitRevision::getSha1))
-        .isEqualTo(Lists.newArrayList(previous.getCommit().getSha1(), firstChange.getSha1()));
+    assertThat(Lists.transform(merge.parents(), GitRevision::getSha1))
+        .isEqualTo(Lists.newArrayList(previous.commit().getSha1(), firstChange.getSha1()));
 
     assertThat(console.getMessages().stream()
         .filter(e -> e.getType() == MessageType.WARNING)
@@ -564,12 +564,12 @@ public class GitDestinationIntegrateTest {
         .containsNoMoreFiles();
 
     GitLogEntry merge = getLastMigratedChange(primaryBranch);
-    assertThat(merge.getBody()).isEqualTo("Merge Gerrit change 1020 Patch Set 1\n"
+    assertThat(merge.body()).isEqualTo("Merge Gerrit change 1020 Patch Set 1\n"
         + "\n"
         + "DummyOrigin-RevId: test\n");
 
-    assertThat(Lists.transform(merge.getParents(), GitRevision::getSha1))
-        .isEqualTo(Lists.newArrayList(previous.getCommit().getSha1(), firstChange.getSha1()));
+    assertThat(Lists.transform(merge.parents(), GitRevision::getSha1))
+        .isEqualTo(Lists.newArrayList(previous.commit().getSha1(), firstChange.getSha1()));
 
     assertThat(console.getMessages().stream()
         .filter(e -> e.getType() == MessageType.WARNING)

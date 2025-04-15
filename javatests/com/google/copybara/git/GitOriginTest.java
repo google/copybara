@@ -994,7 +994,7 @@ public class GitOriginTest {
   public void testVisitOutsideRoot() throws Exception {
     String author = "John Name <john@name.com>";
     singleFileCommit(author, "two", "bar/test.txt", "some content2");
-    String first = Iterables.getOnlyElement(repo.log("HEAD").withLimit(1).run()).getCommit()
+    String first = Iterables.getOnlyElement(repo.log("HEAD").withLimit(1).run()).commit()
         .getSha1();
     singleFileCommit(author, "three", "foo/test.txt", "some content3");
     singleFileCommit(author, "four", "bar/test.txt", "some content3");

@@ -21,7 +21,6 @@ import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static com.google.copybara.util.CommandRunner.NO_INPUT;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
@@ -85,7 +84,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -1313,7 +1311,7 @@ public class GitRepository {
     this.simpleCommand("checkout", "-b", "cherry_pick" + UUID.randomUUID(), "HEAD~1");
     if (tryToCherryPick(remoteCommit)) {
       GitLogEntry oldWithCherryPick = Iterables.getLast(this.log("HEAD").withLimit(1).run());
-      return oldWithCherryPick.getTree().equals(newChange.getTree());
+      return oldWithCherryPick.tree().equals(newChange.tree());
     }
     return false;
   }
@@ -1988,7 +1986,7 @@ public class GitRepository {
     ImmutableList.Builder<String> pendingFiles = ImmutableList.builder();
     int pendingFilesLength = 0;
     for (TreeElement file : treeElements) {
-      var path = file.getPath();
+      var path = file.path();
       if (pathMatcher.matches(destRoot.resolve(path))) {
         pendingFiles.add(path);
         pendingFilesLength += path.length();
@@ -2034,101 +2032,24 @@ public class GitRepository {
 
   /**
    * Information of a submodule of {@code this} repository.
+   *
+   * @param url Resolved submodule URL. Urls like './foo' have been already resolved to its
+   *     corresponding absolute one.
+   * @param name Name of the submodule.
+   * @param branch Branch associated with the submodule. Supported values: null or '.' (HEAD is
+   *     used) or a regular reference.
+   * @param path Relative path for the checkout of the submodule
    */
-  public static class Submodule {
+  public static record Submodule(String url, String name, String branch, String path) {}
 
-    private final String url;
-    private final String name;
-    @Nullable
-    private final String branch;
-    private final String path;
-
-    private Submodule(String url, String name, String branch, String path) {
-      this.url = url;
-      this.name = name;
-      this.branch = branch;
-      this.path = path;
+  static record TreeElement(GitObjectType type, String ref, String path, String mode) {
+    TreeElement {
+      checkNotNull(type);
+      checkNotNull(ref);
+      checkNotNull(path);
+      checkNotNull(mode);
     }
-
-    /**
-     * Resolved submodule URL. Urls like './foo' have been already resolved to its corresponding
-     * absolute one.
-     */
-    public String getUrl() {
-      return url;
-    }
-
-    /** Name of the submodule. */
-    public String getName() {
-      return name;
-    }
-
-    /**
-     * Branch associated with the submodule. Supported values: null or '.' (HEAD is used) or
-     * a regular reference.
-     */
-    @Nullable
-    public String getBranch() {
-      return branch;
-    }
-
-    /** Relative path for the checkout of the submodule */
-    public String getPath() {
-      return path;
-    }
-
-    @Override
-    public String toString() {
-      return MoreObjects.toStringHelper(this)
-          .add("url", url)
-          .add("name", name)
-          .add("branch", branch)
-          .add("path", path)
-          .toString();
-    }
-  }
-
-  static class TreeElement {
-
-    private final GitObjectType type;
-    private final String ref;
-    private final String path;
-    private final String mode;
-
-    private TreeElement(GitObjectType type, String ref, String path, String mode) {
-      this.type = checkNotNull(type);
-      this.ref = checkNotNull(ref);
-      this.path = checkNotNull(path);
-      this.mode = checkNotNull(mode);
-    }
-
-    GitObjectType getType() {
-      return type;
-    }
-
-    public String getRef() {
-      return ref;
-    }
-
-    public String getPath() {
-      return path;
-    }
-
-    public String getMode() {
-      return mode;
-    }
-
     public static final String SYMLINK_MODE = "120000";
-
-    @Override
-    public String toString() {
-      return MoreObjects.toStringHelper(this)
-          .add("type", type)
-          .add("ref", ref)
-          .add("file", path)
-          .add("mode", mode)
-          .toString();
-    }
   }
 
   enum GitObjectType {
@@ -2138,66 +2059,16 @@ public class GitRepository {
     TREE
   }
 
-  static final class StatusFile {
+  static final record StatusFile(
+      String file,
+      @Nullable String newFileName,
+      StatusCode indexStatus,
+      StatusCode workdirStatus) {
 
-    private final String file;
-    @Nullable
-    private final String newFileName;
-    private final StatusCode indexStatus;
-    private final StatusCode workdirStatus;
-
-    @VisibleForTesting
-    StatusFile(String file, @Nullable String newFileName,
-        StatusCode indexStatus, StatusCode workdirStatus) {
-      this.file = checkNotNull(file);
-      this.newFileName = newFileName;
-      this.indexStatus = checkNotNull(indexStatus);
-      this.workdirStatus = checkNotNull(workdirStatus);
-    }
-
-    public String getFile() {
-      return file;
-    }
-
-    @Nullable
-    String getNewFileName() {
-      return newFileName;
-    }
-
-    StatusCode getIndexStatus() {
-      return indexStatus;
-    }
-
-    StatusCode getWorkdirStatus() {
-      return workdirStatus;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      StatusFile that = (StatusFile) o;
-      return Objects.equals(file, that.file)
-          && Objects.equals(newFileName, that.newFileName)
-          && indexStatus == that.indexStatus
-          && workdirStatus == that.workdirStatus;
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(file, newFileName, indexStatus, workdirStatus);
-    }
-
-    @Override
-    public String toString() {
-      return Character.toString(indexStatus.getCode())
-          + getWorkdirStatus().getCode()
-          + " " + file
-          + (newFileName != null ? " -> " + newFileName : "");
+    public StatusFile {
+      checkNotNull(file);
+      checkNotNull(indexStatus);
+      checkNotNull(workdirStatus);
     }
   }
 
@@ -2233,15 +2104,17 @@ public class GitRepository {
         has commits that the origin doesn't. Usually by a user submitting directly
         to the destination instead of using Copybara. */
     if (e.getMessage().contains("(non-fast-forward)") || e.getMessage().contains("(fetch first)")) {
-      throw new NonFastForwardRepositoryException(String.format(
-          "Failed to push to %s %s, because local/origin history is behind destination",
-          cmd.url, cmd.getRefspecs()), e);
+      throw new NonFastForwardRepositoryException(
+          String.format(
+              "Failed to push to %s %s, because local/origin history is behind destination",
+              cmd.url, cmd.refspecs()),
+          e);
     }
     if (e.getMessage().contains("(stale info)")) {
       throw new NonFastForwardRepositoryException(
           String.format(
               "Failed to push to %s %s, because destination is not in expected state",
-              cmd.url, cmd.getRefspecs()),
+              cmd.url, cmd.refspecs()),
           e);
     }
     Throwables.throwIfInstanceOf(e, RepoException.class);
@@ -2249,66 +2122,23 @@ public class GitRepository {
   }
 
   /** An object capable of performing a 'git push' operation to a remote repository. */
-  public static class PushCmd {
+  public static record PushCmd(
+      GitRepository repo,
+      @Nullable String url,
+      ImmutableList<Refspec> refspecs,
+      boolean prune,
+      boolean force,
+      ImmutableMap<String, String> forceLease,
+      ImmutableList<String> pushOptions,
+      PushOptionsValidator pushOptionsValidator) {
 
-    private final GitRepository repo;
-    @Nullable private final String url;
-    private final ImmutableList<Refspec> refspecs;
-    private final ImmutableMap<String, String> forceLease;
-    private final boolean prune;
-    private final boolean force;
-    private final ImmutableList<String> pushOptions;
-    private final PushOptionsValidator pushOptionsValidator;
-
-    @Nullable
-    public String getUrl() {
-      return url;
-    }
-
-    public ImmutableList<Refspec> getRefspecs() {
-      return refspecs;
-    }
-
-    public ImmutableList<String> getPushOptions() {
-      return pushOptions;
-    }
-
-    public boolean isPrune() {
-      return prune;
-    }
-
-    public boolean isForce() {
-      return force;
-    }
-
-    public ImmutableMap<String, String> getForceLease() {
-      return forceLease;
-    }
-
-    /**
-     * Note: this constructor does not validate {@code pushOptions} against {@code
-     * pushOptionsValidator}
-     */
-    @CheckReturnValue
-    public PushCmd(
-        GitRepository repo,
-        @Nullable String url,
-        ImmutableList<Refspec> refspecs,
-        boolean prune,
-        boolean force,
-        ImmutableMap<String, String> forceLease,
-        ImmutableList<String> pushOptions,
-        PushOptionsValidator pushOptionsValidator) {
-      this.repo = checkNotNull(repo);
-      this.url = url;
-      this.refspecs = checkNotNull(refspecs);
+    public PushCmd {
+      checkNotNull(repo);
+      checkNotNull(refspecs);
       Preconditions.checkArgument(
           refspecs.isEmpty() || url != null, "refspec can only be" + " used when a url is passed");
-      this.prune = prune;
-      this.force = force;
-      this.forceLease = checkNotNull(forceLease);
-      this.pushOptions = checkNotNull(pushOptions);
-      this.pushOptionsValidator = pushOptionsValidator;
+      checkNotNull(forceLease);
+      checkNotNull(pushOptions);
     }
 
     @CheckReturnValue
@@ -2457,12 +2287,26 @@ public class GitRepository {
   }
 
   /**
-   * An object capable of performing a 'git log' operation on a repository and returning a list
-   * of {@link GitLogEntry}.
+   * An object capable of performing a 'git log' operation on a repository and returning a list of
+   * {@link GitLogEntry}.
    *
    * <p>By default it returns the body, doesn't include the changed files and does --first-parent.
    */
-  public static class LogCmd {
+  public static record LogCmd(
+      GitRepository repo,
+      String refExpr,
+      int limit,
+      ImmutableCollection<String> paths,
+      boolean firstParent,
+      boolean includeStat,
+      boolean includeBody,
+      @Nullable String grepString,
+      boolean includeMergeDiff,
+      int skip,
+      int batchSize,
+      boolean includeTags,
+      boolean noWalk,
+      boolean topoOrder) {
 
     private static final String COMMIT_FIELD = "commit";
     private static final String PARENTS_FIELD = "parents";
@@ -2477,56 +2321,6 @@ public class GitRepository {
     private static final String COMMIT_SEPARATOR = "\u0001copybara\u0001";
     private static final Pattern UNINDENT = Pattern.compile("\n    ");
     private static final String GROUP = "--\n";
-    private final int limit;
-    private final ImmutableCollection<String> paths;
-    private final String refExpr;
-
-    private final boolean includeStat;
-    private final boolean includeBody;
-    private final boolean includeMergeDiff;
-    private final boolean firstParent;
-    private final int skip;
-    private final int batchSize;
-    private final boolean includeTags;
-    private final boolean noWalk;
-
-    private final boolean topoOrder;
-    private final GitRepository repo;
-
-    @Nullable
-    private final String grepString;
-
-    @CheckReturnValue
-    LogCmd(
-        GitRepository repo,
-        String refExpr,
-        int limit,
-        ImmutableCollection<String> paths,
-        boolean firstParent,
-        boolean includeStat,
-        boolean includeBody,
-        @Nullable String grepString,
-        boolean includeMergeDiff,
-        int skip,
-        int batchSize,
-        boolean includeTags,
-        boolean noWalk,
-        boolean topoOrder) {
-      this.limit = limit;
-      this.paths = paths;
-      this.refExpr = refExpr;
-      this.firstParent = firstParent;
-      this.includeStat = includeStat;
-      this.includeMergeDiff = includeMergeDiff;
-      this.includeBody = includeBody;
-      this.repo = repo;
-      this.grepString = grepString;
-      this.skip = skip;
-      this.batchSize = batchSize;
-      this.includeTags = includeTags;
-      this.noWalk = noWalk;
-      this.topoOrder = topoOrder;
-    }
 
     static LogCmd create(GitRepository repository, String refExpr) {
       return new LogCmd(
@@ -2893,8 +2687,7 @@ public class GitRepository {
           // disabled. Each entry represents the parent file changes.
           batchSkip =
               (int)
-                  (batchSkip
-                      + batchRes.stream().map(e -> e.getCommit().getSha1()).distinct().count());
+                  (batchSkip + batchRes.stream().map(e -> e.commit().getSha1()).distinct().count());
           overallLimit -= batchSkip;
         }
         res.addAll(batchRes);
@@ -3023,104 +2816,18 @@ public class GitRepository {
     }
   }
 
-  /**
-   * An object that represent a commit as returned by 'git log'.
-   */
-  public static class GitLogEntry {
-
-    private final GitRevision commit;
-    private final ImmutableList<GitRevision> parents;
-    private final String tree;
-    private final Author author;
-    private final Author committer;
-    private final ZonedDateTime authorDate;
-    private final ZonedDateTime commitDate;
-    @Nullable
-    private final String body;
-    @Nullable
-    private final ImmutableSet<String> files;
-    @Nullable private final GitRevision tag;
-
-    GitLogEntry(
-        GitRevision commit,
-        ImmutableList<GitRevision> parents,
-        String tree,
-        Author author,
-        Author committer,
-        ZonedDateTime authorDate,
-        ZonedDateTime commitDate,
-        @Nullable String body,
-        @Nullable ImmutableSet<String> files,
-        @Nullable GitRevision tag) {
-      this.commit = commit;
-      this.parents = parents;
-      this.tree = tree;
-      this.author = author;
-      this.committer = committer;
-      this.authorDate = authorDate;
-      this.commitDate = commitDate;
-      this.body = body;
-      this.files = files;
-      this.tag = tag;
-    }
-
-    public GitRevision getCommit() {
-      return commit;
-    }
-
-    public ImmutableList<GitRevision> getParents() {
-      return parents;
-    }
-
-    public Author getAuthor() {
-      return author;
-    }
-
-    public Author getCommitter() {
-      return committer;
-    }
-
-    public ZonedDateTime getAuthorDate() {
-      return authorDate;
-    }
-
-    ZonedDateTime getCommitDate() {
-      return commitDate;
-    }
-
-    public String getTree() {
-      return tree;
-    }
-
-    @Nullable
-    public String getBody() {
-      return body;
-    }
-
-    @Nullable
-    public ImmutableSet<String> getFiles() {
-      return files;
-    }
-
-    @Nullable
-    public GitRevision getTag() {
-      return tag;
-    }
-
-    @Override
-    public String toString() {
-      return MoreObjects.toStringHelper(this)
-          .add("commit", commit)
-          .add("parents", parents)
-          .add("author", author)
-          .add("committer", committer)
-          .add("authorDate", authorDate)
-          .add("commitDate", commitDate)
-          .add("tag", tag)
-          .add("body", body)
-          .toString();
-    }
-  }
+  /** An object that represent a commit as returned by 'git log'. */
+  public static record GitLogEntry(
+      GitRevision commit,
+      ImmutableList<GitRevision> parents,
+      String tree,
+      Author author,
+      Author committer,
+      ZonedDateTime authorDate,
+      ZonedDateTime commitDate,
+      @Nullable String body,
+      @Nullable ImmutableSet<String> files,
+      @Nullable GitRevision tag) {}
 
   // Used for debugging issues
   @SuppressWarnings("unused")
@@ -3128,24 +2835,10 @@ public class GitRepository {
     return "git --git-dir=" + gitDir + (workTree != null ? " --work-tree=" + workTree : "");
   }
 
-  /**
-   * An object capable of performing a 'git tag' operation to a remote repository.
-   */
-  //TODO(huanhuanchen): support deleting tag
-  public static class TagCmd {
-
-    private final GitRepository repo;
-    private final String tagName;
-    @Nullable
-    private final String tagMessage;
-    private final boolean force;
-
-    TagCmd(GitRepository gitRepository, String tagName, String tagMessage, boolean force) {
-      this.repo = Preconditions.checkNotNull(gitRepository);
-      this.tagName = Preconditions.checkNotNull(tagName);
-      this.tagMessage = tagMessage;
-      this.force = force;
-    }
+  /** An object capable of performing a 'git tag' operation to a remote repository. */
+  // TODO(huanhuanchen): support deleting tag
+  public static record TagCmd(
+      GitRepository repo, String tagName, @Nullable String tagMessage, boolean force) {
 
     static TagCmd create(GitRepository gitRepository, String tagName) {
       return new TagCmd(gitRepository, tagName, null, false);
@@ -3229,13 +2922,10 @@ public class GitRepository {
   public interface OptionsValidator {
     public void validate(List<String> options) throws ValidationException;
   }
-  /** A version list that comes from a set of Strings */
-  public static class PushOptionsValidator implements OptionsValidator {
-    private final Optional<ImmutableList<String>> allowedOptions;
 
-    public PushOptionsValidator(Optional<ImmutableList<String>> allowedOptions) {
-      this.allowedOptions = allowedOptions;
-    }
+  /** A version list that comes from a set of Strings */
+  public static record PushOptionsValidator(Optional<ImmutableList<String>> allowedOptions)
+      implements OptionsValidator {
 
     @Override
     public void validate(List<String> options) throws ValidationException {

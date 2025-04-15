@@ -697,11 +697,11 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
         GitLogEntry merge =
             Iterables.getOnlyElement(getRepository().log(toRef.getSha1()).withLimit(1).run());
         // Fast-forward merge
-        if (merge.getParents().size() == 1) {
+        if (merge.parents().size() == 1) {
           return super.changes(fromRef, toRef);
         }
         // HEAD of the Pull Request
-        GitRevision gitRevision = merge.getParents().get(1).withLabels(toRef.associatedLabels());
+        GitRevision gitRevision = merge.parents().get(1).withLabels(toRef.associatedLabels());
         ChangesResponse<GitRevision> prChanges = super.changes(fromRef, gitRevision);
         // Merge might have an effect, but we are not interested on it if the PR doesn't touch
         // origin_files
@@ -713,7 +713,7 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
               ImmutableList.<Change<GitRevision>>builder()
                   .addAll(prChanges.getChanges())
                   // merge commit is sourced from git log which doesn't have url context
-                  .add(change(merge.getCommit().withUrl(url)))
+                  .add(change(merge.commit().withUrl(url)))
                   .build());
         } catch (EmptyChangeException e) {
           throw new RepoException("Error getting the merge commit information: " + merge, e);

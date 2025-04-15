@@ -4751,7 +4751,7 @@ public class WorkflowTest {
             .run()
             .iterator()
             .next()
-            .getFiles())
+            .files())
         .contains("bar.txt");
   }
 
@@ -4924,7 +4924,7 @@ public class WorkflowTest {
 
     ImmutableList<GitLogEntry> destCommits = destRepo.log("HEAD").run();
     assertThat(destCommits).hasSize(1);
-    assertThat(destCommits.get(0).getBody()).contains("add foo");
+    assertThat(destCommits.get(0).body()).contains("add foo");
 
     Files.write(originPath.resolve("bar.txt"), "testing bar".getBytes(UTF_8));
     origin.hg(originPath, "add", "bar.txt");
@@ -4935,8 +4935,8 @@ public class WorkflowTest {
 
     destCommits = destRepo.log("HEAD").run();
     assertThat(destCommits).hasSize(2);
-    assertThat(destCommits.get(0).getBody()).contains("add bar");
-    assertThat(destCommits.get(1).getBody()).contains("add foo");
+    assertThat(destCommits.get(0).body()).contains("add bar");
+    assertThat(destCommits.get(1).body()).contains("add foo");
   }
 
   @Test

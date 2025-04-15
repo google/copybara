@@ -180,11 +180,11 @@ public class GitIntegrateChanges implements StarlarkValue {
         String msg = integrateLabel.mergeMessage(messageInfo.labelsToAdd);
         // If there is already a merge, don't overwrite the merge but create a new one.
         // Otherwise amend the last commit as a merge.
-        GitRevision commit = head.getParents().size() > 1
-                             ? repository.commitTree(msg, head.getTree(),
-            ImmutableList.of(head.getCommit(), integrateLabel.getRevision()))
-                             : repository.commitTree(msg, head.getTree(),
-                                 ImmutableList.<GitRevision>builder().addAll(head.getParents())
+        GitRevision commit = head.parents().size() > 1
+                             ? repository.commitTree(msg, head.tree(),
+            ImmutableList.of(head.commit(), integrateLabel.getRevision()))
+                             : repository.commitTree(msg, head.tree(),
+                                 ImmutableList.<GitRevision>builder().addAll(head.parents())
                                      .add(integrateLabel.getRevision()).build());
         repository.simpleCommand("update-ref", "HEAD", commit.getSha1());
       }
@@ -237,16 +237,16 @@ public class GitIntegrateChanges implements StarlarkValue {
         List<String> toRevert = new ArrayList<>();
         for (StatusFile statusFile : repository.status()) {
           // Just in case the worktree is dirty
-          if (statusFile.getIndexStatus() == StatusCode.UNMODIFIED) {
+          if (statusFile.indexStatus() == StatusCode.UNMODIFIED) {
             continue;
           }
-          if (statusFile.getIndexStatus() == StatusCode.COPIED) {
-            revertIfInternal(toRevert, externalFiles, statusFile.getNewFileName());
-          } else if (statusFile.getIndexStatus().equals(StatusCode.RENAMED)) {
-            revertIfInternal(toRevert, externalFiles, statusFile.getFile());
-            revertIfInternal(toRevert, externalFiles, statusFile.getNewFileName());
+          if (statusFile.indexStatus() == StatusCode.COPIED) {
+            revertIfInternal(toRevert, externalFiles, statusFile.newFileName());
+          } else if (statusFile.indexStatus().equals(StatusCode.RENAMED)) {
+            revertIfInternal(toRevert, externalFiles, statusFile.file());
+            revertIfInternal(toRevert, externalFiles, statusFile.newFileName());
           } else {
-            revertIfInternal(toRevert, externalFiles, statusFile.getFile());
+            revertIfInternal(toRevert, externalFiles, statusFile.file());
           }
         }
         // Batch to prevent going over max arguments length.
@@ -256,7 +256,7 @@ public class GitIntegrateChanges implements StarlarkValue {
           params.addAll(revertBatch);
           repository.simpleCommand(params.build().toArray(new String[0]));
         }
-        ChangeMessage msg = ChangeMessage.parseAllAsLabels(head.getBody())
+        ChangeMessage msg = ChangeMessage.parseAllAsLabels(head.body())
             .withRemovedLabelByNameAndValue(rawLabelValue.getName(), rawLabelValue.getValue());
 
         // Amend last commit with the external files and remove the integration label
@@ -276,7 +276,7 @@ public class GitIntegrateChanges implements StarlarkValue {
         String commonBaseline = findCommonBaseline(repository, integrateLabel, head)
             // If common parent cannot be found, it is fine, since this is not using the commit
             //history but just the content for diffing.
-            .orElse(head.getCommit().getSha1());
+            .orElse(head.commit().getSha1());
         // Create a patch of the changes from common baseline..feature head.
         byte[] diffs = repository.simpleCommandNoRedirectOutput("diff",
             commonBaseline + ".." + integrateLabel.getRevision().getSha1())
@@ -303,9 +303,9 @@ public class GitIntegrateChanges implements StarlarkValue {
      */
     private static Optional<String> findCommonBaseline(GitRepository repository,
         IntegrateLabel integrateLabel, GitLogEntry head) throws ValidationException {
-      GitRevision previousHead = Iterables.getFirst(head.getParents(), null);
+      GitRevision previousHead = Iterables.getFirst(head.parents(), null);
       if (previousHead == null) {
-        return Optional.of(head.getCommit().getSha1());
+        return Optional.of(head.commit().getSha1());
       }
       String sha1;
       try {
@@ -318,14 +318,14 @@ public class GitIntegrateChanges implements StarlarkValue {
         if (!e.getMessage().contains("Could not access submodule")) {
           logger.atWarning().withCause(e).log(
               "Cannot fetch/find integrate commit: %s.", integrateLabel);
-          return Optional.of(head.getCommit().getSha1());
+          return Optional.of(head.commit().getSha1());
         }
         try {
           sha1 = integrateLabel.getRevision().getSha1();
         } catch (RepoException retryException) {
           logger.atWarning().withCause(retryException).log(
               "Cannot fetch/find integrate commit (2nd attempt): %s.", integrateLabel);
-          return Optional.of(head.getCommit().getSha1());
+          return Optional.of(head.commit().getSha1());
         }
       }
       try {

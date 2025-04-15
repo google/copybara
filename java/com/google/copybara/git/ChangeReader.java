@@ -150,11 +150,11 @@ class ChangeReader {
     return "\n" + BRANCH_COMMIT_LOG_HEADING + "\n" +
         Joiner.on("\n").join(entries.stream()
             .map(e -> ""
-                + "commit " + e.getCommit().getSha1() + "\n"
-                + "Author:  " + filterAuthor(e.getAuthor()) + "\n"
-                + "Date:    " + e.getAuthorDate() + "\n"
+                + "commit " + e.commit().getSha1() + "\n"
+                + "Author:  " + filterAuthor(e.author()) + "\n"
+                + "Date:    " + e.authorDate() + "\n"
                 + "\n"
-                + "    " + e.getBody().replace("\n", "    \n"))
+                + "    " + e.body().replace("\n", "    \n"))
             .collect(Collectors.toList()));
   }
 
@@ -166,22 +166,22 @@ class ChangeReader {
     GitRevision last = null;
     for (GitLogEntry e : logEntries) {
       // Keep the first commit if repeated (merge commits).
-      if (last != null && last.equals(e.getCommit())) {
+      if (last != null && last.equals(e.commit())) {
         continue;
       }
-      last = e.getCommit();
+      last = e.commit();
       ImmutableListMultimap<String, String> labelsToCopy =
-          labels.getOrDefault(e.getCommit().getSha1(), ImmutableListMultimap.of());
+          labels.getOrDefault(e.commit().getSha1(), ImmutableListMultimap.of());
       result.add(
           new Change<>(
-              e.getCommit().withUrl(url).withLabels(labelsToCopy),
-              filterAuthor(e.getAuthor()),
-              e.getBody() + branchCommitLog(e.getCommit(), e.getParents()),
-              e.getAuthorDate(),
-              ChangeMessage.parseAllAsLabels(e.getBody()).labelsAsMultimap(),
-              e.getFiles(),
-              e.getParents().size() > 1,
-              e.getParents()));
+              e.commit().withUrl(url).withLabels(labelsToCopy),
+              filterAuthor(e.author()),
+              e.body() + branchCommitLog(e.commit(), e.parents()),
+              e.authorDate(),
+              ChangeMessage.parseAllAsLabels(e.body()).labelsAsMultimap(),
+              e.files(),
+              e.parents().size() > 1,
+              e.parents()));
     }
     return result.build().reverse();
   }

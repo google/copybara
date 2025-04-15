@@ -20,7 +20,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.hash.Hashing;
 import com.google.copybara.CheckoutPath;
 import com.google.copybara.DestinationReader;
 import com.google.copybara.exception.RepoException;
@@ -75,7 +74,7 @@ public class GitDestinationReader extends DestinationReader {
     ImmutableList<TreeElement> treeElements = repository.lsTree(baseline, null, true, true);
     PathMatcher pathMatcher = glob.relativeTo(directory);
     for (TreeElement file : treeElements) {
-      Path path = directory.resolve(file.getPath());
+      Path path = directory.resolve(file.path());
       if (pathMatcher.matches(path)) {
         try {
           Files.createDirectories(path.getParent());

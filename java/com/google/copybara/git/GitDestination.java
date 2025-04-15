@@ -734,7 +734,7 @@ public class GitDestination implements Destination<GitRevision> {
       ImmutableList<GitLogEntry> head =
           alternate.log("HEAD").withLimit(1).includeFiles(true).includeBody(true).run();
       GitLogEntry commit = Iterables.getOnlyElement(head);
-      ImmutableSet<String> files = commit.getFiles();
+      ImmutableSet<String> files = commit.files();
       Path target = alternate.getWorkTree();
       // If only a few files, create a copy of those modified files so that the checker doesn't
       // have to check all the existing tree.

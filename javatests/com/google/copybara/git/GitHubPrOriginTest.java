@@ -1517,7 +1517,7 @@ public class GitHubPrOriginTest {
 
     tmpRepo.add().all().run();
     tmpRepo.simpleCommand("commit", "-m", msg);
-    return Iterables.getOnlyElement(tmpRepo.log("HEAD").withLimit(1).run()).getCommit().getSha1();
+    return Iterables.getOnlyElement(tmpRepo.log("HEAD").withLimit(1).run()).commit().getSha1();
   }
 
   private GitRepository withTmpWorktree(GitRepository remote) throws IOException {

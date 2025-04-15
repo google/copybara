@@ -149,18 +149,18 @@ public class GerritDestinationTest {
   private static String lastCommitChangeIdLineForRef(String originRef,
       GitRepository repo, String gitRef) throws RepoException {
     GitLogEntry log = Iterables.getOnlyElement(repo.log(gitRef).withLimit(1).run());
-    assertThat(log.getBody()).contains("\n" + DummyOrigin.LABEL_NAME + ": " + originRef + "\n");
+    assertThat(log.body()).contains("\n" + DummyOrigin.LABEL_NAME + ": " + originRef + "\n");
     String line = null;
-    for (LabelFinder label : ChangeMessage.parseMessage(log.getBody()).getLabels()) {
+    for (LabelFinder label : ChangeMessage.parseMessage(log.body()).getLabels()) {
       if (label.isLabel(GerritDestination.CHANGE_ID_LABEL)) {
-        assertWithMessage(log.getBody() + " has a Change-Id label that doesn't"
+        assertWithMessage(log.body() + " has a Change-Id label that doesn't"
             + " match the regex").that(label.getValue()).matches("I[0-9a-f]{40}$");
         assertThat(line).isNull(); // Multiple Change-Ids are not allowed.
         line = label.getLine();
       }
     }
     assertWithMessage(
-        "Cannot find " + GerritDestination.CHANGE_ID_LABEL + " in:\n" + log.getBody())
+        "Cannot find " + GerritDestination.CHANGE_ID_LABEL + " in:\n" + log.body())
         .that(line).isNotNull();
     return line;
   }

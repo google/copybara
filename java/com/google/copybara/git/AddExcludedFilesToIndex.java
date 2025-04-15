@@ -65,8 +65,8 @@ final class AddExcludedFilesToIndex {
       return;
     }
     for (TreeElement treeElement : head) {
-      Path relative = Paths.get(treeElement.getPath());
-      if (pathMatcher.matches(workTree.resolve(treeElement.getPath()))) {
+      Path relative = Paths.get(treeElement.path());
+      if (pathMatcher.matches(workTree.resolve(treeElement.path()))) {
         addPathAndParents(included, relative);
       } else {
         prevExcluded.add(relative);

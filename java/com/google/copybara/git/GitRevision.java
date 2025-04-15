@@ -198,7 +198,7 @@ public final class GitRevision implements Revision {
     if (entry.isEmpty()) {
       throw new RepoException(String.format("Cannot find '%s' in the git repository", sha1));
     }
-    return Iterables.getOnlyElement(entry).getAuthorDate();
+    return Iterables.getOnlyElement(entry).authorDate();
   }
 
   @Override

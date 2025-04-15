@@ -267,12 +267,12 @@ public class GitDestinationTest {
   }
 
   private void assertCommitHasOrigin(String branch, String originRef) throws RepoException {
-    assertThat(parseMessage(lastCommit(branch).getBody())
+    assertThat(parseMessage(lastCommit(branch).body())
         .labelsAsMultimap()).containsEntry(DummyOrigin.LABEL_NAME, originRef);
   }
 
   private void assertCommitHasAuthor(String branch, Author author) throws RepoException {
-    assertThat(lastCommit(branch).getAuthor()).isEqualTo(author);
+    assertThat(lastCommit(branch).author()).isEqualTo(author);
   }
 
   private GitLogEntry lastCommit(String ref) throws RepoException {
@@ -379,7 +379,7 @@ public class GitDestinationTest {
     assertFilesInDir(1, primaryBranch, ".");
     assertCommitCount(1, primaryBranch);
 
-    assertThat(parseMessage(lastCommit(primaryBranch).getBody())
+    assertThat(parseMessage(lastCommit(primaryBranch).body())
         .labelsAsMultimap()).doesNotContainKey(DummyOrigin.LABEL_NAME);
   }
 
@@ -777,7 +777,7 @@ public class GitDestinationTest {
     destinationFiles = Glob.createGlob(ImmutableList.of("sub/tools/foo/**"), ImmutableList.of());
     process(newWriter(), new DummyRevision("origin_ref"));
     GitLogEntry entry = repo().log("HEAD").includeFiles(true).withLimit(1).run().get(0);
-    assertThat(entry.getFiles()).containsExactly("sub/tools/foo/other");
+    assertThat(entry.files()).containsExactly("sub/tools/foo/other");
   }
 
   @Test
@@ -793,7 +793,7 @@ public class GitDestinationTest {
     destinationFiles = Glob.createGlob(ImmutableList.of("sub/tools/foo/**"), ImmutableList.of());
     process(newWriter(), new DummyRevision("origin_ref"));
     GitLogEntry entry = repo().log("HEAD").includeFiles(true).withLimit(1).run().get(0);
-    assertThat(entry.getFiles()).containsExactly("sub/tools/foo/other");
+    assertThat(entry.files()).containsExactly("sub/tools/foo/other");
   }
 
   @Test
@@ -811,7 +811,7 @@ public class GitDestinationTest {
     destinationFiles = Glob.createGlob(ImmutableList.of("sub/tools/foo/**"), ImmutableList.of());
     process(newWriter(), new DummyRevision("origin_ref"));
     GitLogEntry entry = repo().log("HEAD").includeFiles(true).withLimit(1).run().get(0);
-    assertThat(entry.getFiles()).containsExactly("sub/tools/foo/other", "sub/tools/foo/new_other");
+    assertThat(entry.files()).containsExactly("sub/tools/foo/other", "sub/tools/foo/new_other");
   }
 
   @Test
@@ -828,7 +828,7 @@ public class GitDestinationTest {
     destinationFiles = Glob.createGlob(ImmutableList.of("sub/tools/foo/**"), ImmutableList.of());
     process(newWriter(), new DummyRevision("origin_ref"));
     GitLogEntry entry = repo().log("HEAD").includeFiles(true).withLimit(1).run().get(0);
-    assertThat(entry.getFiles()).containsExactly("sub/tools/foo/other");
+    assertThat(entry.files()).containsExactly("sub/tools/foo/other");
   }
 
   @Test
@@ -1825,11 +1825,11 @@ public class GitDestinationTest {
     runDescriptionChecker(new DummyChecker(ImmutableSet.of("BAD"), "Message for failures"));
     ImmutableList<GitLogEntry> head = repo().log(primaryBranch).withLimit(1).run();
     assertThat(head).isNotEmpty();
-    assertThat(head.get(0).getBody()).isEqualTo(""
+    assertThat(head.get(0).body()).isEqualTo(""
         + "Message for failures\n"
         + "\n"
         + "DummyOrigin-RevId: ref2\n");
-    assertThat(head.get(0).getAuthor()).isEqualTo(new Author("Dont", "rewri@te.me"));
+    assertThat(head.get(0).author()).isEqualTo(new Author("Dont", "rewri@te.me"));
   }
 
   @Test
@@ -1837,8 +1837,8 @@ public class GitDestinationTest {
     runDescriptionChecker(new DummyChecker(ImmutableSet.of(DummyOrigin.LABEL_NAME)));
     ImmutableList<GitLogEntry> head = repo().log(primaryBranch).withLimit(1).run();
     assertThat(head).isNotEmpty();
-    assertThat(head.get(0).getBody()).isEqualTo("This is BAD\n\nDummyOrigin-RevId: ref2\n");
-    assertThat(head.get(0).getAuthor()).isEqualTo(new Author("Dont", "rewri@te.me"));
+    assertThat(head.get(0).body()).isEqualTo("This is BAD\n\nDummyOrigin-RevId: ref2\n");
+    assertThat(head.get(0).author()).isEqualTo(new Author("Dont", "rewri@te.me"));
   }
 
   private void runDescriptionChecker(DummyChecker checker)
@@ -2084,17 +2084,17 @@ public class GitDestinationTest {
 
     for (String ref : ImmutableList.of("HEAD", "copybara/local")) {
       ImmutableList<GitLogEntry> entries = localRepo.log(ref).run();
-      assertThat(entries.get(0).getBody()).isEqualTo(""
+      assertThat(entries.get(0).body()).isEqualTo(""
           + "test summary\n"
           + "\n"
           + "DummyOrigin-RevId: origin_ref2\n");
 
-      assertThat(entries.get(1).getBody()).isEqualTo(""
+      assertThat(entries.get(1).body()).isEqualTo(""
           + "test summary\n"
           + "\n"
           + "DummyOrigin-RevId: origin_ref1\n");
 
-      assertThat(entries.get(2).getBody()).isEqualTo("change\n");
+      assertThat(entries.get(2).body()).isEqualTo("change\n");
     }
     return localRepo;
   }
@@ -2117,7 +2117,7 @@ public class GitDestinationTest {
         destinationFiles,
         console);
 
-    String body = lastCommit("HEAD").getBody();
+    String body = lastCommit("HEAD").body();
     assertThat(body).isEqualTo("This is a message\n"
         + "\n"
         + "That already has a label\n"
@@ -2161,7 +2161,7 @@ public class GitDestinationTest {
         destinationFiles,
         console);
 
-    String body = lastCommit("HEAD").getBody();
+    String body = lastCommit("HEAD").body();
     assertThat(body)
         .isEqualTo(
             "This is a message\n"
@@ -2414,11 +2414,11 @@ public class GitDestinationTest {
     assertThat(
         writer.getDestinationReader(console, "HEAD", workdir)
           .lastModified("1.txt"))
-      .isEqualTo(firstCommit.getCommit().getSha1());
+      .isEqualTo(firstCommit.commit().getSha1());
     assertThat(
         writer.getDestinationReader(console, "HEAD", workdir)
           .lastModified("2.txt"))
-      .isEqualTo(secondCommit.getCommit().getSha1());
+      .isEqualTo(secondCommit.commit().getSha1());
   }
 
 }

@@ -355,7 +355,7 @@ public class GitTestUtil {
 
     @Override
     public void validatePush(PushCmd pushCmd) {
-      for (Refspec refspec : pushCmd.getRefspecs()) {
+      for (Refspec refspec : pushCmd.refspecs()) {
         // Destination push refs should be complete (refs/heads/master vs master). Our
         // internal implementation requires it.
         assertThat(refspec.getDestination()).startsWith("refs/");
@@ -475,12 +475,11 @@ public class GitTestUtil {
     @Override
     protected String runPush(PushCmd pushCmd) throws RepoException, ValidationException {
       validator.validatePush(pushCmd);
-      if (pushCmd.getUrl() != null) {
-        pushCmd = pushCmd.withRefspecs(mapUrl(pushCmd.getUrl()),
-            pushCmd.getRefspecs());
+      if (pushCmd.url() != null) {
+        pushCmd = pushCmd.withRefspecs(mapUrl(pushCmd.url()), pushCmd.refspecs());
       }
       ImmutableList.Builder<Refspec> newRefspec = ImmutableList.builder();
-      for (Refspec refspec : pushCmd.getRefspecs()) {
+      for (Refspec refspec : pushCmd.refspecs()) {
         if (forcePushForRefspec != null
             && refspec.getDestination().startsWith(forcePushForRefspec)) {
           newRefspec.add(refspec.withAllowNoFastForward());
@@ -488,7 +487,7 @@ public class GitTestUtil {
           newRefspec.add(refspec);
         }
       }
-      return super.runPush(pushCmd.withRefspecs(pushCmd.getUrl(), newRefspec.build()));
+      return super.runPush(pushCmd.withRefspecs(pushCmd.url(), newRefspec.build()));
     }
 
     @Override

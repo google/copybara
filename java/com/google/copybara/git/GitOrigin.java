@@ -496,32 +496,32 @@ public class GitOrigin implements Origin<GitRevision> {
         return;
       }
       for (Submodule submodule : repo.listSubmodules(currentRemoteUrl, ref)) {
-        if (excludedSubmodules.contains(submodule.getName())) {
+        if (excludedSubmodules.contains(submodule.name())) {
           generalOptions
               .console()
-              .infoFmt("Submodule '%s' is excluded, skipping checkout", submodule.getName());
+              .infoFmt("Submodule '%s' is excluded, skipping checkout", submodule.name());
           continue;
         }
 
-        ImmutableList<TreeElement> elements = repo.lsTree(ref, submodule.getPath(), false, false);
+        ImmutableList<TreeElement> elements = repo.lsTree(ref, submodule.path(), false, false);
         if (elements.size() != 1) {
           throw new RepoException(String
               .format("Cannot find one tree element for submodule %s."
-                  + " Found the following elements: %s", submodule.getPath(), elements));
+                  + " Found the following elements: %s", submodule.path(), elements));
         }
         TreeElement element = Iterables.getOnlyElement(elements);
-        Preconditions.checkArgument(element.getPath().equals(submodule.getPath()));
+        Preconditions.checkArgument(element.path().equals(submodule.path()));
 
         generalOptions.console()
             .verboseFmt(
-                "Checking out submodule '%s' with reference '%s'", submodule, element.getRef());
-        String submoduleUrl = gitOptions.rewriteSubmoduleUrl(submodule.getUrl());
+                "Checking out submodule '%s' with reference '%s'", submodule, element.ref());
+        String submoduleUrl = gitOptions.rewriteSubmoduleUrl(submodule.url());
         GitRepository subRepo = gitOptions.cachedBareRepoForUrl(submoduleUrl);
 
 
-        if (submodule.getBranch() != null) {
+        if (submodule.branch() != null) {
           subRepo.fetchSingleRef(
-              submoduleUrl, submodule.getBranch(), partialFetch, Optional.empty());
+              submoduleUrl, submodule.branch(), partialFetch, Optional.empty());
         } else {
           subRepo.fetch(
               submoduleUrl, /*prune*/
@@ -534,11 +534,11 @@ public class GitOrigin implements Origin<GitRevision> {
         }
         GitRevision submoduleRef =
             subRepo.resolveReferenceWithContext(
-                element.getRef(), submodule.getName(), submoduleUrl);
+                element.ref(), submodule.name(), submoduleUrl);
 
-        Path subdir = workdir.resolve(submodule.getPath());
+        Path subdir = workdir.resolve(submodule.path());
         try {
-          Files.createDirectories(workdir.resolve(submodule.getPath()));
+          Files.createDirectories(workdir.resolve(submodule.path()));
         } catch (IOException e) {
           throw new RepoException(String.format(
               "Cannot create subdirectory %s for submodule: %s", subdir, submodule));
@@ -665,13 +665,13 @@ public class GitOrigin implements Origin<GitRevision> {
           getRepository().log("*").includeTags(true).noWalk(true).run();
 
       for (GitLogEntry entry : output) {
-        if (entry.getTag() != null) {
+        if (entry.tag() != null) {
           result.add(
               new Change<>(
-                  entry.getTag(),
-                  entry.getAuthor(),
-                  nullToEmpty(entry.getBody()),
-                  entry.getCommitDate(),
+                  entry.tag(),
+                  entry.author(),
+                  nullToEmpty(entry.body()),
+                  entry.commitDate(),
                   ImmutableListMultimap.of()));
         }
       }

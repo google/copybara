@@ -58,7 +58,7 @@ public class GitTesting {
       ZonedDateTime timestamp)
       throws RepoException {
     GitLogEntry commit = Iterables.getOnlyElement(repo.log(commitRef).withLimit(1).run());
-    assertThat(commit.getAuthorDate()).isEquivalentAccordingToCompareTo(timestamp);
+    assertThat(commit.authorDate()).isEquivalentAccordingToCompareTo(timestamp);
   }
 
   /**

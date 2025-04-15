@@ -257,7 +257,7 @@ class GerritChange {
   private List<ChangeMessage> getChanges(GitRepository repo, GitRevision metaRevision,
       String metaRef) throws RepoException {
     List<ChangeMessage> changes = Lists.transform(repo.log(metaRevision.getSha1()).run(),
-        e -> ChangeMessage.parseMessage(e.getBody()));
+        e -> ChangeMessage.parseMessage(e.body()));
 
     if (changes.isEmpty()) {
       throw new RepoException("Cannot find any PatchSet in " + metaRef);

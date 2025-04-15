@@ -544,7 +544,7 @@ public class GitHubPrDestinationTest {
         "Pull Request https://github.com/foo/pull/12345 created using branch 'feature'.");
 
     assertThat(remote.refExists("feature")).isTrue();
-    assertThat(Iterables.transform(remote.log("feature").run(), GitLogEntry::getBody))
+    assertThat(Iterables.transform(remote.log("feature").run(), GitLogEntry::body))
         .containsExactly("first change\n",
             "test summary\n"
                 + "\n"
@@ -581,7 +581,7 @@ public class GitHubPrDestinationTest {
     writer.write(
         TransformResults.of(this.workdir, new DummyRevision("four")), Glob.ALL_FILES, console);
 
-    assertThat(Iterables.transform(remote.log("feature").run(), GitLogEntry::getBody))
+    assertThat(Iterables.transform(remote.log("feature").run(), GitLogEntry::body))
         .containsExactly("first change\n", "test summary\n" + "\n" + "DummyOrigin-RevId: four\n");
   }
 
@@ -691,7 +691,7 @@ public class GitHubPrDestinationTest {
         TransformResults.of(this.workdir, new DummyRevision("one")), Glob.ALL_FILES, console);
 
     assertThat(remote.refExists(branchName)).isTrue();
-    assertThat(Iterables.transform(remote.log(branchName).run(), GitLogEntry::getBody))
+    assertThat(Iterables.transform(remote.log(branchName).run(), GitLogEntry::body))
         .containsExactly("first change\n", "second change\n",
         "test summary\n"
             + "\n"

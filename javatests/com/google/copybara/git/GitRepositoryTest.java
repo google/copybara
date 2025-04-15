@@ -155,14 +155,14 @@ public class GitRepositoryTest {
 
     ImmutableList<GitLogEntry> head = repo.log("HEAD").run();
 
-    assertThat(head.get(0).getBody()).containsMatch("message_d(.|\n)*"
+    assertThat(head.get(0).body()).containsMatch("message_d(.|\n)*"
         + "cherry picked from commit " + four.getSha1());
-    assertThat(head.get(1).getBody()).containsMatch("message_c(.|\n)*"
+    assertThat(head.get(1).body()).containsMatch("message_c(.|\n)*"
         + "cherry picked from commit " + three.getSha1());
-    assertThat(head.get(2).getBody()).containsMatch("message_b(.|\n)*"
+    assertThat(head.get(2).body()).containsMatch("message_b(.|\n)*"
         + "cherry picked from commit " + two.getSha1());
-    assertThat(head.get(3).getBody()).containsMatch("message_a");
-    assertThat(head.get(3).getBody()).doesNotContain("cherry picked from commit");
+    assertThat(head.get(3).body()).containsMatch("message_a");
+    assertThat(head.get(3).body()).doesNotContain("cherry picked from commit");
   }
 
   @Test
@@ -197,8 +197,8 @@ public class GitRepositoryTest {
     repository.simpleCommand("commit", "foo.txt", "-m", "message");
     GitLogEntry entry = Iterables.getOnlyElement(repository.log("HEAD").withLimit(1).run());
 
-    String badCommit = "tree " + entry.getTree() + "\n"
-        + "parent " + entry.getCommit().getSha1() + "\n"
+    String badCommit = "tree " + entry.tree() + "\n"
+        + "parent " + entry.commit().getSha1() + "\n"
         + "author Some User <example@example.com> 1528942829 --400\n"
         + "committer Some User <example@example.com> 1528942829 --400\n"
         + "\n"
@@ -220,8 +220,8 @@ public class GitRepositoryTest {
 
     ZonedDateTime epoch = ZonedDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC);
 
-    assertThat(entry.getAuthorDate()).isEquivalentAccordingToCompareTo(epoch);
-    assertThat(entry.getCommitDate()).isEquivalentAccordingToCompareTo(epoch);
+    assertThat(entry.authorDate()).isEquivalentAccordingToCompareTo(epoch);
+    assertThat(entry.commitDate()).isEquivalentAccordingToCompareTo(epoch);
   }
 
   @Test
@@ -240,7 +240,7 @@ public class GitRepositoryTest {
         .includeFiles(true)
         .withLimit(2)
         .run().get(0);
-    assertThat(entry.getFiles())
+    assertThat(entry.files())
         .containsExactly("test/hello_\360\237\214\220.isolate", "test/foo");
   }
 
@@ -336,7 +336,7 @@ public class GitRepositoryTest {
     String change = repository.simpleCommand("commit-tree", tree, "-F", message.toString())
         .getStdout().trim();
 
-    assertThat(Iterables.getLast(repository.log(change).run()).getBody())
+    assertThat(Iterables.getLast(repository.log(change).run()).body())
         .isEqualTo("message\nbar\n");
   }
 
@@ -375,13 +375,13 @@ public class GitRepositoryTest {
             .firstParent(true)
             .includeMergeDiff(true)
             .run();
-    assertThat(log.get(0).getBody()).contains("Merge");
-    assertThat(log.get(0).getFiles()).containsExactly("bar.txt");
+    assertThat(log.get(0).body()).contains("Merge");
+    assertThat(log.get(0).files()).containsExactly("bar.txt");
 
     log = repository.log(defaultBranch).includeFiles(true).includeMergeDiff(true).run();
 
-    assertThat(log.get(0).getBody()).contains("Merge");
-    assertThat(log.get(0).getFiles()).containsExactly("bar.txt");
+    assertThat(log.get(0).body()).contains("Merge");
+    assertThat(log.get(0).files()).containsExactly("bar.txt");
   }
 
   @Test
@@ -410,8 +410,8 @@ public class GitRepositoryTest {
             .firstParent(false)
             .topoOrder(true)
             .run();
-    assertThat(log.get(2).getBody()).contains("second");
-    assertThat(log.get(3).getBody()).contains("first");
+    assertThat(log.get(2).body()).contains("second");
+    assertThat(log.get(3).body()).contains("first");
   }
 
   @Test
@@ -431,11 +431,11 @@ public class GitRepositoryTest {
             .includeFiles(true)
             .includeMergeDiff(true)
             .run();
-    assertThat(log.get(0).getBody()).contains("other branch change");
-    assertThat(log.get(0).getFiles()).containsExactly("bar.txt");
-    assertThat(log.get(1).getBody()).contains("branch change");
-    assertThat(log.get(1).getFiles()).containsExactly("bar.txt");
-    assertThat(log.get(2).getCommit()).isEqualTo(newParent);
+    assertThat(log.get(0).body()).contains("other branch change");
+    assertThat(log.get(0).files()).containsExactly("bar.txt");
+    assertThat(log.get(1).body()).contains("branch change");
+    assertThat(log.get(1).files()).containsExactly("bar.txt");
+    assertThat(log.get(2).commit()).isEqualTo(newParent);
   }
 
   @Test
@@ -482,29 +482,29 @@ public class GitRepositoryTest {
 
     assertThat(entries.size()).isEqualTo(2);
 
-    assertThat(entries.get(0).getBody()).isEqualTo(body ? "message\n\nand\nparagraph\n" : null);
-    assertThat(entries.get(1).getBody()).isEqualTo(body ? "message\n" : null);
+    assertThat(entries.get(0).body()).isEqualTo(body ? "message\n\nand\nparagraph\n" : null);
+    assertThat(entries.get(1).body()).isEqualTo(body ? "message\n" : null);
 
-    assertThat(entries.get(0).getAuthor()).isEqualTo(new Author("Bar", "bar@bara.com"));
-    assertThat(entries.get(0).getCommitter()).isEqualTo(COMMITER);
+    assertThat(entries.get(0).author()).isEqualTo(new Author("Bar", "bar@bara.com"));
+    assertThat(entries.get(0).committer()).isEqualTo(COMMITER);
 
-    assertThat(entries.get(0).getAuthorDate()).isEqualTo(date2);
-    assertThat(entries.get(1).getAuthor()).isEqualTo(new Author("FOO", "foo@bara.com"));
-    assertThat(entries.get(1).getCommitter()).isEqualTo(COMMITER);
-    assertThat(entries.get(1).getAuthorDate()).isEqualTo(date);
-    assertThat(entries.get(0).getParents()).containsExactly(entries.get(1).getCommit());
-    assertThat(entries.get(1).getParents()).isEmpty();
+    assertThat(entries.get(0).authorDate()).isEqualTo(date2);
+    assertThat(entries.get(1).author()).isEqualTo(new Author("FOO", "foo@bara.com"));
+    assertThat(entries.get(1).committer()).isEqualTo(COMMITER);
+    assertThat(entries.get(1).authorDate()).isEqualTo(date);
+    assertThat(entries.get(0).parents()).containsExactly(entries.get(1).commit());
+    assertThat(entries.get(1).parents()).isEmpty();
 
     assertThat(
-        repository.simpleCommand("cat-file", "-t", entries.get(0).getTree()).getStdout().trim())
+        repository.simpleCommand("cat-file", "-t", entries.get(0).tree()).getStdout().trim())
         .isEqualTo("tree");
 
     if (includeFiles) {
-      assertThat(entries.get(0).getFiles()).containsExactly("foo.txt", "bar.txt", "baz.txt");
-      assertThat(entries.get(1).getFiles()).containsExactly("foo.txt");
+      assertThat(entries.get(0).files()).containsExactly("foo.txt", "bar.txt", "baz.txt");
+      assertThat(entries.get(1).files()).containsExactly("foo.txt");
     } else {
-      assertThat(entries.get(0).getFiles()).isNull();
-      assertThat(entries.get(1).getFiles()).isNull();
+      assertThat(entries.get(0).files()).isNull();
+      assertThat(entries.get(1).files()).isNull();
     }
   }
 
@@ -519,12 +519,12 @@ public class GitRepositoryTest {
         .run();
 
     // Three entries for the same commit. One per each branch merged
-    assertThat(result.get(0).getCommit()).isEqualTo(result.get(1).getCommit());
-    assertThat(result.get(1).getCommit()).isEqualTo(result.get(2).getCommit());
-    assertThat(result.get(2).getCommit()).isNotEqualTo(result.get(3).getCommit());
+    assertThat(result.get(0).commit()).isEqualTo(result.get(1).commit());
+    assertThat(result.get(1).commit()).isEqualTo(result.get(2).commit());
+    assertThat(result.get(2).commit()).isNotEqualTo(result.get(3).commit());
 
     // But the first entry is the difference with the current branch
-    assertThat(result.get(0).getFiles()).containsExactly("feature1.txt", "feature2.txt");
+    assertThat(result.get(0).files()).containsExactly("feature1.txt", "feature2.txt");
 
     // Amend the merge
     Files.write(workdir.resolve("other"), "content".getBytes(UTF_8));
@@ -542,7 +542,7 @@ public class GitRepositoryTest {
     // Still three entries
     assertThat(result).hasSize(3);
     // But the first entry is the difference with the current branch
-    assertThat(result.get(0).getFiles()).containsExactly("feature1.txt", "feature2.txt", "other");
+    assertThat(result.get(0).files()).containsExactly("feature1.txt", "feature2.txt", "other");
   }
 
   @Test
@@ -588,7 +588,7 @@ public class GitRepositoryTest {
       paged.addAll(page);
       // Merge commit shows multiple entries when using -m and --name-only but first parent is
       // disabled. Each entry represents the parent file changes.
-      skip += page.stream().map(e -> e.getCommit().getSha1()).collect(Collectors.toSet()).size();
+      skip += page.stream().map(e -> e.commit().getSha1()).collect(Collectors.toSet()).size();
     }
     assertThat(paged.toString()).isEqualTo(singlePage.toString());
   }
@@ -670,7 +670,7 @@ public class GitRepositoryTest {
     repository.commit("= Foo = <bar@bara.com>", date, "adding foo");
 
     ImmutableList<GitLogEntry> entries = repository.log(defaultBranch).run();
-    assertThat(entries.get(0).getAuthor()).isEqualTo(new Author("= Foo =", "bar@bara.com"));
+    assertThat(entries.get(0).author()).isEqualTo(new Author("= Foo =", "bar@bara.com"));
   }
 
   @Test
@@ -1199,8 +1199,8 @@ public class GitRepositoryTest {
         "this is review text", /*reference=*/null, ImmutableListMultimap.of(), /*url=*/null);
     ImmutableList<TreeElement> result = repository.lsTree(rev, "foo/", false, false);
     assertThat(result).hasSize(1);
-    assertThat(result.get(0).getPath()).isEqualTo("foo/foo.txt");
-    assertThat(result.get(0).getType()).isEqualTo(GitObjectType.BLOB);
+    assertThat(result.get(0).path()).isEqualTo("foo/foo.txt");
+    assertThat(result.get(0).type()).isEqualTo(GitObjectType.BLOB);
   }
 
   @Test
@@ -1213,8 +1213,8 @@ public class GitRepositoryTest {
         "this is review text", /*reference=*/null, ImmutableListMultimap.of(), /*url=*/null);
     ImmutableList<TreeElement> result = repository.lsTree(rev, "foo/", false, false);
     assertThat(result).hasSize(1);
-    assertThat(result.get(0).getPath()).isEqualTo("foo/someFile \320\263.test");
-    assertThat(result.get(0).getType()).isEqualTo(GitObjectType.BLOB);
+    assertThat(result.get(0).path()).isEqualTo("foo/someFile \320\263.test");
+    assertThat(result.get(0).type()).isEqualTo(GitObjectType.BLOB);
   }
 
   @Test
@@ -1228,7 +1228,7 @@ public class GitRepositoryTest {
     GitRevision rev = new GitRevision(repository, repository.parseRef("HEAD"),
         "this is review text", /*reference=*/null, ImmutableListMultimap.of(), /*url=*/null);
     ImmutableList<TreeElement> result = repository.lsTree(rev, "foo/", false, false);
-    assertThat(result.stream().map(TreeElement::getPath).collect(toImmutableList()))
+    assertThat(result.stream().map(TreeElement::path).collect(toImmutableList()))
         .containsExactly("foo/one\t.test", "foo/two\\t.test");
   }
 
@@ -1251,7 +1251,7 @@ public class GitRepositoryTest {
         .includeBody(true)
         .includeFiles(false)
         .run();
-    assertThat(Iterables.getOnlyElement(entries).getBody())
+    assertThat(Iterables.getOnlyElement(entries).body())
         .isEqualTo(description);
   }
 
@@ -1273,7 +1273,7 @@ public class GitRepositoryTest {
             .createRefSpec("+" + defaultBranch + ":" + defaultBranch)))
         .run();
 
-    assertThat(Iterables.transform(remote.log(defaultBranch).run(), GitLogEntry::getBody))
+    assertThat(Iterables.transform(remote.log(defaultBranch).run(), GitLogEntry::body))
         .containsExactly("message\n");
 
     Files.write(workdir.resolve("foo.txt"), "a".getBytes(UTF_8));
@@ -1287,7 +1287,7 @@ public class GitRepositoryTest {
             remoteUrl,
             ImmutableList.of(repository.createRefSpec(defaultBranch + ":" + defaultBranch)))
         .run();
-    assertThat(Iterables.transform(remote.log(defaultBranch).run(), GitLogEntry::getBody))
+    assertThat(Iterables.transform(remote.log(defaultBranch).run(), GitLogEntry::body))
         .containsExactly("message2\n", "message\n");
 
     repository.simpleCommand("reset", "--hard", "HEAD~1");
@@ -1331,7 +1331,7 @@ public class GitRepositoryTest {
             repository.createRefSpec("+" + defaultBranch + ":" + defaultBranch)))
         .run();
 
-    assertThat(Iterables.transform(remote.log(defaultBranch).run(), GitLogEntry::getBody))
+    assertThat(Iterables.transform(remote.log(defaultBranch).run(), GitLogEntry::body))
         .containsExactly("message3\n", "message\n");
   }
 
@@ -1531,7 +1531,7 @@ public class GitRepositoryTest {
     ImmutableList<GitLogEntry> result = repository.log("*").includeTags(true).run();
     ImmutableList<String> tags =
         result.stream()
-            .map(e -> e.getTag().contextReference())
+            .map(e -> e.tag().contextReference())
             .collect(ImmutableList.toImmutableList());
 
     assertThat(tags).containsExactly("1.2.3", "1.2.4", "1.3.0");

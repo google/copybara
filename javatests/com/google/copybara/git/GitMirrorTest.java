@@ -530,11 +530,11 @@ public class GitMirrorTest {
     GitLogEntry merge = lastChange(destRepo, primaryBranch);
 
     // It is a merge
-    assertThat(merge.getParents())
-        .containsExactly(destChange.getCommit(), originChange.getCommit());
+    assertThat(merge.parents())
+        .containsExactly(destChange.commit(), originChange.commit());
 
     // OSS branch is updated with origin version.
-    assertThat(lastChange(destRepo, "oss").getCommit()).isEqualTo(originChange.getCommit());
+    assertThat(lastChange(destRepo, "oss").commit()).isEqualTo(originChange.commit());
   }
 
   @Test
@@ -579,12 +579,12 @@ public class GitMirrorTest {
     GitLogEntry merge = lastChange(destRepo, primaryBranch);
 
     // merge has more than 1 parent from not fast forwarding
-    assertThat(merge.getParents().size()).isGreaterThan(1);
+    assertThat(merge.parents().size()).isGreaterThan(1);
     assertThat(destRepo.simpleCommand("log").getStdout()).contains("Merge branch");
 
     // expecting the destination repo to have a merge commit that the origin does not
-    assertThat(lastChange(destRepo, primaryBranch).getCommit())
-        .isNotEqualTo(lastChange(originRepo, primaryBranch).getCommit());
+    assertThat(lastChange(destRepo, primaryBranch).commit())
+        .isNotEqualTo(lastChange(originRepo, primaryBranch).commit());
   }
 
   @Test
@@ -592,17 +592,17 @@ public class GitMirrorTest {
   public void testSuccessfulMergeWithFastForwarding(String fastForwardOption)
       throws IOException, RepoException, ValidationException {
     Migration mirror = mergeInit(fastForwardOption, /* partialFetch= */ false);
-    GitRevision firstCommit = lastChange(destRepo, primaryBranch).getCommit();
+    GitRevision firstCommit = lastChange(destRepo, primaryBranch).commit();
     GitLogEntry originChange = repoChange(originRepo, "testfile", "test content", "commit");
 
     mirror.run(workdir, ImmutableList.of());
 
     GitLogEntry merge = lastChange(destRepo, primaryBranch);
 
-    assertThat(merge.getParents()).containsExactly(firstCommit);
+    assertThat(merge.parents()).containsExactly(firstCommit);
 
     // OSS branch is updated with origin version.
-    assertThat(lastChange(destRepo, "oss").getCommit()).isEqualTo(originChange.getCommit());
+    assertThat(lastChange(destRepo, "oss").commit()).isEqualTo(originChange.commit());
   }
 
   @Test
@@ -643,9 +643,9 @@ public class GitMirrorTest {
     mirror1.run(workdir, ImmutableList.of());
 
     ImmutableList<GitLogEntry> log = destRepo.log("internal").run();
-    assertThat(log.get(0).getBody()).contains(destChange.getBody());
-    assertThat(log.get(0).getCommitter()).isEqualTo(options.gitDestination.getCommitter());
-    assertThat(log.get(1).getCommit()).isEqualTo(originChange.getCommit());
+    assertThat(log.get(0).body()).contains(destChange.body());
+    assertThat(log.get(0).committer()).isEqualTo(options.gitDestination.getCommitter());
+    assertThat(log.get(1).commit()).isEqualTo(originChange.commit());
   }
 
   @Test
@@ -711,9 +711,9 @@ public class GitMirrorTest {
     mirror1.run(workdir, ImmutableList.of());
 
     console.assertThat().onceInLog(MessageType.INFO,
-        "REF: refs/heads/create_old:" + one.getCommit().getSha1());
+        "REF: refs/heads/create_old:" + one.commit().getSha1());
     console.assertThat().onceInLog(MessageType.INFO,
-        "REF: refs/heads/create_head:" + two.getCommit().getSha1());
+        "REF: refs/heads/create_head:" + two.commit().getSha1());
   }
 
   @Test
@@ -832,20 +832,20 @@ public class GitMirrorTest {
     ImmutableList<GitLogEntry> logCp = destRepo.log("my_branch").run();
     ImmutableList<GitLogEntry> log = destRepo.log(primaryBranch).run();
 
-    assertThat(logCp.get(0).getBody()).containsMatch("four(.|\n)*"
-        + "cherry picked from commit " + four.getCommit().getSha1());
-    assertThat(logCp.get(0).getCommit().getSha1()).isNotEqualTo(four.getCommit().getSha1());
+    assertThat(logCp.get(0).body()).containsMatch("four(.|\n)*"
+        + "cherry picked from commit " + four.commit().getSha1());
+    assertThat(logCp.get(0).commit().getSha1()).isNotEqualTo(four.commit().getSha1());
 
-    assertThat(logCp.get(1).getBody()).containsMatch("three(.|\n)*"
-        + "cherry picked from commit " + three.getCommit().getSha1());
-    assertThat(logCp.get(1).getCommit().getSha1()).isNotEqualTo(three.getCommit().getSha1());
+    assertThat(logCp.get(1).body()).containsMatch("three(.|\n)*"
+        + "cherry picked from commit " + three.commit().getSha1());
+    assertThat(logCp.get(1).commit().getSha1()).isNotEqualTo(three.commit().getSha1());
 
-    assertThat(logCp.get(2).getBody()).containsMatch("two(.|\n)*"
-        + "cherry picked from commit " + two.getCommit().getSha1());
-    assertThat(logCp.get(2).getCommit().getSha1()).isNotEqualTo(two.getCommit().getSha1());
+    assertThat(logCp.get(2).body()).containsMatch("two(.|\n)*"
+        + "cherry picked from commit " + two.commit().getSha1());
+    assertThat(logCp.get(2).commit().getSha1()).isNotEqualTo(two.commit().getSha1());
 
-    assertThat(logCp.get(3).getBody()).containsMatch("one");
-    assertThat(logCp.get(3).getCommit().getSha1()).isEqualTo(one.getCommit().getSha1());
+    assertThat(logCp.get(3).body()).containsMatch("one");
+    assertThat(logCp.get(3).commit().getSha1()).isEqualTo(one.commit().getSha1());
   }
 
   @Test
@@ -876,7 +876,7 @@ public class GitMirrorTest {
     mirror.run(workdir, ImmutableList.of());
 
     // We pushed HEAD~1 to the destination:
-    assertEquals(destRepo.getHeadRef().getSha1(), two.getCommit().getSha1());
+    assertEquals(destRepo.getHeadRef().getSha1(), two.commit().getSha1());
   }
 
   @Test
