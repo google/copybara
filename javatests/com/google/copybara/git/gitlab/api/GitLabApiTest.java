@@ -46,9 +46,9 @@ import com.google.copybara.git.gitlab.api.entities.GitLabApiParams.Param;
 import com.google.copybara.git.gitlab.api.entities.ListProjectMergeRequestParams;
 import com.google.copybara.git.gitlab.api.entities.ListUsersParams;
 import com.google.copybara.git.gitlab.api.entities.MergeRequest;
+import com.google.copybara.git.gitlab.api.entities.Project;
 import com.google.copybara.git.gitlab.api.entities.SetExternalStatusCheckParams;
 import com.google.copybara.git.gitlab.api.entities.SetExternalStatusCheckResponse;
-import com.google.copybara.git.gitlab.api.entities.Project;
 import com.google.copybara.git.gitlab.api.entities.UpdateMergeRequestParams;
 import com.google.copybara.git.gitlab.api.entities.User;
 import com.google.copybara.http.auth.AuthInterceptor;
@@ -92,7 +92,7 @@ public class GitLabApiTest {
             getApiTransport(
                 httpTransport,
                 "https://gitlab.copybara.io/capybara/project",
-                getBearerInterceptor()));
+                Optional.of(getBearerInterceptor())));
 
     ImmutableList<TestResponse> fullResponse =
         underTest.paginatedGet(
@@ -116,7 +116,7 @@ public class GitLabApiTest {
             getApiTransport(
                 httpTransport,
                 "https://gitlab.copybara.io/capybara/project",
-                getBearerInterceptor()));
+                Optional.of(getBearerInterceptor())));
     GitLabApiParams gitLabApiParams = () -> ImmutableList.of(new Param("param", "value"));
 
     ImmutableList<TestResponse> fullResponse =
@@ -148,7 +148,7 @@ public class GitLabApiTest {
             getApiTransport(
                 httpTransport,
                 "https://gitlab.copybara.io/capybara/project",
-                getBearerInterceptor()));
+                Optional.of(getBearerInterceptor())));
     GitLabApiParams gitLabApiParams = () -> ImmutableList.of(new Param("param", "value"));
 
     ImmutableList<TestResponse> fullResponse =
@@ -178,7 +178,7 @@ public class GitLabApiTest {
             getApiTransport(
                 httpTransport,
                 "https://gitlab.copybara.io/capybara/project",
-                getBearerInterceptor()));
+                Optional.of(getBearerInterceptor())));
 
     ImmutableList<TestResponse> fullResponse =
         underTest.paginatedGet(
@@ -202,7 +202,7 @@ public class GitLabApiTest {
             getApiTransport(
                 httpTransport,
                 "https://gitlab.copybara.io/capybara/project",
-                getBearerInterceptor()));
+                Optional.of(getBearerInterceptor())));
 
     VerifyException e =
         assertThrows(
@@ -231,7 +231,7 @@ public class GitLabApiTest {
             getApiTransport(
                 httpTransport,
                 "https://gitlab.copybara.io/capybara/project",
-                getBearerInterceptor()));
+                Optional.of(getBearerInterceptor())));
     // Add some extra params in the requested path, to make sure they're preserved.
     String path = "/projects/12345/test_requests?capy=bara&foo=bar";
 
@@ -258,7 +258,7 @@ public class GitLabApiTest {
             getApiTransport(
                 httpTransport,
                 "https://gitlab.copybara.io/capybara/project",
-                getBearerInterceptor()));
+                Optional.of(getBearerInterceptor())));
     GitLabApiParams gitLabApiParams =
         () -> ImmutableList.of(new Param("param1", "value1"), new Param("param2", "value2"));
 
@@ -285,7 +285,7 @@ public class GitLabApiTest {
             getApiTransport(
                 httpTransport,
                 "https://gitlab.copybara.io/capybara/project",
-                getBearerInterceptor()));
+                Optional.of(getBearerInterceptor())));
 
     Optional<MergeRequest> response = underTest.getMergeRequest(12345, 456123);
 
@@ -319,7 +319,7 @@ public class GitLabApiTest {
             getApiTransport(
                 httpTransport,
                 "https://gitlab.copybara.io/capybara/project",
-                getBearerInterceptor()));
+                Optional.of(getBearerInterceptor())));
     return underTest;
   }
 
@@ -344,7 +344,7 @@ public class GitLabApiTest {
             getApiTransport(
                 httpTransport,
                 "https://gitlab.copybara.io/capybara/project",
-                getBearerInterceptor()));
+                Optional.of(getBearerInterceptor())));
 
     GitLabApiException e =
         assertThrows(
@@ -378,7 +378,7 @@ public class GitLabApiTest {
             getApiTransport(
                 httpTransport,
                 "https://gitlab.copybara.io/capybara/project",
-                getBearerInterceptor()));
+                Optional.of(getBearerInterceptor())));
 
     ImmutableList<MergeRequest> fullResponse =
         underTest.getProjectMergeRequests(
@@ -408,7 +408,7 @@ public class GitLabApiTest {
             getApiTransport(
                 httpTransport,
                 "https://gitlab.copybara.io/capybara/project",
-                getBearerInterceptor()));
+                Optional.of(getBearerInterceptor())));
 
     ImmutableList<MergeRequest> fullResponse =
         underTest.getProjectMergeRequests(
@@ -443,7 +443,7 @@ public class GitLabApiTest {
             getApiTransport(
                 httpTransport,
                 "https://gitlab.copybara.io/capybara/project",
-                getBearerInterceptor()));
+                Optional.of(getBearerInterceptor())));
 
     ImmutableList<MergeRequest> fullResponse =
         underTest.getProjectMergeRequests(
@@ -481,7 +481,7 @@ public class GitLabApiTest {
             getApiTransport(
                 httpTransport,
                 "https://gitlab.copybara.io/capybara/project",
-                getBearerInterceptor()));
+                Optional.of(getBearerInterceptor())));
 
     ImmutableList<MergeRequest> fullResponse =
         underTest.getProjectMergeRequests(
@@ -511,7 +511,7 @@ public class GitLabApiTest {
             getApiTransport(
                 httpTransport,
                 "https://gitlab.copybara.io/capybara/project",
-                getBearerInterceptor()));
+                Optional.of(getBearerInterceptor())));
 
     Optional<Project> response = underTest.getProject(urlEncodedPath);
 
@@ -560,7 +560,7 @@ public class GitLabApiTest {
             getApiTransport(
                 httpTransport,
                 "https://gitlab.copybara.io/capybara/project",
-                getBearerInterceptor()));
+                Optional.of(getBearerInterceptor())));
 
     Optional<Commit> response = underTest.getCommit(12345, "refs/heads/cl_12345");
 
@@ -605,7 +605,7 @@ public class GitLabApiTest {
             getApiTransport(
                 httpTransport,
                 "https://gitlab.copybara.io/capybara/project",
-                getBearerInterceptor()));
+                Optional.of(getBearerInterceptor())));
 
     ImmutableList<User> response = underTest.getListUsers(new ListUsersParams("capybara"));
 
@@ -652,7 +652,7 @@ public class GitLabApiTest {
             getApiTransport(
                 httpTransport,
                 "https://gitlab.copybara.io/capybara/project",
-                getBearerInterceptor()));
+                Optional.of(getBearerInterceptor())));
 
     SetExternalStatusCheckParams params =
         new SetExternalStatusCheckParams(12345, 99999, "shaValue", 12345, "passed");
@@ -703,7 +703,7 @@ public class GitLabApiTest {
             getApiTransport(
                 httpTransport,
                 "https://gitlab.copybara.io/capybara/project",
-                getBearerInterceptor()));
+                Optional.of(getBearerInterceptor())));
 
     CreateMergeRequestParams params =
         new CreateMergeRequestParams(
@@ -771,7 +771,7 @@ public class GitLabApiTest {
             getApiTransport(
                 httpTransport,
                 "https://gitlab.copybara.io/capybara/project",
-                getBearerInterceptor()));
+                Optional.of(getBearerInterceptor())));
 
     UpdateMergeRequestParams params =
         new UpdateMergeRequestParams(
@@ -822,7 +822,7 @@ public class GitLabApiTest {
   }
 
   private GitLabApiTransport getApiTransport(
-      HttpTransport httpTransport, String url, AuthInterceptor authInterceptor) {
+      HttpTransport httpTransport, String url, Optional<AuthInterceptor> authInterceptor) {
     return new GitLabApiTransportImpl(url, httpTransport, console, authInterceptor);
   }
 

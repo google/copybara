@@ -78,7 +78,7 @@ public class OptionsBuilder {
   public GitOptions git = new GitOptions(general);
   public GitOriginOptions gitOrigin = new GitOriginOptions();
   public GitHubPrOriginOptions githubPrOrigin = new GitHubPrOriginOptions();
-  public GitLabOptions gitLabOptions = new GitLabOptions(general, git);
+  public GitLabOptions gitLabOptions = new GitLabOptions();
   public GitDestinationOptions gitDestination = new GitDestinationOptions(general, git);
   public PatchingOptions patch = new PatchingOptions(general);
   public DebugOptions debug = new DebugOptions(general);

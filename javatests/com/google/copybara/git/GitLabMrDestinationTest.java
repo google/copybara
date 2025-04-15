@@ -38,6 +38,7 @@ import com.google.copybara.checks.Checker;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.PathBasedConfigFile;
 import com.google.copybara.credentials.ConstantCredentialIssuer;
+import com.google.copybara.credentials.CredentialModule.UsernamePasswordIssuer;
 import com.google.copybara.effect.DestinationEffect;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitLabMrDestination.GitLabMrDestinationParams;
@@ -79,6 +80,7 @@ public class GitLabMrDestinationTest {
   @Rule public final MockitoRule mocks = MockitoJUnit.rule();
   @Mock private GitLabApi gitLabApi;
   private final TestingConsole console = new TestingConsole();
+  private UsernamePasswordIssuer usernamePasswordIssuer;
   private CredentialFileHandler credentialFileHandler;
   private OptionsBuilder optionsBuilder;
   private String mainBranchName;
@@ -103,6 +105,7 @@ public class GitLabMrDestinationTest {
         ConstantCredentialIssuer.createConstantOpenValue("super-secret-token");
     ConstantCredentialIssuer token =
         ConstantCredentialIssuer.createConstantSecret("token", "super-secret-token");
+    usernamePasswordIssuer = UsernamePasswordIssuer.create(user, token);
     credentialFileHandler = new CredentialFileHandler("", repoUrl.getPath(), user, token);
     tempDir = Files.createTempDirectory("gitlab_mr_destination");
     optionsBuilder =
@@ -110,6 +113,9 @@ public class GitLabMrDestinationTest {
             .setConsole(console)
             .setWorkdirToRealTempDir()
             .setHomeDir(Files.createTempDirectory("home").toString());
+    optionsBuilder.gitLabOptions.setGitLabApiSupplier((unused) -> gitLabApi);
+    optionsBuilder.gitLabOptions.setCredentialFileHandlerSupplier(
+        (unused, ignored) -> credentialFileHandler);
     optionsBuilder.gitDestination.committerEmail = "no-reply@copybara.io";
     optionsBuilder.gitDestination.committerName = "Capy Bara";
     starlarkExecutor = new SkylarkTestExecutor(optionsBuilder);
@@ -378,7 +384,6 @@ destination = git.gitlab_mr_destination(
     credentials.static_value("capybara"),
     token_issuer
   ),
-  auth_interceptor = http.bearer_auth(creds = token_issuer),
   source_branch = "source-branch",
   target_branch = "main",
   title = "title",
@@ -433,12 +438,11 @@ destination = git.gitlab_mr_destination(
     ConfigFile configFile =
         new PathBasedConfigFile(tempDir.resolve("copy.bara.sky"), tempDir, null);
     return GitLabMrDestinationParams.builder()
-        .setGitLabApi(gitLabApi)
         .setRepoUrl(repoUrl)
+        .setUsernamePasswordIssuer(usernamePasswordIssuer)
         .setTitleTemplate(titleTemplate)
         .setBodyTemplate(bodyTemplate)
         .setAssigneeTemplates(assigneeTemplates)
-        .setCredentialFileHandler(credentialFileHandler)
         .setSourceBranchTemplate(sourceBranchTemplate)
         .setTargetBranch(mainBranchName)
         .setConfigFile(configFile)
@@ -446,6 +450,7 @@ destination = git.gitlab_mr_destination(
         .setAllowEmptyDiffMergeStatuses(ImmutableSet.of())
         .setGeneralOptions(optionsBuilder.general)
         .setGitOptions(optionsBuilder.git)
+        .setGitLabOptions(optionsBuilder.gitLabOptions)
         .setDestinationOptions(optionsBuilder.gitDestination)
         .setPartialFetch(false)
         .setIntegrates(ImmutableList.of())

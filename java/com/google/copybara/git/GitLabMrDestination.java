@@ -16,6 +16,7 @@
 
 package com.google.copybara.git;
 
+
 import com.google.auto.value.AutoBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -27,15 +28,19 @@ import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.WriterContext;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.config.ConfigFile;
+import com.google.copybara.credentials.CredentialModule.UsernamePasswordIssuer;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitDestination.WriterState;
 import com.google.copybara.git.GitLabMrWriteHook.GitLabMrWriteHookParams;
 import com.google.copybara.git.GitLabMrWriter.GitLabMrWriterParams;
+import com.google.copybara.git.gitlab.GitLabOptions;
 import com.google.copybara.git.gitlab.GitLabUtil;
 import com.google.copybara.git.gitlab.api.GitLabApi;
 import com.google.copybara.git.gitlab.api.GitLabApiException;
+import com.google.copybara.git.gitlab.api.GitLabApiTransport;
 import com.google.copybara.git.gitlab.api.entities.MergeRequest.DetailedMergeStatus;
 import com.google.copybara.git.gitlab.api.entities.Project;
+import com.google.copybara.http.auth.BearerInterceptor;
 import com.google.copybara.revision.Revision;
 import com.google.copybara.templatetoken.LabelTemplate;
 import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
@@ -54,16 +59,20 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class GitLabMrDestination implements Destination<GitRevision> {
   private final GitLabMrDestinationParams params;
+  private final CredentialFileHandler credentialFileHandler;
   private final LazyResourceLoader<GitRepository> localRepo;
 
   public GitLabMrDestination(GitLabMrDestinationParams params) {
     this.params = params;
+    this.credentialFileHandler =
+        params.gitLabOptions.getCredentialFileHandler(
+            params.repoUrl, params.usernamePasswordIssuer());
     this.localRepo =
         LazyResourceLoader.memoized(
             unused ->
                 params
                     .destinationOptions()
-                    .localGitRepo(params.repoUrl().toString(), params.credentialFileHandler()));
+                    .localGitRepo(params.repoUrl().toString(), credentialFileHandler));
   }
 
   @Override
@@ -71,8 +80,17 @@ public class GitLabMrDestination implements Destination<GitRevision> {
     return "git.gitlab_mr_destination";
   }
 
+  private GitLabApiTransport getGitLabApiTransport() {
+    return GitLabOptions.getApiTransport(
+        params.repoUrl.toString(),
+        params.gitLabOptions.getHttpTransportSupplier().get(),
+        params.generalOptions.console(),
+        Optional.of(new BearerInterceptor(params.usernamePasswordIssuer.password())));
+  }
+
   @Override
   public GitLabMrWriter newWriter(WriterContext writerContext) throws ValidationException {
+    GitLabApi gitLabApi = params.gitLabOptions.getGitLabApi(getGitLabApiTransport());
     String mrBranch =
         getMergeRequestBranchName(
             Optional.ofNullable(writerContext.getOriginalRevision()),
@@ -82,7 +100,7 @@ public class GitLabMrDestination implements Destination<GitRevision> {
     GitLabMrWriteHook writeHook =
         new GitLabMrWriteHookParams(
                 params.allowEmptyDiff(),
-                params.gitLabApi(),
+                gitLabApi,
                 params.repoUrl(),
                 mrBranch,
                 params.generalOptions(),
@@ -99,8 +117,7 @@ public class GitLabMrDestination implements Destination<GitRevision> {
     Project project;
     try {
       project =
-          params
-              .gitLabApi()
+          gitLabApi
               .getProject(GitLabUtil.getUrlEncodedProjectPath(params.repoUrl()))
               .orElseThrow(
                   () ->
@@ -113,7 +130,7 @@ public class GitLabMrDestination implements Destination<GitRevision> {
     }
 
     return GitLabMrWriterParams.builder()
-        .setGitLabApi(params.gitLabApi())
+        .setGitLabApi(gitLabApi)
         .setTitleTemplate(params.titleTemplate())
         .setBodyTemplate(params.bodyTemplate())
         .setAssigneeTemplates(params.assigneeTemplates())
@@ -131,7 +148,7 @@ public class GitLabMrDestination implements Destination<GitRevision> {
         .setIntegrates(params.integrates())
         .setChecker(params.checker())
         .setDestinationOptions(params.destinationOptions())
-        .setCredentials(params.credentialFileHandler())
+        .setCredentials(credentialFileHandler)
         .build()
         .createWriter();
   }
@@ -162,7 +179,7 @@ public class GitLabMrDestination implements Destination<GitRevision> {
 
   @Override
   public ImmutableList<ImmutableSetMultimap<String, String>> describeCredentials() {
-    return params.credentialFileHandler().describeCredentials();
+    return params.usernamePasswordIssuer.describeCredentials();
   }
 
   private String getMergeRequestBranchName(
@@ -240,14 +257,13 @@ public class GitLabMrDestination implements Destination<GitRevision> {
    * <p>To construct a new {@link GitLabMrDestination} instance using these params, use {@link
    * #createDestination()}
    *
-   * @param gitLabApi the GitLab API client
    * @param repoUrl the URL of the GitLab repository
+   * @param usernamePasswordIssuer the credential issuer, used to obtain credentials for
+   *     authenticating with GitLab
    * @param titleTemplate The template for the merge request title, which can contain labels
    * @param bodyTemplate The template for the merge request body, which can contain labels
    * @param assigneeTemplates the templates for the merge request assignees, which can contain
    *     labels
-   * @param credentialFileHandler the credentials used for Git authentication with GitLab, required
-   *     to push to the target branch
    * @param sourceBranchTemplate the template for the source branch name, which can contain labels
    * @param targetBranch the target branch for the merge request
    * @param configFile the config file for the workflow
@@ -263,12 +279,11 @@ public class GitLabMrDestination implements Destination<GitRevision> {
    * @param checker the checker used on the migrated code
    */
   public record GitLabMrDestinationParams(
-      GitLabApi gitLabApi,
       URI repoUrl,
+      UsernamePasswordIssuer usernamePasswordIssuer,
       Optional<String> titleTemplate,
       Optional<String> bodyTemplate,
       ImmutableList<String> assigneeTemplates,
-      CredentialFileHandler credentialFileHandler,
       Optional<String> sourceBranchTemplate,
       String targetBranch,
       ConfigFile configFile,
@@ -276,6 +291,7 @@ public class GitLabMrDestination implements Destination<GitRevision> {
       ImmutableSet<DetailedMergeStatus> allowEmptyDiffMergeStatuses,
       GeneralOptions generalOptions,
       GitOptions gitOptions,
+      GitLabOptions gitLabOptions,
       GitDestinationOptions destinationOptions,
       boolean partialFetch,
       Iterable<GitIntegrateChanges> integrates,
@@ -286,20 +302,22 @@ public class GitLabMrDestination implements Destination<GitRevision> {
     public abstract static class Builder {
 
       /**
-       * Sets the GitLab API client to be used by the destination and its {@link GitLabMrWriter}
-       *
-       * @param gitLabApi the GitLab API client
-       * @return a reference to this builder
-       */
-      public abstract Builder setGitLabApi(GitLabApi gitLabApi);
-
-      /**
-       * Sets the URL of the GitLab repository to push to
+       * Sets the URL of the GitLab repository to push to.
        *
        * @param repoUrl the URL
        * @return a reference to this builder
        */
       public abstract Builder setRepoUrl(URI repoUrl);
+
+      /**
+       * Sets the credentials for the GitLab repository to push to, which are obtained from the
+       * provided issuer.
+       *
+       * @param usernamePasswordIssuer the credential issuer
+       * @return a reference to this builder
+       */
+      public abstract Builder setUsernamePasswordIssuer(
+          UsernamePasswordIssuer usernamePasswordIssuer);
 
       /**
        * Sets the templates for the title of the merge request, which can contain labels
@@ -324,15 +342,6 @@ public class GitLabMrDestination implements Destination<GitRevision> {
        * @return a reference to this builder
        */
       public abstract Builder setAssigneeTemplates(ImmutableList<String> assigneeTemplates);
-
-      /**
-       * Sets the credentials used for Git authentication with GitLab, required to push to the
-       * target branch
-       *
-       * @param credentialFileHandler the credentials
-       * @return a reference to this builder
-       */
-      public abstract Builder setCredentialFileHandler(CredentialFileHandler credentialFileHandler);
 
       /**
        * Sets the template for the source branch name, which can contain labels
@@ -391,6 +400,14 @@ public class GitLabMrDestination implements Destination<GitRevision> {
        * @return a reference to this builder
        */
       public abstract Builder setGitOptions(GitOptions gitOptions);
+
+      /**
+       * Sets the GitLab specific Copybara options to be used by the destination object.
+       *
+       * @param gitLabOptions the GitLab options
+       * @return a reference to this builder
+       */
+      public abstract Builder setGitLabOptions(GitLabOptions gitLabOptions);
 
       /**
        * Sets the git destination options to be used by the destination object

@@ -24,6 +24,7 @@ all_tests(
     ],
     deps = [
         "//java/com/google/copybara/credentials",
+        "//java/com/google/copybara/git:creds",
         "//java/com/google/copybara/git/gitlab:git_lab_options",
         "//java/com/google/copybara/git/gitlab:git_lab_util",
         "//java/com/google/copybara/git/gitlab/api:gitlab_api",
@@ -32,6 +33,7 @@ all_tests(
         "//java/com/google/copybara/util/console/testing",
         "//third_party:google_http_client",
         "//third_party:junit",
+        "//third_party:mockito",
         "//third_party:truth",
     ],
 )

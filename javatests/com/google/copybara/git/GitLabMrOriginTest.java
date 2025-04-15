@@ -36,6 +36,7 @@ import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
 import com.google.copybara.credentials.ConstantCredentialIssuer;
+import com.google.copybara.credentials.CredentialModule.UsernamePasswordIssuer;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -76,6 +77,7 @@ public class GitLabMrOriginTest {
   private GitRepository testRepo;
   private TestingConsole console;
   private OptionsBuilder optionsBuilder;
+  private Optional<UsernamePasswordIssuer> usernamePasswordIssuer;
   private Optional<CredentialFileHandler> credentialFileHandler;
   private URI repoUrl;
   private SkylarkTestExecutor starlarkExecutor;
@@ -91,7 +93,11 @@ public class GitLabMrOriginTest {
             .setConsole(console)
             .setWorkdirToRealTempDir()
             .setHomeDir(Files.createTempDirectory("home").toString());
+    optionsBuilder.gitLabOptions.setGitLabApiSupplier((unused) -> gitLabApi);
+    usernamePasswordIssuer = Optional.empty();
     credentialFileHandler = Optional.empty();
+    optionsBuilder.gitLabOptions.setCredentialFileHandlerSupplier(
+        (unused, ignored) -> credentialFileHandler.orElse(null));
     starlarkExecutor = new SkylarkTestExecutor(optionsBuilder);
   }
 
@@ -241,7 +247,8 @@ public class GitLabMrOriginTest {
     assertThat(e)
         .hasMessageThat()
         .contains(
-            "The merge request https://gitlab.com/example/1 must not be" + " marked as closed or merged.");
+            "The merge request https://gitlab.com/example/1 must not be"
+                + " marked as closed or merged.");
   }
 
   @Test
@@ -271,14 +278,24 @@ public class GitLabMrOriginTest {
     assertThat(e)
         .hasMessageThat()
         .contains(
-            "The merge request https://gitlab.com/example/1 must not be" + " marked as closed or merged.");
+            "The merge request https://gitlab.com/example/1 must not be"
+                + " marked as closed or merged.");
   }
 
   @Test
   public void resolveMergeRequest_usesCredentialFileHandlerCorrectly() throws Exception {
+    usernamePasswordIssuer =
+        Optional.of(
+            UsernamePasswordIssuer.create(
+                ConstantCredentialIssuer.createConstantOpenValue("user"),
+                ConstantCredentialIssuer.createConstantSecret("pass", "super-secret-token")));
     credentialFileHandler = Optional.ofNullable(Mockito.mock(CredentialFileHandler.class));
-    when(credentialFileHandler.get().getUsername()).thenReturn("user");
-    when(credentialFileHandler.get().getPassword()).thenReturn("super-secret-token");
+    when(credentialFileHandler.get().getUsername())
+        .thenReturn(usernamePasswordIssuer.get().username().issue().provideSecret());
+    when(credentialFileHandler.get().getPassword())
+        .thenReturn(usernamePasswordIssuer.get().password().issue().provideSecret());
+    optionsBuilder.gitLabOptions.setCredentialFileHandlerSupplier(
+        (unused, ignored) -> credentialFileHandler.orElse(null));
     setupGitRepo();
     when(gitLabApi.getProject(anyString()))
         .thenReturn(Optional.ofNullable(GSON_FACTORY.fromString("{\"id\": 1}", Project.class)));
@@ -331,7 +348,6 @@ origin = git.gitlab_mr_origin(
     credentials.static_value("capybara"),
     token_issuer
   ),
-  auth_interceptor = http.bearer_auth(creds = token_issuer),
   submodules = "YES",
   excluded_submodules = ["foo", "bar"],
   partial_fetch = True,
@@ -366,7 +382,6 @@ origin = git.gitlab_mr_origin(
     credentials.static_value("capybara"),
     token_issuer
   ),
-  auth_interceptor = http.bearer_auth(creds = token_issuer),
 )
 """;
 
@@ -378,17 +393,17 @@ origin = git.gitlab_mr_origin(
 
   @Test
   public void origin_describesCredentialsCorrectly() {
-    credentialFileHandler = Optional.ofNullable(Mockito.mock(CredentialFileHandler.class));
-    ImmutableList<ImmutableSetMultimap<String, String>> describedCreds =
-        ImmutableList.of(
-            ConstantCredentialIssuer.createConstantOpenValue("user").describe(),
-            ConstantCredentialIssuer.createConstantOpenValue("pass").describe());
-    when(credentialFileHandler.get().describeCredentials()).thenReturn(describedCreds);
+    usernamePasswordIssuer =
+        Optional.of(
+            UsernamePasswordIssuer.create(
+                ConstantCredentialIssuer.createConstantOpenValue("user"),
+                ConstantCredentialIssuer.createConstantOpenValue("pass")));
 
     ImmutableList<ImmutableSetMultimap<String, String>> result =
         getGitLabMrOrigin(false).describeCredentials();
 
-    assertThat(result).containsExactlyElementsIn(describedCreds);
+    assertThat(usernamePasswordIssuer.get().describeCredentials())
+        .containsExactlyElementsIn(result);
   }
 
   private void setupGitRepo() throws IOException, RepoException, ValidationException {
@@ -435,13 +450,13 @@ origin = git.gitlab_mr_origin(
 
   private GitLabMrOrigin getGitLabMrOrigin(boolean useMergeCommit) {
     return GitLabMrOrigin.builder()
-        .setGitLabApi(gitLabApi)
         .setConsole(console)
         .setRepoUrl(repoUrl)
+        .setUsernamePasswordIssuer(usernamePasswordIssuer)
         .setGitOptions(optionsBuilder.git)
+        .setGitLabOptions(optionsBuilder.gitLabOptions)
         .setGitOriginOptions(optionsBuilder.gitOrigin)
         .setGeneralOptions(optionsBuilder.general)
-        .setCredentialFileHandler(credentialFileHandler)
         .setSubmoduleStrategy(SubmoduleStrategy.NO)
         .setExcludedSubmodules(ImmutableList.of())
         .setUseMergeCommit(useMergeCommit)

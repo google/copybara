@@ -440,7 +440,7 @@ public class GitLabApiTransportImplTest {
 
   private GitLabApiTransport getApiTransport(
       HttpTransport httpTransport, String url, AuthInterceptor authInterceptor) {
-    return new GitLabApiTransportImpl(url, httpTransport, console, authInterceptor);
+    return new GitLabApiTransportImpl(url, httpTransport, console, Optional.of(authInterceptor));
   }
 
   private static String getExampleTestResponseJson() {

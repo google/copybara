@@ -29,14 +29,18 @@ import com.google.copybara.Endpoint;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Origin;
 import com.google.copybara.authoring.Authoring;
+import com.google.copybara.credentials.CredentialModule.UsernamePasswordIssuer;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitOrigin.ReaderImpl;
 import com.google.copybara.git.GitOrigin.SubmoduleStrategy;
+import com.google.copybara.git.gitlab.GitLabOptions;
 import com.google.copybara.git.gitlab.GitLabUtil;
 import com.google.copybara.git.gitlab.api.GitLabApi;
+import com.google.copybara.git.gitlab.api.GitLabApiTransport;
 import com.google.copybara.git.gitlab.api.entities.MergeRequest;
+import com.google.copybara.http.auth.BearerInterceptor;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.transform.patch.PatchTransformation;
 import com.google.copybara.util.Glob;
@@ -56,11 +60,12 @@ public class GitLabMrOrigin implements Origin<GitRevision> {
   public static final String GITLAB_MR_URL = "GITLAB_MR_URL";
   public static final String GITLAB_MR_DESCRIPTION = "GITLAB_MR_DESCRIPTION";
   protected static final String GITLAB_BASE_BRANCH_REF = "GITLAB_BASE_BRANCH_REF";
-  private final GitLabApi gitLabApi;
   private final Console console;
+  private final Optional<UsernamePasswordIssuer> usernamePasswordIssuer;
   private final URI repoUrl;
   private final GitOptions gitOptions;
   private final GitOriginOptions gitOriginOptions;
+  private final GitLabOptions gitLabOptions;
   private final GeneralOptions generalOptions;
   private final Optional<CredentialFileHandler> credentialFileHandler;
   private final SubmoduleStrategy submoduleStrategy;
@@ -72,13 +77,16 @@ public class GitLabMrOrigin implements Origin<GitRevision> {
   private final boolean useMergeCommit;
 
   private GitLabMrOrigin(Builder builder) {
-    gitLabApi = checkNotNull(builder.gitLabApi);
     console = checkNotNull(builder.console);
+    usernamePasswordIssuer = checkNotNull(builder.usernamePasswordIssuer);
     repoUrl = checkNotNull(builder.repoUrl);
     gitOptions = checkNotNull(builder.gitOptions);
     gitOriginOptions = checkNotNull(builder.gitOriginOptions);
+    gitLabOptions = checkNotNull(builder.gitLabOptions);
     generalOptions = checkNotNull(builder.generalOptions);
-    credentialFileHandler = checkNotNull(builder.credentialFileHandler);
+    credentialFileHandler =
+        usernamePasswordIssuer.map(
+            issuer -> gitLabOptions.getCredentialFileHandler(repoUrl, issuer));
     submoduleStrategy = checkNotNull(builder.submoduleStrategy);
     excludedSubmodules = checkNotNull(builder.excludedSubmodules);
     patchTransformation = checkNotNull(builder.patchTransformation);
@@ -86,6 +94,14 @@ public class GitLabMrOrigin implements Origin<GitRevision> {
     describeVersion = builder.describeVersion;
     firstParent = builder.firstParent;
     useMergeCommit = builder.useMergeCommit;
+  }
+
+  private GitLabApiTransport getGitLabApiTransport() {
+    return GitLabOptions.getApiTransport(
+        repoUrl.toString(),
+        gitLabOptions.getHttpTransportSupplier().get(),
+        console,
+        usernamePasswordIssuer.map(issuer -> new BearerInterceptor(issuer.password())));
   }
 
   public static Builder builder() {
@@ -102,6 +118,7 @@ public class GitLabMrOrigin implements Origin<GitRevision> {
            copybara path/to/copy.bara.sky workflow_name merge_request_number
         """);
 
+    GitLabApi gitLabApi = gitLabOptions.getGitLabApi(getGitLabApiTransport());
     // TODO: b/393384198 - Have a way to filter MRs with missing approvals, etc.
     console.progressFmt("Parsing Merge Request reference %s at %s", reference, repoUrl.toString());
     int mergeRequestId = parseReference(reference);
@@ -263,8 +280,8 @@ public class GitLabMrOrigin implements Origin<GitRevision> {
 
   @Override
   public ImmutableList<ImmutableSetMultimap<String, String>> describeCredentials() {
-    return credentialFileHandler
-        .map(CredentialFileHandler::describeCredentials)
+    return usernamePasswordIssuer
+        .map(UsernamePasswordIssuer::describeCredentials)
         .orElse(ImmutableList.of());
   }
 
@@ -342,13 +359,13 @@ public class GitLabMrOrigin implements Origin<GitRevision> {
   /** A builder class for {@code GitLabMrOrigin}. */
   public static final class Builder {
 
-    private GitLabApi gitLabApi;
     private Console console;
+    private Optional<UsernamePasswordIssuer> usernamePasswordIssuer;
     private URI repoUrl;
     private GitOptions gitOptions;
     private GitOriginOptions gitOriginOptions;
+    private GitLabOptions gitLabOptions;
     private GeneralOptions generalOptions;
-    private Optional<CredentialFileHandler> credentialFileHandler = Optional.empty();
     private SubmoduleStrategy submoduleStrategy;
     private ImmutableList<String> excludedSubmodules = ImmutableList.of();
     private Optional<PatchTransformation> patchTransformation = Optional.empty();
@@ -361,18 +378,6 @@ public class GitLabMrOrigin implements Origin<GitRevision> {
     public Builder() {}
 
     /**
-     * Sets the {@link GitLabApi} to be used for constructing the origin.
-     *
-     * @param val the {@link GitLabApi}, to be used for communicating with the GitLab instance's API
-     * @return a reference to this Builder
-     */
-    @CanIgnoreReturnValue
-    public Builder setGitLabApi(GitLabApi val) {
-      gitLabApi = val;
-      return this;
-    }
-
-    /**
      * Sets the {@link Console} to be used for constructing the origin.
      *
      * @param val the {@link Console} to set, to be used for logging
@@ -381,6 +386,19 @@ public class GitLabMrOrigin implements Origin<GitRevision> {
     @CanIgnoreReturnValue
     public Builder setConsole(Console val) {
       console = val;
+      return this;
+    }
+
+    /**
+     * Sets the {@link UsernamePasswordIssuer} to be used for constructing the origin, if any.
+     *
+     * @param val the {@link UsernamePasswordIssuer} to set, to be used to obtain credentials for
+     *     authenticating with GitLab.
+     * @return a reference to this Builder
+     */
+    @CanIgnoreReturnValue
+    public Builder setUsernamePasswordIssuer(Optional<UsernamePasswordIssuer> val) {
+      usernamePasswordIssuer = val;
       return this;
     }
 
@@ -422,6 +440,18 @@ public class GitLabMrOrigin implements Origin<GitRevision> {
     }
 
     /**
+     * Sets the {@link GitLabOptions} to be used for constructing the origin.
+     *
+     * @param val the {@link GitLabOptions}, to be used to init the {@link GitLabApi} object
+     * @return a reference to this Builder
+     */
+    @CanIgnoreReturnValue
+    public Builder setGitLabOptions(GitLabOptions val) {
+      gitLabOptions = val;
+      return this;
+    }
+
+    /**
      * Sets the {@link GeneralOptions} to be used for constructing the origin.
      *
      * @param val the {@link GeneralOptions} to be used to configure the origin's behavior
@@ -430,19 +460,6 @@ public class GitLabMrOrigin implements Origin<GitRevision> {
     @CanIgnoreReturnValue
     public Builder setGeneralOptions(GeneralOptions val) {
       generalOptions = val;
-      return this;
-    }
-
-    /**
-     * Sets the {@link CredentialFileHandler} to be used in the origin, when authenticating with
-     * Git.
-     *
-     * @param val the {@link CredentialFileHandler}, to be used for supplying Git with credentials
-     * @return a reference to this Builder
-     */
-    @CanIgnoreReturnValue
-    public Builder setCredentialFileHandler(Optional<CredentialFileHandler> val) {
-      credentialFileHandler = val;
       return this;
     }
 

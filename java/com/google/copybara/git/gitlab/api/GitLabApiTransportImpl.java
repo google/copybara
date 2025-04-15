@@ -52,13 +52,13 @@ public class GitLabApiTransportImpl implements GitLabApiTransport {
   private final String hostUrl;
   private final HttpTransport httpTransport;
   private final Console console;
-  private final AuthInterceptor authInterceptor;
+  private final Optional<AuthInterceptor> authInterceptor;
 
   public GitLabApiTransportImpl(
       String repoUrl,
       HttpTransport httpTransport,
       Console console,
-      AuthInterceptor authInterceptor) {
+      Optional<AuthInterceptor> authInterceptor) {
     this.httpTransport = httpTransport;
     this.hostUrl = getGitLabHostUrl(repoUrl);
     this.console = console;
@@ -106,11 +106,17 @@ public class GitLabApiTransportImpl implements GitLabApiTransport {
       GenericUrl url, String method, HttpHeaders httpHeaders, @Nullable HttpContent content)
       throws IOException, ValidationException {
     try {
-      return httpTransport
-          .createRequestFactory()
-          .buildRequest(method, url, content)
-          .setInterceptor(authInterceptor.interceptor())
-          .setHeaders(httpHeaders);
+      HttpRequest request =
+          httpTransport
+              .createRequestFactory()
+              .buildRequest(method, url, content)
+              .setHeaders(httpHeaders);
+
+      if (authInterceptor.isPresent()) {
+        request.setInterceptor(authInterceptor.get().interceptor());
+      }
+
+      return request;
     } catch (CredentialRetrievalException | CredentialIssuingException e) {
       throw new ValidationException(
           String.format("There was an issue obtaining credentials for %s: %s", url, e.getMessage()),

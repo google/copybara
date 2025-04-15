@@ -85,10 +85,7 @@ import com.google.copybara.git.github.api.GitHubEventType;
 import com.google.copybara.git.github.api.GitHubGraphQLApi.GetCommitHistoryParams;
 import com.google.copybara.git.github.util.GitHubUtil;
 import com.google.copybara.git.gitlab.GitLabOptions;
-import com.google.copybara.git.gitlab.api.GitLabApi;
-import com.google.copybara.git.gitlab.api.GitLabApiTransport;
 import com.google.copybara.git.gitlab.api.entities.MergeRequest.DetailedMergeStatus;
-import com.google.copybara.http.auth.AuthInterceptor;
 import com.google.copybara.transform.Replace;
 import com.google.copybara.transform.patch.PatchTransformation;
 import com.google.copybara.util.RepositoryUtil;
@@ -145,6 +142,11 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
           + " host and a password or token. This is gated by the '"
           + USE_CREDENTIALS_FROM_CONFIG
           + "' flag";
+
+  public static final String GITLAB_CREDENTIAL_DOC =
+      "Read credentials from config file to access the GitLab Repo. This expects a"
+          + " `credentials.username_password` specifying the username to use for the remote GitLab"
+          + " host and a password or token.";
   private final Sequence<GitIntegrateChanges> defaultGitIntegrate;
   private static final String GERRIT_TRIGGER = "gerrit_trigger";
   private static final String GERRIT_API = "gerrit_api";
@@ -2637,16 +2639,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "None",
             named = true,
             positional = false,
-            doc = CREDENTIAL_DOC),
-        @Param(
-            name = "auth_interceptor",
-            named = true,
-            positional = false,
-            doc =
-                "An interceptor for providing credentials. This is used for inserting"
-                    + " authentication headers to GitLab API calls.\n"
-                    + "Example: `auth_interceptor = http.bearer_auth(credentials)` will perform"
-                    + " Bearer Authentication with the GitLab API using the given credentials."),
+            doc = GITLAB_CREDENTIAL_DOC),
         @Param(
             name = "partial_fetch",
             named = true,
@@ -2710,7 +2703,6 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   public GitLabMrOrigin gitLabMrOrigin(
       String url,
       Object usernamePasswordIssuer,
-      AuthInterceptor authInterceptor,
       boolean partialFetch,
       boolean useMergeCommit,
       boolean describeVersion,
@@ -2723,21 +2715,17 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
 
     GitLabOptions gitLabOptions = options.get(GitLabOptions.class);
     Console console = getGeneralConsole();
-    GitLabApiTransport gitLabApiTransport =
-        GitLabOptions.getApiTransport(
-            url, gitLabOptions.getHttpTransportSupplier().get(), console, authInterceptor);
     PatchTransformation patchTransformation = maybeGetPatchTransformation(patch);
 
     GitLabMrOrigin.Builder originBuilder =
         GitLabMrOrigin.builder()
-            .setGitLabApi(new GitLabApi(gitLabApiTransport))
             .setConsole(console)
+            .setUsernamePasswordIssuer(convertToOptional(usernamePasswordIssuer))
             .setRepoUrl(URI.create(url))
             .setGitOptions(options.get(GitOptions.class))
             .setGitOriginOptions(options.get(GitOriginOptions.class))
+            .setGitLabOptions(options.get(GitLabOptions.class))
             .setGeneralOptions(options.get(GeneralOptions.class))
-            .setCredentialFileHandler(
-                Optional.ofNullable(getCredentialHandler(url, usernamePasswordIssuer)))
             .setSubmoduleStrategy(stringToEnum("submodules", submodules, SubmoduleStrategy.class))
             .setExcludedSubmodules(
                 ImmutableList.copyOf(
@@ -2766,23 +2754,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             named = true,
             positional = false,
             doc = "The URL of the GitLab repository."),
-        @Param(
-            name = "credentials",
-            allowedTypes = {
-              @ParamType(type = UsernamePasswordIssuer.class),
-              @ParamType(type = NoneType.class),
-            },
-            defaultValue = "None",
-            named = true,
-            positional = false,
-            doc = CREDENTIAL_DOC),
-        @Param(
-            name = "auth_interceptor",
-            named = true,
-            positional = false,
-            doc =
-                "An interceptor for providing credentials. This is used for inserting"
-                    + " authentication headers to GitLab API calls."),
+        @Param(name = "credentials", named = true, positional = false, doc = GITLAB_CREDENTIAL_DOC),
         @Param(
             name = "source_branch",
             named = true,
@@ -2897,8 +2869,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   @SuppressWarnings("unused")
   public GitLabMrDestination gitLabMrDestination(
       String url,
-      Object usernamePasswordIssuer,
-      AuthInterceptor authInterceptor,
+      UsernamePasswordIssuer usernamePasswordIssuer,
       Object sourceBranchTemplate,
       String targetBranch,
       Object titleTemplate,
@@ -2914,21 +2885,19 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
 
     GitLabOptions gitLabOptions = options.get(GitLabOptions.class);
     Console console = getGeneralConsole();
-    GitLabApiTransport gitLabApiTransport =
-        GitLabOptions.getApiTransport(
-            url, gitLabOptions.getHttpTransportSupplier().get(), console, authInterceptor);
 
-    return new GitLabMrDestinationParams(
-            new GitLabApi(gitLabApiTransport),
-            URI.create(url),
-            convertToOptional(titleTemplate),
-            convertToOptional(bodyTemplate),
-            Sequence.cast(assigneeTemplates, String.class, "assignee_templates").getImmutableList(),
-            getCredentialHandler(url, usernamePasswordIssuer),
-            convertToOptional(sourceBranchTemplate),
-            targetBranch,
-            mainConfigFile,
-            allowEmptyDiff,
+    return GitLabMrDestinationParams.builder()
+        .setRepoUrl(URI.create(url))
+        .setUsernamePasswordIssuer(usernamePasswordIssuer)
+        .setTitleTemplate(convertToOptional(titleTemplate))
+        .setBodyTemplate(convertToOptional(bodyTemplate))
+        .setAssigneeTemplates(
+            Sequence.cast(assigneeTemplates, String.class, "assignee_templates").getImmutableList())
+        .setSourceBranchTemplate(convertToOptional(sourceBranchTemplate))
+        .setTargetBranch(targetBranch)
+        .setConfigFile(mainConfigFile)
+        .setAllowEmptyDiff(allowEmptyDiff)
+        .setAllowEmptyDiffMergeStatuses(
             ImmutableSet.copyOf(
                 SkylarkUtil.stringListToEnumList(
                     Sequence.cast(
@@ -2937,15 +2906,18 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                         "allow_empty_diff_merge_statuses"),
                     DetailedMergeStatus.class,
                     "allow_empty_diff_merge_statuses",
-                    console)),
-            options.get(GeneralOptions.class),
-            options.get(GitOptions.class),
-            options.get(GitDestinationOptions.class),
-            partialFetch,
+                    console)))
+        .setGeneralOptions(options.get(GeneralOptions.class))
+        .setGitOptions(options.get(GitOptions.class))
+        .setGitLabOptions(options.get(GitLabOptions.class))
+        .setDestinationOptions(options.get(GitDestinationOptions.class))
+        .setPartialFetch(partialFetch)
+        .setIntegrates(
             Starlark.isNullOrNone(integrates)
                 ? defaultGitIntegrate
-                : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"),
-            convertToOptional(checker))
+                : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"))
+        .setChecker(convertToOptional(checker))
+        .build()
         .createDestination();
   }
 
