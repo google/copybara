@@ -173,42 +173,17 @@ public class Main {
     return Optional.empty();
   }
 
-  /** A wrapper of the exit code and the command executed */
-  protected static class CommandResult {
+  /**
+   * A wrapper of the exit code and the command executed
+   *
+   * @param exitCode the exit code of the command
+   * @param command the command that was executed
+   * @param commandEnv the command environment passed to the command. Can be null for executions
+   *     that failed before executing the command, like bad options.
+   */
+  protected record CommandResult(
+      ExitCode exitCode, @Nullable CopybaraCmd command, @Nullable CommandEnv commandEnv) {}
 
-    private final ExitCode exitCode;
-    @Nullable private final CommandEnv commandEnv;
-    @Nullable private final CopybaraCmd command;
-
-    CommandResult(
-        ExitCode exitCode, @Nullable CopybaraCmd command, @Nullable CommandEnv commandEnv) {
-       this.exitCode = Preconditions.checkNotNull(exitCode);
-       this.command = command;
-       this.commandEnv = commandEnv;
-    }
-
-    public ExitCode getExitCode() {
-      return exitCode;
-    }
-
-    /**
-     * The command environment passed to the command. Can be null for executions that failed before
-     * executing the command, like bad options.
-     */
-    @Nullable
-    public CommandEnv getCommandEnv() {
-      return commandEnv;
-    }
-
-    /**
-     * The command that was executed. Can be null for executions that failed before executing the
-     * command, like bad options.
-     */
-    @Nullable
-    public CopybaraCmd getCommand() {
-      return command;
-    }
-  }
   /**
    * Runs the command and returns the {@link ExitCode}.
    *
