@@ -20,9 +20,9 @@ import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableSetMultimap.Builder;
-import com.google.common.collect.Iterables;
 import com.google.copybara.action.Action;
 import com.google.copybara.action.ActionResult;
 import com.google.copybara.action.ActionResult.Result;
@@ -51,6 +51,8 @@ import net.starlark.java.eval.Structure;
  * A migration that can move code or metadata between endpoints.
  */
 public class ActionMigration implements Migration {
+
+  public static final String DESTINATION_ENDPOINT_NAME = "destination";
 
   private final String name;
   @Nullable private final String description;
@@ -167,14 +169,31 @@ public class ActionMigration implements Migration {
 
   @Override
   public ImmutableSetMultimap<String, String> getDestinationDescription() {
-    // TODO(b/269526710) Remove this limitation
-    String destination = Iterables.getOnlyElement(getEndpoints().getFieldNames());
-    Preconditions.checkNotNull(destination);
     try {
-      return ((Endpoint) getEndpoints().getValue(destination)).describe();
+      // We currently require one endpoint to be the designated destination, all others should be
+      // read only.
+      Object destination =
+          Preconditions.checkNotNull(getEndpoints().getValue(DESTINATION_ENDPOINT_NAME));
+      return ((Endpoint) destination).describe();
     } catch (EvalException e) {
-      throw new RuntimeException("Shouldn't happen", e);
+      throw new IllegalStateException("Shouldn't happen", e);
     }
+  }
+
+  public ImmutableMap<String, ImmutableSetMultimap<String, String>> getEndpointDescriptions() {
+    ImmutableMap.Builder<String, ImmutableSetMultimap<String, String>> result =
+        ImmutableMap.builder();
+    for (String name : endpoints.getFieldNames()) {
+      try {
+        if (!name.equals(DESTINATION_ENDPOINT_NAME)
+            && endpoints.getValue(name) instanceof Endpoint e) {
+          result.put(name, e.describe());
+        }
+      } catch (EvalException e) {
+        throw new IllegalStateException("Shouldn't happen", e);
+      }
+    }
+    return result.buildOrThrow();
   }
 
   /**

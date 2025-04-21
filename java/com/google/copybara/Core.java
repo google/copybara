@@ -2203,7 +2203,9 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     ImmutableCollection<String> fields = endpoints.getFieldNames();
 
     // TODO(b/269526710): Enable more than one endpoint
-    check(fields.size() == 1 && Iterables.getOnlyElement(fields).equals("destination"),
+    check(
+        fields.size() == 1
+            && Iterables.getOnlyElement(fields).equals(ActionMigration.DESTINATION_ENDPOINT_NAME),
         "Temporarily core.action_migration only supports one endpoint called destination");
 
     for (String fieldName : fields) {
