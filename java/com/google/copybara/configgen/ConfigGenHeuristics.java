@@ -30,8 +30,10 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.hash.Hashing;
+import com.google.copybara.GeneralOptions;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.RenameDetector;
+import com.google.copybara.util.console.Console;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -70,6 +72,7 @@ public class ConfigGenHeuristics {
   private final int percentSimilar;
   private final boolean ignoreCarriageReturn;
   private final boolean ignoreWhitespace;
+  private final GeneralOptions generalOptions;
 
   /**
    * Creates the Generator object
@@ -81,6 +84,8 @@ public class ConfigGenHeuristics {
    * @param percentSimilar percentage of similar lines to consider two files the same.
    * @param ignoreCarriageReturn Whether to ignore carriage return characters in file content
    *     comparisons.
+   * @param ignoreWhitespace Whether to ignore whitespace characters in file content comparisons.
+   * @param generalOptions the {@link GeneralOptions} object.
    */
   public ConfigGenHeuristics(
       Path origin,
@@ -88,13 +93,15 @@ public class ConfigGenHeuristics {
       ImmutableSet<Path> destinationOnlyPaths,
       int percentSimilar,
       boolean ignoreCarriageReturn,
-      boolean ignoreWhitespace) {
+      boolean ignoreWhitespace,
+      GeneralOptions generalOptions) {
     this.origin = checkNotNull(origin);
     this.destination = checkNotNull(destination);
     this.destinationOnlyPaths = checkNotNull(destinationOnlyPaths);
     this.percentSimilar = percentSimilar;
     this.ignoreCarriageReturn = ignoreCarriageReturn;
     this.ignoreWhitespace = ignoreWhitespace;
+    this.generalOptions = generalOptions;
   }
 
   /** Result of the config generation */
@@ -196,7 +203,9 @@ public class ConfigGenHeuristics {
             .minimizeScore(similarFiles.keySet(), originOnly, 0);
 
     // Enable to debug what is being generated:
-    debug(similarFiles, destinationOnly, originGlob);
+    if (generalOptions.isVerbose()) {
+      debug(similarFiles, destinationOnly, originGlob);
+    }
 
     return consolidateCommonPattern(
         originGlob, similarFiles.keySet(), p -> p.startsWith("."), ".**");
@@ -293,19 +302,17 @@ public class ConfigGenHeuristics {
     return result.getMovesInOrder();
   }
 
-  /** TODO(malcon): Used for debugging what is going on. Can be removed in the future */
   private void debug(
       Map<Path, Path> similarFiles, HashSet<Path> destinationOnly, IncludesGlob originGlob) {
+    Console console = generalOptions.console();
     for (Map.Entry<Path, Path> e : similarFiles.entrySet()) {
-      System.err.println(e.getKey() + " -> " + e.getValue());
+      console.verbose(e.getKey() + " -> " + e.getValue());
     }
 
-    System.err.println();
-    System.err.println("git_files = " + originGlob.glob);
+    console.verbose("git_files = " + originGlob.glob);
 
-    System.err.println();
     for (Path path : destinationOnly) {
-      System.err.println("G3 Only: " + path);
+      console.verbose("G3 Only: " + path);
     }
   }
 

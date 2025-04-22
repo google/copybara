@@ -21,6 +21,7 @@ all_tests(
     tests = glob(["**/*Test.java"]),
     deps = [
         "//java/com/google/copybara/configgen",
+        "//java/com/google/copybara/testing",
         "//java/com/google/copybara/util",
         "//third_party:truth",
     ],

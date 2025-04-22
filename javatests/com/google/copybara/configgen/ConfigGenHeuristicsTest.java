@@ -21,6 +21,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.configgen.ConfigGenHeuristics.GeneratorMove;
+import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.util.Glob;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -37,12 +38,14 @@ public class ConfigGenHeuristicsTest {
   private Path origin;
   private Path destination;
   private ImmutableSet<Path> destinationOnlyPaths;
+  private OptionsBuilder optionsBuilder;
 
   @Before
   public void setup() throws IOException {
     origin = Files.createTempDirectory("origin");
     destination = Files.createTempDirectory("destination");
     destinationOnlyPaths = ImmutableSet.of();
+    optionsBuilder = new OptionsBuilder();
   }
 
   @Test
@@ -287,6 +290,12 @@ public class ConfigGenHeuristicsTest {
   private ConfigGenHeuristics createHeuristics(
       boolean ignoreCarriageReturn, boolean ignoreWhitespace) {
     return new ConfigGenHeuristics(
-        origin, destination, destinationOnlyPaths, 30, ignoreCarriageReturn, ignoreWhitespace);
+        origin,
+        destination,
+        destinationOnlyPaths,
+        30,
+        ignoreCarriageReturn,
+        ignoreWhitespace,
+        optionsBuilder.general);
   }
 }

@@ -144,7 +144,8 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
               destinationOnlyPaths,
               percentSimilar,
               generatorOptions.computeGlobIgnoreCarriageReturn,
-              generatorOptions.computeGlobIgnoreWhitespace);
+              generatorOptions.computeGlobIgnoreWhitespace,
+              generalOptions);
 
       console.progressFmt("Computing globs");
       cached = Optional.of(heuristics.run());

@@ -24,7 +24,9 @@ java_library(
         "ConfigGenHeuristics.java",
     ],
     deps = [
+        "//java/com/google/copybara:general_options",
         "//java/com/google/copybara/util",
+        "//java/com/google/copybara/util/console",
         "//third_party:guava",
     ],
 )
