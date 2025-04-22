@@ -251,17 +251,18 @@ public final class Replace implements Transformation {
           continue;
         }
         matchedFile = true;
-        String originalFileContent = null;
-        try {
-          originalFileContent = new String(Files.readAllBytes(file.getPath()), UTF_8);
-        } catch (NegativeArraySizeException e) {
-          throw new ValidationException(String.format(
-              "Cannot read file %s because it is too big for core.replace(). You can exclude"
-                  + " running for this file by adding core.replace(..., paths = glob(['**'],"
-                  + " exclude = ['big/file/path'])). another option, if the file is not needed,"
-                  + " is to exclude it in origin_files.",
-              file));
+        byte[] bytes = Files.readAllBytes(file.getPath());
+        // This duplicates the check in StringUTF16#newBytesFor
+        if (bytes.length < 0 || bytes.length > Integer.MAX_VALUE >> 1) {
+          throw new ValidationException(
+              String.format(
+                  "Cannot read file '%s' because it is too big for core.replace(). You can exclude"
+                      + " running for this file by adding core.replace(..., paths = glob(['**'],"
+                      + " exclude = ['big/file/path'])). another option, if the file is not"
+                      + " needed, is to exclude it in origin_files.",
+                  file.getPath()));
         }
+        String originalFileContent = new String(bytes, UTF_8);
 
         if (!replacer.isFirstOnly() && emptyBefore && originalFileContent.length() > 10_000) {
           throw new ValidationException(
