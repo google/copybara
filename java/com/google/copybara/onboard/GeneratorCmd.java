@@ -16,7 +16,6 @@
 
 package com.google.copybara.onboard;
 
-
 import com.beust.jcommander.Parameters;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -101,7 +100,8 @@ public class GeneratorCmd implements OnboardingCmd {
             commandEnv.getOptions().get(GeneratorOptions.class),
             ImmutableSet.of(),
             PERCENTAGE_SIMILAR,
-            console),
+            console,
+            (db) -> db.resolve(Inputs.GENERATOR_FOLDER)),
         new MapBasedInputProvider(genOpts.inputs, InputProvider.COMMAND_LINE_PRIORITY));
   }
 

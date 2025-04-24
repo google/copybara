@@ -63,6 +63,7 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
   private final ImmutableSet<Path> destinationOnlyPaths;
   private final int percentSimilar;
   private final Console console;
+  private final DestinationPathProvider destinationPathProvider;
 
   public ConfigHeuristicsInputProvider(
       GitOptions gitOptions,
@@ -70,13 +71,15 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
       GeneratorOptions generatorOptions,
       ImmutableSet<Path> destinationOnlyPaths,
       int percentSimilar,
-      Console console) {
+      Console console,
+      DestinationPathProvider destinationPathProvider) {
     this.gitOptions = gitOptions;
     this.generalOptions = generalOptions;
     this.generatorOptions = generatorOptions;
     this.destinationOnlyPaths = destinationOnlyPaths;
     this.percentSimilar = percentSimilar;
     this.console = console;
+    this.destinationPathProvider = destinationPathProvider;
   }
 
   @Override
@@ -84,9 +87,7 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
       throws InterruptedException, CannotProvideException {
     URL originUrl = db.resolve(Inputs.GIT_ORIGIN_URL);
     String currentVersion = db.resolve(Inputs.CURRENT_VERSION);
-    // Technically this could be different from the config generator folder. But good enough
-    // for now
-    Path destination = db.resolve(Inputs.GENERATOR_FOLDER);
+    Path destination = destinationPathProvider.resolve(db);
     Optional<Result> result = computeHeuristic(originUrl, currentVersion, destination);
     if (result.isEmpty()) {
       return Optional.empty();
@@ -163,5 +164,14 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
     return defaultPriority(
         ImmutableSet.of(
             Inputs.ORIGIN_GLOB, Inputs.TRANSFORMATIONS, Inputs.DESTINATION_EXCLUDE_PATHS));
+  }
+
+  /**
+   * Resolves a destination path for glob generation heuristics. This allows the destination path to
+   * be different than the generator output folder, if needed.
+   */
+  @FunctionalInterface
+  public interface DestinationPathProvider {
+    Path resolve(InputProviderResolver db) throws InterruptedException, CannotProvideException;
   }
 }

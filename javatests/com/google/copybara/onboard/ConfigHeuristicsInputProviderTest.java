@@ -119,7 +119,13 @@ public class ConfigHeuristicsInputProviderTest {
 
     ConfigHeuristicsInputProvider inputProvider =
         new ConfigHeuristicsInputProvider(
-            gitOptions, generalOptions, generatorOptions, ImmutableSet.of(), 30, console);
+            gitOptions,
+            generalOptions,
+            generatorOptions,
+            ImmutableSet.of(),
+            30,
+            console,
+            (db) -> db.resolve(Inputs.GENERATOR_FOLDER));
     Optional<Glob> glob = inputProvider.resolve(Inputs.ORIGIN_GLOB, resolver);
 
     // The result is an empty glob rather than glob(include = ["**"], exclude = ["**"])
@@ -156,7 +162,58 @@ public class ConfigHeuristicsInputProviderTest {
         };
     ConfigHeuristicsInputProvider inputProvider =
         new ConfigHeuristicsInputProvider(
-            gitOptions, generalOptions, generatorOptions, ImmutableSet.of(), 30, console);
+            gitOptions,
+            generalOptions,
+            generatorOptions,
+            ImmutableSet.of(),
+            30,
+            console,
+            (db) -> db.resolve(Inputs.GENERATOR_FOLDER));
+
+    DestinationExcludePaths paths =
+        inputProvider.resolve(Inputs.DESTINATION_EXCLUDE_PATHS, resolver).get();
+
+    assertThat(paths.getPaths()).containsExactly(Path.of("destination-only.txt"));
+  }
+
+  @Test
+  public void destinationExcludes_withNonEqualGeneratorFolderAndDestination() throws Exception {
+    Files.writeString(workDir.resolve("foo.txt"), "hi");
+    origin.add().files("foo.txt").run();
+    origin.simpleCommand("commit", "foo.txt", "-m", "message");
+    origin.tag("1.0.0").run();
+    Files.createDirectory(destination.resolve("src"));
+    Files.writeString(
+        destination.resolve("src/destination-only.txt"), "I'm a destination-only file");
+    InputProviderResolver resolver =
+        new InputProviderResolver() {
+          @Override
+          public <T> T resolve(Input<T> input) throws CannotProvideException {
+            try {
+              if (input == Inputs.GIT_ORIGIN_URL) {
+                return Inputs.GIT_ORIGIN_URL.asValue(new URL(url));
+              }
+              if (input == Inputs.CURRENT_VERSION) {
+                return Inputs.CURRENT_VERSION.asValue("1.0.0");
+              }
+              if (input == Inputs.GENERATOR_FOLDER) {
+                return Inputs.GENERATOR_FOLDER.asValue(destination);
+              }
+            } catch (MalformedURLException e) {
+              Assert.fail("Malformed url, shouldn't happen: " + e);
+            }
+            throw new CannotProvideException("Cannot provide " + input);
+          }
+        };
+    ConfigHeuristicsInputProvider inputProvider =
+        new ConfigHeuristicsInputProvider(
+            gitOptions,
+            generalOptions,
+            generatorOptions,
+            ImmutableSet.of(),
+            30,
+            console,
+            (unused) -> destination.resolve("src"));
 
     DestinationExcludePaths paths =
         inputProvider.resolve(Inputs.DESTINATION_EXCLUDE_PATHS, resolver).get();
@@ -202,7 +259,13 @@ public class ConfigHeuristicsInputProviderTest {
 
     ConfigHeuristicsInputProvider inputProvider =
         new ConfigHeuristicsInputProvider(
-            gitOptions, generalOptions, generatorOptions, ImmutableSet.of(), 30, console);
+            gitOptions,
+            generalOptions,
+            generatorOptions,
+            ImmutableSet.of(),
+            30,
+            console,
+            (db) -> db.resolve(Inputs.GENERATOR_FOLDER));
     Glob expectedGlob = Glob.createGlob(ImmutableList.of("**"), ImmutableList.of("bar.txt"));
     Optional<Glob> glob = inputProvider.resolve(Inputs.ORIGIN_GLOB, resolver);
 
