@@ -1,5 +1,8 @@
 name: Weekly Release
 
+permissions:
+      contents: write
+
 on:
   #  Uncoment these two lines to test the pipeline in a PR, but NEVER merge in main branch:
   #  pull_request:
