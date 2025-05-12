@@ -143,6 +143,15 @@ def copybara_repositories():
     # LICENSE: The Apache Software License, Version 2.0
     maybe(
         http_archive,
+        name = "rules_shell",
+        sha256 = "541033748c8bb48e09957caad70bebb866435d0ee20c984fd9d0c731d8c5f03a",
+        strip_prefix = "rules_shell-19e2da0c9a5b16ec3337c94c256d3947dd81bb0a",
+        url = "https://github.com/bazelbuild/rules_shell/archive/19e2da0c9a5b16ec3337c94c256d3947dd81bb0a.zip",
+    )
+
+    # LICENSE: The Apache Software License, Version 2.0
+    maybe(
+        http_archive,
         name = "bazel_gazelle",
         sha256 = "ecba0f04f96b4960a5b250c8e8eeec42281035970aa8852dda73098274d14a1d",
         urls = [
