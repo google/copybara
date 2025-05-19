@@ -1174,6 +1174,31 @@ public class GitRepositoryTest {
   }
 
   @Test
+  public void testLsRemoteWithRowLimit() throws Exception {
+    for (int i = 0; i < 10; i++) {
+      Files.write(workdir.resolve(String.format("foo_%s.txt", i)), new byte[] {});
+      repository.add().files(String.format("foo_%s.txt", i)).run();
+      repository.simpleCommand("commit", String.format("foo_%s.txt", i), "-m", "message");
+      repository.branch(String.format("b%s", i)).run();
+    }
+
+    Map<String, String> refsToShas =
+        GitRepository.lsRemote(
+            "file://" + repository.getGitDir(),
+            Collections.emptyList(),
+            new GitEnvironment(System.getenv()), /*maxLogLines*/
+            6);
+    assertThat(refsToShas.keySet())
+        .containsExactly(
+            "HEAD",
+            "refs/heads/b0",
+            "refs/heads/b1",
+            "refs/heads/b2",
+            "refs/heads/b3",
+            "refs/heads/b4");
+  }
+
+  @Test
   public void testLsRemoteNotExist() throws Exception {
     String url = "file://" + Files.createTempDirectory("foo");
 

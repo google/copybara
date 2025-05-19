@@ -668,7 +668,6 @@ public class GitRepository {
   private static ImmutableMap<String, String> lsRemote(
       Path cwd, String url, Collection<String> refs, GitEnvironment gitEnv, int maxLogLines,
       Collection<String> flags) throws RepoException, ValidationException {
-
     ImmutableMap.Builder<String, String> result = ImmutableMap.builder();
     List<String> args = Lists.newArrayList("ls-remote");
     args.addAll(flags);
@@ -702,15 +701,18 @@ public class GitRepository {
           String.format("Error running ls-remote for '%s' and refs '%s'", url, refs), e);
     }
     if (output.getTerminationStatus().success()) {
-      for (String line : Splitter.on('\n').split(output.getStdout())) {
-        if (line.isEmpty()) {
-          continue;
+      int rowsAccumulated = 0;
+      for (String line :
+          Iterables.filter(Splitter.on('\n').split(output.getStdout()), row -> !row.isEmpty())) {
+        if (maxLogLines >= 0 && rowsAccumulated >= maxLogLines) {
+          break;
         }
         Matcher matcher = LS_REMOTE_OUTPUT_LINE.matcher(line);
         if (!matcher.matches()) {
           throw new RepoException("Unexpected format for ls-remote output: " + line);
         }
         result.put(matcher.group(2), matcher.group(1));
+        rowsAccumulated++;
         if (DEFAULT_BRANCH_PATTERN.matches(line)) {
           // we have a ref: line, indicating that we were looking for a symbolic ref. bail.
           break;
