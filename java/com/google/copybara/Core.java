@@ -35,7 +35,6 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
-import com.google.common.collect.Iterables;
 import com.google.copybara.StructModule.StructImpl;
 import com.google.copybara.action.Action;
 import com.google.copybara.action.StarlarkAction;
@@ -2201,12 +2200,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       throws EvalException {
     Builder<String, Object> result = ImmutableMap.builder();
     ImmutableCollection<String> fields = endpoints.getFieldNames();
-
-    // TODO(b/269526710): Enable more than one endpoint
-    check(
-        fields.size() == 1
-            && Iterables.getOnlyElement(fields).equals(ActionMigration.DESTINATION_ENDPOINT_NAME),
-        "Temporarily core.action_migration only supports one endpoint called destination");
 
     for (String fieldName : fields) {
       Object epProvider = endpoints.getValue(fieldName);

@@ -628,30 +628,7 @@ public class ActionMigrationTest {
     actionMigration.run(workdir, ImmutableList.of("12345"));
     console.assertThat().onceInLog(MessageType.INFO, "FOUND: hello");
   }
-
-  // TODO(b/269526710): Remove test when we remove this limitation
-  @Test
-  public void testActionMigration_UseMoreThanOneDestination() throws Exception {
-    String config = ""
-            + "def test_action(ctx):\n"
-            + "    return ctx.success()\n"
-            + "\n"
-            + "core.action_migration(\n"
-            + "    name = 'default',\n"
-            + "    origin = testing.dummy_trigger(),\n"
-            + "    endpoints = struct(\n"
-            + "        destination = testing.dummy_endpoint(),\n"
-            + "        foo = testing.dummy_endpoint()\n"
-            + "    ),"
-            + "    action = test_action,\n"
-            + ")\n"
-            + "\n";
-    assertThat(assertThrows(ValidationException.class, () ->
-        loadConfig(config).getMigration("default")))
-        .hasMessageThat().contains(
-            "Temporarily core.action_migration only supports one endpoint called destination");
-  }
-
+  
   @Test
   public void testActionMigration_noopNullMsgDoesNotNPE() throws Exception {
     String config =
