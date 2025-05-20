@@ -30,6 +30,7 @@ import com.google.copybara.onboard.core.template.Field.Location;
 import com.google.copybara.util.Glob;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -157,7 +158,7 @@ public abstract class TemplateConfigGenerator implements ConfigGenerator {
   }
 
   /** Buildifier won't format lists with newlines unless at least one of them is in a new line */
-  protected String newLineHack(Glob glob) {
+  protected String globToStringWithNewline(Glob glob) {
     String asString = glob.toString();
     // Skip for a common glob case.
     if (asString.equals("glob(include = [\"**\"])")) {
@@ -167,6 +168,24 @@ public abstract class TemplateConfigGenerator implements ConfigGenerator {
       return asString.replace("[\"", "[\n                 \"");
     }
     return asString;
+  }
+
+  /**
+   * Calls {@link Collection#toString} on the collection and adds a newline after the first open
+   * bracket, which will force Buildifier to format the collection as a multi-line list.
+   *
+   * <p>This is intended for collections that are to be printed to a Copybara config file.
+   *
+   * @param collection The collection to convert to a string.
+   * @return The collection converted to a string with the newline added.
+   */
+  protected String collectionToStringWithNewline(Collection<?> collection) {
+    // No need to add a newline if the collection is a single element.
+    if (collection.size() <= 1) {
+      return collection.toString();
+    }
+
+    return collection.toString().replaceFirst("\\[", "[\n");
   }
 
   /**
