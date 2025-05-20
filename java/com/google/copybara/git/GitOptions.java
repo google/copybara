@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2016 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import static com.google.copybara.util.FileUtil.resolveDirInCache;
 import com.beust.jcommander.DynamicParameter;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.GeneralOptions;
@@ -142,6 +143,11 @@ public class GitOptions implements Option {
           + " most recent changes' tree states are imported with older changes omitted.")
   Integer fetchDepth = null;
 
+  @Nullable
+  @Parameter(names = "--git-log-limit",
+      description = "Limit log lines to the number specified")
+  private Integer gitLogLimit = GitRepository.DEFAULT_MAX_LOG_LINES;
+
   public Optional<Integer> getFetchDepth() {
     return Optional.ofNullable(fetchDepth);
   }
@@ -223,6 +229,14 @@ public class GitOptions implements Option {
     return partialCacheFilePrefix;
   }
 
+  /**
+   * Returns the limit for the number of log lines to output. Specifically this is the value set by
+   * --git-log-limit.
+   */
+  public int getGitLogLimit() {
+    return gitLogLimit;
+  }
+
   public GitOptions setPartialCacheFilePrefix(String partialCacheFilePrefix) {
     return new GitOptions(generalOptions, partialCacheFilePrefix);
   }
@@ -235,5 +249,16 @@ public class GitOptions implements Option {
     }
     return new GitRepository.PushOptionsValidator(
         Optional.of(ImmutableList.copyOf(allowedGitPushOptions)));
+  }
+
+  /**
+   * Sets the limit for the number of log lines to fetch specifically the value set by
+   * --git-log-limit. This is only used for testing.
+   * 
+   * @param limit the limit for the number of log lines to output
+   */
+  @VisibleForTesting
+  public void setGitLogLimit(int limit) {
+    gitLogLimit = limit;
   }
 }
