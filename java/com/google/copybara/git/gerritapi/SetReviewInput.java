@@ -26,6 +26,7 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.eval.Printer;
+import net.starlark.java.eval.StarlarkSemantics;
 import net.starlark.java.eval.StarlarkValue;
 
 /** See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#review-input. */
@@ -113,7 +114,7 @@ public class SetReviewInput implements StarlarkValue {
   }
 
   @Override
-  public void repr(Printer printer) {
+  public void repr(Printer printer, StarlarkSemantics semantics) {
     printer.append(toString());
   }
 }

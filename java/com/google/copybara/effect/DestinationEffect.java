@@ -27,6 +27,7 @@ import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Printer;
 import net.starlark.java.eval.Sequence;
 import net.starlark.java.eval.StarlarkList;
+import net.starlark.java.eval.StarlarkSemantics;
 import net.starlark.java.eval.StarlarkValue;
 
 /** An effect happening in the destination as a consequence of the migration */
@@ -155,7 +156,7 @@ public class DestinationEffect implements StarlarkValue {
   }
 
   @Override
-  public void repr(Printer printer) {
+  public void repr(Printer printer, StarlarkSemantics semantics) {
     printer.append(toString());
   }
 
@@ -274,7 +275,7 @@ public class DestinationEffect implements StarlarkValue {
     }
 
     @Override
-    public void repr(Printer printer) {
+    public void repr(Printer printer, StarlarkSemantics semantics) {
       printer.append(toString());
     }
 

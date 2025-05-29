@@ -32,6 +32,7 @@ import net.starlark.java.eval.Dict;
 import net.starlark.java.eval.Printer;
 import net.starlark.java.eval.Sequence;
 import net.starlark.java.eval.StarlarkList;
+import net.starlark.java.eval.StarlarkSemantics;
 import net.starlark.java.eval.StarlarkValue;
 
 /** https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#change-info */
@@ -320,7 +321,7 @@ public class ChangeInfo implements StarlarkValue {
   }
 
   @Override
-  public void repr(Printer printer) {
+  public void repr(Printer printer, StarlarkSemantics semantics) {
     printer.append(toString());
   }
 

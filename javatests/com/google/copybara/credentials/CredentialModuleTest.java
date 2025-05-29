@@ -22,6 +22,7 @@ import com.google.copybara.credentials.CredentialModule.UsernamePasswordIssuer;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import net.starlark.java.eval.Printer;
+import net.starlark.java.eval.StarlarkSemantics;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -48,7 +49,7 @@ public class CredentialModuleTest {
     Credential cred = res.issue();
     assertThat(cred.toString()).doesNotContain("secret_value");
     StringBuilder sb = new StringBuilder();
-    res.repr(new Printer());
+    res.repr(new Printer(), StarlarkSemantics.DEFAULT);
     assertThat(sb.toString()).doesNotContain("secret_value");
   }
 

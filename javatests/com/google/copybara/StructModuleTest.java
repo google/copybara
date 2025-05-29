@@ -23,6 +23,7 @@ import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import net.starlark.java.eval.Printer;
+import net.starlark.java.eval.StarlarkSemantics;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,7 +51,7 @@ public class StructModuleTest {
   @Test
   public void testReprParses() throws Exception {
     StructImpl x = skylark.eval("x", "x=struct(foo='bar')");
-    StructImpl y = skylark.eval("y", "y=" + new Printer().repr(x));
+    StructImpl y = skylark.eval("y", "y=" + new Printer().repr(x, StarlarkSemantics.DEFAULT));
     assertThat(x).isEqualTo(y);
   }
 

@@ -40,6 +40,7 @@ import net.starlark.java.eval.HasBinary;
 import net.starlark.java.eval.Printer;
 import net.starlark.java.eval.Starlark;
 import net.starlark.java.eval.StarlarkList;
+import net.starlark.java.eval.StarlarkSemantics;
 import net.starlark.java.eval.StarlarkValue;
 import net.starlark.java.syntax.TokenKind;
 
@@ -486,7 +487,7 @@ public class Glob implements StarlarkValue, HasBinary {
   }
 
   @Override
-  public void repr(Printer printer) {
+  public void repr(Printer printer, StarlarkSemantics semantics) {
     printer.append(toString());
   }
 

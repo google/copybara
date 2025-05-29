@@ -1,4 +1,5 @@
 package com.google.copybara;
+
 /*
  * Copyright (C) 2022 Google Inc.
  *
@@ -15,11 +16,11 @@ package com.google.copybara;
  * limitations under the License.
  */
 import static com.google.common.base.Preconditions.checkNotNull;
-import static java.util.stream.Collectors.joining;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.doc.annotations.Example;
+import java.util.Map;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
@@ -27,6 +28,7 @@ import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Dict;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Printer;
+import net.starlark.java.eval.StarlarkSemantics;
 import net.starlark.java.eval.StarlarkValue;
 import net.starlark.java.eval.Structure;
 
@@ -40,11 +42,7 @@ public class StructModule implements StarlarkValue {
           "Creates a new immutable struct. Structs with the same keys/values are equal. The "
               + "struct's keys and values are passed in as keyword arguments.",
       selfCall = true,
-      extraKeywords =
-          @Param(
-              name = "kwargs",
-              defaultValue = "{}",
-              doc = "Dictionary of Args."))
+      extraKeywords = @Param(name = "kwargs", defaultValue = "{}", doc = "Dictionary of Args."))
   @Example(
       before = "Structs are immutable objects to group values.",
       title = "Create a struct",
@@ -54,9 +52,7 @@ public class StructModule implements StarlarkValue {
     return new StructImpl(ImmutableMap.copyOf(kwargs));
   }
 
-  /**
-   * Trivial struct implementation based on ImmutableMap.
-   */
+  /** Trivial struct implementation based on ImmutableMap. */
   static class StructImpl implements Structure {
 
     private final ImmutableMap<String, Object> dict;
@@ -86,13 +82,14 @@ public class StructModule implements StarlarkValue {
     }
 
     @Override
-    public void repr(Printer printer) {
-      printer.append(
-          String.format(
-              "struct(%s)",
-              dict.entrySet().stream()
-                  .map(e -> String.format("%s=%s", e.getKey(), new Printer().repr(e.getValue())))
-                  .collect(joining(", "))));
+    public void repr(Printer printer, StarlarkSemantics semantics) {
+      printer.append("struct(");
+      String sep = "";
+      for (Map.Entry<String, Object> e : dict.entrySet()) {
+        printer.append(sep).append(e.getKey()).append('=').repr(e.getValue(), semantics);
+        sep = ", ";
+      }
+      printer.append(")");
     }
 
     @Override
@@ -113,5 +110,4 @@ public class StructModule implements StarlarkValue {
       return dict.hashCode();
     }
   }
-
 }

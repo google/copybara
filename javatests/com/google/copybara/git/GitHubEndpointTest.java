@@ -56,6 +56,7 @@ import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import net.starlark.java.eval.Starlark;
+import net.starlark.java.eval.StarlarkSemantics;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -816,9 +817,9 @@ public class GitHubEndpointTest {
         String.format("if %s.%s != %s:", var, field, value),
         String.format(
             "  fail('unexpected value for '+%1$s+'.'+%2$s+' (expected '+%3$s+'): ' + %4$s.%5$s)",
-            Starlark.repr(var), // string literal
-            Starlark.repr(field), // string literal
-            Starlark.repr(value), // string literal
+            Starlark.repr(var, StarlarkSemantics.DEFAULT), // string literal
+            Starlark.repr(field, StarlarkSemantics.DEFAULT), // string literal
+            Starlark.repr(value, StarlarkSemantics.DEFAULT), // string literal
             var, // expression
             field)); // expression
   }

@@ -20,6 +20,7 @@ import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
 import java.util.Map;
 import net.starlark.java.eval.Printer;
+import net.starlark.java.eval.StarlarkSemantics;
 import net.starlark.java.eval.StarlarkValue;
 
 /** See https://gerrit-review.googlesource.com/Documentation/rest-api-projects.html#project-info */
@@ -60,7 +61,7 @@ public class ProjectInfo implements StarlarkValue {
   }
 
   @Override
-  public void repr(Printer printer) {
+  public void repr(Printer printer, StarlarkSemantics semantics) {
     printer.append(toString());
   }
 

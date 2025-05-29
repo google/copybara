@@ -30,6 +30,7 @@ import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Printer;
 import net.starlark.java.eval.Starlark;
+import net.starlark.java.eval.StarlarkSemantics;
 import net.starlark.java.eval.StarlarkValue;
 
 /** Represents a possibly-reversible Buildozer command. */
@@ -132,7 +133,7 @@ public final class Command implements StarlarkValue {
   }
 
   @Override
-  public void repr(Printer printer) {
+  public void repr(Printer printer, StarlarkSemantics semantics) {
     printer.append(String.format("buildozer.cmd(%s, reverse = %s)", command, reverse));
   }
 

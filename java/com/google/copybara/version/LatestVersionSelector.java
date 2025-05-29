@@ -40,6 +40,7 @@ import java.util.TreeMap;
 import javax.annotation.Nullable;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Printer;
+import net.starlark.java.eval.StarlarkSemantics;
 import net.starlark.java.syntax.Location;
 
 /**
@@ -62,7 +63,7 @@ public class LatestVersionSelector implements VersionSelector {
   }
 
   @Override
-  public void repr(Printer printer) {
+  public void repr(Printer printer, StarlarkSemantics semantics) {
     printer.append(toString());
   }
 

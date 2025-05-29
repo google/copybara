@@ -21,6 +21,7 @@ import com.google.copybara.ConfigItemDescription;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import net.starlark.java.eval.Printer;
+import net.starlark.java.eval.StarlarkSemantics;
 import net.starlark.java.eval.StarlarkValue;
 
 /** List all or a subset of the versions of a repository */
@@ -30,7 +31,7 @@ public interface VersionList extends StarlarkValue, ConfigItemDescription {
   ImmutableSet<String> list() throws ValidationException, RepoException;
 
   @Override
-  default void repr(Printer printer) {
+  default void repr(Printer printer, StarlarkSemantics semantics) {
     printer.append(toString());
   }
 

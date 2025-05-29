@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.eval.Printer;
+import net.starlark.java.eval.StarlarkSemantics;
 import net.starlark.java.eval.StarlarkValue;
 
 /** Starter of feedback migration executions. */
@@ -32,7 +33,7 @@ public interface Trigger extends StarlarkValue {
   Endpoint getEndpoint();
 
   @Override
-  default void repr(Printer printer) {
+  default void repr(Printer printer, StarlarkSemantics semantics) {
     printer.append(toString());
   }
 

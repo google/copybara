@@ -20,6 +20,7 @@ import com.google.api.client.util.Key;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import net.starlark.java.eval.Printer;
+import net.starlark.java.eval.StarlarkSemantics;
 import net.starlark.java.eval.StarlarkValue;
 
 /** See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#fetch-info */
@@ -46,7 +47,7 @@ public class FetchInfo implements StarlarkValue {
   }
 
   @Override
-  public void repr(Printer printer) {
+  public void repr(Printer printer, StarlarkSemantics semantics) {
     printer.append(toString());
   }
 

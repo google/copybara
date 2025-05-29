@@ -29,6 +29,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.eval.Printer;
+import net.starlark.java.eval.StarlarkSemantics;
 import net.starlark.java.eval.StarlarkValue;
 
 /**
@@ -122,7 +123,7 @@ public interface VersionSelector extends StarlarkValue {
   }
 
   @Override
-  default void repr(Printer printer) {
+  default void repr(Printer printer, StarlarkSemantics semantics) {
     printer.append(toString());
   }
 
