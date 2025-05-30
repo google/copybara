@@ -189,6 +189,19 @@ public abstract class TemplateConfigGenerator implements ConfigGenerator {
   }
 
   /**
+   * Converts a Java boolean to a string that represents the same boolean value in Starlark.
+   *
+   * <p>This is useful when generating config files, as {@link Boolean#toString()} returns an
+   * all-lowercase boolean string which is not correct in Starlark.
+   *
+   * @param bool the boolean to convert to a string
+   * @return the string representing the boolean value in Starlark
+   */
+  protected String convertJavaBooleanToStarlarkBoolean(boolean bool) {
+    return bool ? "True" : "False";
+  }
+
+  /**
    * Method to be implemented by the specific templates to provide the field values using
    * {@link InputProviderResolver}.
    */
