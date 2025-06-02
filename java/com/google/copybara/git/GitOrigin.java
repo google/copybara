@@ -570,9 +570,6 @@ public class GitOrigin implements Origin<GitRevision> {
     @Override
     public ChangesResponse<GitRevision> changes(@Nullable GitRevision fromRef, GitRevision toRef)
         throws RepoException, ValidationException {
-      String refRange = fromRef == null || gitOriginOptions.historyIsNonLinear
-          ? toRef.getSha1()
-          : fromRef.getSha1() + ".." + toRef.getSha1();
       ChangeReader changeReader = changeReaderBuilder(repoUrl)
           .setFirstParent(firstParent)
           .setTopoOrder(gitOriginOptions.historyIsNonLinear)
@@ -581,7 +578,8 @@ public class GitOrigin implements Origin<GitRevision> {
       // (fromRef, toRef] (that includes toRef).
       ImmutableMap<String, ImmutableListMultimap<String, String>> labelsToPropagate =
           ImmutableMap.of(toRef.getSha1(), toRef.associatedLabels());
-      ImmutableList<Change<GitRevision>> gitChanges = changeReader.run(refRange, labelsToPropagate);
+      ImmutableList<Change<GitRevision>> gitChanges =
+          changeReader.run(fromRef, toRef, gitOriginOptions.historyIsNonLinear, labelsToPropagate);
       if (gitOriginOptions.historyIsNonLinear && fromRef != null) {
         // This is to have a consistent git history (as long as no more merges are added).
         // There is a potential issue if the re-ordering in forChangesWithMerges changes its order
@@ -616,7 +614,7 @@ public class GitOrigin implements Origin<GitRevision> {
           .setLimit(1)
           .setFirstParent(firstParent)
           .build();
-      ImmutableList<Change<GitRevision>> changes = changeReader.run(ref.getSha1());
+      ImmutableList<Change<GitRevision>> changes = changeReader.run(ref);
 
       if (changes.isEmpty()) {
         throw new EmptyChangeException(

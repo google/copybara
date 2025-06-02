@@ -50,12 +50,7 @@ public class GitVisitorUtil {
         try (ProfilerTask ignore2 =
             generalOptions.profiler().start("git_log_" + skip + "_" + visitChangePageSize)) {
           result =
-              queryChanges
-                  .setSkip(skip)
-                  .setLimit(visitChangePageSize)
-                  .build()
-                  .run(start.getSha1())
-                  .reverse();
+              queryChanges.setSkip(skip).setLimit(visitChangePageSize).build().run(start).reverse();
         }
         if (result.isEmpty()) {
           break;

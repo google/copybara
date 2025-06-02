@@ -75,22 +75,33 @@ class ChangeReader {
     this.grepString = grepString;
   }
 
-  ImmutableList<Change<GitRevision>> run(String refExpression)
+  ImmutableList<Change<GitRevision>> run(GitRevision rev)
       throws RepoException, ValidationException {
-    return run(refExpression, ImmutableMap.of());
+    return run(null, rev, false, ImmutableMap.of());
   }
 
   /**
    * Computes a list of changes from the {@code refExpression} and propagates labels contained in
    * {@code labels} onto the resulting change list.
    *
-   * @param refExpression expression log and parse changes from.
+   * @param fromRev the revision representing the start of the search range. If not provided, only
+   *     toRev will be looked up
+   * @param toRev the revision representing the end of the search range.
+   * @param historyIsNonLinear read the full git log and skip changes before the fromRev rather than
+   *     using a log path
    * @param labels map where the key is the GitRevision sha and the value is the labels that should
-   *     be attached to parsed GitRevisions corresonding to that sha.
+   *     be attached to parsed GitRevisions corresponding to that sha
    */
   ImmutableList<Change<GitRevision>> run(
-      String refExpression, ImmutableMap<String, ImmutableListMultimap<String, String>> labels)
+      @Nullable GitRevision fromRev,
+      GitRevision toRev,
+      boolean historyIsNonLinear,
+      ImmutableMap<String, ImmutableListMultimap<String, String>> labels)
       throws RepoException, ValidationException {
+    String refExpression =
+        fromRev == null || historyIsNonLinear
+            ? toRev.getSha1()
+            : fromRev.getSha1() + ".." + toRev.getSha1();
     LogCmd logCmd = repository.log(refExpression).firstParent(firstParent).topoOrder(topoOrder);
     if (limit != -1) {
       logCmd = logCmd.withLimit(limit);
@@ -116,7 +127,7 @@ class ChangeReader {
     // Log command does not filter by roots here because of how git log works. Some commits (e.g.
     // fake merges) might not include the files in the log, and filtering here would return
     // incorrect results. We do filter later on the changes to match the actual glob.
-    return parseChanges(logCmd.includeFiles(true).includeMergeDiff(true).run(), labels);
+    return parseChanges(logCmd.includeFiles(true).includeMergeDiff(true).run(), labels, toRev);
   }
 
   static final String BRANCH_COMMIT_LOG_HEADING = "-- Branch commit log --";
@@ -160,7 +171,8 @@ class ChangeReader {
 
   private ImmutableList<Change<GitRevision>> parseChanges(
       ImmutableList<GitLogEntry> logEntries,
-      ImmutableMap<String, ImmutableListMultimap<String, String>> labels)
+      ImmutableMap<String, ImmutableListMultimap<String, String>> labels,
+      GitRevision toRev)
       throws RepoException {
     ImmutableList.Builder<Change<GitRevision>> result = ImmutableList.builder();
     GitRevision last = null;
@@ -172,11 +184,15 @@ class ChangeReader {
       last = e.commit();
       ImmutableListMultimap<String, String> labelsToCopy =
           labels.getOrDefault(e.commit().getSha1(), ImmutableListMultimap.of());
+      // Carry over the context reference to the corresponding change in the list.
+      if (last.getSha1().equals(toRev.getSha1()) && toRev.contextReference() != null) {
+        last = last.withContextReference(toRev.contextReference());
+      }
       result.add(
           new Change<>(
-              e.commit().withUrl(url).withLabels(labelsToCopy),
+              last.withUrl(url).withLabels(labelsToCopy),
               filterAuthor(e.author()),
-              e.body() + branchCommitLog(e.commit(), e.parents()),
+              e.body() + branchCommitLog(last, e.parents()),
               e.authorDate(),
               ChangeMessage.parseAllAsLabels(e.body()).labelsAsMultimap(),
               e.files(),

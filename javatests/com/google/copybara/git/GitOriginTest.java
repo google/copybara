@@ -883,6 +883,26 @@ public class GitOriginTest {
   }
 
   @Test
+  public void changes_result_toRefContainContextRefs() throws Exception {
+    // Need to "round" it since git doesn't store the milliseconds
+    ZonedDateTime beforeTime = ZonedDateTime.now(ZoneId.systemDefault()).minusSeconds(1);
+    String author = "John Name <john@name.com>";
+    singleFileCommit(author, "change2", "test.txt", "some content2");
+
+    ImmutableList<Change<GitRevision>> changes =
+        newReader()
+            .changes(
+                origin.resolve(firstCommitRef).withContextReference("FIRST"),
+                origin
+                    .resolve("HEAD")
+                    .withLabels(ImmutableListMultimap.of("MY_LABEL_KEY", "MY_LABEL_VALUE"))
+                    .withContextReference("TEST_CONTEXT_REF"))
+            .getChanges();
+
+    assertThat(changes.getLast().getRevision().contextReference()).isEqualTo("TEST_CONTEXT_REF");
+  }
+
+  @Test
   public void testNoChanges() throws Exception {
     ChangesResponse<GitRevision> changes = newReader()
         .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD"));
