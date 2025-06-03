@@ -20,9 +20,9 @@ steps:
 - name: 'ubuntu'
   args: ["rm", "-rf", "/workspace/.git"]
 - name: 'ci'
-  args: ["test", "--enable_bzlmod=false", "--java_language_version=21", "--tool_java_language_version=21", "--java_runtime_version=remotejdk_21", "--tool_java_runtime_version=remotejdk_21","--test_output=errors", "--subcommands",  "--sandbox_tmpfs_path=/tmp", "--jobs=1000", "--", "..."]
+  args: ["test", "--enable_bzlmod=true", "--java_language_version=21", "--tool_java_language_version=21", "--java_runtime_version=remotejdk_21", "--tool_java_runtime_version=remotejdk_21","--test_output=errors", "--subcommands",  "--sandbox_tmpfs_path=/tmp", "--jobs=1000", "--", "..."]
 options:
   machine_type: N1_HIGHCPU_32
 substitutions:
-  _BAZEL_SHA256: ad5916a7e27eeddbddb003d7671d5a8202c7346e3c682c059b27467b47c0f6d4
+  _BAZEL_SHA256: e45b3b77bf94e6eeb9a2a7151e4474f75247cc52501e5da6a24f976d71e10b14
 timeout: 30m

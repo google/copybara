@@ -18,9 +18,9 @@ load("//third_party:bazel.bzl", "bazel_sha256", "bazel_version")
 load("//third_party:bazel_skylib.bzl", "skylib_sha256", "skylib_version")
 
 def copybara_repositories():
-    RULES_JVM_EXTERNAL_TAG = "6.0"
+    RULES_JVM_EXTERNAL_TAG = "6.5"
 
-    RULES_JVM_EXTERNAL_SHA = "c44568854d8bb92fe0f7dd6b1e8957ae65e45e32a058727fcf62aaafbd36f17b"
+    RULES_JVM_EXTERNAL_SHA = "c5b27928eeb8f0761f0805540587660f0ecc6946e9c04bf0d4c89e2f7d332b2b"
 
     maybe(
         http_archive,
@@ -38,6 +38,8 @@ def copybara_repositories():
         sha256 = RULES_JVM_EXTERNAL_SHA,
         strip_prefix = "rules_jvm_external-%s" % RULES_JVM_EXTERNAL_TAG,
         url = "https://github.com/bazelbuild/rules_jvm_external/archive/%s.zip" % RULES_JVM_EXTERNAL_TAG,
+        patch_args = ["-p1"],
+        patches = ["//third_party:rules_jvm_external_6.5.patch"],
     )
 
     # LICENSE: The Apache Software License, Version 2.0
@@ -50,30 +52,16 @@ def copybara_repositories():
         url = "https://github.com/bazelbuild/bazel-skylib/archive/" + skylib_version + ".zip",
     )
 
-    EXPORT_WORKSPACE_IN_BUILD_FILE = [
-        "test -f BUILD && chmod u+w BUILD || true",
-        "echo >> BUILD",
-        "echo 'exports_files([\"WORKSPACE\"], visibility = [\"//visibility:public\"])' >> BUILD",
-    ]
-
-    EXPORT_WORKSPACE_IN_BUILD_FILE_WIN = [
-        "Add-Content -Path BUILD -Value \"`nexports_files([`\"WORKSPACE`\"], visibility = [`\"//visibility:public`\"])`n\" -Force",
-    ]
 
     # Stuff used by Bazel Starlark syntax package transitively:
     # LICENSE: The Apache Software License, Version 2.0
     maybe(
         http_archive,
         name = "com_google_protobuf",
-        patch_args = ["-p1"],
-        patches = ["@io_bazel//third_party/protobuf:21.7.patch"],
-        patch_cmds = EXPORT_WORKSPACE_IN_BUILD_FILE,
-        patch_cmds_win = EXPORT_WORKSPACE_IN_BUILD_FILE_WIN,
-        sha256 = "75be42bd736f4df6d702a0e4e4d30de9ee40eac024c4b845d17ae4cc831fe4ae",
-        strip_prefix = "protobuf-21.7",
+        sha256 = "10a0d58f39a1a909e95e00e8ba0b5b1dc64d02997f741151953a2b3659f6e78c",
+        strip_prefix = "protobuf-29.0",
         urls = [
-            "https://mirror.bazel.build/github.com/protocolbuffers/protobuf/archive/v21.7.tar.gz",
-            "https://github.com/protocolbuffers/protobuf/archive/v21.7.tar.gz",
+            "https://github.com/protocolbuffers/protobuf/releases/download/v29.0/protobuf-29.0.tar.gz"
         ],
     )
 
@@ -93,60 +81,60 @@ def copybara_repositories():
     maybe(
         http_archive,
         name = "rules_pkg",
-        sha256 = "8c20f74bca25d2d442b327ae26768c02cf3c99e93fad0381f32be9aab1967675",
-        url = "https://github.com/bazelbuild/rules_pkg/releases/download/0.8.1/rules_pkg-0.8.1.tar.gz",
+        sha256 = "d20c951960ed77cb7b341c2a59488534e494d5ad1d30c4818c736d57772a9fef",
+        url = "https://mirror.bazel.build/github.com/bazelbuild/rules_pkg/releases/download/1.0.1/rules_pkg-1.0.1.tar.gz",
     )
 
     # LICENSE: The Apache Software License, Version 2.0
     maybe(
         http_archive,
         name = "rules_java",
-        sha256 = "a37a4e5f63ab82716e5dd6aeef988ed8461c7a00b8e936272262899f587cd4e1",
-        url = "https://github.com/bazelbuild/rules_java/releases/download/7.1.0/rules_java-7.1.0.tar.gz",
+        sha256 = "d31b6c69e479ffa45460b64dc9c7792a431cac721ef8d5219fc9f603fa2ff877",
+        url = "https://github.com/bazelbuild/rules_java/releases/download/8.11.0/rules_java-8.11.0.tar.gz",
     )
 
     # LICENSE: The Apache Software License, Version 2.0
     maybe(
         http_archive,
         name = "rules_python",
-        sha256 = "f7402f11691d657161f871e11968a984e5b48b023321935f5a55d7e56cf4758a",
-        strip_prefix = "rules_python-9d68f24659e8ce8b736590ba1e4418af06ec2552",
-        url = "https://github.com/bazelbuild/rules_python/archive/9d68f24659e8ce8b736590ba1e4418af06ec2552.zip",
+        sha256 = "690e0141724abb568267e003c7b6d9a54925df40c275a870a4d934161dc9dd53",
+        strip_prefix = "rules_python-0.40.0",
+        url = "https://github.com/bazelbuild/rules_python/releases/download/0.40.0/rules_python-0.40.0.tar.gz",
     )
 
     # LICENSE: The Apache Software License, Version 2.0
     maybe(
         http_archive,
         name = "rules_cc",
-        sha256 = "faa25a149f46077e7eca2637744f494e53a29fe3814bfe240a2ce37115f6e04d",
-        strip_prefix = "rules_cc-ea5c5422a6b9e79e6432de3b2b29bbd84eb41081",
-        url = "https://github.com/bazelbuild/rules_cc/archive/ea5c5422a6b9e79e6432de3b2b29bbd84eb41081.zip",
+        sha256 = "712d77868b3152dd618c4d64faaddefcc5965f90f5de6e6dd1d5ddcd0be82d42",
+        strip_prefix = "rules_cc-0.1.1",
+        url = "https://github.com/bazelbuild/rules_cc/releases/download/0.1.1/rules_cc-0.1.1.tar.gz",
     )
 
     # LICENSE: The Apache Software License, Version 2.0
     maybe(
         http_archive,
         name = "rules_license",
-        sha256 = "00ccc0df21312c127ac4b12880ab0f9a26c1cff99442dc6c5a331750360de3c3",
-        url = "https://mirror.bazel.build/github.com/bazelbuild/rules_license/releases/download/0.0.3/rules_license-0.0.3.tar.gz",
+        sha256 = "26d4021f6898e23b82ef953078389dd49ac2b5618ac564ade4ef87cced147b38",
+        url = "https://mirror.bazel.build/github.com/bazelbuild/rules_license/releases/download/1.0.0/rules_license-1.0.0.tar.gz",
     )
 
     # LICENSE: The Apache Software License, Version 2.0
     maybe(
         http_archive,
         name = "rules_proto",
-        sha256 = "7d05492099a4359a6006d1b89284d34b76390c3b67d08e30840299b045838e2d",
-        strip_prefix = "rules_proto-9cd4f8f1ede19d81c6d48910429fe96776e567b1",
-        url = "https://github.com/bazelbuild/rules_proto/archive/9cd4f8f1ede19d81c6d48910429fe96776e567b1.zip",
+        sha256 = "14a225870ab4e91869652cfd69ef2028277fc1dc4910d65d353b62d6e0ae21f4",
+        strip_prefix = "rules_proto-7.1.0",
+        url = "https://github.com/bazelbuild/rules_proto/releases/download/7.1.0/rules_proto-7.1.0.tar.gz",
     )
 
     # LICENSE: The Apache Software License, Version 2.0
     maybe(
         http_archive,
         name = "rules_shell",
-        sha256 = "541033748c8bb48e09957caad70bebb866435d0ee20c984fd9d0c731d8c5f03a",
-        strip_prefix = "rules_shell-19e2da0c9a5b16ec3337c94c256d3947dd81bb0a",
-        url = "https://github.com/bazelbuild/rules_shell/archive/19e2da0c9a5b16ec3337c94c256d3947dd81bb0a.zip",
+        sha256 = "d8cd4a3a91fc1dc68d4c7d6b655f09def109f7186437e3f50a9b60ab436a0c53",
+        strip_prefix = "rules_shell-0.3.0",
+        url = "https://github.com/bazelbuild/rules_shell/releases/download/v0.3.0/rules_shell-v0.3.0.tar.gz",
     )
 
     # LICENSE: The Apache Software License, Version 2.0
