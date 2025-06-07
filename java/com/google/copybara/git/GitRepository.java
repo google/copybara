@@ -1045,13 +1045,16 @@ public class GitRepository {
   public class AddCmd {
 
     private final boolean force;
+    private final boolean renormalize;
     private final boolean all;
     private final Iterable<String> files;
     @Nullable private final String pathSpecFromFile;
 
-    private AddCmd(boolean force, boolean all, Iterable<String> files, String pathSpecFromFile) {
+
+    private AddCmd(boolean force, boolean all, Iterable<String> files, String pathSpecFromFile, boolean renormalize) {
       this.force = force;
       this.all = all;
+      this.renormalize = renormalize;
       this.files = checkNotNull(files);
       this.pathSpecFromFile = pathSpecFromFile;
     }
@@ -1059,7 +1062,13 @@ public class GitRepository {
     /** Force the add */
     @CheckReturnValue
     public AddCmd force() {
-      return new AddCmd(/*force=*/ true, all, files, pathSpecFromFile);
+      return new AddCmd(/*force=*/ true, all, files, pathSpecFromFile, renormalize);
+    }
+
+    /** Renormalize the add */
+    @CheckReturnValue
+    public AddCmd renormalize() {
+      return new AddCmd(/*force=*/ true, all, files, pathSpecFromFile, true);
     }
 
     /** Add all the unstagged files to the index */
@@ -1068,7 +1077,7 @@ public class GitRepository {
       Preconditions.checkState(Iterables.isEmpty(files), "'all' and passing files is incompatible");
       Preconditions.checkState(
           pathSpecFromFile == null, "'all' and pathSpecFromFile is incompatible");
-      return new AddCmd(force, /*all=*/ true, files, pathSpecFromFile);
+      return new AddCmd(force, /*all=*/ true, files, pathSpecFromFile, renormalize);
     }
 
     /** Configure the files to add to the index */
@@ -1077,7 +1086,7 @@ public class GitRepository {
       Preconditions.checkState(!all, "'all' and passing files is incompatible");
       Preconditions.checkState(
           pathSpecFromFile == null, "'pathSpecFromFile' and passing files is incompatible");
-      return new AddCmd(force, /*all=*/ false, files, pathSpecFromFile);
+      return new AddCmd(force, /*all=*/ false, files, pathSpecFromFile, renormalize);
     }
 
     /** Configure the files to add to the index */
@@ -1086,7 +1095,7 @@ public class GitRepository {
       Preconditions.checkState(!all, "'pathSpecFromFile' and passing files is incompatible");
       Preconditions.checkState(
           Iterables.isEmpty(files), "'pathSpecFromFile' and passing files is incompatible");
-      return new AddCmd(force, /*all=*/ false, files, pathSpecFromFile);
+      return new AddCmd(force, /*all=*/ false, files, pathSpecFromFile, renormalize);
     }
 
     /** Configure the files to add to the index */
@@ -1104,7 +1113,9 @@ public class GitRepository {
       if (all) {
         params.add("--all");
       }
-
+      if (renormalize) {
+        params.add("--renormalize");
+      }
       if (pathSpecFromFile != null) {
         params.add("--pathspec-from-file=" + pathSpecFromFile);
       }
@@ -1119,7 +1130,7 @@ public class GitRepository {
    */
   @CheckReturnValue
   public AddCmd add() {
-    return new AddCmd(/*force*/ false, /*all*/ false, /*files*/ ImmutableSet.of(), null);
+    return new AddCmd(/*force*/ false, /*all*/ false, /*files*/ ImmutableSet.of(), null, false);
   }
 
   /**
