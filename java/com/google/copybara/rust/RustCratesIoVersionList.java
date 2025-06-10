@@ -46,24 +46,29 @@ public final class RustCratesIoVersionList implements VersionList, StarlarkValue
 
   private final RemoteFileOptions remoteFileOptions;
   private final boolean matchPreReleaseVersions;
+  private final boolean ignoreYankedVersions;
   @Nullable private final AuthInterceptor auth;
 
   public static RustCratesIoVersionList forCrate(
       String crate,
       RemoteFileOptions remoteFileOptions,
       boolean matchPreReleaseVersions,
+      boolean ignoreYankedVersions,
       @Nullable AuthInterceptor auth) {
-    return new RustCratesIoVersionList(crate, remoteFileOptions, matchPreReleaseVersions, auth);
+    return new RustCratesIoVersionList(
+        crate, remoteFileOptions, matchPreReleaseVersions, ignoreYankedVersions, auth);
   }
 
   private RustCratesIoVersionList(
       String crateName,
       RemoteFileOptions remoteFileOptions,
       boolean matchPreReleaseVersions,
+      boolean ignoreYankedVersions,
       @Nullable AuthInterceptor auth) {
     this.crateName = crateName;
     this.remoteFileOptions = remoteFileOptions;
     this.matchPreReleaseVersions = matchPreReleaseVersions;
+    this.ignoreYankedVersions = ignoreYankedVersions;
     this.auth = auth;
   }
 
@@ -71,7 +76,7 @@ public final class RustCratesIoVersionList implements VersionList, StarlarkValue
   public ImmutableSet<String> list() throws RepoException, ValidationException {
     try {
       return getVersionList().stream()
-          .filter((v) -> !v.isYanked())
+          .filter(this::maybeFilterYankedVersions)
           .map(RustRegistryVersionObject::getVers)
           .filter(this::filterPreReleaseVersions)
           .collect(toImmutableSet());
@@ -96,6 +101,10 @@ public final class RustCratesIoVersionList implements VersionList, StarlarkValue
     } else {
       return true;
     }
+  }
+
+  private boolean maybeFilterYankedVersions(RustRegistryVersionObject versionObj) {
+    return !ignoreYankedVersions || !versionObj.isYanked();
   }
 
   ImmutableSet<RustRegistryVersionObject> getVersionList() throws RepoException {

@@ -92,6 +92,11 @@ public class RustModule implements StarlarkValue {
                     + " version.",
             defaultValue = "False"),
         @Param(
+            name = "ignore_yanked_versions",
+            named = true,
+            doc = "Whether this list ignores yanked versions of a crate in the upstream.",
+            defaultValue = "True"),
+        @Param(
             name = "auth",
             doc = "Optional, an interceptor for providing credentials.",
             named = true,
@@ -107,9 +112,16 @@ public class RustModule implements StarlarkValue {
       before = "Example: creating a version list for libc",
       code = "rust.crates_io_version_list(\n" + "crate = \"libc\"\n)")
   public RustCratesIoVersionList getRustCratesIoVersionList(
-      String crateName, boolean matchPreReleaseVersions, Object auth) {
+      String crateName,
+      boolean matchPreReleaseVersions,
+      boolean ignoreYankedVersions,
+      Object auth) {
     return RustCratesIoVersionList.forCrate(
-        crateName, remoteFileOptions, matchPreReleaseVersions, convertFromNoneable(auth, null));
+        crateName,
+        remoteFileOptions,
+        matchPreReleaseVersions,
+        ignoreYankedVersions,
+        convertFromNoneable(auth, null));
   }
 
   @StarlarkMethod(

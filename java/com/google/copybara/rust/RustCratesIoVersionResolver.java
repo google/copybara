@@ -55,7 +55,11 @@ public class RustCratesIoVersionResolver implements VersionResolver {
     try {
       versionList =
           RustCratesIoVersionList.forCrate(
-                  this.crate, this.remoteFileOptions, matchPreReleaseVersions, auth)
+                  this.crate,
+                  this.remoteFileOptions,
+                  matchPreReleaseVersions,
+                  /* ignoreYankedVersions= */ false,
+                  auth)
               .list();
       if (!versionList.contains(ref)) {
         throw new CannotResolveRevisionException(

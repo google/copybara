@@ -65,15 +65,10 @@ public class RustCratesIoVersionResolverTest {
     optionsBuilder = new OptionsBuilder();
     optionsBuilder.setConsole(console);
     skylark = new SkylarkTestExecutor(optionsBuilder);
-    setupMockTransport();
   }
 
-  public void setupMockTransport() throws Exception {
-    JsonObject v1 = new JsonObject();
-    v1.add("name", new JsonPrimitive("example"));
-    v1.add("vers", new JsonPrimitive("0.2.0"));
-    String content =
-        ImmutableList.of(v1).stream().map(JsonElement::toString).collect(Collectors.joining("\n"));
+  public void setupMockTransport(ImmutableList<JsonObject> versions) throws Exception {
+    String content = versions.stream().map(JsonElement::toString).collect(Collectors.joining("\n"));
 
     setUpMockTransportForSkylarkExecutor(
         ImmutableMap.of("https://index.crates.io/ex/am/example", content));
@@ -92,6 +87,10 @@ public class RustCratesIoVersionResolverTest {
 
   @Test
   public void testRustCrateIoVersionResolver() throws Exception {
+    JsonObject v1 = new JsonObject();
+    v1.add("name", new JsonPrimitive("example"));
+    v1.add("vers", new JsonPrimitive("0.2.0"));
+    setupMockTransport(ImmutableList.of(v1));
     VersionResolver versionResolver =
         skylark.eval(
             "version_resolver",
@@ -102,6 +101,28 @@ public class RustCratesIoVersionResolverTest {
             (version) ->
                 Optional.of(
                     String.format("https://crates.io/api/v1/crates/example/%s/download", version)));
+    assertThat(rev.getUrl()).isEqualTo("https://crates.io/api/v1/crates/example/0.2.0/download");
+  }
+
+  @Test
+  public void rustCrateIoVersionResolver_resolvesYankedVersions() throws Exception {
+    JsonObject v1 = new JsonObject();
+    v1.add("name", new JsonPrimitive("example"));
+    v1.add("vers", new JsonPrimitive("0.2.0"));
+    v1.add("yanked", new JsonPrimitive(true));
+    setupMockTransport(ImmutableList.of(v1));
+    VersionResolver versionResolver =
+        skylark.eval(
+            "version_resolver",
+            "version_resolver = rust.crates_io_version_resolver(crate='example')");
+
+    Revision rev =
+        versionResolver.resolve(
+            "0.2.0",
+            (version) ->
+                Optional.of(
+                    String.format("https://crates.io/api/v1/crates/example/%s/download", version)));
+
     assertThat(rev.getUrl()).isEqualTo("https://crates.io/api/v1/crates/example/0.2.0/download");
   }
 
