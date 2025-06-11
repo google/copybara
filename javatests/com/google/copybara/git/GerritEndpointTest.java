@@ -554,6 +554,25 @@ public class GerritEndpointTest {
   }
 
   @Test
+  public void testPostNotify() throws Exception {
+    gitUtil.mockApi(
+        eq("POST"),
+        matches(BASE_URL + "/changes/.*/revisions/.*/review"),
+        mockResponse(postLabel()));
+    gitUtil.mockApi(
+        eq("POST"),
+        contains("/changes/12345/revisions/sha1/review"),
+        mockResponseAndValidateRequest(
+            postLabel(), MockRequestAssertion.contains("\"notify\":\"NONE\"")));
+    runFeedback(
+        ImmutableList.<String>builder()
+            .add(
+                "res = ctx.destination.post_review('12345', 'sha1',"
+                    + " git.review_input({'Code-Review': 1}, notify='NONE'))")
+            .build());
+  }
+
+  @Test
   public void deleteVote() throws Exception {
     AtomicBoolean called = new AtomicBoolean(false);
     gitUtil.mockApi(

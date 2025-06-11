@@ -40,24 +40,32 @@ public class SetReviewInput implements StarlarkValue {
   @VisibleForTesting
   @Key Map<String, Integer> labels;
   @Key String tag;
+  @Key NotifyType notify;
 
   @SuppressWarnings("unused")
   public SetReviewInput() {
     this.labels = Collections.emptyMap();
   }
 
-  private SetReviewInput(String message, Map<String, Integer> labels, @Nullable String tag) {
+  private SetReviewInput(
+      String message, Map<String, Integer> labels, @Nullable String tag, NotifyType notify) {
     this.message = message;
     this.labels = labels;
     this.tag = tag;
+    this.notify = notify;
   }
 
   public SetReviewInput(String message, Map<String, Integer> labels) {
-    this(message, labels ,null);
+    this(message, labels, null, NotifyType.ALL);
   }
 
   public static SetReviewInput create(String message, Map<String, Integer> labels, String tag) {
-    return new SetReviewInput(message, labels, tag);
+    return create(message, labels, tag, NotifyType.ALL);
+  }
+
+  public static SetReviewInput create(
+      String message, Map<String, Integer> labels, String tag, NotifyType notify) {
+    return new SetReviewInput(message, labels, tag, notify);
   }
 
   public String getMessage() {

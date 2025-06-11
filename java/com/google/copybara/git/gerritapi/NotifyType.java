@@ -16,9 +16,12 @@
 
 package com.google.copybara.git.gerritapi;
 
+import com.google.api.client.util.NullValue;
+import com.google.api.client.util.Value;
+
 /**
  * Type of notification to send when abandoning/deleting a review or reviewer
  */
 public enum NotifyType {
-  NONE, OWNER, OWNER_REVIEWERS, ALL
+  @Value NONE, @Value OWNER, @Value OWNER_REVIEWERS, @NullValue ALL
 }
