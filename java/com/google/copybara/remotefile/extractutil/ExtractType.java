@@ -22,4 +22,5 @@ public enum ExtractType {
   TAR,
   TAR_GZ,
   TAR_XZ,
+  TAR_BZ2,
 }

@@ -30,6 +30,7 @@ public enum RemoteFileType {
   TAR,
   TAR_GZ,
   TAR_XZ,
+  TAR_BZ2,
   AS_IS;
 
   public static ExtractType toExtractType(RemoteFileType type) throws ValidationException {

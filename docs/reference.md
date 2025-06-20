@@ -471,7 +471,7 @@ Extract the contents of the archive to a path.
 Parameter | Description
 --------- | -----------
 <span id=archive.extract.archive href=#archive.extract.archive>archive</span> | <code><a href="#path">Path</a></code><br><p>The path to the archive file.</p>
-<span id=archive.extract.type href=#archive.extract.type>type</span> | <code><a href="#string">string</a></code><br><p>The archive type. Supported types: AUTO, JAR, ZIP, TAR, TAR_GZ and TAR_XZ. AUTO will try to infer the archive type automatically.</p>
+<span id=archive.extract.type href=#archive.extract.type>type</span> | <code><a href="#string">string</a></code><br><p>The archive type. Supported types: AUTO, JAR, ZIP, TAR, TAR_GZ, TAR_XZ, and TAR_BZ2. AUTO will try to infer the archive type automatically.</p>
 <span id=archive.extract.destination_folder href=#archive.extract.destination_folder>destination_folder</span> | <code><a href="#path">Path</a></code> or <code>NoneType</code><br><p>The path to extract the archive to. This defaults to the directory where the archive is located.</p>
 <span id=archive.extract.paths href=#archive.extract.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>NoneType</code><br><p>An optional glob that is used to filter the files extracted from the archive.</p>
 
@@ -7259,7 +7259,7 @@ Parameter | Description
 --------- | -----------
 <span id=remotefiles.origin.author href=#remotefiles.origin.author>author</span> | <code><a href="#string">string</a></code><br><p>Author to attribute the change to</p>
 <span id=remotefiles.origin.message href=#remotefiles.origin.message>message</span> | <code><a href="#string">string</a></code><br><p>Message to attach to the change</p>
-<span id=remotefiles.origin.unpack_method href=#remotefiles.origin.unpack_method>unpack_method</span> | <code><a href="#string">string</a></code><br><p>The method by which to unpack the remote file. Currently 'ZIP', 'TAR', 'TAR_GZ', 'TAR_XZ' and 'AS_IS' are supported.</p>
+<span id=remotefiles.origin.unpack_method href=#remotefiles.origin.unpack_method>unpack_method</span> | <code><a href="#string">string</a></code><br><p>The method by which to unpack the remote file. Currently 'ZIP', 'TAR', 'TAR_GZ', 'TAR_XZ', 'TAR_BZ2', and 'AS_IS' are supported.</p>
 <span id=remotefiles.origin.archive_source href=#remotefiles.origin.archive_source>archive_source</span> | <code><a href="#string">string</a></code><br><p>Template or literal URL to download archive from. Optionally you can use ${VERSION} in your URL string as placeholder for later resolved versions during origin checkout. E.g. 'https://proxy.golang.org/mymodule/@v/${VERSION}.zip'</p>
 <span id=remotefiles.origin.version_list href=#remotefiles.origin.version_list>version_list</span> | <code>VersionList</code> or <code>NoneType</code><br><p>Version list to select versions on. Omit to create a versionless origin.</p>
 <span id=remotefiles.origin.origin_version_selector href=#remotefiles.origin.origin_version_selector>origin_version_selector</span> | <code><a href="#versionselector">VersionSelector</a></code> or <code>NoneType</code><br><p>Version selector used to select on version_list. Omit to create a versionless origin.</p>

@@ -93,8 +93,8 @@ public class ArchiveModule implements StarlarkValue {
             name = "type",
             named = true,
             doc =
-                "The archive type. Supported types: AUTO, JAR, ZIP, TAR, TAR_GZ and TAR_XZ. AUTO"
-                    + " will try to infer the archive type automatically.",
+                "The archive type. Supported types: AUTO, JAR, ZIP, TAR, TAR_GZ, TAR_XZ, and"
+                    + " TAR_BZ2. AUTO will try to infer the archive type automatically.",
             defaultValue = "\"AUTO\""),
         @Param(
             name = "destination_folder",
@@ -164,6 +164,11 @@ public class ArchiveModule implements StarlarkValue {
       case "xz":
         if (filename.endsWith(".tar.xz")) {
           return ExtractType.TAR_XZ;
+        }
+      // fall through
+      case "bz2":
+        if (filename.endsWith(".tar.bz2")) {
+          return ExtractType.TAR_BZ2;
         }
       // fall through
       default:

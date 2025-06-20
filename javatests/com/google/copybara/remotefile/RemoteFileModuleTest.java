@@ -65,6 +65,9 @@ public final class RemoteFileModuleTest {
   private static final String CAPTURED_TAR_XZ_FILE_WITH_NO_DIRECTORIES =
       "/Td6WFoAAATm1rRGAgAhARYAAAB0L+Wj4BX/AwxdACgYSwSGSBse52ctcOi698TpXuRjrx2AIkY/T5uaJHSSVbIF5x4fWTSxVChuMvU7s0pDUm3f2Gj6UD3L150OmXlLaLScGy1nd6o8L6j9OMcFGR38ZZOaCKAsMiPeTwjFkKz6KSqt3prdwPB1gDfKBOEIZvAegDENxs/h1JqcVZGjhTowSSKPYkY3svqirLljFuOGV5lk7bbiEOoKcGxTVhHkQfP7R93UGbwStvrhOUeFym/oUGzhuWoALZ2o49lXgWwO/SZ7/csGeJ6zObMCqcnVxnMfFv0aOwHyxsJB2xOUieelVARJyi2z2J9cgPavSWLsLXcu/g/XVNk2gYE2eOZ+Ww0wBL5QCbvR0bFFtATpE3Jd1Th6c6NrkuVbKpwH8p1oUSZjacwPakaW4J62ZZUYnHqGo7wenYhBtMNY+eeGtxkg2TMjIyFrIbnxskP60405d1vvC7UwJQQ4zUY+AOHW7o5vxBT2QOYenn1NRMaQwgLd6/eDb5PJX16yAvXfSVB4gxTA4L5FpOtsnW2ExZ5jO+KyPICm8wv2hHQLgA3iFJ/3yh+uoYsSWDtjNZMWft1bRDO7gXE2QxVBFo4cyEno5Cdaf4GY3llw3H+0o/8PCnRMcBTW5VzgZgB1ZDHT5gr1ROtQL4NwPWeOe97khgKij9oWYcQ4o96quO7Z9qcBiZMJ4APSA/WEth/s9morFw9ijG2iLRWlrch3AED+X2sbZW7ci5jyNQRBjZttCnXyZLYwBTEJ3kwenbL0PomKM4qb72yRG8QgsYcb1nv9sftxVMchTXjwVTtPf9669X0RG7WPno4ZLuXbdXsIWlmi/qSD+F7r6apm/u593YnjfhIW0L7Vb6d0vifwp5Oif4wUfhXAEO73ZgH1YrmzSc4wq0RvRCwPpjDi/szg1hJsWjxriFA67msXt2kQH6t9mRsp14MOb3NyNF1PTMCbSZHKP56hiUYykfZaDBGOSkNpG5xizWQ2eILJjSBZieEsyqojVKesXzGDXubuiskmy2ulALgnnQ2IeMinY1v/AACrz/VwHIwFvwABqAaALAAAQbtUZbHEZ/sCAAAAAARZWg==";
 
+  private static final String CAPTURED_TAR_BZ2_FILE_WITH_NO_DIRECTORIES =
+      "QlpoOTFBWSZTWf/lWB8AAH//ktIQSABAAf/iAEFAQGb33uAEAEAAAQgwANmbDVDQNNDQAAADIaBqam9RkUekAGjIGgAAlEmRoT1ANqNDTQBoNPU7HU8nuFZIqUL6QEI2ThgPYjhEYDlNUWhmCIsxNsG1ULg7boIQyPEpUEoLBS/jlHDR4/e5w6vJdYw+RrhVmYJhE3ZRTUsQKLFRMFhJQ8MHkkVUYGIaDCAI3E3QkxgxmERMEiuu/bH8jnkWDyL0ovHLXCClChd6UMmHAJaDswrYnDAJ4FOgwSHAXkJFxGjSctPwYyt7mmskMK4mcuEP4u5IpwoSH/yrA+A=";
+
   private TestingConsole console;
   private SkylarkTestExecutor skylark;
   private Path workdir;
@@ -151,6 +154,24 @@ public final class RemoteFileModuleTest {
             "o",
             "o = remotefiles.origin(unpack_method = 'TAR_XZ', message = 'hello world',"
                 + " archive_source = 'https://dirs.tar.xz')");
+    Reader<RemoteArchiveRevision> reader = underTest.newReader(Glob.ALL_FILES, authoring);
+    RemoteArchiveRevision revision = underTest.resolve(null);
+    reader.checkout(revision, workdir);
+    assertThatPath(workdir).containsFile("test.txt", "hello world");
+  }
+
+  @Test
+  public void testRemoteArchiveOriginTarBzip2File() throws Exception {
+    when(transport.open(
+            argThat((URL url) -> url.toString().equals("https://dirs.tar.bz2")), isNull()))
+        .thenReturn(
+            new ByteArrayInputStream(
+                BaseEncoding.base64().decode(CAPTURED_TAR_BZ2_FILE_WITH_NO_DIRECTORIES)));
+    RemoteArchiveOrigin underTest =
+        skylark.eval(
+            "o",
+            "o = remotefiles.origin(unpack_method = 'TAR_BZ2', message = 'hello world',"
+                + " archive_source = 'https://dirs.tar.bz2')");
     Reader<RemoteArchiveRevision> reader = underTest.newReader(Glob.ALL_FILES, authoring);
     RemoteArchiveRevision revision = underTest.resolve(null);
     reader.checkout(revision, workdir);

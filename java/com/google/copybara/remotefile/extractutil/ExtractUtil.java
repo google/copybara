@@ -27,6 +27,7 @@ import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveInputStream;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
+import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.apache.commons.compress.compressors.xz.XZCompressorInputStream;
 
@@ -70,6 +71,8 @@ public final class ExtractUtil {
         return new TarArchiveInputStream(new GzipCompressorInputStream(inputStream));
       case TAR_XZ:
         return new TarArchiveInputStream(new XZCompressorInputStream(inputStream));
+      case TAR_BZ2:
+        return new TarArchiveInputStream(new BZip2CompressorInputStream(inputStream));
     }
     throw new ValidationException(
         String.format("Failed to get archive input stream for file type: %s", fileType));

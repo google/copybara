@@ -30,6 +30,7 @@ import java.util.zip.ZipOutputStream;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.apache.commons.compress.compressors.xz.XZCompressorOutputStream;
+import org.apache.commons.compress.compressors.bzip2.BZip2CompressorOutputStream;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -121,6 +122,31 @@ public final class ExtractUtilTest {
     InputStream is = Files.newInputStream(testTarXz);
     Path outputPath = testFolder.resolve("output");
     ExtractUtil.extractArchive(is, outputPath, ExtractType.TAR_XZ, null);
+    // Test whether all the expected files have been uncompressed and extracted.
+    assertThat(MoreFiles.asByteSource(outputPath.resolve("foo.txt")).asCharSource(UTF_8).read())
+        .isEqualTo("copybara");
+  }
+
+  @Test
+  public void testExtractArchive_tarBz2File() throws Exception {
+    Path testfolder = folder.getRoot().toPath();
+    Path testfile = testfolder.resolve("foo.txt");
+    MoreFiles.asByteSink(testfile).asCharSink(UTF_8).write("copybara");
+    Path testTarBz2 = testfolder.resolve("test.tar.bz2");
+
+    // Create an archived and compressed tar.bz2 test file and place it in the root directory.
+    try (TarArchiveOutputStream tarBz2OutputStream =
+        new TarArchiveOutputStream(
+            new BZip2CompressorOutputStream(Files.newOutputStream(testTarBz2)))) {
+      tarBz2OutputStream.putArchiveEntry(new TarArchiveEntry(testfile.toFile(), "foo.txt"));
+      tarBz2OutputStream.write(Files.readAllBytes(testfile));
+      tarBz2OutputStream.closeArchiveEntry();
+    }
+
+    // Extract it with null glob.
+    InputStream is = Files.newInputStream(testTarBz2);
+    Path outputPath = testFolder.resolve("output");
+    ExtractUtil.extractArchive(is, outputPath, ExtractType.TAR_BZ2, null);
     // Test whether all the expected files have been uncompressed and extracted.
     assertThat(MoreFiles.asByteSource(outputPath.resolve("foo.txt")).asCharSource(UTF_8).read())
         .isEqualTo("copybara");
