@@ -52,9 +52,13 @@ public class GclientHttpStreamFactory implements HttpStreamFactory {
   @Override
   public InputStream open(URL url, @Nullable AuthInterceptor auth)
       throws IOException, CredentialRetrievalException, CredentialIssuingException {
-    HttpRequest req = javaNet.createRequestFactory().buildGetRequest(new GenericUrl(url))
-        .setReadTimeout((int) timeout.toMillis())
-        .setConnectTimeout((int) timeout.toMillis());
+    HttpRequest req =
+        javaNet
+            .createRequestFactory()
+            .buildGetRequest(new GenericUrl(url))
+            .setReadTimeout((int) timeout.toMillis())
+            .setConnectTimeout((int) timeout.toMillis())
+            .setUseRawRedirectUrls(true);
     if (auth != null) {
       req.setInterceptor(auth.interceptor());
     }

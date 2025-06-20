@@ -757,4 +757,39 @@ public final class RemoteArchiveOriginTest {
 
     assertThat(authorizationHeader).containsExactly(basicAuth("testuser", "testpass"));
   }
+
+  @Test
+  public void testRedirect() throws Exception {
+    MockHttpTester http = new MockHttpTester();
+    remoteFileOptions.transport =
+        () -> new GclientHttpStreamFactory(http.getTransport(), Duration.ofSeconds(20));
+
+    http.mockHttp(
+        (method, url, req, resp) -> {
+          if (url.equals("https://foo.zip?access_token=abc%2Fdef%2Fghi")) {
+            resp.setStatusCode(200)
+                .setContent(BaseEncoding.base64().decode(CAPTURED_HELLO_WORLD_ZIP_FILE))
+                .setContentType("application/zip");
+          } else {
+            resp.setStatusCode(302)
+                .addHeader("Location", "https://foo.zip?access_token=abc%2Fdef%2Fghi");
+          }
+        });
+
+    when(versionSelector.select(any(), any(), any())).thenReturn(Optional.of(""));
+    when(versionList.list()).thenReturn(ImmutableSet.of());
+
+    RemoteArchiveOrigin underTest =
+        getRemoteArchiveOriginUnderTest(
+            "https://foo.zip",
+            versionList,
+            versionSelector,
+            versionResolver,
+            RemoteFileType.ZIP,
+            null);
+
+    Reader<RemoteArchiveRevision> reader = underTest.newReader(Glob.ALL_FILES, authoring);
+    reader.checkout(underTest.resolve(null), workdir);
+    assertThatPath(workdir).containsFile("test.txt", "hello world\n");
+  }
 }
