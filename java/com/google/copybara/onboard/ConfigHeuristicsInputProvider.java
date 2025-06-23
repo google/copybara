@@ -139,13 +139,12 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
       repo.withWorkTree(git).forceCheckout(gitRevision.getSha1());
 
       ConfigGenHeuristics heuristics =
-          new ConfigGenHeuristics(
-              origin,
+          getConfigGenHeuristics(
               destination,
+              origin,
               destinationOnlyPaths,
               percentSimilar,
-              generatorOptions.computeGlobIgnoreCarriageReturn,
-              generatorOptions.computeGlobIgnoreWhitespace,
+              generatorOptions,
               generalOptions);
 
       console.progressFmt("Computing globs");
@@ -157,6 +156,36 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
       cached = Optional.empty();
       return cached;
     }
+  }
+
+  /**
+   * Returns a {@link ConfigGenHeuristics} object.
+   *
+   * @param destination the local path to the destination
+   * @param origin the local path to the origin
+   * @param destinationOnlyPaths paths that should be considered destination-only, and excluded from
+   *     heuristics
+   * @param percentSimilar the threshold for considering an origin file similar enough to a
+   *     destination file
+   * @param generatorOptions the generator options from {@link com.google.copybara.Options}
+   * @param generalOptions the general options from {@link com.google.copybara.Options}
+   * @return the object
+   */
+  protected ConfigGenHeuristics getConfigGenHeuristics(
+      Path destination,
+      Path origin,
+      ImmutableSet<Path> destinationOnlyPaths,
+      int percentSimilar,
+      GeneratorOptions generatorOptions,
+      GeneralOptions generalOptions) {
+    return new ConfigGenHeuristics(
+        origin,
+        destination,
+        destinationOnlyPaths,
+        percentSimilar,
+        generatorOptions.computeGlobIgnoreCarriageReturn,
+        generatorOptions.computeGlobIgnoreWhitespace,
+        generalOptions);
   }
 
   @Override

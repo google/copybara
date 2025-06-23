@@ -19,6 +19,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static java.lang.Math.max;
 import static java.util.Comparator.comparingInt;
+import static java.util.stream.Collectors.collectingAndThen;
 import static java.util.stream.Collectors.joining;
 
 import com.google.common.base.Joiner;
@@ -133,7 +134,8 @@ public class ConfigGenHeuristics {
     }
   }
 
-  private record PathAndScore(Path path, int score) {}
+  /** A path and its similarity score to some other path. */
+  public record PathAndScore(Path path, int score) {}
 
   /**
    * Run the config generation to find a good origin_files, destination_files and core.moves needed
@@ -144,6 +146,40 @@ public class ConfigGenHeuristics {
   public ConfigGenHeuristics.Result run() throws IOException {
     ImmutableSet<Path> gitFiles = listFiles(origin);
     ImmutableSet<Path> g3Files = listFiles(destination);
+    Map<Path, PathAndScore> destinationToOriginMapping =
+        getDestinationToOriginMapping(gitFiles, g3Files);
+
+    // Map of Origin file paths to destination file paths.
+    // If multiple destination file map to the same origin file, we preserve the mapping with the
+    // highest score.
+    Map<Path, Path> similarFiles =
+        destinationToOriginMapping.entrySet().stream()
+            .collect(
+                Collectors.groupingBy(
+                    e -> e.getValue().path(),
+                    collectingAndThen(
+                        Collectors.maxBy(comparingInt(e -> e.getValue().score())),
+                        e -> e.orElseThrow().getKey())));
+
+    IncludesGlob originGlob = getOriginGlob(gitFiles, similarFiles, g3Files);
+    ImmutableList<GeneratorMove> moves = generateMoves(similarFiles);
+    DestinationExcludePaths destinationExcludePaths =
+        new DestinationExcludePaths(
+            getDestinationExcludePaths(g3Files, similarFiles, destinationOnlyPaths));
+    return new ConfigGenHeuristics.Result(
+        originGlob.glob, new GeneratorTransformations(moves), destinationExcludePaths);
+  }
+
+  /**
+   * Generates a mapping of destination files to origin files.
+   *
+   * @param gitFiles The list of paths in the origin
+   * @param g3Files The list of paths in the destination
+   * @return a map of destination to origin files, with their similarity scores
+   * @throws IOException if there is an error reading the origin or destination files
+   */
+  protected Map<Path, PathAndScore> getDestinationToOriginMapping(
+      ImmutableSet<Path> gitFiles, ImmutableSet<Path> g3Files) throws IOException {
     SimilarityDetector similarityDetector =
         SimilarityDetector.create(
             origin,
@@ -167,26 +203,7 @@ public class ConfigGenHeuristics {
                   pathAndScore,
                   BinaryOperator.maxBy(Comparator.comparingInt(PathAndScore::score))));
     }
-
-    // Map of Origin file paths to destination file paths.
-    // If multiple destination file map to the same origin file, we preserve the mapping with the
-    // highest score.
-    Map<Path, Path> similarFiles =
-        destinationToOriginMapping.entrySet().stream()
-            .collect(
-                Collectors.groupingBy(
-                    e -> e.getValue().path(),
-                    Collectors.collectingAndThen(
-                        Collectors.maxBy(comparingInt(e -> e.getValue().score())),
-                        e -> e.orElseThrow().getKey())));
-
-    IncludesGlob originGlob = getOriginGlob(gitFiles, similarFiles, g3Files);
-    ImmutableList<GeneratorMove> moves = generateMoves(similarFiles);
-    DestinationExcludePaths destinationExcludePaths =
-        new DestinationExcludePaths(
-            getDestinationExcludePaths(g3Files, similarFiles, destinationOnlyPaths));
-    return new ConfigGenHeuristics.Result(
-        originGlob.glob, new GeneratorTransformations(moves), destinationExcludePaths);
+    return destinationToOriginMapping;
   }
 
   private IncludesGlob getOriginGlob(
@@ -466,7 +483,12 @@ public class ConfigGenHeuristics {
     return Paths.get(Joiner.on("/").join(paths));
   }
 
-  private static class SimilarityDetector {
+  /**
+   * Detects similar files based on hash and similarity.
+   *
+   * <p>This is used to find similar files in the origin and destination, and map them together.
+   */
+  protected static class SimilarityDetector {
 
     // Useful for binaries
     private final HashMultimap<String, Path> hashBased;
