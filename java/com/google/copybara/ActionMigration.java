@@ -176,7 +176,8 @@ public class ActionMigration implements Migration {
           Preconditions.checkNotNull(getEndpoints().getValue(DESTINATION_ENDPOINT_NAME));
       return ((Endpoint) destination).describe();
     } catch (EvalException e) {
-      throw new IllegalStateException("Shouldn't happen", e);
+      throw new IllegalStateException(
+          "Shouldn't happen but did anyway for config %s".concat(configFile.path()), e);
     }
   }
 
@@ -190,7 +191,8 @@ public class ActionMigration implements Migration {
           result.put(name, e.describe());
         }
       } catch (EvalException e) {
-        throw new IllegalStateException("Shouldn't happen", e);
+        throw new IllegalStateException(
+            "Shouldn't happen but did anyway for config %s".concat(configFile.path()), e);
       }
     }
     return result.buildOrThrow();
