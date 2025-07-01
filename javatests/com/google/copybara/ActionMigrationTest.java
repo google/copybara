@@ -628,7 +628,28 @@ public class ActionMigrationTest {
     actionMigration.run(workdir, ImmutableList.of("12345"));
     console.assertThat().onceInLog(MessageType.INFO, "FOUND: hello");
   }
-  
+
+  @Test
+  public void testActionMigration_emptyEndpoints_throwsVE() throws Exception {
+    String config =
+        """
+        def test_action(ctx):
+            return ctx.success()
+
+        core.action_migration(
+            name = 'default',
+            origin = testing.dummy_trigger(),
+            endpoints = struct(),
+            action = test_action,
+        )
+        """;
+
+    ValidationException ve = assertThrows(ValidationException.class, () -> loadConfig(config));
+    assertThat(ve)
+        .hasMessageThat()
+        .contains("Action migration must have an endpoint named 'destination'");
+  }
+
   @Test
   public void testActionMigration_noopNullMsgDoesNotNPE() throws Exception {
     String config =

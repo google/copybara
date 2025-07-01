@@ -2132,22 +2132,23 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             named = true),
         @Param(
             name = "endpoints",
-            doc = "Zero or more endpoints that the migration will have access for read and/or"
-                + "  write. This is a field that should be defined as:\n"
-                + "```\n"
-                + "  endpoint = struct(\n"
-                + "     some_endpoint = foo.foo_api(...configuration...),\n"
-                + "     other_endpoint = baz.baz_api(...configuration...),\n"
-                + "  )\n"
-                + "```\n"
-                + "Then they will be accessible in the action as `ctx.endpoints.some_endpoint`"
-                + " and `ctx.endpoints.other_endpoint`",
+            doc =
+                "One or more endpoints that the migration will have access for read and/or write"
+                    + " with one being named 'destination'. This is a field that should be defined"
+                    + " as:\n"
+                    + "```\n"
+                    + "  endpoint = struct(\n"
+                    + "     destination = foo.foo_api(...configuration...),\n"
+                    + "     some_endpoint = baz.baz_api(...configuration...),\n"
+                    + "  )\n"
+                    + "```\n"
+                    + "Then they will be accessible in the action as `ctx.destination`"
+                    + " and `ctx.endpoints.some_endpoint`",
             positional = false,
             named = true),
         @Param(
             name = "action",
-            doc =
-                "The action to execute when the migration is triggered.\n",
+            doc = "The action to execute when the migration is triggered.\n",
             positional = false,
             named = true),
         @Param(
@@ -2181,12 +2182,17 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       StarlarkThread thread)
       throws EvalException {
     ImmutableList<Action> actions = ImmutableList.of(maybeWrapAction(printHandler, action));
+    ImmutableMap<String, Object> endpointsMap = getEndpoints(endpoints);
+    if (!endpointsMap.containsKey(ActionMigration.DESTINATION_ENDPOINT_NAME)) {
+      throw new EvalException("Action migration must have an endpoint named 'destination'.");
+    }
     ActionMigration migration =
         new ActionMigration(
             workflowName,
             convertFromNoneable(description, null),
             mainConfigFile,
-            trigger, new StructImpl((getEndpoints(endpoints))),
+            trigger,
+            new StructImpl(endpointsMap),
             actions,
             generalOptions,
             "action_migration",
