@@ -191,7 +191,7 @@ public class GitOptions implements Option {
   }
 
   /** Returns a {@link GitEnvironment} configured for the given options. */
-  protected GitEnvironment getGitEnvironment(Map<String, String> env) {
+  public GitEnvironment getGitEnvironment(Map<String, String> env) {
     return new GitEnvironment(env, noGitPrompt);
   }
 

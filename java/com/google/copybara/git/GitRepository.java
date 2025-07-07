@@ -659,10 +659,13 @@ public class GitRepository {
    * @throws RepoException if the operation fails
    */
   public static ImmutableMap<String, String> lsRemote(
-      String url, Collection<String> refs, GitEnvironment gitEnv, Collection<String> flags)
+      String url,
+      Collection<String> refs,
+      GitEnvironment gitEnv,
+      Collection<String> flags,
+      int maxLogLines)
       throws RepoException, ValidationException {
-    return lsRemote(
-        FileSystems.getDefault().getPath("."), url, refs, gitEnv, DEFAULT_MAX_LOG_LINES, flags);
+    return lsRemote(FileSystems.getDefault().getPath("."), url, refs, gitEnv, maxLogLines, flags);
   }
 
   private static ImmutableMap<String, String> lsRemote(
