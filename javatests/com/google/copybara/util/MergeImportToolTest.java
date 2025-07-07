@@ -24,6 +24,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.util.MergeImportTool.MergeRunner;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -42,9 +43,8 @@ import org.mockito.Mockito;
 @RunWith(JUnit4.class)
 public final class MergeImportToolTest {
 
-  private static final String DIFF3_BIN = "/usr/bin/diff3";
-
   @Rule public final TemporaryFolder tmpFolder = new TemporaryFolder();
+  private String diff3Bin;
   private Glob glob;
   private Path packagePath;
   private Path originWorkdir;
@@ -57,6 +57,7 @@ public final class MergeImportToolTest {
 
   @Before
   public void setUp() throws IOException {
+    diff3Bin = new OptionsBuilder().general.getDiffBin();
     Path rootPath = tmpFolder.getRoot().toPath();
     packagePath = Path.of("");
     glob = Glob.createGlob(ImmutableList.of("**"));
@@ -65,7 +66,7 @@ public final class MergeImportToolTest {
     baselineWorkdir = createDir(rootPath, "baseline");
     diffToolWorkdir = createDir(rootPath, "diffTool");
     console = new TestingConsole();
-    commandLineDiffUtil = new CommandLineDiffUtil(DIFF3_BIN, null, null);
+    commandLineDiffUtil = new CommandLineDiffUtil(diff3Bin, null, null);
     underTest = new MergeImportTool(console, commandLineDiffUtil, 10, null);
   }
 
@@ -88,7 +89,7 @@ public final class MergeImportToolTest {
   @Test
   public void testMergeDebug() throws Exception {
     Pattern p = Pattern.compile(".*foo.txt");
-    commandLineDiffUtil = new CommandLineDiffUtil(DIFF3_BIN, null, p);
+    commandLineDiffUtil = new CommandLineDiffUtil(diff3Bin, null, p);
     underTest = new MergeImportTool(console, commandLineDiffUtil, 10, p);
 
     String commonFileContents = "a\nb\nc\n";

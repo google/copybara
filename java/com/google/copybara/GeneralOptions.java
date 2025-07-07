@@ -445,7 +445,7 @@ public final class GeneralOptions implements Option {
       description =
           "Command line diff tool bin used in merge import. Defaults to diff3, but users can pass"
               + " in their own diffing tools (along with requisite arg reordering)")
-  private String diffBin = "/usr/bin/diff3";
+  private String diffBin = "diff3";
 
   public String getDiffBin() {
     return diffBin;
