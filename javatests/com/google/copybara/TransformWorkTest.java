@@ -715,6 +715,51 @@ public class TransformWorkTest {
   }
 
   @Test
+  public void testSymlinks_escape() throws Exception {
+    Path base = Files.createDirectories(workdir.resolve("foo"));
+    Path badTarget = Files.createTempFile("badPrefix", "THE CONTENT");
+    Path badLink =
+        Files.createSymbolicLink(
+            Files.createDirectory(base.resolve("a")).resolve("file.txt"), badTarget);
+    Files.createSymbolicLink(base.resolve("a/chained.txt"), badLink);
+
+    Transformation readEscapedSymlink =
+        skylark.eval(
+            "transformation",
+"""
+def test(ctx):
+    path = ctx.new_path("foo/a/file.txt")
+    ctx.console.info(ctx.read_path(path))
+
+transformation = core.transform([test])
+""");
+
+    ValidationException veRead =
+        assertThrows(
+            ValidationException.class,
+            () -> readEscapedSymlink.transform(TransformWorks.of(workdir, "test", console)));
+
+    assertThat(veRead).hasMessageThat().contains("is not inside the checkout directory");
+
+    Transformation writeEscapedSymlink =
+        skylark.eval(
+            "transformation",
+"""
+def test(ctx):
+    path = ctx.new_path("foo/a/file.txt")
+    ctx.console.info(ctx.write_path(path, "foo"))
+
+transformation = core.transform([test])
+""");
+
+    ValidationException veWrite =
+        assertThrows(
+            ValidationException.class,
+            () -> writeEscapedSymlink.transform(TransformWorks.of(workdir, "test", console)));
+    assertThat(veWrite).hasMessageThat().contains("is not inside the checkout directory");
+  }
+
+  @Test
   public void testSymlinks() throws Exception {
     Path base = Files.createDirectories(workdir.resolve("foo"));
     Files.write(Files.createDirectory(base.resolve("a")).resolve("file.txt"),

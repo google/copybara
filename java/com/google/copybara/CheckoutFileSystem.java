@@ -167,8 +167,25 @@ public class CheckoutFileSystem implements StarlarkValue {
 
   private Path asCheckoutPath(CheckoutPath path) throws EvalException {
     Path normalized = checkoutDir.resolve(path.getPath()).normalize();
-    if (!normalized.startsWith(checkoutDir)) {
-      throw Starlark.errorf("%s is not inside the checkout directory", path);
+    try {
+      if (!normalized.startsWith(checkoutDir)
+          || (Files.exists(normalized)
+              && Files.isSymbolicLink(normalized)
+              && !normalized.toRealPath().startsWith(checkoutDir))) {
+        String realPath = "";
+        try {
+          realPath = normalized.toRealPath().toString();
+        } catch (IOException ignored) {
+          logger.atWarning().withCause(ignored).log("Cannot resolve %s", normalized);
+        }
+        throw Starlark.errorf(
+            "%s is not inside the checkout directory or links to a file outside"
+                + " the path. Was %s.",
+            path, realPath);
+      }
+    } catch (IOException ioe) {
+      logger.atInfo().withCause(ioe).log("Cannot resolve %s", path);
+      throw Starlark.errorf("%s cannot be resolved : %s", path, ioe.getMessage());
     }
     return normalized;
   }
