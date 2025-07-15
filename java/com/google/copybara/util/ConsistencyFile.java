@@ -405,7 +405,7 @@ public class ConsistencyFile {
     try {
       var unused = Path.of(path);
     } catch (InvalidPathException e) {
-      throw new ValidationException("Parsed path value is invalid.", e);
+      throw new ValidationException(String.format("Parsed path value is invalid: %s.", path), e);
     }
   }
 
@@ -414,7 +414,7 @@ public class ConsistencyFile {
     try {
       var unused = HashCode.fromString(hash);
     } catch (IllegalArgumentException e) {
-      throw new ValidationException("Parsed hash value is invalid.", e);
+      throw new ValidationException(String.format("Parsed hash value is invalid: %s.", hash), e);
     }
   }
 }
