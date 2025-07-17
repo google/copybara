@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2016 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Comparators.max;
 import static com.google.copybara.DestinationReader.NOOP_DESTINATION_READER;
 import static com.google.copybara.GeneralOptions.FORCE;
 import static com.google.copybara.LazyResourceLoader.memoized;
@@ -70,6 +71,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -525,7 +527,7 @@ public class GitDestination implements Destination<GitRevision> {
               GeneralOptions.FORCE));
         }
         if (localBranchRevision != null) {
-          scratchClone.simpleCommand("checkout", "-f", "-q", reference);
+          scratchClone.simpleCommand(getMaxRepoTimeout(), "checkout", "-f", "-q", reference);
         } else {
           // Configure the commit to go to local branch instead of main branch.
           scratchClone.simpleCommand("symbolic-ref", "HEAD", getCompleteRef(state.localBranch));
@@ -539,7 +541,8 @@ public class GitDestination implements Destination<GitRevision> {
         }
         // Checkout again in case the origin checkout changed the branch (origin = destination)
         if (Strings.isNullOrEmpty(scratchClone.getCurrentBranch())) {
-           scratchClone.simpleCommand("checkout", "-q", "-f", state.localBranch);
+          scratchClone.simpleCommand(
+              getMaxRepoTimeout(), "checkout", "-q", "-f", state.localBranch);
         }
       }
       PathMatcher pathMatcher = destinationFiles.relativeTo(scratchClone.getWorkTree());
@@ -642,9 +645,10 @@ public class GitDestination implements Destination<GitRevision> {
       if (localRepoPath != null) {
         if (afterRebaseRev != null) {
           localBranchName = "copybara/local";
-          alternate.simpleCommand("checkout", "-B", localBranchName, afterRebaseRev.getSha1());
+          alternate.simpleCommand(
+              getMaxRepoTimeout(), "checkout", "-B", localBranchName, afterRebaseRev.getSha1());
         }
-        scratchClone.simpleCommand("checkout", state.localBranch);
+        scratchClone.simpleCommand(getMaxRepoTimeout(), "checkout", state.localBranch);
       }
 
       if (transformResult.isConfirmedInOrigin()) {
@@ -719,6 +723,10 @@ public class GitDestination implements Destination<GitRevision> {
         msg = msg.withNewOrReplacedLabel(label.getName(), label.getSeparator(), label.getValue());
       }
       return msg.toString();
+    }
+
+    private Duration getMaxRepoTimeout() {
+      return max(generalOptions.repoTimeout, generalOptions.commandsTimeout);
     }
 
     /**

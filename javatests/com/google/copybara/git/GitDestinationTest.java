@@ -69,6 +69,7 @@ import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -541,6 +542,36 @@ public class GitDestinationTest {
         workdir, new DummyRevision("ref2")).withChanges(changes), destinationFiles, console);
     CommandOutput commandOutput = repo().simpleCommand("tag", "-n9");
     assertThat(commandOutput.getStdout()).matches(".*test_v1.*" + tagMsg + "\n");
+  }
+
+  @Test
+  public void write_withZeroRepoTimeout_timeoutOccurs() throws Exception {
+    fetch = primaryBranch;
+    push = primaryBranch;
+    options.general.repoTimeout = Duration.ZERO;
+    options.setForce(true);
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes(UTF_8));
+
+    WriterContext writerContext =
+        new WriterContext(
+            "piper_to_github", "TEST", false, new DummyRevision("test"), Glob.ALL_FILES.roots());
+    RepoException expectedExpectedException =
+        assertThrows(
+            RepoException.class,
+            () ->
+                evalDestination()
+                    .newWriter(writerContext)
+                    .write(
+                        TransformResults.of(workdir, new DummyRevision("ref1")),
+                        destinationFiles,
+                        console));
+
+    assertThat(expectedExpectedException)
+        .hasMessageThat()
+        .contains(
+            "killed by Copybara after timeout (0s). If this fails during a fetch or"
+                + " push use --repo-timeout flag. If this fails during checkout or another point,"
+                + " use --commands-timeout flag.");
   }
 
   @Test
