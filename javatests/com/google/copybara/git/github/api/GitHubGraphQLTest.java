@@ -29,6 +29,7 @@ import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.api.client.testing.http.MockLowLevelHttpResponse;
 import com.google.copybara.git.GitRepository;
 import com.google.copybara.git.github.api.testing.AbstractGitHubGraphQLApiTest;
+import com.google.copybara.git.github.util.GitHubHost;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -105,7 +106,7 @@ public class GitHubGraphQLTest extends AbstractGitHubGraphQLApiTest {
             return request;
           }
         };
-    return new GitHubApiTransportImpl(
+    return new GitHubApiTransportImpl(GitHubHost.GITHUB_COM,
         repo, httpTransport, "some_storage_file", false, new TestingConsole());
   }
 
