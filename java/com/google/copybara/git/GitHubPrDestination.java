@@ -221,7 +221,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
         ImmutableList.Builder<DestinationEffect> result =
             ImmutableList.<DestinationEffect>builder()
                 .addAll(super.write(transformResult, destinationFiles, console));
-        if (writerContext.isDryRun() || state.pullRequestNumber != null) {
+        if (writerContext.isDryRun() || (state.pullRequestNumber != null && state.pullRequestNumber == -1L)) {
           return result.build();
         }
 
@@ -235,71 +235,152 @@ public class GitHubPrDestination implements Destination<GitRevision> {
         }
 
         GitHubApi api = gitHubOptions.newGitHubRestApi(getProjectName(), credentials);
+        ChangeMessage msg = ChangeMessage.parseMessage(transformResult.getSummary().trim());
 
+        String title = buildPullRequestTitle(msg, transformResult);
+        String prBody = buildPullRequestBody(msg, transformResult);
+        ImmutableList<String> assignees = buildAssignees(transformResult);
+
+        try {
+          if (state.pullRequestNumber != null) {
+            // Use cached pull request number
+            result.addAll(updateExistingPullRequest(api, title, prBody, assignees, console, transformResult));
+          } else {
+            // Search for existing PR or create new one
+            result.addAll(findOrCreatePullRequest(api, title, prBody, assignees, console, transformResult));
+          }
+        } catch (IOException | ValidationException | RepoException e) {
+          throw new RepoException("Error creating/updating pull request", e);
+        }
+
+        return result.build();
+      }
+
+      /**
+       * Builds the pull request title from the change message or configured title.
+       */
+      private String buildPullRequestTitle(ChangeMessage msg, TransformResult transformResult) 
+          throws ValidationException {
+        return GitHubPrDestination.this.title == null
+            ? msg.firstLine()
+            : LabelFinder.mapLabels(
+                transformResult.getLabelFinder(), GitHubPrDestination.this.title, "title");
+      }
+
+      /**
+       * Builds the pull request body from the change message or configured body.
+       */
+      private String buildPullRequestBody(ChangeMessage msg, TransformResult transformResult) 
+          throws ValidationException {
+        return GitHubPrDestination.this.body == null
+            ? msg.toString()
+            : LabelFinder.mapLabels(
+                transformResult.getLabelFinder(), GitHubPrDestination.this.body, "body");
+      }
+
+      /**
+       * Builds the list of assignees from the configuration.
+       */
+      private ImmutableList<String> buildAssignees(TransformResult transformResult) {
+        return LabelFinder.mapLabels(
+            transformResult.getLabelFinder(), GitHubPrDestination.this.assignees);
+      }
+
+      /**
+       * Updates an existing pull request with new title and body.
+       */
+      private ImmutableList<DestinationEffect> updateExistingPullRequest(
+          GitHubApi api, String title, String prBody, ImmutableList<String> assignees, 
+          Console console, TransformResult transformResult)
+          throws IOException, ValidationException, RepoException {
+        
+        PullRequest pr = api.getPullRequest(getProjectName(), state.pullRequestNumber);
+        
+        if (!pr.getHead().getRef().equals(prBranch)) {
+          console.warnFmt(
+              "Cached pull request %d has different branch '%s' than expected '%s'. "
+              + "Will search for correct PR.",
+              state.pullRequestNumber, pr.getHead().getRef(), prBranch);
+          state.pullRequestNumber = null; // Reset to force search
+          return findOrCreatePullRequest(api, title, prBody, assignees, console, transformResult);
+        }
+
+        if (!pr.isOpen()) {
+          console.warnFmt(
+              "Pull request for branch %s already exists as %s/pull/%s, but is closed - "
+                  + "reopening.",
+              prBranch, asHttpsUrl(), pr.getNumber());
+          api.updatePullRequest(
+              getProjectName(), pr.getNumber(), new UpdatePullRequest(null, null, OPEN));
+        } else {
+          console.infoFmt(
+              "Pull request for branch %s already exists as %s/pull/%s",
+              prBranch, asHttpsUrl(), pr.getNumber());
+        }
+
+        if (!pr.getBase().getRef().equals(getDestinationRef())) {
+          console.warnFmt(
+              "Current base branch '%s' is different from the PR base branch '%s'",
+              getDestinationRef(), pr.getBase().getRef());
+        }
+
+        if (updateDescription) {
+          updatePullRequestDescription(api, pr, title, prBody);
+        }
+
+        return ImmutableList.of(
+            new DestinationEffect(
+                DestinationEffect.Type.UPDATED,
+                String.format("Pull Request %s updated", pr.getHtmlUrl()),
+                transformResult.getChanges().getCurrent(),
+                new DestinationEffect.DestinationRef(
+                    Long.toString(pr.getNumber()), "pull_request", pr.getHtmlUrl())));
+      }
+
+      /**
+       * Finds an existing pull request or creates a new one.
+       */
+      private ImmutableList<DestinationEffect> findOrCreatePullRequest(
+          GitHubApi api, String title, String prBody, ImmutableList<String> assignees, 
+          Console console, TransformResult transformResult)
+          throws IOException, ValidationException, RepoException {        
+        PullRequest existingPr = findExistingPullRequest(api, console);
+        if (existingPr != null) {
+          state.pullRequestNumber = existingPr.getNumber();
+          return updateExistingPullRequest(api, title, prBody, assignees, console, transformResult);
+        }
+
+        // Create new PR
+        return createNewPullRequest(api, title, prBody, assignees, console, transformResult);
+      }
+
+      /**
+       * Finds an existing pull request that matches the current branch configuration.
+       */
+      private PullRequest findExistingPullRequest(GitHubApi api, Console console) 
+          throws IOException, ValidationException, RepoException {
         ImmutableList<PullRequest> pullRequests =
             api.getPullRequests(
                 getProjectName(),
                 PullRequestListParams.DEFAULT.withHead(
                     String.format("%s:%s", ghHost.getUserNameFromUrl(url), prBranch)));
 
-        ChangeMessage msg = ChangeMessage.parseMessage(transformResult.getSummary().trim());
-
-        String title =
-            GitHubPrDestination.this.title == null
-                ? msg.firstLine()
-                : LabelFinder.mapLabels(
-                    transformResult.getLabelFinder(), GitHubPrDestination.this.title, "title");
-
-        String prBody =
-            GitHubPrDestination.this.body == null
-                ? msg.toString()
-                : LabelFinder.mapLabels(
-                    transformResult.getLabelFinder(), GitHubPrDestination.this.body, "body");
-        // figure out assignees here
-        ImmutableList<String> assignees =
-            LabelFinder.mapLabels(
-                transformResult.getLabelFinder(), GitHubPrDestination.this.assignees);
         for (PullRequest pr : pullRequests) {
           if (pr.getHead().getRef().equals(prBranch)) {
-            if (!pr.isOpen()) {
-              console.warnFmt(
-                  "Pull request for branch %s already exists as %s/pull/%s, but is closed - "
-                      + "reopening.",
-                  prBranch, asHttpsUrl(), pr.getNumber());
-              api.updatePullRequest(
-                  getProjectName(), pr.getNumber(), new UpdatePullRequest(null, null, OPEN));
-            } else {
-              console.infoFmt(
-                  "Pull request for branch %s already exists as %s/pull/%s",
-                  prBranch, asHttpsUrl(), pr.getNumber());
-            }
-            if (!pr.getBase().getRef().equals(getDestinationRef())) {
-              // TODO(malcon): Update PR or create a new one?
-              console.warnFmt(
-                  "Current base branch '%s' is different from the PR base branch '%s'",
-                  getDestinationRef(), pr.getBase().getRef());
-            }
-            if (updateDescription) {
-              checkCondition(
-                  !Strings.isNullOrEmpty(title),
-                  "Pull Request title cannot be empty. Either use 'title' field in"
-                      + " git.github_pr_destination or modify the message to not be empty");
-              api.updatePullRequest(
-                  getProjectName(),
-                  pr.getNumber(),
-                  new UpdatePullRequest(title, prBody, /* state= */ null));
-            }
-            result.add(
-                new DestinationEffect(
-                    DestinationEffect.Type.UPDATED,
-                    String.format("Pull Request %s updated", pr.getHtmlUrl()),
-                    transformResult.getChanges().getCurrent(),
-                    new DestinationEffect.DestinationRef(
-                        Long.toString(pr.getNumber()), "pull_request", pr.getHtmlUrl())));
-            return result.build();
+            return pr;
           }
         }
+        
+        return null;
+      }
 
+      /**
+       * Creates a new pull request.
+       */
+      private ImmutableList<DestinationEffect> createNewPullRequest(
+          GitHubApi api, String title, String prBody, ImmutableList<String> assignees, 
+          Console console, TransformResult transformResult)
+          throws IOException, ValidationException, RepoException {
         checkCondition(
             !Strings.isNullOrEmpty(title),
             "Pull Request title cannot be empty. Either use 'title' field in"
@@ -309,6 +390,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
             api.createPullRequest(
                 getProjectName(),
                 new CreatePullRequest(title, prBody, prBranch, getDestinationRef(), draft));
+        
         console.infoFmt(
             "Pull Request %s/pull/%s created using branch '%s'.",
             asHttpsUrl(), pr.getNumber(), prBranch);
@@ -324,14 +406,24 @@ public class GitHubPrDestination implements Destination<GitRevision> {
         }
 
         state.pullRequestNumber = pr.getNumber();
-        result.add(
+        return ImmutableList.of(
             new DestinationEffect(
                 DestinationEffect.Type.CREATED,
                 String.format("Pull Request %s created", pr.getHtmlUrl()),
                 transformResult.getChanges().getCurrent(),
                 new DestinationEffect.DestinationRef(
                     Long.toString(pr.getNumber()), "pull_request", pr.getHtmlUrl())));
-        return result.build();
+      }
+
+      /**
+       * Updates the pull request description if needed.
+       */
+      private void updatePullRequestDescription(GitHubApi api, PullRequest pr, String title, String prBody) 
+          throws IOException, ValidationException, RepoException {        
+        api.updatePullRequest(
+            getProjectName(),
+            pr.getNumber(),
+            new UpdatePullRequest(title, prBody, /* state= */ null));
       }
 
       @Override
