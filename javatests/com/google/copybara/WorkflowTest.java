@@ -2442,6 +2442,42 @@ public class WorkflowTest {
   }
 
   @Test
+  public void mergeImport_consistencyFile_validateUsesConsistencyFileSet() throws Exception {
+    // use_consistency_file is set to False by default, but setting it here for readability
+    mergeImport =
+        "core.merge_import_config(\n"
+            + "  package_path = \"\",\n"
+            + "  use_consistency_file = False,\n"
+            + ")";
+    consistencyFilePath = "\"foo.bara.consistency\"";
+
+    ValidationException ve =
+        assertThrows(
+            ValidationException.class, () -> skylarkWorkflowInDirectory("default", SQUASH, "dir/"));
+    assertThat(ve)
+        .hasMessageThat()
+        .contains(
+            "error: consistency_file_path set and merge import is enabled, but use_consistency_file"
+                + " in merge_import is false");
+  }
+
+  @Test
+  public void mergeImport_useConsistencyFileSet_validateConsistencyFilePathSet() throws Exception {
+    mergeImport =
+        "core.merge_import_config(\n"
+            + "  package_path = \"\",\n"
+            + "  use_consistency_file = True,\n"
+            + ")";
+
+    ValidationException ve =
+        assertThrows(
+            ValidationException.class, () -> skylarkWorkflowInDirectory("default", SQUASH, "dir/"));
+    assertThat(ve)
+        .hasMessageThat()
+        .contains("error: use_consistency_file set but consistency_file_path is null");
+  }
+
+  @Test
   public void mergeImport_consistencyFile_recreatesPostTransformationState() throws Exception {
     // Check that reverse applying the ConsistencyFile results in the expected state
     // This is to verify that workflow is diffing the correct things, not to

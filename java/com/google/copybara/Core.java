@@ -652,6 +652,12 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     check(
         mergeImport == null || !mergeImport.useConsistencyFile() || (consistencyFilePath != null),
         "error: use_consistency_file set but consistency_file_path is null");
+    if (consistencyFilePath != null && mergeImport != null) {
+      check(
+          mergeImport.useConsistencyFile(),
+          "error: consistency_file_path set and merge import is enabled, but use_consistency_file"
+              + " in merge_import is false");
+    }
 
     WorkflowMode effectiveMode =
         generalOptions.squash || workflowOptions.importSameVersion ? WorkflowMode.SQUASH : mode;
