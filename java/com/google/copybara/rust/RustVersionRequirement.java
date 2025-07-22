@@ -45,14 +45,14 @@ public abstract class RustVersionRequirement implements StarlarkValue {
   public static RustVersionRequirement getVersionRequirement(
       String requirement, boolean allowEpochs) throws ValidationException {
     // TODO(chriscampos): Support additional types of version requirements
-    if (allowEpochs && EpochRustVersionRequirement.handlesRequirement(requirement)) {
+    if (MultipleRustVersionRequirement.handlesRequirement(requirement)) {
+      return MultipleRustVersionRequirement.create(requirement);
+    } else if (allowEpochs && EpochRustVersionRequirement.handlesRequirement(requirement)) {
       return EpochRustVersionRequirement.create(requirement);
     } else if (DefaultRustVersionRequirement.handlesRequirement(requirement)) {
       return DefaultRustVersionRequirement.create(requirement);
     } else if (ComparisonRustVersionRequirement.handlesRequirement(requirement)) {
       return ComparisonRustVersionRequirement.create(requirement);
-    } else if (MultipleRustVersionRequirement.handlesRequirement(requirement)) {
-      return MultipleRustVersionRequirement.create(requirement);
     } else if (TildeRustVersionRequirement.handlesRequirement(requirement)) {
       return TildeRustVersionRequirement.create(requirement);
     } else if (WildcardRustVersionRequirement.handlesRequirement(requirement)) {

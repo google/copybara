@@ -26,8 +26,7 @@ import java.util.regex.Pattern;
 
 /** Class that represents a Cargo comparison version requirement, e.g. >= 1.2.0. */
 public class ComparisonRustVersionRequirement extends RustVersionRequirement {
-  static final Pattern VALID_COMPARISON_FORMAT_REGEX =
-      Pattern.compile("^([<>=]=?)\\s*?([0-9]+(\\.[0-9]+)?(\\.[0-9]+)?(-(.*))?)");
+  static final Pattern VALID_COMPARISON_FORMAT_REGEX = Pattern.compile("^([<>=]=?)\\s*([0-9].*)");
   private static final Comparator<Optional<Integer>> KEY_COMPARATOR =
       (k1, k2) -> (k1.isEmpty() || k2.isEmpty() ? 0 : Integer.compare(k1.get(), k2.get()));
   private static final Comparator<SemanticVersion> COMPARISON_VERSION_COMPARATOR =

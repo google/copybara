@@ -107,4 +107,11 @@ public class ComparisonRustVersionRequirementTest {
     assertThat(getVersionRequirement("<= 0.6.1-beta.5", false).fulfills("0.6.0")).isTrue();
     assertThat(getVersionRequirement("<= 0.6.1-beta.5", false).fulfills("0.6.1")).isFalse();
   }
+
+  @Test
+  public void testLessThanOrEqualTo_withPreWildcardVersion() throws Exception {
+    assertThat(getVersionRequirement("<= 0.59.*", false).fulfills("0.59.0")).isTrue();
+    assertThat(getVersionRequirement("<= 0.59.*", false).fulfills("0.59.1")).isTrue();
+    assertThat(getVersionRequirement("<= 0.59.*", false).fulfills("0.60.0")).isFalse();
+  }
 }
