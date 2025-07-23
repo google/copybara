@@ -144,9 +144,10 @@ public class GitOptions implements Option {
   Integer fetchDepth = null;
 
   @Nullable
-  @Parameter(names = "--git-log-limit",
-      description = "Limit log lines to the number specified")
-  private Integer gitLogLimit = GitRepository.DEFAULT_MAX_LOG_LINES;
+  @Parameter(
+      names = "--git-ls-remote-limit",
+      description = "Limit the number of ls-remote rows is visible to Copybara.")
+  private Integer gitlsRemoteLimit = GitRepository.DEFAULT_MAX_LS_REMOTE_LINES;
 
   public Optional<Integer> getFetchDepth() {
     return Optional.ofNullable(fetchDepth);
@@ -230,11 +231,11 @@ public class GitOptions implements Option {
   }
 
   /**
-   * Returns the limit for the number of log lines to output. Specifically this is the value set by
-   * --git-log-limit.
+   * Returns the limit for the number of ls-remote rows to output. Specifically this is the value
+   * set by --git-ls-remote.
    */
-  public int getGitLogLimit() {
-    return gitLogLimit;
+  public int getGitlsRemoteLimit() {
+    return gitlsRemoteLimit;
   }
 
   public GitOptions setPartialCacheFilePrefix(String partialCacheFilePrefix) {
@@ -252,13 +253,13 @@ public class GitOptions implements Option {
   }
 
   /**
-   * Sets the limit for the number of log lines to fetch specifically the value set by
-   * --git-log-limit. This is only used for testing.
-   * 
+   * Sets the limit for the number of ls-remote rows to fetch specifically the value set by
+   * --git-ls-remote. This is only used for testing.
+   *
    * @param limit the limit for the number of log lines to output
    */
   @VisibleForTesting
-  public void setGitLogLimit(int limit) {
-    gitLogLimit = limit;
+  public void setGitlsRemoteLimit(int limit) {
+    gitlsRemoteLimit = limit;
   }
 }
