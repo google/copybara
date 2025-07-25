@@ -66,6 +66,7 @@ function set_up() {
    export workdir=$(temp_dir workdir)
    git config --global user.name 'Bara Kopi'
    git config --global user.email 'bara@kopi.com'
+   git config --global safe.bareRepository all
 }
 
 function temp_dir() {

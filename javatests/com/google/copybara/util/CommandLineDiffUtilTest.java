@@ -19,6 +19,7 @@ package com.google.copybara.util;
 import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.util.MergeImportTool.MergeResult;
 import com.google.copybara.util.MergeImportTool.MergeResultCode;
 import java.io.IOException;
@@ -48,7 +49,7 @@ public final class CommandLineDiffUtilTest {
     right = createDir(rootPath, "right");
     baseline = createDir(rootPath, "baseline");
     workdir = createDir(rootPath, "workdir");
-    underTest = new CommandLineDiffUtil("/usr/bin/diff3", null, null);
+    underTest = new CommandLineDiffUtil(new OptionsBuilder().general.getDiffBin(), null, null);
   }
 
   @Test
