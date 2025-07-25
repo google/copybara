@@ -41,10 +41,8 @@ public class GitHubHost {
     this.gitHubPrUrlPattern = Pattern.compile("https://\\Q" + host + "\\E/(.+)/pull/([0-9]+)");
   }
 
-  static public GitHubHost fromUrl(String url)
-  {
-      url = url.replaceAll("http\\:\\/\\/|https\\:\\/\\/|git\\+|git@", "").replaceAll(":.*|/.*", "");
-      return new GitHubHost(url);
+  static public GitHubHost fromUrl(String url) {
+    return new GitHubHost(URI.create(url).getHost());
   }
 
   /**
@@ -90,7 +88,7 @@ public class GitHubHost {
     return name;
   }
 
-  /** Returns true if url is a GitHub url for a given GitHub or Enterprise host. */
+  /** Returns true if URL belongs to the host that this object is initialized with. */
   public boolean isGitHubUrl(String url) {
     try {
       getProjectNameFromUrl(url);

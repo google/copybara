@@ -356,7 +356,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     CredentialFileHandler credentialHandler = getCredentialHandler(fixedUrl, credentials);
 
     GitHubOptions githubOptions = options.get(GitHubOptions.class);
-    boolean isGitHubUrl = githubOptions.isGithubUrl(url);
+    // This does not support GitHub Enterprise. For that, use githubOrigin.
+    boolean isGitHubUrl = GITHUB_COM.isGitHubUrl(url);
 
     return GitOrigin.newGitOrigin(
         options,
@@ -1263,7 +1264,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   @StarlarkMethod(
       name = "github_origin",
       doc =
-          "Defines a Git origin for a Github repository. This origin should be used for public"
+          "Defines a Git origin for a GitHub or GitHub Enterprise repository. This origin should be used for public"
               + " branches. Use "
               + GITHUB_PR_ORIGIN_NAME
               + " for importing Pull Requests.",
@@ -3400,13 +3401,13 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   /** Do not use this for github origins */
   protected ApprovalsProvider approvalsProvider(String url) {
       Preconditions.checkArgument(
-              !options.get(GitHubOptions.class).isGithubUrl(url),
+              !GITHUB_COM.isGitHubUrl(url),
               "Git origins with github should use github approval providers!");
     return options.get(GitOriginOptions.class).approvalsProvider;
   }
 
   protected ApprovalsProvider githubPreSubmitApprovalsProvider (
-      String url, CredentialFileHandler creds) throws EvalException {
+      String url, CredentialFileHandler creds) {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     GitHubOptions githubOptions = options.get(GitHubOptions.class);
     GitHubHost ghHost = githubOptions.getGitHubHost(url);
@@ -3430,7 +3431,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   }
 
   protected ApprovalsProvider githubPostSubmitApprovalsProvider(
-      String url, String branch, CredentialFileHandler creds) throws EvalException {
+      String url, String branch, CredentialFileHandler creds) {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     GitHubOptions githubOptions = options.get(GitHubOptions.class);
     GitHubHost ghHost = githubOptions.getGitHubHost(url);
@@ -3517,13 +3518,9 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   protected LazyResourceLoader<EndpointProvider<?>> maybeGetGitHubApi(
       String url, @Nullable Checker checker, @Nullable CredentialFileHandler creds,
       StarlarkThread thread) {
-      try {
-          GitHubOptions githubOptions = options.get(GitHubOptions.class);
-          GitHubHost ghHost = githubOptions.getGitHubHost(url);
-          if (!ghHost.isGitHubUrl(url)) {
-              return null;
-          }
-      } catch (EvalException e) {
+      GitHubOptions githubOptions = options.get(GitHubOptions.class);
+      GitHubHost ghHost = githubOptions.getGitHubHost(url);
+      if (!ghHost.isGitHubUrl(url)) {
           return null;
       }
     return (console) -> {
@@ -3553,15 +3550,11 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   @Nullable protected CredentialFileHandler getCredentialHandler(
       String url, @Nullable Object starlarkValue) {
     try {
-        try {
-            GitHubOptions githubOptions = options.get(GitHubOptions.class);
-            GitHubHost ghHost = githubOptions.getGitHubHost(url);
-            if (ghHost.isGitHubUrl(url)) {
-                url = ghHost.normalizeUrl(url);
-            }
-        } catch (EvalException e) {
-            // nothing to-do, it is valid that this is not an GitHub URL.
-        }
+      GitHubOptions githubOptions = options.get(GitHubOptions.class);
+      GitHubHost ghHost = githubOptions.getGitHubHost(url);
+      if (ghHost.isGitHubUrl(url)) {
+          url = ghHost.normalizeUrl(url);
+      }
       URI uri = URI.create(url);
       return getCredentialHandler(uri.getHost(), uri.getPath(), starlarkValue);
     } catch (ValidationException | IllegalArgumentException parseEx) {
