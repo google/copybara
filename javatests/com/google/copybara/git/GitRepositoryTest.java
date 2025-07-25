@@ -1186,8 +1186,9 @@ public class GitRepositoryTest {
         GitRepository.lsRemote(
             "file://" + repository.getGitDir(),
             Collections.emptyList(),
-            new GitEnvironment(System.getenv()), /*maxLogLines*/
-            6);
+            new GitEnvironment(System.getenv()),
+            Collections.emptyList(),
+            /* maxLsRemoteLimit= */ 6);
 
     assertThat(refsToShas.keySet())
         .containsExactly(

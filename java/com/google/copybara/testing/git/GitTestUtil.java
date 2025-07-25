@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2016 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -495,6 +495,13 @@ public class GitTestUtil {
         String url, Collection<String> refs, int maxLogLines, Collection<String> flags)
         throws RepoException, ValidationException {
       return super.lsRemote(mapUrl(url), refs, maxLogLines, flags);
+    }
+
+    @Override
+    public Map<String, String> lsRemote(
+        String url, Collection<String> refs, Collection<String> flags, int maxLsRemoteLimit)
+        throws RepoException, ValidationException {
+      return super.lsRemote(mapUrl(url), refs, flags, maxLsRemoteLimit);
     }
 
     @Override

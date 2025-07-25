@@ -642,7 +642,13 @@ public class GitRepository {
   public static Map<String, String> lsRemote(
       String url, Collection<String> refs, GitEnvironment gitEnv, int maxLogLines)
       throws RepoException, ValidationException {
-    return lsRemote(FileSystems.getDefault().getPath("."), url, refs, gitEnv, maxLogLines,
+    return lsRemote(
+        FileSystems.getDefault().getPath("."),
+        url,
+        refs,
+        gitEnv,
+        maxLogLines,
+        DEFAULT_MAX_LS_REMOTE_LINES,
         ImmutableList.of());
   }
 
@@ -655,6 +661,7 @@ public class GitRepository {
    * @param refs - see <refs> in git help ls-remote
    * @param gitEnv - determines where the Git binaries are
    * @param flags - flags to pass to the ls-remote command.
+   * @param maxLsRemoteLimit - Limit the number of ls remote lines to the number specified.
    * @return - a map of refs to sha1 from the git ls-remote output. Can also contain symbolic refs
    *     if --symref is set.
    * @throws RepoException if the operation fails
@@ -664,14 +671,27 @@ public class GitRepository {
       Collection<String> refs,
       GitEnvironment gitEnv,
       Collection<String> flags,
-      int maxLogLines)
+      int maxLsRemoteLimit)
       throws RepoException, ValidationException {
-    return lsRemote(FileSystems.getDefault().getPath("."), url, refs, gitEnv, maxLogLines, flags);
+    return lsRemote(
+        FileSystems.getDefault().getPath("."),
+        url,
+        refs,
+        gitEnv,
+        DEFAULT_MAX_LOG_LINES,
+        maxLsRemoteLimit,
+        flags);
   }
 
   private static ImmutableMap<String, String> lsRemote(
-      Path cwd, String url, Collection<String> refs, GitEnvironment gitEnv, int maxLogLines,
-      Collection<String> flags) throws RepoException, ValidationException {
+      Path cwd,
+      String url,
+      Collection<String> refs,
+      GitEnvironment gitEnv,
+      int maxLogLines,
+      int maxLsRemoteLimit,
+      Collection<String> flags)
+      throws RepoException, ValidationException {
 
     ImmutableMap.Builder<String, String> result = ImmutableMap.builder();
     List<String> args = Lists.newArrayList("ls-remote");
@@ -709,7 +729,7 @@ public class GitRepository {
       int rowsAccumulated = 0;
       for (String line :
           Iterables.filter(Splitter.on('\n').split(output.getStdout()), row -> !row.isEmpty())) {
-        if (maxLogLines >= 0 && rowsAccumulated >= maxLogLines) {
+        if (maxLsRemoteLimit >= 0 && rowsAccumulated >= maxLsRemoteLimit) {
           break;
         }
         Matcher matcher = LS_REMOTE_OUTPUT_LINE.matcher(line);
@@ -767,7 +787,23 @@ public class GitRepository {
   public Map<String, String> lsRemote(
       String url, Collection<String> refs, int maxLogLines, Collection<String> flags)
       throws RepoException, ValidationException {
-    return lsRemote(getCwd(), url, refs, gitEnv, maxLogLines, flags);
+    return lsRemote(getCwd(), url, refs, gitEnv, maxLogLines, DEFAULT_MAX_LS_REMOTE_LINES, flags);
+  }
+
+  /**
+   * Same as {@link #lsRemote(String, Collection, GitEnvironment, int)} but using this repository
+   * environment and explicit max number of ls remote results.
+   *
+   * @param refs - see <refs> in git help ls-remote
+   * @param maxLsRemoteLimit - Limit the number of ls remote lines to the number specified
+   * @param flags - additional flags to pass to ls-remote
+   * @return - a map of refs to sha1 from the git ls-remote output
+   * @throws RepoException if the operation fails
+   */
+  public Map<String, String> lsRemote(
+      String url, Collection<String> refs, Collection<String> flags, int maxLsRemoteLimit)
+      throws RepoException, ValidationException {
+    return lsRemote(getCwd(), url, refs, gitEnv, DEFAULT_MAX_LOG_LINES, maxLsRemoteLimit, flags);
   }
 
   /**
@@ -780,7 +816,8 @@ public class GitRepository {
    */
   public Map<String, String> lsRemote(String url, Collection<String> refs, Collection<String> flags)
       throws RepoException, ValidationException {
-    return lsRemote(getCwd(), url, refs, gitEnv, DEFAULT_MAX_LOG_LINES, flags);
+    return lsRemote(
+        getCwd(), url, refs, gitEnv, DEFAULT_MAX_LOG_LINES, DEFAULT_MAX_LS_REMOTE_LINES, flags);
   }
 
   @CheckReturnValue
