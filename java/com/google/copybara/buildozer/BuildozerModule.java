@@ -333,4 +333,29 @@ public final class BuildozerModule implements StarlarkValue {
   public String print(TransformWork ctx, String attr, String target) throws ValidationException {
     return buildozerPrintExecutor.run(ctx.getCheckoutDir(), attr, target);
   }
+
+  @StarlarkMethod(
+      name = "batch",
+      doc = "Combines a list of buildozer transforms into a single batch transformation.",
+      parameters = {
+        @Param(
+            name = "transforms",
+            doc = "The list of buildozer transforms to combine.",
+            allowedTypes = {
+              @ParamType(type = Sequence.class, generic1 = BuildozerTransformation.class)
+            },
+            named = true),
+      })
+  public BuildozerBatch batch(Sequence<?> transforms) throws EvalException {
+    ImmutableList.Builder<BuildozerTransformation> builder = ImmutableList.builder();
+    for (Object transform : transforms) {
+      if (transform instanceof BuildozerTransformation t) {
+        builder.add(t);
+      } else {
+        throw Starlark.errorf(
+            "Expected a buildozer transform, but got: %s", transform.getClass().getName());
+      }
+    }
+    return BuildozerBatch.joinAll(buildozerOptions, workflowOptions, builder.build());
+  }
 }

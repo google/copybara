@@ -12,6 +12,7 @@
     - [authoring.pass_thru](#authoringpass_thru)
   - [authoring_class](#authoring_class)
   - [buildozer](#buildozer)
+    - [buildozer.batch](#buildozerbatch)
     - [buildozer.cmd](#buildozercmd)
     - [buildozer.create](#buildozercreate)
     - [buildozer.delete](#buildozerdelete)
@@ -627,6 +628,20 @@ The authors mapping between an origin and a destination
 ## buildozer
 
 Module for Buildozer-related functionality such as creating and modifying BUILD targets.
+
+<a id="buildozer.batch" aria-hidden="true"></a>
+### buildozer.batch
+
+Combines a list of buildozer transforms into a single batch transformation.
+
+<code><a href="#transformation">transformation</a></code> <code>buildozer.batch(<a href=#buildozer.batch.transforms>transforms</a>)</code>
+
+
+<h4 id="parameters.buildozer.batch">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=buildozer.batch.transforms href=#buildozer.batch.transforms>transforms</span> | <code>sequence of <a href="#transformation">transformation</a></code><br><p>The list of buildozer transforms to combine.</p>
 
 <a id="buildozer.cmd" aria-hidden="true"></a>
 ### buildozer.cmd
@@ -8520,10 +8535,10 @@ A single operation which modifies the source checked out from the origin, prior 
 
 <h4 id="returned_by.transformation">Returned By:</h4>
 
-<ul><li><a href="#buildozer.create">buildozer.create</a></li><li><a href="#buildozer.delete">buildozer.delete</a></li><li><a href="#buildozer.modify">buildozer.modify</a></li><li><a href="#core.convert_encoding">core.convert_encoding</a></li><li><a href="#core.copy">core.copy</a></li><li><a href="#core.dynamic_transform">core.dynamic_transform</a></li><li><a href="#core.move">core.move</a></li><li><a href="#core.remove">core.remove</a></li><li><a href="#core.rename">core.rename</a></li><li><a href="#core.replace">core.replace</a></li><li><a href="#core.todo_replace">core.todo_replace</a></li><li><a href="#core.transform">core.transform</a></li><li><a href="#core.verify_match">core.verify_match</a></li><li><a href="#format.buildifier">format.buildifier</a></li><li><a href="#metadata.add_header">metadata.add_header</a></li><li><a href="#metadata.expose_label">metadata.expose_label</a></li><li><a href="#metadata.map_author">metadata.map_author</a></li><li><a href="#metadata.map_references">metadata.map_references</a></li><li><a href="#metadata.remove_label">metadata.remove_label</a></li><li><a href="#metadata.replace_message">metadata.replace_message</a></li><li><a href="#metadata.restore_author">metadata.restore_author</a></li><li><a href="#metadata.save_author">metadata.save_author</a></li><li><a href="#metadata.scrubber">metadata.scrubber</a></li><li><a href="#metadata.squash_notes">metadata.squash_notes</a></li><li><a href="#metadata.use_last_change">metadata.use_last_change</a></li><li><a href="#metadata.verify_match">metadata.verify_match</a></li><li><a href="#patch.apply">patch.apply</a></li><li><a href="#patch.quilt_apply">patch.quilt_apply</a></li></ul>
+<ul><li><a href="#buildozer.batch">buildozer.batch</a></li><li><a href="#buildozer.create">buildozer.create</a></li><li><a href="#buildozer.delete">buildozer.delete</a></li><li><a href="#buildozer.modify">buildozer.modify</a></li><li><a href="#core.convert_encoding">core.convert_encoding</a></li><li><a href="#core.copy">core.copy</a></li><li><a href="#core.dynamic_transform">core.dynamic_transform</a></li><li><a href="#core.move">core.move</a></li><li><a href="#core.remove">core.remove</a></li><li><a href="#core.rename">core.rename</a></li><li><a href="#core.replace">core.replace</a></li><li><a href="#core.todo_replace">core.todo_replace</a></li><li><a href="#core.transform">core.transform</a></li><li><a href="#core.verify_match">core.verify_match</a></li><li><a href="#format.buildifier">format.buildifier</a></li><li><a href="#metadata.add_header">metadata.add_header</a></li><li><a href="#metadata.expose_label">metadata.expose_label</a></li><li><a href="#metadata.map_author">metadata.map_author</a></li><li><a href="#metadata.map_references">metadata.map_references</a></li><li><a href="#metadata.remove_label">metadata.remove_label</a></li><li><a href="#metadata.replace_message">metadata.replace_message</a></li><li><a href="#metadata.restore_author">metadata.restore_author</a></li><li><a href="#metadata.save_author">metadata.save_author</a></li><li><a href="#metadata.scrubber">metadata.scrubber</a></li><li><a href="#metadata.squash_notes">metadata.squash_notes</a></li><li><a href="#metadata.use_last_change">metadata.use_last_change</a></li><li><a href="#metadata.verify_match">metadata.verify_match</a></li><li><a href="#patch.apply">patch.apply</a></li><li><a href="#patch.quilt_apply">patch.quilt_apply</a></li></ul>
 <h4 id="consumed_by.transformation">Consumed By:</h4>
 
-<ul><li><a href="#core.replace_mapper">core.replace_mapper</a></li><li><a href="#core.reverse">core.reverse</a></li><li><a href="#core.transform">core.transform</a></li><li><a href="#git.gerrit_origin">git.gerrit_origin</a></li><li><a href="#git.github_origin">git.github_origin</a></li><li><a href="#git.github_pr_origin">git.github_pr_origin</a></li><li><a href="#git.origin">git.origin</a></li><li><a href="#ctx.run">ctx.run</a></li></ul>
+<ul><li><a href="#buildozer.batch">buildozer.batch</a></li><li><a href="#core.replace_mapper">core.replace_mapper</a></li><li><a href="#core.reverse">core.reverse</a></li><li><a href="#core.transform">core.transform</a></li><li><a href="#git.gerrit_origin">git.gerrit_origin</a></li><li><a href="#git.github_origin">git.github_origin</a></li><li><a href="#git.github_pr_origin">git.github_pr_origin</a></li><li><a href="#git.origin">git.origin</a></li><li><a href="#ctx.run">ctx.run</a></li></ul>
 
 
 

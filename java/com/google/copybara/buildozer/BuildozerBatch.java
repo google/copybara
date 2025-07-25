@@ -102,6 +102,21 @@ public class BuildozerBatch implements BuildozerTransformation {
     return new BuildozerBatch(buildozerOptions, workflowOptions, transformationBuilder.build());
   }
 
+  static BuildozerBatch joinAll(
+      BuildozerOptions buildozerOptions,
+      WorkflowOptions workflowOptions,
+      Iterable<BuildozerTransformation> transformations) {
+    ImmutableList.Builder<BuildozerTransformation> transformationBuilder = ImmutableList.builder();
+    for (BuildozerTransformation transformation : transformations) {
+      if (transformation instanceof BuildozerBatch batch) {
+        transformationBuilder.addAll(batch.transformations);
+      } else {
+        transformationBuilder.add(transformation);
+      }
+    }
+    return new BuildozerBatch(buildozerOptions, workflowOptions, transformationBuilder.build());
+  }
+
   @Override
   public void beforeRun(TransformWork transformWork) throws ValidationException, IOException {
     for (BuildozerTransformation transformation : transformations) {
