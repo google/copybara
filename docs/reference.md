@@ -3394,7 +3394,6 @@ Parameter | Description
 Name | Type | Description
 ---- | ---- | -----------
 <span style="white-space: nowrap;">`--allstar-app-ids`</span> | *list* | Flag used to set AllStar GitHub app id aliases. See https://github.com/ossf/allstar.
-<span style="white-space: nowrap;">`--github-allowed-hosts`</span> | *list* | If using GitHub Enterprise, one needs to specify valid hosts. By default only `github.com` is supported.
 <span style="white-space: nowrap;">`--github-api-bearer-auth`</span> | *boolean* | If using a token for GitHub access, bearer auth might be required
 <span style="white-space: nowrap;">`--github-destination-delete-pr-branch`</span> | *boolean* | Overwrite git.github_destination delete_pr_branch field
 <span style="white-space: nowrap;">`--gql-commit-history-override`</span> | *list* | Flag used to target GraphQL params 'first' arguments in the event the defaults are over or underusing the api ratelimit. The flag value should be semicolon separated. This should be rarely used for repos that don't fit well in our defaults. E.g. '50;5;5' represent 50 commits, 5 PRs for each commit, 5 reviews per PR
@@ -3443,7 +3442,6 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--git-destination-push`</span> | *string* | If set, overrides the git destination push reference.
 <span style="white-space: nowrap;">`--git-destination-url`</span> | *string* | If set, overrides the git destination URL.
 <span style="white-space: nowrap;">`--git-skip-checker`</span> | *boolean* | If true and git.destination has a configured checker, it will not be used in the migration.
-<span style="white-space: nowrap;">`--github-allowed-hosts`</span> | *list* | If using GitHub Enterprise, one needs to specify valid hosts. By default only `github.com` is supported.
 <span style="white-space: nowrap;">`--github-api-bearer-auth`</span> | *boolean* | If using a token for GitHub access, bearer auth might be required
 <span style="white-space: nowrap;">`--github-destination-delete-pr-branch`</span> | *boolean* | Overwrite git.github_destination delete_pr_branch field
 <span style="white-space: nowrap;">`--gql-commit-history-override`</span> | *list* | Flag used to target GraphQL params 'first' arguments in the event the defaults are over or underusing the api ratelimit. The flag value should be semicolon separated. This should be rarely used for repos that don't fit well in our defaults. E.g. '50;5;5' represent 50 commits, 5 PRs for each commit, 5 reviews per PR
@@ -3452,7 +3450,7 @@ Name | Type | Description
 <a id="git.github_origin" aria-hidden="true"></a>
 ### git.github_origin
 
-Defines a Git origin for a Github repository. This origin should be used for public branches. Use github_pr_origin for importing Pull Requests.
+Defines a Git origin for a GitHub or GitHub Enterprise repository. This origin should be used for public branches. Use github_pr_origin for importing Pull Requests.
 
 <code><a href="#origin">origin</a></code> <code>git.github_origin(<a href=#git.github_origin.url>url</a>, <a href=#git.github_origin.ref>ref</a>=None, <a href=#git.github_origin.submodules>submodules</a>='NO', <a href=#git.github_origin.excluded_submodules>excluded_submodules</a>=[], <a href=#git.github_origin.first_parent>first_parent</a>=True, <a href=#git.github_origin.partial_fetch>partial_fetch</a>=False, <a href=#git.github_origin.patch>patch</a>=None, <a href=#git.github_origin.describe_version>describe_version</a>=None, <a href=#git.github_origin.version_selector>version_selector</a>=None, <a href=#git.github_origin.primary_branch_migration>primary_branch_migration</a>=False, <a href=#git.github_origin.enable_lfs>enable_lfs</a>=False, <a href=#git.github_origin.credentials>credentials</a>=None)</code>
 
@@ -3485,7 +3483,6 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--git-origin-log-batch`</span> | *int* | Read the origin git log in batches of n commits. Might be needed for large migrations resulting in git logs of more than 1 GB.
 <span style="white-space: nowrap;">`--git-origin-non-linear-history`</span> | *boolean* | Read the full git log and skip changes before the from ref rather than using a log path.
 <span style="white-space: nowrap;">`--git-origin-rebase-ref`</span> | *string* | When importing a change from a Git origin ref, it will be rebased to this ref, if set. A common use case: importing a Github PR, rebase it to the main branch (usually 'master'). Note that, if the repo uses submodules, they won't be rebased.
-<span style="white-space: nowrap;">`--github-allowed-hosts`</span> | *list* | If using GitHub Enterprise, one needs to specify valid hosts. By default only `github.com` is supported.
 <span style="white-space: nowrap;">`--github-api-bearer-auth`</span> | *boolean* | If using a token for GitHub access, bearer auth might be required
 <span style="white-space: nowrap;">`--github-destination-delete-pr-branch`</span> | *boolean* | Overwrite git.github_destination delete_pr_branch field
 <span style="white-space: nowrap;">`--gql-commit-history-override`</span> | *list* | Flag used to target GraphQL params 'first' arguments in the event the defaults are over or underusing the api ratelimit. The flag value should be semicolon separated. This should be rarely used for repos that don't fit well in our defaults. E.g. '50;5;5' represent 50 commits, 5 PRs for each commit, 5 reviews per PR
@@ -3581,7 +3578,6 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--git-destination-push`</span> | *string* | If set, overrides the git destination push reference.
 <span style="white-space: nowrap;">`--git-destination-url`</span> | *string* | If set, overrides the git destination URL.
 <span style="white-space: nowrap;">`--git-skip-checker`</span> | *boolean* | If true and git.destination has a configured checker, it will not be used in the migration.
-<span style="white-space: nowrap;">`--github-allowed-hosts`</span> | *list* | If using GitHub Enterprise, one needs to specify valid hosts. By default only `github.com` is supported.
 <span style="white-space: nowrap;">`--github-api-bearer-auth`</span> | *boolean* | If using a token for GitHub access, bearer auth might be required
 <span style="white-space: nowrap;">`--github-destination-delete-pr-branch`</span> | *boolean* | Overwrite git.github_destination delete_pr_branch field
 <span style="white-space: nowrap;">`--github-destination-pr-branch`</span> | *string* | If set, uses this branch for creating the pull request instead of using a generated one
@@ -3649,7 +3645,6 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--git-origin-log-batch`</span> | *int* | Read the origin git log in batches of n commits. Might be needed for large migrations resulting in git logs of more than 1 GB.
 <span style="white-space: nowrap;">`--git-origin-non-linear-history`</span> | *boolean* | Read the full git log and skip changes before the from ref rather than using a log path.
 <span style="white-space: nowrap;">`--git-origin-rebase-ref`</span> | *string* | When importing a change from a Git origin ref, it will be rebased to this ref, if set. A common use case: importing a Github PR, rebase it to the main branch (usually 'master'). Note that, if the repo uses submodules, they won't be rebased.
-<span style="white-space: nowrap;">`--github-allowed-hosts`</span> | *list* | If using GitHub Enterprise, one needs to specify valid hosts. By default only `github.com` is supported.
 <span style="white-space: nowrap;">`--github-api-bearer-auth`</span> | *boolean* | If using a token for GitHub access, bearer auth might be required
 <span style="white-space: nowrap;">`--github-destination-delete-pr-branch`</span> | *boolean* | Overwrite git.github_destination delete_pr_branch field
 <span style="white-space: nowrap;">`--github-force-import`</span> | *boolean* | Force import regardless of the state of the PR
@@ -3689,7 +3684,6 @@ Parameter | Description
 Name | Type | Description
 ---- | ---- | -----------
 <span style="white-space: nowrap;">`--allstar-app-ids`</span> | *list* | Flag used to set AllStar GitHub app id aliases. See https://github.com/ossf/allstar.
-<span style="white-space: nowrap;">`--github-allowed-hosts`</span> | *list* | If using GitHub Enterprise, one needs to specify valid hosts. By default only `github.com` is supported.
 <span style="white-space: nowrap;">`--github-api-bearer-auth`</span> | *boolean* | If using a token for GitHub access, bearer auth might be required
 <span style="white-space: nowrap;">`--github-destination-delete-pr-branch`</span> | *boolean* | Overwrite git.github_destination delete_pr_branch field
 <span style="white-space: nowrap;">`--gql-commit-history-override`</span> | *list* | Flag used to target GraphQL params 'first' arguments in the event the defaults are over or underusing the api ratelimit. The flag value should be semicolon separated. This should be rarely used for repos that don't fit well in our defaults. E.g. '50;5;5' represent 50 commits, 5 PRs for each commit, 5 reviews per PR

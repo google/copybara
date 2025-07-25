@@ -597,9 +597,7 @@ public class GitHubPrDestinationTest {
     ValidationException e =
         assertThrows(
             ValidationException.class, () -> checkFindProject("https://github.com", "foo"));
-    console
-        .assertThat()
-        .onceInLog(MessageType.ERROR, ".*'https://github.com' is not a valid GitHub url.*");
+    assertThat(e).hasMessageThat().containsMatch(".*Cannot parse url 'https://github.com'.*");
   }
 
   @Test

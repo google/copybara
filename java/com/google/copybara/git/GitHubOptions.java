@@ -23,6 +23,7 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.Option;
@@ -41,6 +42,7 @@ import com.google.copybara.jcommander.GreaterThanZeroListValidator;
 import com.google.copybara.jcommander.SemicolonSeparatedListSplitter;
 import com.google.copybara.starlark.StarlarkUtil;
 import com.google.copybara.util.console.Console;
+import java.util.Set;
 import net.starlark.java.eval.EvalException;
 
 import java.io.IOException;
@@ -89,26 +91,8 @@ public class GitHubOptions implements Option {
       arity = 1)
   public boolean gitHubApiBearerAuth = false;
 
-  @Parameter(
-      names = "--github-allowed-hosts",
-      description = "If using GitHub Enterprise, one needs to specify valid hosts. By default only `github.com` is supported."
-  )
-  public List<String> gitHubAllowedHosts = ImmutableList.of("github.com");
-
-  public GitHubHost getGitHubHost(String url) throws EvalException  {
-      GitHubHost host = GitHubHost.fromUrl(url);
-      StarlarkUtil.check(gitHubAllowedHosts.contains(host.getHost()), "'%s' is not a valid GitHub url", host.getHost());
-      return host;
-  }
-
-  public boolean isGithubUrl(String url)
-  {
-      GitHubHost host = GitHubHost.fromUrl(url);
-      if(gitHubAllowedHosts.contains(host.getHost())){
-          return host.isGitHubUrl(url);
-      }
-
-      return false;
+  public GitHubHost getGitHubHost(String url) throws ValidationException {
+    return GitHubHost.fromUrl(url);
   }
 
   public GitHubOptions(GeneralOptions generalOptions, GitOptions gitOptions) {
@@ -152,6 +136,26 @@ public class GitHubOptions implements Option {
   }
 
   /**
+   * Returns a new Github.com specific {@link GitHubApi} instance for the given project enforcing the given {@link
+   * Checker}.
+   *
+   * <p>The project for 'https://github.com/foo/bar' is 'foo/bar'.
+   *
+   * @param gitHubProject the project
+   * @param checker the checker to enforce
+   * @param credentials the credentials to use for GitHub API auth
+   * @param console the console, used for logging
+   * @return the instance
+   * @throws RepoException if there is a failure in using the credentials
+   */
+  public GitHubApi newGitHubRestApi(String gitHubProject,
+      @Nullable Checker checker,
+      @Nullable CredentialFileHandler credentials,
+      Console console) throws RepoException {
+    return newGitHubRestApi(GitHubHost.GITHUB_COM, gitHubProject, checker, credentials, console);
+  }
+
+  /**
    * Returns a new {@link GitHubApi} instance for the given project enforcing the given {@link
    * Checker}.
    *
@@ -185,6 +189,27 @@ public class GitHubOptions implements Option {
       String gitHubProject, @Nullable CredentialFileHandler credentials) throws RepoException {
     return newGitHubGraphQLApi(ghHost,
         gitHubProject, /* checker= */ null, credentials, generalOptions.console());
+  }
+
+  /**
+   * Returns a new GitHub.com specific {@link GitHubApi} instance for the given project enforcing the given {@link
+   * Checker}.
+   *
+   * <p>The project for 'https://github.com/foo/bar' is 'foo/bar'.
+   * @param gitHubProject the GitHub project
+   * @param checker the checker to enforce
+   * @param credentials the credentials to use for the GitHub API
+   * @param console the console, for logging
+   * @return the instance
+   * @throws RepoException if there is an issue using the provided credentials
+   */
+  public GitHubGraphQLApi newGitHubGraphQLApi(
+      String gitHubProject,
+      @Nullable Checker checker,
+      @Nullable CredentialFileHandler credentials,
+      Console console)
+      throws RepoException {
+    return newGitHubGraphQLApi(GitHubHost.GITHUB_COM, gitHubProject, checker, credentials, console);
   }
 
   /**

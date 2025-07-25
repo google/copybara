@@ -35,7 +35,6 @@ import static com.google.copybara.git.GitHubPrOrigin.GITHUB_PR_USER;
 import static com.google.copybara.git.GitHubPrOrigin.GITHUB_PR_USE_MERGE;
 import static com.google.copybara.git.GitOptions.USE_CREDENTIALS_FROM_CONFIG;
 import static com.google.copybara.git.github.api.GitHubEventType.WATCHABLE_EVENTS;
-import static com.google.copybara.git.github.util.GitHubHost.GITHUB_COM;
 import static com.google.copybara.version.LatestVersionSelector.VersionElementType.ALPHABETIC;
 import static com.google.copybara.version.LatestVersionSelector.VersionElementType.NUMERIC;
 import static java.util.Arrays.stream;
@@ -356,7 +355,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     CredentialFileHandler credentialHandler = getCredentialHandler(fixedUrl, credentials);
 
     GitHubOptions githubOptions = options.get(GitHubOptions.class);
-    boolean isGitHubUrl = githubOptions.isGithubUrl(url);
+    // This does not support GitHub Enterprise. For that, use githubOrigin.
+    boolean isGitHubUrl = GitHubHost.isGitHubUrl(url);
 
     return GitOrigin.newGitOrigin(
         options,
@@ -1163,7 +1163,12 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       throws EvalException {
     checkNotEmpty(url, "url");
     GitHubOptions gitHubOptions = options.get(GitHubOptions.class);
-    GitHubHost ghHost = gitHubOptions.getGitHubHost(url);
+    GitHubHost ghHost;
+    try {
+      ghHost = gitHubOptions.getGitHubHost(url);
+    } catch (ValidationException e) {
+      throw new EvalException(e);
+    }
     PatchTransformation patchTransformation = maybeGetPatchTransformation(patch);
 
     List<String> excludedSubmoduleList =
@@ -1263,7 +1268,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   @StarlarkMethod(
       name = "github_origin",
       doc =
-          "Defines a Git origin for a Github repository. This origin should be used for public"
+          "Defines a Git origin for a GitHub or GitHub Enterprise repository. This origin should be used for public"
               + " branches. Use "
               + GITHUB_PR_ORIGIN_NAME
               + " for importing Pull Requests.",
@@ -1394,7 +1399,11 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       StarlarkThread thread)
       throws EvalException {
     GitHubOptions gitHubOptions = options.get(GitHubOptions.class);
-    GitHubHost ghHost = gitHubOptions.getGitHubHost(checkNotEmpty(url, "url"));
+    try {
+      gitHubOptions.getGitHubHost(checkNotEmpty(url, "url"));
+    } catch (ValidationException e) {
+      throw new EvalException(e);
+    }
 
     if (versionSelector != Starlark.NONE) {
       check(
@@ -1973,7 +1982,12 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         branchToUpdate != null || deletePrBranch == null,
         "'delete_pr_branch' can only be set if 'pr_branch_to_update' is used");
     GitHubOptions gitHubOptions = options.get(GitHubOptions.class);
-    GitHubHost ghHost = gitHubOptions.getGitHubHost(url);
+    GitHubHost ghHost;
+    try {
+      ghHost = gitHubOptions.getGitHubHost(url);
+    } catch (ValidationException e) {
+      throw new EvalException(e);
+    }
     WorkflowOptions workflowOptions = options.get(WorkflowOptions.class);
 
     String effectivePrBranchToUpdate = branchToUpdate;
@@ -1997,7 +2011,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       credentialHandler = getCredentialHandler(
               ghHost.getHost(), ghHost.getProjectNameFromUrl(url), credentials);
     } catch (ValidationException e) {
-      throw new EvalException("Cannot parse url", e);
+      throw new EvalException(String.format("Cannot parse url '%s'", url), e);
     }
     return new GitDestination(
         repoUrl,
@@ -2280,13 +2294,17 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     Checker apiCheckerObj = convertFromNoneable(apiChecker, null);
     Checker checkerObj = convertFromNoneable(checker, null);
     CredentialFileHandler credentialHandler;
-    GitHubHost ghHost = gitHubOptions.getGitHubHost(url);
-    check(ghHost.isGitHubUrl(url), "'%s' is not a valid GitHub url", url);
+    GitHubHost ghHost;
+    try {
+      ghHost = gitHubOptions.getGitHubHost(url);
+    } catch (ValidationException e) {
+      throw new EvalException(e);
+    }
     try {
       credentialHandler = getCredentialHandler(
           ghHost.getHost(), ghHost.getProjectNameFromUrl(url), credentials);
     } catch (ValidationException e) {
-      throw new EvalException("Cannot parse url", e);
+      throw new EvalException(String.format("Cannot parse url '%s'", url), e);
     }
     return new GitHubPrDestination(
         fixHttp(
@@ -2970,7 +2988,12 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     Checker checker = convertFromNoneable(checkerObj, null);
     validateEndpointChecker(checker, GITHUB_API);
     GitHubOptions gitHubOptions = options.get(GitHubOptions.class);
-    GitHubHost ghHost = gitHubOptions.getGitHubHost(url);
+    GitHubHost ghHost;
+    try {
+      ghHost = gitHubOptions.getGitHubHost(url);
+    } catch (ValidationException e) {
+      throw new EvalException(e);
+    }
     CredentialFileHandler credentialHandler = getCredentialHandler(url, credentials);
     return EndpointProvider.wrap(
         new GitHubEndPoint(
@@ -3167,13 +3190,18 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     ImmutableSet<EventTrigger> parsedEvents = handleEventTypes(events, eventBuilder, types);
     validateEndpointChecker(checker, GITHUB_TRIGGER);
     GitHubOptions gitHubOptions = options.get(GitHubOptions.class);
-    GitHubHost ghHost = gitHubOptions.getGitHubHost(url);
+    GitHubHost ghHost;
+    try {
+      ghHost = gitHubOptions.getGitHubHost(url);
+    } catch (ValidationException e) {
+      throw new EvalException(e);
+    }
     CredentialFileHandler credentialHandler;
     try {
       credentialHandler = getCredentialHandler(
               ghHost.getHost(), ghHost.getProjectNameFromUrl(url), credentials);
     } catch (ValidationException e) {
-      throw new EvalException("Cannot parse url", e);
+      throw new EvalException(String.format("Cannot parse url '%s'", url), e);
     }
     return new GitHubTrigger(
         gitHubOptions.newGitHubApiSupplier(url, checker, credentialHandler, ghHost),
@@ -3400,16 +3428,21 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   /** Do not use this for github origins */
   protected ApprovalsProvider approvalsProvider(String url) {
       Preconditions.checkArgument(
-              !options.get(GitHubOptions.class).isGithubUrl(url),
+              !GitHubHost.isGitHubUrl(url),
               "Git origins with github should use github approval providers!");
     return options.get(GitOriginOptions.class).approvalsProvider;
   }
 
   protected ApprovalsProvider githubPreSubmitApprovalsProvider (
-      String url, CredentialFileHandler creds) throws EvalException {
+      String url, CredentialFileHandler creds) {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     GitHubOptions githubOptions = options.get(GitHubOptions.class);
-    GitHubHost ghHost = githubOptions.getGitHubHost(url);
+    GitHubHost ghHost;
+    try {
+      ghHost = githubOptions.getGitHubHost(url);
+    } catch (ValidationException e) {
+      throw new IllegalStateException(e);
+    }
     return new GitHubPreSubmitApprovalsProvider(
         githubOptions,
             ghHost,
@@ -3430,10 +3463,15 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   }
 
   protected ApprovalsProvider githubPostSubmitApprovalsProvider(
-      String url, String branch, CredentialFileHandler creds) throws EvalException {
+      String url, String branch, CredentialFileHandler creds) {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     GitHubOptions githubOptions = options.get(GitHubOptions.class);
-    GitHubHost ghHost = githubOptions.getGitHubHost(url);
+    GitHubHost ghHost;
+    try {
+      ghHost = githubOptions.getGitHubHost(url);
+    } catch (ValidationException e) {
+      throw new IllegalStateException(e);
+    }
     return new GitHubPostSubmitApprovalsProvider(
         ghHost,
         branch,
@@ -3517,13 +3555,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   protected LazyResourceLoader<EndpointProvider<?>> maybeGetGitHubApi(
       String url, @Nullable Checker checker, @Nullable CredentialFileHandler creds,
       StarlarkThread thread) {
-      try {
-          GitHubOptions githubOptions = options.get(GitHubOptions.class);
-          GitHubHost ghHost = githubOptions.getGitHubHost(url);
-          if (!ghHost.isGitHubUrl(url)) {
-              return null;
-          }
-      } catch (EvalException e) {
+      GitHubOptions githubOptions = options.get(GitHubOptions.class);
+      if (!GitHubHost.isGitHubUrl(url)) {
           return null;
       }
     return (console) -> {
@@ -3553,15 +3586,10 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   @Nullable protected CredentialFileHandler getCredentialHandler(
       String url, @Nullable Object starlarkValue) {
     try {
-        try {
-            GitHubOptions githubOptions = options.get(GitHubOptions.class);
-            GitHubHost ghHost = githubOptions.getGitHubHost(url);
-            if (ghHost.isGitHubUrl(url)) {
-                url = ghHost.normalizeUrl(url);
-            }
-        } catch (EvalException e) {
-            // nothing to-do, it is valid that this is not an GitHub URL.
-        }
+      GitHubOptions githubOptions = options.get(GitHubOptions.class);
+      if (GitHubHost.isGitHubUrl(url)) {
+          url = githubOptions.getGitHubHost(url).normalizeUrl(url);
+      }
       URI uri = URI.create(url);
       return getCredentialHandler(uri.getHost(), uri.getPath(), starlarkValue);
     } catch (ValidationException | IllegalArgumentException parseEx) {

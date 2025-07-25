@@ -249,8 +249,7 @@ public class Mirror implements Migration {
   private static String getOriginDestinationRef(String url) throws ValidationException {
     // TODO(copybara-team): This is used just for normalization. We should be able to do it without
     // knowing the host.
-    GitHubHost host = GitHubHost.fromUrl(url);
-    return host.isGitHubUrl(url) ? host.normalizeUrl(url) : url;
+    return GitHubHost.isGitHubUrl(url) ? GitHubHost.fromUrl(url).normalizeUrl(url) : url;
   }
 
   @VisibleForTesting

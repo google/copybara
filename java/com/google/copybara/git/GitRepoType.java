@@ -183,14 +183,17 @@ public enum GitRepoType {
   protected static GitRevision maybeFetchGithubPullRequest(GitRepository repository,
       String repoUrl, String ref, boolean describeVersion, boolean partialFetch)
       throws RepoException, ValidationException {
-    GitHubHost ghHost =  GitHubHost.fromUrl(repoUrl);
-    Optional<GitHubPrUrl> githubPrUrl = ghHost.maybeParseGithubPrUrl(ref);
+    if (GitHubHost.isGitHubUrl(repoUrl)) {
+
+    }
+    Optional<GitHubHost> ghHost =  Optional.ofNullable(GitHubHost.isGitHubUrl(repoUrl) ? GitHubHost.fromUrl(repoUrl) : null);
+    Optional<GitHubPrUrl> githubPrUrl = ghHost.flatMap(host -> host.maybeParseGithubPrUrl(ref));
     if (githubPrUrl.isPresent()) {
       // TODO(malcon): Support merge ref too once we have github pr origin.
       String stableRef = GitHubUtil.asHeadRef(githubPrUrl.get().getPrNumber());
       GitRevision gitRevision =
           repository.fetchSingleRefWithTags(
-              ghHost.getHostUrl() + githubPrUrl.get().getProject(),
+              ghHost.get().getHostUrl() + githubPrUrl.get().getProject(),
               stableRef,
               /* fetchTags= */ describeVersion,
               partialFetch,

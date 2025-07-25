@@ -21,30 +21,32 @@ import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
+import com.google.common.collect.Sets;
 import com.google.copybara.exception.ValidationException;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.net.URI;
 import java.util.Optional;
+import java.util.Set;
 
 /** An object that parses GitHub urls in their components (project, name, etc.) */
 public class GitHubHost {
-
+  private static final Set<GitHubHost> KNOWN_GITHUB_HOSTS = Sets.newConcurrentHashSet();
   /** Host for http://github.com (Non-Enterprise) */
   public static final GitHubHost GITHUB_COM = new GitHubHost("github.com");
-
+  private static final Pattern GIT_PROTOCOL_MATCHER = Pattern.compile("git@([^:]+):.*");
   private final Pattern gitHubPrUrlPattern;
   private final String host;
 
   public GitHubHost(String host) {
     this.host = checkNotNull(host);
     this.gitHubPrUrlPattern = Pattern.compile("https://\\Q" + host + "\\E/(.+)/pull/([0-9]+)");
+    KNOWN_GITHUB_HOSTS.add(this);
   }
 
-  static public GitHubHost fromUrl(String url)
-  {
-      url = url.replaceAll("http\\:\\/\\/|https\\:\\/\\/|git\\+|git@", "").replaceAll(":.*|/.*", "");
-      return new GitHubHost(url);
+  public static GitHubHost fromUrl(String url) throws ValidationException {
+    URI uri = getUriFromUrl(url);
+    return new GitHubHost(uri.getHost());
   }
 
   /**
@@ -55,6 +57,27 @@ public class GitHubHost {
     String project = getProjectNameFromUrl(url);
     int i = project.indexOf("/");
     return i == -1 ? project : project.substring(0, i);
+  }
+
+  private static URI getUriFromUrl(String url) throws ValidationException {
+    Matcher matcher = GIT_PROTOCOL_MATCHER.matcher(url);
+    if (matcher.matches()) {
+      String gitProtocolPrefix = "git@" + matcher.group(1) + ":";
+      if (url.startsWith(gitProtocolPrefix)) {
+        url = matcher.group(1) + "/" + url.substring(gitProtocolPrefix.length()).replaceAll("([.]git|/)$", "");
+      }
+    }
+
+    URI uri;
+    try {
+      uri = URI.create(url);
+    } catch (IllegalArgumentException e) {
+      throw new ValidationException("Cannot find project name from url " + url, e);
+    }
+    if (uri.getScheme() == null) {
+      uri = URI.create("notimportant://" + url);
+    }
+    return uri;
   }
 
   /**
@@ -68,15 +91,7 @@ public class GitHubHost {
     if (url.startsWith(gitProtocolPrefix)) {
       return url.substring(gitProtocolPrefix.length()).replaceAll("([.]git|/)$", "");
     }
-    URI uri;
-    try {
-      uri = URI.create(url);
-    } catch (IllegalArgumentException e) {
-      throw new ValidationException("Cannot find project name from url " + url, e);
-    }
-    if (uri.getScheme() == null) {
-      uri = URI.create("notimportant://" + url);
-    }
+    URI uri = getUriFromUrl(url);
     checkCondition(
         host.equals(uri.getHost()), "Not a github url: %s. Expected host: %s", url, host);
 
@@ -90,10 +105,14 @@ public class GitHubHost {
     return name;
   }
 
-  /** Returns true if url is a GitHub url for a given GitHub or Enterprise host. */
-  public boolean isGitHubUrl(String url) {
+  /** Returns true if URL belongs to the host that this object is initialized with. */
+  public static boolean isGitHubUrl(String url) {
+    return KNOWN_GITHUB_HOSTS.stream().anyMatch(host -> host.isGitHubUrlForHost(url));
+  }
+
+  private boolean isGitHubUrlForHost(String url) {
     try {
-      getProjectNameFromUrl(url);
+      this.getProjectNameFromUrl(url);
       return true;
     } catch (ValidationException e) {
       return false;

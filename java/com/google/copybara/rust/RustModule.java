@@ -456,7 +456,7 @@ public class RustModule implements StarlarkValue {
   }
 
   private static String normalizeUrl(String url) throws ValidationException {
-    if (GitHubHost.fromUrl(url).isGitHubUrl(url)) {
+    if (GitHubHost.isGitHubUrl(url)) {
       url = GitHubHost.fromUrl(url).normalizeUrl(url);
     }
     return url;
