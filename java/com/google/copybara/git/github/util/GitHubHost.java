@@ -90,7 +90,7 @@ public class GitHubHost {
     return name;
   }
 
-  /** Returns true if url is a GitHub url for a given GitHub or Enterprise host. */
+  /** Returns true if URL belongs to the host that this object is initialized with. */
   public boolean isGitHubUrl(String url) {
     try {
       getProjectNameFromUrl(url);

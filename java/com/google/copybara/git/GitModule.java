@@ -356,7 +356,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     CredentialFileHandler credentialHandler = getCredentialHandler(fixedUrl, credentials);
 
     GitHubOptions githubOptions = options.get(GitHubOptions.class);
-    boolean isGitHubUrl = githubOptions.isGithubUrl(url);
+    // This does not support GitHub Enterprise. For that, use githubOrigin.
+    boolean isGitHubUrl = GITHUB_COM.isGitHubUrl(url);
 
     return GitOrigin.newGitOrigin(
         options,
@@ -1263,7 +1264,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   @StarlarkMethod(
       name = "github_origin",
       doc =
-          "Defines a Git origin for a Github repository. This origin should be used for public"
+          "Defines a Git origin for a GitHub or GitHub Enterprise repository. This origin should be used for public"
               + " branches. Use "
               + GITHUB_PR_ORIGIN_NAME
               + " for importing Pull Requests.",
@@ -3400,7 +3401,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   /** Do not use this for github origins */
   protected ApprovalsProvider approvalsProvider(String url) {
       Preconditions.checkArgument(
-              !options.get(GitHubOptions.class).isGithubUrl(url),
+              !GITHUB_COM.isGitHubUrl(url),
               "Git origins with github should use github approval providers!");
     return options.get(GitOriginOptions.class).approvalsProvider;
   }

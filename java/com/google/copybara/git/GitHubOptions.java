@@ -89,26 +89,8 @@ public class GitHubOptions implements Option {
       arity = 1)
   public boolean gitHubApiBearerAuth = false;
 
-  @Parameter(
-      names = "--github-allowed-hosts",
-      description = "If using GitHub Enterprise, one needs to specify valid hosts. By default only `github.com` is supported."
-  )
-  public List<String> gitHubAllowedHosts = ImmutableList.of("github.com");
-
   public GitHubHost getGitHubHost(String url) throws EvalException  {
-      GitHubHost host = GitHubHost.fromUrl(url);
-      StarlarkUtil.check(gitHubAllowedHosts.contains(host.getHost()), "'%s' is not a valid GitHub url", host.getHost());
-      return host;
-  }
-
-  public boolean isGithubUrl(String url)
-  {
-      GitHubHost host = GitHubHost.fromUrl(url);
-      if(gitHubAllowedHosts.contains(host.getHost())){
-          return host.isGitHubUrl(url);
-      }
-
-      return false;
+    return GitHubHost.fromUrl(url);
   }
 
   public GitHubOptions(GeneralOptions generalOptions, GitOptions gitOptions) {
