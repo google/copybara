@@ -656,7 +656,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
           status.throwException(console, workflow.getWorkflowOptions().ignoreNoop);
         }
       } catch (VoidOperationException e) {
-        // This happens if an inner secuence throws noop as an exception.
+        // This happens if an inner sequence throws noop as an exception.
         showInfoAboutNoop(console);
         throw e;
       }
