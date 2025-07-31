@@ -2478,6 +2478,12 @@ public class WorkflowTest {
   }
 
   @Test
+  public void mergeImportBoolean_useConsistencyFileSet_configParses() throws Exception {
+    mergeImport = "True";
+    Workflow<?, ?> unused = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
+  }
+
+  @Test
   public void mergeImport_consistencyFile_recreatesPostTransformationState() throws Exception {
     // Check that reverse applying the ConsistencyFile results in the expected state
     // This is to verify that workflow is diffing the correct things, not to

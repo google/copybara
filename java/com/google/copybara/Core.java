@@ -31,6 +31,7 @@ import static com.google.copybara.version.LatestVersionSelector.VersionElementTy
 import static com.google.copybara.version.LatestVersionSelector.VersionElementType.NUMERIC;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -633,12 +634,16 @@ public class Core implements LabelsAwareModule, StarlarkValue {
           authoring.getAllowlist());
     }
 
+    @Nullable String consistencyFilePath = convertFromNoneable(consistencyFilePathObj, null);
     MergeImportConfiguration mergeImport;
     if (mergeImportObj instanceof Boolean objectValue) {
       mergeImport =
           objectValue
               ? MergeImportConfiguration.create(
-                  "", Glob.ALL_FILES, false, MergeImportConfiguration.MergeStrategy.DIFF3)
+                  "",
+                  Glob.ALL_FILES,
+                  !Strings.isNullOrEmpty(consistencyFilePath),
+                  MergeImportConfiguration.MergeStrategy.DIFF3)
               : null;
     } else {
       mergeImport = convertFromNoneable(mergeImportObj, null);
@@ -648,7 +653,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     AutoPatchfileConfiguration autoPatchfileConfiguration =
         convertFromNoneable(autoPatchFileConfigurationObj, null);
 
-    @Nullable String consistencyFilePath = convertFromNoneable(consistencyFilePathObj, null);
     check(
         mergeImport == null || !mergeImport.useConsistencyFile() || (consistencyFilePath != null),
         "error: use_consistency_file set but consistency_file_path is null");
