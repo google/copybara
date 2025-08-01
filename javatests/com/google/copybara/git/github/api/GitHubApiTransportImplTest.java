@@ -32,6 +32,7 @@ import com.google.api.client.testing.http.MockLowLevelHttpResponse;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.git.GitRepository;
+import com.google.copybara.git.github.util.GitHubHost;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -104,7 +105,7 @@ public class GitHubApiTransportImplTest {
         };
       }
     };
-    transport = new GitHubApiTransportImpl(
+    transport = new GitHubApiTransportImpl(GitHubHost.GITHUB_COM,
         repo, httpTransport, "store", false, new TestingConsole());
     String unused = transport.get(String.class, "foo/bar");
     assertThat(headers).containsEntry("authorization", ImmutableList.of("Basic dXNlcjpTRUNSRVQ="));
@@ -127,7 +128,7 @@ public class GitHubApiTransportImplTest {
         };
       }
     };
-    transport = new GitHubApiTransportImpl(
+    transport = new GitHubApiTransportImpl(GitHubHost.GITHUB_COM,
         repo, httpTransport, "store", true, new TestingConsole());
     String unused = transport.get(String.class, "foo/bar");
     assertThat(headers).containsEntry("authorization", ImmutableList.of("Bearer SECRET"));
@@ -137,7 +138,7 @@ public class GitHubApiTransportImplTest {
     HttpResponseException ex =
         new HttpResponseException.Builder(STATUS_CODE, ERROR_MESSAGE, new HttpHeaders()).build();
     httpTransport = createMockHttpTransport(ex);
-    transport = new GitHubApiTransportImpl(
+    transport = new GitHubApiTransportImpl(GitHubHost.GITHUB_COM,
         repo, httpTransport, "store", false, new TestingConsole());
     try {
       c.call();
@@ -151,7 +152,7 @@ public class GitHubApiTransportImplTest {
   private void runTestThrowsIOException(Callable<?> c) throws Exception {
     IOException ioException = new IOException();
     httpTransport = createMockHttpTransport(ioException);
-    transport = new GitHubApiTransportImpl(
+    transport = new GitHubApiTransportImpl(GitHubHost.GITHUB_COM,
         repo, httpTransport, "store", false,  new TestingConsole());
     try {
       c.call();
