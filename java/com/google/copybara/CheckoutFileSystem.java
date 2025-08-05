@@ -171,7 +171,10 @@ public class CheckoutFileSystem implements StarlarkValue {
       if (!normalized.startsWith(checkoutDir)
           || (Files.exists(normalized)
               && Files.isSymbolicLink(normalized)
-              && !normalized.toRealPath().startsWith(checkoutDir))) {
+              && !normalized
+                  .toRealPath()
+                  .toAbsolutePath()
+                  .startsWith(checkoutDir.toAbsolutePath()))) {
         String realPath = "";
         try {
           realPath = normalized.toRealPath().toString();
