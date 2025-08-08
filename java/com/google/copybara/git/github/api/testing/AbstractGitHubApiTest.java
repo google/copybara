@@ -288,6 +288,7 @@ public abstract class AbstractGitHubApiTest {
     trainMockGet("/repos/copybara-test/copybara", getResource("get_repository_testdata.json"));
     Repository repository = api.getRepository("copybara-test/copybara");
     assertThat(repository.getDefaultBranch()).isEqualTo("test_default_branch");
+    assertThat(repository.getId()).isEqualTo(123456789);
   }
 
   @Test

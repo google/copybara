@@ -31,6 +31,8 @@ public class Repository {
 
   @Key private boolean fork;
 
+  @Key private int id;
+
   @StarlarkMethod(name = "id", doc = "Release id", structField = true)
   public String getDefaultBranch() {
     return defaultBranch;
@@ -44,5 +46,9 @@ public class Repository {
   @StarlarkMethod(name = "fork", doc = "Whether the reference is a fork", structField = true)
   public boolean getIsFork() {
     return fork;
+  }
+
+  public int getId() {
+    return id;
   }
 }
