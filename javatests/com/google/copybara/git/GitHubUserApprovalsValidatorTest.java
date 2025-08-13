@@ -17,6 +17,7 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.util.console.Message.MessageType;
 import static org.mockito.ArgumentMatchers.eq;
 
 import com.google.common.collect.ImmutableList;
@@ -407,6 +408,38 @@ public final class GitHubUserApprovalsValidatorTest {
                 Iterables.getLast(changes).getChange().getRevision().getUrl(),
                 "GitHub user 'copybarareviewer' approved change with sha"
                     + " '3071d674373ab56d8a7f264d308b39b7773b9e44'."));
+  }
+
+  @Test
+  public void testGitHubUserApprovalsValidator_withNoData_failsGracefully() throws Exception {
+    gitTestUtil.mockApi(
+        eq("POST"),
+        eq("https://api.github.com/graphql"),
+        GitTestUtil.mockResponse(
+            """
+            {
+              "data": null
+            }
+            """));
+    GitHubUserApprovalsValidator validator = getUnitUnderTest();
+    ImmutableList<ChangeWithApprovals> changes =
+        generateChangeList(
+            gitRepository,
+            PROJECT_ID,
+            ImmutableListMultimap.of(),
+            "3071d674373ab56d8a7f264d308b39b7773b9e44");
+    ImmutableList<ChangeWithApprovals> approvals =
+        validator.mapApprovalsForUserPredicates(changes, BRANCH);
+    assertThat(approvals).hasSize(changes.size());
+    assertThat(Iterables.getOnlyElement(approvals).getPredicates()).isEmpty();
+    console
+        .assertThat()
+        .onceInLog(
+            MessageType.WARNING,
+            "(.|\n"
+                + ")*Unable to find history node for sha '3071d674373ab56d8a7f264d308b39b7773b9e44'"
+                + " -- the full CommitHistoryResponse is: (.|\n"
+                + ")*");
   }
 
   private ImmutableList<ChangeWithApprovals> generateChangeList(GitRepository gitRepository,

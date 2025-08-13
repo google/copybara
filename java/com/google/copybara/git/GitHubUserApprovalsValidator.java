@@ -35,6 +35,8 @@ import com.google.copybara.git.github.api.GitHubGraphQLApi;
 import com.google.copybara.git.github.api.GitHubGraphQLApi.GetCommitHistoryParams;
 import com.google.copybara.git.github.util.GitHubHost;
 import com.google.copybara.util.console.Console;
+import java.util.List;
+import java.util.Optional;
 import javax.annotation.Nullable;
 
 /** Utility class for performing validation for GitHub pull request approvals. */
@@ -154,17 +156,23 @@ public class GitHubUserApprovalsValidator {
   @Nullable
   private AssociatedPullRequests getAssociatedPullRequest(
       String sha, CommitHistoryResponse response) {
+    List<HistoryNode> historyNodes =
+        Optional.ofNullable(response)
+            .map(CommitHistoryResponse::getData)
+            .map(CommitHistoryResponse.Data::getRepository)
+            .map(CommitHistoryResponse.Repository::getRef)
+            .map(CommitHistoryResponse.Ref::getTarget)
+            .map(CommitHistoryResponse.Target::getHistoryNodes)
+            .map(CommitHistoryResponse.HistoryNodes::getNodes)
+            .orElse(ImmutableList.of());
     HistoryNode history =
-        Iterables.tryFind(
-                response
-                    .getData()
-                    .getRepository()
-                    .getRef()
-                    .getTarget()
-                    .getHistoryNodes()
-                    .getNodes(),
-                node -> node.getOid().equals(sha))
-            .orNull();
+        Iterables.tryFind(historyNodes, node -> node.getOid().equals(sha)).orNull();
+    console.warnFmtIf(
+        history == null,
+        "Unable to find history node for sha '%s' -- the full CommitHistoryResponse is: %s",
+        sha,
+        response);
+
     return history != null ? history.getAssociatedPullRequests() : null;
   }
 
