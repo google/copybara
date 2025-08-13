@@ -183,8 +183,8 @@ public class CheckoutFileSystem implements StarlarkValue {
         }
         throw Starlark.errorf(
             "%s is not inside the checkout directory or links to a file outside"
-                + " the path. Was %s.",
-            path, realPath);
+                + " the path. Real path was %s, checkout dir was %s, absolute checkout dir was %s",
+            path, realPath, checkoutDir, checkoutDir.toAbsolutePath());
       }
     } catch (IOException ioe) {
       logger.atInfo().withCause(ioe).log("Cannot resolve %s", path);
