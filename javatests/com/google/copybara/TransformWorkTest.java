@@ -760,6 +760,49 @@ transformation = core.transform([test])
   }
 
   @Test
+  public void symlinks_withCwdSymlink_worksCorrectly() throws Exception {
+    workdir = Files.createSymbolicLink(workdir.resolve("symlink"), workdir).resolve("nested_workdir");
+    Path base = Files.createDirectories(workdir.resolve("foo"));
+    Files.write(
+        Files.createDirectory(base.resolve("a")).resolve("file.txt"),
+        "THE CONTENT".getBytes(UTF_8));
+    Files.createSymbolicLink(
+        Files.createDirectory(base.resolve("b")).resolve("file.txt"), Paths.get("../a/file.txt"));
+    Files.write(
+        Files.createDirectories(base.resolve("c/folder")).resolve("file.txt"),
+        "THE CONTENT2".getBytes(UTF_8));
+    Files.createSymbolicLink(base.resolve("c/file.txt"), Paths.get("folder/file.txt"));
+
+    Transformation transformation =
+        skylark.eval(
+            "transformation",
+            "def test(ctx):\n"
+                + "    for f in ctx.run(glob(['**'])):\n"
+                + "        ctx.console.info(f.path + ':' + str(f.attr.symlink))\n"
+                + "        if f.attr.symlink:\n"
+                + "            target = f.read_symlink()\n"
+                + "            ctx.console.info(f.path + ' -> ' + target.path)\n"
+                + "            ctx.console.info(f.path + ' content ' + ctx.read_path(f))\n"
+                + "            ctx.console.info(target.path + ' content ' +"
+                + " ctx.read_path(target))\n"
+                + "\n"
+                + "transformation = core.transform([test])");
+
+    transformation.transform(TransformWorks.of(workdir, "test", console));
+    console.assertThat().onceInLog(MessageType.INFO, "foo/a/file.txt:False");
+    console.assertThat().onceInLog(MessageType.INFO, "foo/b/file.txt:True");
+    console.assertThat().onceInLog(MessageType.INFO, "foo/b/file.txt -> foo/a/file.txt");
+    console.assertThat().onceInLog(MessageType.INFO, "foo/b/file.txt content THE CONTENT");
+    console.assertThat().onceInLog(MessageType.INFO, "foo/a/file.txt content THE CONTENT");
+
+    console.assertThat().onceInLog(MessageType.INFO, "foo/c/file.txt:True");
+    console.assertThat().onceInLog(MessageType.INFO, "foo/c/folder/file.txt:False");
+    console.assertThat().onceInLog(MessageType.INFO, "foo/c/file.txt -> foo/c/folder/file.txt");
+    console.assertThat().onceInLog(MessageType.INFO, "foo/c/file.txt content THE CONTENT2");
+    console.assertThat().onceInLog(MessageType.INFO, "foo/c/folder/file.txt content THE CONTENT2");
+  }
+
+  @Test
   public void testSymlinks() throws Exception {
     Path base = Files.createDirectories(workdir.resolve("foo"));
     Files.write(Files.createDirectory(base.resolve("a")).resolve("file.txt"),
