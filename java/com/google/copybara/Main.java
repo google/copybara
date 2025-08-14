@@ -235,6 +235,8 @@ public class Main {
                 subcommand.name()));
       }
       initMonitoringEnvironment(commandEnv, cmdToRun.getArgs());
+      console.verboseFmt(
+          "Current working directory: %s", options.get(GeneralOptions.class).getCwd());
       generalOptions.console().progressFmt("Running %s", subcommand.name());
 
       ExitCode exitCode = subcommand.run(commandEnv);

@@ -166,7 +166,11 @@ public class CheckoutFileSystem implements StarlarkValue {
   }
 
   private Path asCheckoutPath(CheckoutPath path) throws EvalException {
-    Path normalized = checkoutDir.resolve(path.getPath()).normalize();
+    logger.atInfo().log("relative path: %s", path.getPath());
+    Path resolved = checkoutDir.resolve(path.getPath());
+    logger.atInfo().log("resolved path: %s", resolved);
+    Path normalized = resolved.normalize();
+    logger.atInfo().log("normalized path: %s", normalized);
     try {
       if (!normalized.startsWith(checkoutDir)
           || (Files.exists(normalized)
