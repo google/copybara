@@ -177,6 +177,32 @@ public class HttpEndpointTest {
         "host", "foo.com");
   }
 
+  @Test
+  public void testDescribeCredentials_withIssuers() throws ValidationException {
+    String password = "testpassword";
+    http.mockHttp(
+        (method, url, req, resp) -> assertThat(req.getHeaders().get("authorization")).isNotEmpty());
+    HttpEndpoint endpoint =
+        starlark.eval(
+            "endpoint",
+            String.format(
+                "endpoint = testing.get_endpoint(\n"
+                    + "  http.endpoint("
+                    + "    hosts = ['foo.com'],"
+                    + "    issuers = {"
+                    + "      'TEST_CREDS': credentials.static_secret('password', '%s'),"
+                    + "    }),"
+                    + ")\n",
+                password));
+    ImmutableList<ImmutableSetMultimap<String, String>> creds = endpoint.describeCredentials();
+    assertThat(creds).hasSize(1);
+    assertThat(creds.get(0))
+        .containsExactly(
+            "type", "constant",
+            "name", "password",
+            "open", "false",
+            "key", "TEST_CREDS");
+  }
 
   @Test
   public void testGetMultiHost() throws ValidationException {

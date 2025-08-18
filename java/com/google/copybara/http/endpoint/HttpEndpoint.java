@@ -249,6 +249,8 @@ public class HttpEndpoint implements Endpoint {
   @Override
   public ImmutableList<ImmutableSetMultimap<String, String>> describeCredentials() {
     ImmutableList.Builder<ImmutableSetMultimap<String, String>> list = ImmutableList.builder();
+
+    // Add credentials from auth interceptors for hosts.
     for (Entry<String, Optional<AuthInterceptor>> entry : hosts.entrySet()) {
       if (entry.getValue().isEmpty()) {
         continue;
@@ -262,10 +264,9 @@ public class HttpEndpoint implements Endpoint {
       }
     }
 
-    // add generic credentials
+    // Add credentials from issuers used by secret interceptors.
     for (Entry<String, CredentialIssuer> entry : issuers.entrySet()) {
       ImmutableSetMultimap.Builder<String, String> describe = ImmutableSetMultimap.builder();
-      describe.put("type", "generic_credential");
       describe.put("key", entry.getKey());
       describe.putAll(entry.getValue().describe());
       list.add(describe.build());
