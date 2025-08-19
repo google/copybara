@@ -63,7 +63,8 @@ public class GitRepoTypeTest {
             getGitEnv(),
             Duration.ofMinutes(1),
             /* noVerify= */ false,
-            /* pushOptionsValidator= */ new GitRepository.PushOptionsValidator(Optional.empty())) {
+            /* pushOptionsValidator= */ new GitRepository.PushOptionsValidator(Optional.empty()),
+            /* gitRepositoryHook= */ null) {
           @Override
           public GitRevision fetchSingleRefWithTags(
               String url,

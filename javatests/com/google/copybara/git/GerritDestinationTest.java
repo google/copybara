@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2016 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1686,7 +1686,7 @@ public class GerritDestinationTest {
   }
 
   private PathSubject assertThatGerritCheckout(GitRepository repo, String ref)
-      throws IOException, RepoException {
+      throws IOException, RepoException, ValidationException {
     Path tempWorkTree = Files.createTempDirectory("assertAboutCheckout");
     repo.withWorkTree(tempWorkTree).forceCheckout(getGerritRef(repo, ref));
     return assertThatPath(tempWorkTree);

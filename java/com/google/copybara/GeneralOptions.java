@@ -261,6 +261,11 @@ public final class GeneralOptions implements Option {
   }
 
   @VisibleForTesting
+  public void setTemporaryFeaturesForTest(Map<String, String> temporaryFeatures) {
+    this.temporaryFeatures = ImmutableMap.copyOf(temporaryFeatures);
+  }
+
+  @VisibleForTesting
   public void setOutputRootPathForTest(Path outputRootPath) {
     this.outputRootPath = outputRootPath;
   }

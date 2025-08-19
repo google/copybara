@@ -137,6 +137,7 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
   private final GitHubPrOriginOptions gitHubPrOriginOptions;
   private final ApprovalsProvider provider;
   @Nullable private final CredentialFileHandler credentials;
+  @Nullable private final GitRepositoryHook gitRepositoryHook;
 
   GitHubPrOrigin(
       String url,
@@ -164,7 +165,8 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
       boolean describeVersion,
       GitHubHost ghHost,
       ApprovalsProvider provider,
-      @Nullable CredentialFileHandler credentials) {
+      @Nullable CredentialFileHandler credentials,
+      @Nullable GitRepositoryHook gitRepositoryHook) {
     this.url = checkNotNull(url);
     this.useMerge = useMerge;
     this.generalOptions = checkNotNull(generalOptions);
@@ -192,6 +194,7 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
     this.ghHost = ghHost;
     this.provider = checkNotNull(provider);
     this.credentials = credentials;
+    this.gitRepositoryHook = gitRepositoryHook;
   }
 
   @Override
@@ -634,7 +637,8 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
         patchTransformation,
         /* configPath= */ null,
         /* workflowName= */ null,
-        credentials) {
+        credentials,
+        gitRepositoryHook) {
 
       /** Disable rebase since this is controlled by useMerge field. */
       @Override

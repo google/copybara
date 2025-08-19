@@ -75,6 +75,7 @@ public class GitLabMrOrigin implements Origin<GitRevision> {
   private final boolean describeVersion;
   private final boolean firstParent;
   private final boolean useMergeCommit;
+  @Nullable private final GitRepositoryHook gitRepositoryHook;
 
   private GitLabMrOrigin(Builder builder) {
     console = checkNotNull(builder.console);
@@ -94,6 +95,7 @@ public class GitLabMrOrigin implements Origin<GitRevision> {
     describeVersion = builder.describeVersion;
     firstParent = builder.firstParent;
     useMergeCommit = builder.useMergeCommit;
+    this.gitRepositoryHook = builder.gitRepositoryHook;
   }
 
   private GitLabApiTransport getGitLabApiTransport() {
@@ -303,7 +305,8 @@ public class GitLabMrOrigin implements Origin<GitRevision> {
         patchTransformation.orElse(null),
         null,
         null,
-        credentialFileHandler.orElse(null)) {
+        credentialFileHandler.orElse(null),
+        gitRepositoryHook) {
       @Override
       protected void maybeRebase(GitRepository repo, GitRevision ref, Path workdir) {
         // Disable rebase, as this is controlled by useMergeCommit field (GitLab does this for us
@@ -372,6 +375,7 @@ public class GitLabMrOrigin implements Origin<GitRevision> {
     private boolean describeVersion;
     private boolean firstParent;
     private boolean useMergeCommit;
+    private GitRepositoryHook gitRepositoryHook;
 
     /** Returns a Builder for {@code GitLabMrOrigin}. */
     public Builder() {}

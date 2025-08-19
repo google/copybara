@@ -449,7 +449,8 @@ public class GitTestUtil {
           new GitEnvironment(generalOptions.getEnvironment()),
           generalOptions.repoTimeout,
           false,
-          new GitRepository.PushOptionsValidator(Optional.empty()));
+          new GitRepository.PushOptionsValidator(Optional.empty()),
+          /* gitRepositoryHook= */ null);
       this.generalOptions = generalOptions;
       this.httpsRepos = httpsRepos;
       this.validator = validator;

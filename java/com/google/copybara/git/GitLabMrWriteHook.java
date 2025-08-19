@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.copybara.GeneralOptions;
-import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RedundantChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -106,7 +105,7 @@ public class GitLabMrWriteHook extends DefaultWriteHook {
 
   private void checkMergeRequestForEmptyDiff(
       GitRepository localRepo, MergeRequest mergeRequest, Change<?> change, Console console)
-      throws RepoException, RedundantChangeException, CannotResolveRevisionException {
+      throws RepoException, ValidationException {
     SameGitTree sameGitTree =
         new SameGitTree(
             localRepo, params.repoUrl().toString(), params.generalOptions(), params.partialFetch());

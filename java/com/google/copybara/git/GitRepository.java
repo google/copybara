@@ -16,7 +16,9 @@
 
 package com.google.copybara.git;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static com.google.copybara.util.CommandRunner.NO_INPUT;
@@ -185,6 +187,7 @@ public class GitRepository {
   private final Duration repoTimeout;
   protected final PushOptionsValidator pushOptionsValidator;
   protected final boolean noVerify;
+  @Nullable protected final GitRepositoryHook gitRepositoryHook;
 
   private static final Map<Character, StatusCode> CHAR_TO_STATUS_CODE =
       Arrays.stream(StatusCode.values())
@@ -197,7 +200,8 @@ public class GitRepository {
       GitEnvironment gitEnv,
       Duration repoTimeout,
       boolean noVerify,
-      PushOptionsValidator pushOptionsValidator) {
+      PushOptionsValidator pushOptionsValidator,
+      @Nullable GitRepositoryHook gitRepositoryHook) {
     this.gitDir = checkNotNull(gitDir);
     this.workTree = workTree;
     this.verbose = verbose;
@@ -205,6 +209,7 @@ public class GitRepository {
     this.repoTimeout = checkNotNull(repoTimeout);
     this.noVerify = noVerify;
     this.pushOptionsValidator = checkNotNull(pushOptionsValidator);
+    this.gitRepositoryHook = gitRepositoryHook;
   }
 
   /** Creates a new repository in the given directory. The new repo is not bare. */
@@ -217,7 +222,8 @@ public class GitRepository {
         gitEnv,
         repoTimeout,
         noVerify,
-        /* pushOptionsValidator= */ new PushOptionsValidator(Optional.empty()));
+        /* pushOptionsValidator= */ new PushOptionsValidator(Optional.empty()),
+        /* gitRepositoryHook= */ null);
   }
 
   /** Creates a new repository in the given directory. The new repo is not bare. */
@@ -229,7 +235,14 @@ public class GitRepository {
       boolean noVerify,
       PushOptionsValidator pushOptionsValidator) {
     return new GitRepository(
-        path.resolve(".git"), path, verbose, gitEnv, repoTimeout, noVerify, pushOptionsValidator);
+        path.resolve(".git"),
+        path,
+        verbose,
+        gitEnv,
+        repoTimeout,
+        noVerify,
+        pushOptionsValidator,
+        /* gitRepositoryHook= */ null);
   }
 
   /**
@@ -250,7 +263,7 @@ public class GitRepository {
         gitEnv,
         repoTimeout,
         noVerify,
-        /* pushOptionsValidator= */ new PushOptionsValidator(Optional.empty()));
+        /* pushOptionsValidator= */ new PushOptionsValidator(Optional.empty()), null);
   }
 
   /** Create a new bare repository with push options validator */
@@ -268,7 +281,39 @@ public class GitRepository {
         gitEnv,
         repoTimeout,
         noVerify,
-        /* pushOptionsValidator= */ pushOptionsValidator);
+        /* pushOptionsValidator= */ pushOptionsValidator,
+        /* gitRepositoryHook= */ null);
+  }
+
+  /**
+   * Create a new bare repository that is uninitialized.
+   *
+   * @param gitDir path to the git directory being represented by {@code GitRepository}
+   * @param gitEnv git environment to use for running git commands
+   * @param verbose whether to log git commands verbosely
+   * @param repoTimeout how long to wait for a git command to complete before timing out
+   * @param noVerify whether to skip the verify step when running git commands
+   * @param pushOptionsValidator the validator to use for determining which push options are allowed
+   * @param gitRepositoryHook describes what behavior to act out during checkouts
+   * @return a new bare uninitialized repository
+   */
+  public static GitRepository newBareRepo(
+      Path gitDir,
+      GitEnvironment gitEnv,
+      boolean verbose,
+      Duration repoTimeout,
+      boolean noVerify,
+      PushOptionsValidator pushOptionsValidator,
+      @Nullable GitRepositoryHook gitRepositoryHook) {
+    return new GitRepository(
+        gitDir,
+        /* workTree= */ null,
+        verbose,
+        gitEnv,
+        repoTimeout,
+        noVerify,
+        /* pushOptionsValidator= */ pushOptionsValidator,
+        gitRepositoryHook);
   }
 
   /**
@@ -912,7 +957,8 @@ public class GitRepository {
         this.gitEnv,
         repoTimeout,
         this.noVerify,
-        this.pushOptionsValidator);
+        this.pushOptionsValidator,
+        this.gitRepositoryHook);
   }
 
   /**
@@ -1376,15 +1422,12 @@ public class GitRepository {
   @CanIgnoreReturnValue
   public CommandOutput forceCheckout(
       String ref, ImmutableSet<String> checkoutPaths, Duration commandTimeout)
-      throws RepoException {
-    ImmutableList.Builder<String> argv = ImmutableList.builder();
-    argv.add("checkout", "-q", "-f", checkNotNull(ref));
-    argv.addAll(checkoutPaths.stream().filter(e -> !e.isEmpty()).collect(Collectors.toList()));
-    return simpleCommand(commandTimeout, argv.build());
+      throws RepoException, ValidationException {
+    return forceCheckout(ref, commandTimeout, ImmutableList.of("-q", "-f"), checkoutPaths);
   }
 
   /** Checks out the given ref in the repo, quietly and throwing away local changes. */
-  public CommandOutput forceCheckout(String ref) throws RepoException {
+  public CommandOutput forceCheckout(String ref) throws RepoException, ValidationException {
     return forceCheckout(ref, null);
   }
 
@@ -1397,8 +1440,33 @@ public class GitRepository {
    */
   @CanIgnoreReturnValue
   public CommandOutput forceCheckout(String ref, @Nullable Duration commandTimeout)
-      throws RepoException {
-    return simpleCommand(commandTimeout, "checkout", "-q", "-f", checkNotNull(ref));
+      throws RepoException, ValidationException {
+    return forceCheckout(ref, commandTimeout, ImmutableList.of("-q", "-f"), ImmutableSet.of());
+  }
+
+  private CommandOutput forceCheckout(
+      String ref,
+      @Nullable Duration commandTimeout,
+      List<String> checkoutArgs,
+      Set<String> checkoutPaths)
+      throws RepoException, ValidationException {
+    checkArgument(
+        !Strings.isNullOrEmpty(ref),
+        "Expected a non-empty ref for force checkout but got '%s'",
+        ref);
+
+    if (gitRepositoryHook != null) {
+      gitRepositoryHook.beforeCheckout();
+    }
+
+    ImmutableList.Builder<String> argvBuilder =
+        ImmutableList.<String>builder()
+            .add("checkout")
+            .addAll(checkoutArgs)
+            .add(ref)
+            .addAll(checkoutPaths.stream().filter(e -> !e.isEmpty()).collect(toImmutableList()));
+
+    return simpleCommand(commandTimeout, argvBuilder.build());
   }
 
   /** Set the sparse checkout */

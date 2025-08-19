@@ -62,6 +62,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import javax.annotation.Nullable;
+import com.google.common.base.MoreObjects.ToStringHelper;
 
 /**
  * A class for manipulating Git repositories
@@ -118,6 +119,7 @@ public class GitOrigin implements Origin<GitRevision> {
   private final ApprovalsProvider approvalsProvider;
   private final boolean enableLfs;
   @Nullable private final CredentialFileHandler credentials;
+  @Nullable protected final GitRepositoryHook gitRepositoryHook;
 
   GitOrigin(
       GeneralOptions generalOptions,
@@ -139,7 +141,8 @@ public class GitOrigin implements Origin<GitRevision> {
       boolean primaryBranchMigrationMode,
       ApprovalsProvider approvalsProvider,
       boolean enableLfs,
-      @Nullable CredentialFileHandler credentials) {
+      @Nullable CredentialFileHandler credentials,
+      @Nullable GitRepositoryHook gitRepositoryHook) {
     this.generalOptions = generalOptions;
     this.console = generalOptions.console();
     // Remove a possible trailing '/' so that the url is normalized.
@@ -164,6 +167,7 @@ public class GitOrigin implements Origin<GitRevision> {
     this.approvalsProvider = approvalsProvider;
     this.enableLfs = enableLfs;
     this.credentials = credentials;
+    this.gitRepositoryHook = gitRepositoryHook;
   }
 
   @VisibleForTesting
@@ -210,7 +214,8 @@ public class GitOrigin implements Origin<GitRevision> {
         patchTransformation,
         configPath,
         workflowName,
-        credentials);
+        credentials,
+        gitRepositoryHook);
   }
 
   @Override
@@ -367,6 +372,7 @@ public class GitOrigin implements Origin<GitRevision> {
     private final String configPath;
     private final String workflowName;
     @Nullable private final CredentialFileHandler credentials;
+    @Nullable protected final GitRepositoryHook gitRepositoryHook;
 
     ReaderImpl(
         String repoUrl,
@@ -383,7 +389,8 @@ public class GitOrigin implements Origin<GitRevision> {
         @Nullable PatchTransformation patchTransformation,
         String configPath,
         String workflowName,
-        @Nullable CredentialFileHandler credentials) {
+        @Nullable CredentialFileHandler credentials,
+        @Nullable GitRepositoryHook gitRepositoryHook) {
       this.repoUrl = checkNotNull(repoUrl);
       this.originFiles = checkNotNull(originFiles, "originFiles");
       this.authoring = checkNotNull(authoring, "authoring");
@@ -399,6 +406,7 @@ public class GitOrigin implements Origin<GitRevision> {
       this.configPath = configPath;
       this.workflowName = workflowName;
       this.credentials = credentials;
+      this.gitRepositoryHook = gitRepositoryHook;
     }
 
     ChangeReader.Builder changeReaderBuilder(String repoUrl) throws RepoException {
@@ -414,9 +422,12 @@ public class GitOrigin implements Origin<GitRevision> {
       GitRepository repo;
       if (partialFetch) {
         String prefixedRepoUrl = String.format("%s:%s%s", configPath, workflowName, repoUrl);
-        repo = gitOptions.cachedBareRepoForUrl(prefixedRepoUrl).enablePartialFetch();
+        repo =
+            gitOptions
+                .cachedBareRepoForUrl(prefixedRepoUrl, gitRepositoryHook)
+                .enablePartialFetch();
       } else {
-        repo = gitOptions.cachedBareRepoForUrl(repoUrl);
+        repo = gitOptions.cachedBareRepoForUrl(repoUrl, gitRepositoryHook);
       }
       if (credentials != null) {
         try {
@@ -452,7 +463,7 @@ public class GitOrigin implements Origin<GitRevision> {
 
     private GitRepository checkout(
         GitRepository repository, Path workdir, GitRevision ref)
-        throws RepoException {
+        throws RepoException, ValidationException {
       GitRepository repo = repository.withWorkTree(workdir);
       if (partialFetch) {
         repo.setSparseCheckout(originFiles.tips());
@@ -680,12 +691,18 @@ public class GitOrigin implements Origin<GitRevision> {
 
   @Override
   public String toString() {
-    return MoreObjects.toStringHelper(this)
-        .add("repoUrl", repoUrl)
-        .add("ref", configRef)
-        .add("repoType", repoType)
-        .add("primaryBranchMigrationMode", primaryBranchMigrationMode)
-        .toString();
+    ToStringHelper helper =
+        MoreObjects.toStringHelper(this)
+            .add("repoUrl", repoUrl)
+            .add("ref", configRef)
+            .add("repoType", repoType)
+            .add("primaryBranchMigrationMode", primaryBranchMigrationMode);
+    if (gitRepositoryHook != null
+        && !Strings.isNullOrEmpty(gitRepositoryHook.getGitRepositoryData().id())) {
+      helper.add("repoId", gitRepositoryHook.getGitRepositoryData().id());
+    }
+
+    return helper.toString();
   }
 
   /** Builds a new {@link GitOrigin}. */
@@ -707,7 +724,8 @@ public class GitOrigin implements Origin<GitRevision> {
       String workflowName,
       ApprovalsProvider approvalsProvider,
       boolean enableLfs,
-      @Nullable CredentialFileHandler credentials) {
+      @Nullable CredentialFileHandler credentials,
+      @Nullable GitRepositoryHook gitRepositoryHook) {
     return new GitOrigin(
         options.get(GeneralOptions.class),
         url,
@@ -728,7 +746,8 @@ public class GitOrigin implements Origin<GitRevision> {
         primaryBranchMigrationMode,
         approvalsProvider,
         enableLfs,
-        credentials);
+        credentials,
+        gitRepositoryHook);
   }
 
   @Override
@@ -759,6 +778,10 @@ public class GitOrigin implements Origin<GitRevision> {
     }
     if (enableLfs) {
       builder.put("enableLfs", Boolean.toString(enableLfs));
+    }
+    if (gitRepositoryHook != null
+        && !Strings.isNullOrEmpty(gitRepositoryHook.getGitRepositoryData().id())) {
+      builder.put("repo_id", gitRepositoryHook.getGitRepositoryData().id());
     }
     return builder.build();
   }

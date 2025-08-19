@@ -29,6 +29,7 @@ import static org.mockito.Mockito.mock;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -129,6 +130,8 @@ public class GitOriginTest {
     firstCommitRef = repo.parseRef("HEAD");
 
     originFiles = Glob.ALL_FILES;
+    options.general.setTemporaryFeaturesForTest(
+        ImmutableMap.of("enable_git_repository_hook_experiment", "true"));
   }
 
   private void createTestRepo(Path folder) throws Exception {
@@ -158,18 +161,24 @@ public class GitOriginTest {
 
   @Test
   public void testGitOrigin() throws Exception {
-    origin = skylark.eval("result",
-        "result = git.origin(\n"
-            + "    url = 'https://my-server.org/copybara',\n"
-            + "    ref = 'main',\n"
-            + ")");
+    origin =
+        skylark.eval(
+            "result",
+            """
+            result = git.origin(
+                url = 'https://github.com/google/copybara',
+                ref = 'main',
+                repo_id = '123456789',
+            )
+            """);
     assertThat(origin.toString())
         .isEqualTo(
             "GitOrigin{"
-                + "repoUrl=https://my-server.org/copybara, "
+                + "repoUrl=https://github.com/google/copybara, "
                 + "ref=main, "
                 + "repoType=GIT, "
-                + "primaryBranchMigrationMode=false"
+                + "primaryBranchMigrationMode=false, "
+                + "repoId=123456789"
                 + "}");
   }
 
@@ -177,7 +186,7 @@ public class GitOriginTest {
   public void testApprovalsProvider() throws Exception {
     ApprovalsProvider provider = mock(ApprovalsProvider.class);
     options.gitOrigin.approvalsProvider = provider;
-    
+
     origin = skylark.eval("result",
         "result = git.origin(\n"
             + "    url = 'https://my-server.org/copybara',\n"
@@ -321,18 +330,25 @@ public class GitOriginTest {
 
   @Test
   public void testGithubOrigin() throws Exception {
-    origin = skylark.eval("result",
-        "result = git.github_origin(\n"
-            + "    url = 'https://github.com/copybara',\n"
-            + "    ref = 'main',\n"
-            + ")");
+    origin =
+        skylark.eval(
+            "result",
+            """
+            result = git.github_origin(
+                url = 'https://github.com/google/copybara',
+                ref = 'main',
+                repo_id = '123456789'
+            )
+            """);
+
     assertThat(origin.toString())
         .isEqualTo(
             "GitOrigin{"
-                + "repoUrl=https://github.com/copybara, "
+                + "repoUrl=https://github.com/google/copybara, "
                 + "ref=main, "
                 + "repoType=GITHUB, "
-                + "primaryBranchMigrationMode=false"
+                + "primaryBranchMigrationMode=false, "
+                + "repoId=123456789"
                 + "}");
   }
 
@@ -582,6 +598,22 @@ public class GitOriginTest {
     newReader().checkout(origin.resolve(defaultBranch), checkoutDir);
 
     assertThat(Files.exists(testFile)).isFalse();
+  }
+
+  @Test
+  public void testCheckout_withCheckoutFailure() throws Exception {
+    GitOrigin o =
+        skylark.eval(
+            "result",
+            """
+            result = git.origin(
+            url = 'https://github.com/google/copybara',
+            ref = 'main',
+            repo_id = '123456789'
+            )
+            """);
+    Reader<GitRevision> reader = o.newReader(originFiles, authoring);
+    reader.checkout(o.resolve(defaultBranch), checkoutDir);
   }
 
   @Test

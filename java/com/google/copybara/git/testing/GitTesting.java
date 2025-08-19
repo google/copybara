@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2016 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import static com.google.copybara.testing.FileSubjects.assertThatPath;
 
 import com.google.common.collect.Iterables;
 import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitRepository;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.testing.FileSubjects;
@@ -74,7 +75,7 @@ public class GitTesting {
    * This method checks out the given ref in a temporary directory to allow asserting about it.
    */
   public static FileSubjects.PathSubject assertThatCheckout(GitRepository repo, String ref)
-      throws IOException, RepoException {
+      throws IOException, RepoException, ValidationException {
     Path tempWorkTree = Files.createTempDirectory("assertAboutCheckout");
     repo.withWorkTree(tempWorkTree).forceCheckout(ref);
     return assertThatPath(tempWorkTree);

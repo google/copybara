@@ -50,14 +50,15 @@ public class SameGitTree {
         : gitRevision.getSha1();
   }
 
-  /** Compare git tree of repo's head with the parameter sha1
+  /**
+   * Compare git tree of repo's head with the parameter sha1
    *
-   * It will save the current head at the repo, and fetch the sha1.
-   * Then compare the git three of them.
+   * <p>It will save the current head at the repo, and fetch the sha1. Then compare the git three of
+   * them.
    *
-   * In the end, regardless of the checking status, the repo will be force set to previous head.
+   * <p>In the end, regardless of the checking status, the repo will be force set to previous head.
    */
-  public boolean hasSameTree(String sha1) throws RepoException, CannotResolveRevisionException {
+  public boolean hasSameTree(String sha1) throws RepoException, ValidationException {
     String oldHead = saveOldHead();
     try (ProfilerTask ignore2 = generalOptions.profiler().start("fetch_remote_sha1")) {
       repo.fetch(

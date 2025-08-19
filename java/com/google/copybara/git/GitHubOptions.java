@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Google Inc.
+ * Copyright (C) 2017 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -185,6 +185,12 @@ public class GitHubOptions implements Option {
       transport = new GitHubApiTransportWithChecker(transport, new ApiChecker(checker, console));
     }
     return new GitHubGraphQLApi(transport, generalOptions.profiler());
+  }
+
+  public GitRepositoryHook getGitRepositoryHook(
+      GitRepositoryHook.GitRepositoryData gitRepositoryData,
+      @Nullable CredentialFileHandler credentials) {
+    return new GitHubRepositoryHook(gitRepositoryData, this, credentials);
   }
 
   @Parameter(names = "--github-destination-delete-pr-branch",

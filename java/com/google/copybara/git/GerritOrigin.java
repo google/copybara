@@ -96,7 +96,8 @@ public class GerritOrigin extends GitOrigin {
       boolean ignoreGerritNoop,
       boolean primaryBranchMigrationMode,
       ApprovalsProvider approvalsProvider,
-      boolean importWipChanges) {
+      boolean importWipChanges,
+      @Nullable GitRepositoryHook gitRepositoryHook) {
     super(
         generalOptions,
         repoUrl,
@@ -117,7 +118,8 @@ public class GerritOrigin extends GitOrigin {
         primaryBranchMigrationMode,
         approvalsProvider,
         /* enableLfs= */ false,
-        /* credentials= */ null);
+        /* credentials= */ null,
+        gitRepositoryHook);
     this.generalOptions = checkNotNull(generalOptions);
     this.gitOptions = checkNotNull(gitOptions);
     this.gitOriginOptions = checkNotNull(gitOriginOptions);
@@ -217,7 +219,8 @@ public class GerritOrigin extends GitOrigin {
       boolean ignoreGerritNoop,
       boolean primaryBranchMigrationMode,
       ApprovalsProvider approvalsProvider,
-      boolean importWipChanges) {
+      boolean importWipChanges,
+      @Nullable GitRepositoryHook gitRepositoryHook) {
 
     return new GerritOrigin(
         options.get(GeneralOptions.class),
@@ -238,7 +241,8 @@ public class GerritOrigin extends GitOrigin {
         ignoreGerritNoop,
         primaryBranchMigrationMode,
         approvalsProvider,
-        importWipChanges);
+        importWipChanges,
+        gitRepositoryHook);
   }
 
   @Override
@@ -258,7 +262,8 @@ public class GerritOrigin extends GitOrigin {
         patchTransformation,
         /* configPath= */ null,
         /* workflowName= */ null,
-        /* credentials= */ null) {
+        /* credentials= */ null,
+        gitRepositoryHook) {
 
       @Override
       public ImmutableList<GitRevision> findBaselinesWithoutLabel(

@@ -185,6 +185,24 @@ public class GitOptions implements Option {
   }
 
   /**
+   * Create a newly initialized repository from the cached location.
+   *
+   * @param url the url of the git repository being represented by {@code GitRepository}
+   * @param gitRepositoryHook describes what behavior to act out during checkouts
+   * @throws RepoException if the bare git repository cannot be created
+   * @return a newly initialized repository
+   */
+  public GitRepository cachedBareRepoForUrl(String url, GitRepositoryHook gitRepositoryHook)
+      throws RepoException {
+    Preconditions.checkNotNull(url);
+    try {
+      return createBareRepo(generalOptions, resolveDirInCache(url, getRepoStorage()));
+    } catch (IOException e) {
+      throw new RepoException("Cannot create a cached repo for " + url, e);
+    }
+  }
+
+  /**
    * Rewrite url for subodule fetch
    */
   public String rewriteSubmoduleUrl(String url) throws RepoException {
@@ -211,6 +229,30 @@ public class GitOptions implements Option {
             generalOptions.repoTimeout,
             gitNoVerify,
             getPushOptionsValidator());
+    return initRepo(repo);
+  }
+
+  /**
+   * Create a new initialized repository in the location.
+   *
+   * @param generalOptions the general options to use for the {@code GitRepository}
+   * @param path the path to the git repository being represented by {@code GitRepository}
+   * @param gitRepositoryHook describes what behavior to act out during checkouts
+   * @throws RepoException if the bare git repository cannot be created
+   * @return a new initialized repository
+   */
+  public GitRepository createBareRepo(
+      GeneralOptions generalOptions, Path path, GitRepositoryHook gitRepositoryHook)
+      throws RepoException {
+    GitRepository repo =
+        GitRepository.newBareRepo(
+            path,
+            getGitEnvironment(generalOptions.getEnvironment()),
+            generalOptions.isVerbose(),
+            generalOptions.repoTimeout,
+            gitNoVerify,
+            getPushOptionsValidator(),
+            gitRepositoryHook);
     return initRepo(repo);
   }
 

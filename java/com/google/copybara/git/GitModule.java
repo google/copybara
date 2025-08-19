@@ -319,7 +319,20 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "None",
             named = true,
             positional = false,
-            doc = CREDENTIAL_DOC)
+            doc = CREDENTIAL_DOC),
+        @Param(
+            name = "repo_id",
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
+            defaultValue = "None",
+            documented = true,
+            named = true,
+            positional = false,
+            doc =
+                "(Experimental) The repo id of the git repository, used as a stable reference to"
+                    + " the repo for validation.")
       },
       useStarlarkThread = true)
   @UsesFlags(GitOriginOptions.class)
@@ -336,6 +349,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object versionSelector,
       Boolean primaryBranchMigration,
       @Nullable Object credentials,
+      @Nullable Object repoId,
       StarlarkThread thread)
       throws EvalException {
     checkNotEmpty(url, "url");
@@ -353,6 +367,10 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     checkSubmoduleConfig(submodules, excludedSubmoduleList);
     String fixedUrl = fixHttp(url, thread.getCallerLocation());
     CredentialFileHandler credentialHandler = getCredentialHandler(fixedUrl, credentials);
+    GitRepositoryHook gitRepositoryHook =
+        maybeGetGitRepositoryHook(
+            new GitRepositoryHook.GitRepositoryData(convertFromNoneable(repoId, null), fixedUrl));
+
     return GitOrigin.newGitOrigin(
         options,
         fixedUrl,
@@ -374,8 +392,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                 fixedUrl, SkylarkUtil.convertOptionalString(ref), credentialHandler)
             : approvalsProvider(url),
         /* enableLfs= */ false,
-        credentialHandler
-    );
+        credentialHandler,
+        /* gitRepositoryHook= */ gitRepositoryHook);
   }
 
   @Nullable
@@ -859,7 +877,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
           workflowName,
           approvalsProvider(url),
           /* enableLfs= */ false,
-          /* credentials= */ null);
+          /* credentials= */ null,
+          /* gitRepositoryHook= */ null);
     }
     return GerritOrigin.newGerritOrigin(
         options,
@@ -875,7 +894,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         ignoreGerritNoop,
         primaryBranchMigration,
         approvalsProvider(url),
-        importWipChanges);
+        importWipChanges,
+        /* gitRepositoryHook= */ null);
   }
 
   static final String GITHUB_PR_ORIGIN_NAME = "github_pr_origin";
@@ -1214,8 +1234,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
           false,
           githubPostSubmitApprovalsProvider(fixedUrl, ref, credHandler),
           /* enableLfs= */ false,
-          credHandler
-      );
+          credHandler,
+          null);
     }
     return new GitHubPrOrigin(
         fixedUrl,
@@ -1250,7 +1270,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         convertDescribeVersion(describeVersion),
         GITHUB_COM,
         githubPreSubmitApprovalsProvider(fixedUrl, credHandler),
-        credHandler);
+        credHandler,
+        /* gitRepositoryHook= */ null);
   }
 
   @SuppressWarnings("unused")
@@ -1368,7 +1389,19 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "None",
             named = true,
             positional = false,
-            doc = CREDENTIAL_DOC)
+            doc = CREDENTIAL_DOC),
+        @Param(
+            name = "repo_id",
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
+            defaultValue = "None",
+            named = true,
+            positional = false,
+            doc =
+                "The repo id of the github repository, used as a stable reference to the repo for"
+                    + " validation.")
       },
       useStarlarkThread = true)
   @UsesFlags({GitOriginOptions.class, GitHubOptions.class})
@@ -1385,6 +1418,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Boolean primaryBranchMigration,
       Boolean enableLfs,
       @Nullable Object credentials,
+      @Nullable Object repoId,
       StarlarkThread thread)
       throws EvalException {
     check(GITHUB_COM.isGitHubUrl(checkNotEmpty(url, "url")), "Invalid Github URL: %s", url);
@@ -1403,6 +1437,9 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     PatchTransformation patchTransformation = maybeGetPatchTransformation(patch);
 
     CredentialFileHandler credentialHandler = getCredentialHandler(fixedUrl, credentials);
+    GitRepositoryHook gitRepositoryHook =
+        maybeGetGitRepositoryHook(
+            new GitRepositoryHook.GitRepositoryData(convertFromNoneable(repoId, null), fixedUrl));
     // TODO(copybara-team): See if we want to support includeBranchCommitLogs for GitHub repos.
     return GitOrigin.newGitOrigin(
         options,
@@ -1423,7 +1460,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         githubPostSubmitApprovalsProvider(
             fixedUrl, SkylarkUtil.convertOptionalString(ref), credentialHandler),
         enableLfs,
-        credentialHandler);
+        credentialHandler,
+        gitRepositoryHook);
   }
 
   @SuppressWarnings("unused")
@@ -1587,7 +1625,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         workflowName,
         new NoneApprovedProvider(),
         enableLfs,
-        credentialHandler);
+        credentialHandler,
+        /* gitRepositoryHook= */ null);
   }
 
   private boolean convertDescribeVersion(Object describeVersion) {
@@ -3542,6 +3581,21 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       return getCredentialHandler(uri.getHost(), uri.getPath(), starlarkValue);
     } catch (ValidationException | IllegalArgumentException parseEx) {
       options.get(GeneralOptions.class).console().verboseFmt("Unable to parse %s as URI", url);
+    }
+    return null;
+  }
+
+  @Nullable
+  protected GitRepositoryHook maybeGetGitRepositoryHook(
+      GitRepositoryHook.GitRepositoryData gitRepositoryData) {
+    if (!options
+        .get(GeneralOptions.class)
+        .isTemporaryFeature("enable_git_repository_hook_experiment", false)) {
+      return null;
+    }
+
+    if (GITHUB_COM.isGitHubUrl(gitRepositoryData.url())) {
+      return options.get(GitHubOptions.class).getGitRepositoryHook(gitRepositoryData, null);
     }
     return null;
   }

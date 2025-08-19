@@ -724,6 +724,37 @@ public class GitRepositoryTest {
   }
 
   @Test
+  public void testFetchRunsHooks() throws Exception {
+    GitRepositoryHook testHook =
+        new GitRepositoryHook() {
+          @Override
+          public void beforeCheckout() throws ValidationException {
+            throw new ValidationException("test test test hook failed");
+          }
+
+          @Override
+          public GitRepositoryHook.GitRepositoryData getGitRepositoryData() {
+            return null;
+          }
+        };
+    GitRepository dest =
+        GitRepository.newBareRepo(
+            Files.createTempDirectory("destDir"),
+            getGitEnv(),
+            /* verbose= */ true,
+            DEFAULT_TIMEOUT,
+            /* noVerify= */ false,
+            /* pushOptionsValidator= */ new GitRepository.PushOptionsValidator(Optional.empty()),
+            testHook);
+    dest.init();
+
+    ValidationException e =
+        assertThrows(ValidationException.class, () -> dest.forceCheckout(dest.getPrimaryBranch()));
+
+    assertThat(e).hasMessageThat().contains("test test test hook failed");
+  }
+
+  @Test
   public void testFetchPrune() throws Exception {
     GitRepository local =
         GitRepository.newBareRepo(
@@ -904,7 +935,8 @@ public class GitRepositoryTest {
             getGitEnv(),
             DEFAULT_TIMEOUT,
             /* noVerify= */ false,
-            /* pushOptionsValidator= */ new GitRepository.PushOptionsValidator(Optional.empty())) {
+            /* pushOptionsValidator= */ new GitRepository.PushOptionsValidator(Optional.empty()),
+            /* gitRepositoryHook= */ null) {
 
           @Override
           public FetchResult fetch(
@@ -958,7 +990,8 @@ public class GitRepositoryTest {
             getGitEnv(),
             DEFAULT_TIMEOUT,
             /* noVerify= */ false,
-            /* pushOptionsValidator= */ new GitRepository.PushOptionsValidator(Optional.empty())) {
+            /* pushOptionsValidator= */ new GitRepository.PushOptionsValidator(Optional.empty()),
+            /* gitRepositoryHook= */ null) {
 
           @Override
           public FetchResult fetch(
@@ -1007,7 +1040,8 @@ public class GitRepositoryTest {
             getGitEnv(),
             DEFAULT_TIMEOUT,
             /* noVerify= */ false,
-            /* pushOptionsValidator= */ new GitRepository.PushOptionsValidator(Optional.empty())) {
+            /* pushOptionsValidator= */ new GitRepository.PushOptionsValidator(Optional.empty()),
+            /* gitRepositoryHook= */ null) {
 
           @Override
           public FetchResult fetch(
