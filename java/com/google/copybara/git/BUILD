@@ -26,6 +26,7 @@ CORE = [
     "FetchResult.java",
     "GitCredential.java",
     "GitRepository.java",
+    "GitRepositoryHook.java",
     "GitRevision.java",
     "InvalidRefspecException.java",
     "NonFastForwardRepositoryException.java",
