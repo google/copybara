@@ -270,8 +270,7 @@ public class Main {
       // This usually indicates a serious programming error that will require Copybara team
       // intervention. Print stack trace without concern for presentation.
       e.printStackTrace();
-      handleUnexpectedError(console,
-          "Unexpected error (please file a bug against copybara): " + e.getMessage(), args, e);
+      handleUnexpectedError(console, "Unexpected error: " + e.getMessage(), args, e);
       return new CommandResult(ExitCode.INTERNAL_ERROR, subcommand, commandEnv);
     }
   }
@@ -550,7 +549,7 @@ public class Main {
     }
   }
 
-  private void handleUnexpectedError(Console console, String msg, String[] args, Throwable e) {
+  protected void handleUnexpectedError(Console console, String msg, String[] args, Throwable e) {
     logger.atSevere().withCause(e).log("%s", Consoles.formatLogError(msg, args));
     console.error(msg + " (" + e + ")");
   }
