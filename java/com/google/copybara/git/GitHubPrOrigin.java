@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Google Inc.
+ * Copyright (C) 2017 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -632,7 +632,6 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
         firstParent,
         partialFetch,
         patchTransformation,
-        describeVersion,
         /* configPath= */ null,
         /* workflowName= */ null,
         credentials) {

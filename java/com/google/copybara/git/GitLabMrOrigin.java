@@ -301,7 +301,6 @@ public class GitLabMrOrigin implements Origin<GitRevision> {
         firstParent,
         partialFetch,
         patchTransformation.orElse(null),
-        describeVersion,
         null,
         null,
         credentialFileHandler.orElse(null)) {

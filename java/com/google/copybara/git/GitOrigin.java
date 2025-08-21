@@ -208,7 +208,6 @@ public class GitOrigin implements Origin<GitRevision> {
         firstParent,
         partialFetch,
         patchTransformation,
-        describeVersion,
         configPath,
         workflowName,
         credentials);
@@ -365,7 +364,6 @@ public class GitOrigin implements Origin<GitRevision> {
     private final boolean firstParent;
     private final boolean partialFetch;
     @Nullable private final PatchTransformation patchTransformation;
-    private final boolean describeVersion;
     private final String configPath;
     private final String workflowName;
     @Nullable private final CredentialFileHandler credentials;
@@ -383,7 +381,6 @@ public class GitOrigin implements Origin<GitRevision> {
         boolean firstParent,
         boolean partialFetch,
         @Nullable PatchTransformation patchTransformation,
-        boolean describeVersion,
         String configPath,
         String workflowName,
         @Nullable CredentialFileHandler credentials) {
@@ -399,7 +396,6 @@ public class GitOrigin implements Origin<GitRevision> {
       this.firstParent = firstParent;
       this.partialFetch = partialFetch;
       this.patchTransformation = patchTransformation;
-      this.describeVersion = describeVersion;
       this.configPath = configPath;
       this.workflowName = workflowName;
       this.credentials = credentials;
@@ -584,7 +580,6 @@ public class GitOrigin implements Origin<GitRevision> {
         // This is to have a consistent git history (as long as no more merges are added).
         // There is a potential issue if the re-ordering in forChangesWithMerges changes its order
         // but adding handling for conditional changes would add more complexity.
-        ImmutableList<Change<GitRevision>> all = gitChanges;
         gitChanges = gitChanges.stream()
             .dropWhile(c -> !c.getRevision().getSha1().equals(fromRef.getSha1()))
             .skip(1)
