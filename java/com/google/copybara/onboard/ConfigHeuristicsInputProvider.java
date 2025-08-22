@@ -16,6 +16,8 @@
 
 package com.google.copybara.onboard;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -110,7 +112,7 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
   }
 
   @SuppressWarnings("OptionalAssignedToNull")
-  private Optional<Result> computeHeuristic(
+  protected Optional<Result> computeHeuristic(
       URL originUrl, String currentVersion, Path destination) {
     if (!Files.isDirectory(destination)) {
       return Optional.empty();
@@ -131,9 +133,25 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
       currentVersion = selector.selectVersion(currentVersion, repo, originUrl.toString(), console);
 
       console.progressFmt("Fetching '%s' from %s", currentVersion, originUrl.toString());
-      GitRevision gitRevision = repo.fetchSingleRef(originUrl.toString(), currentVersion, false,
-          Optional.empty());
+      GitRevision gitRevision;
+      try {
+        gitRevision =
+            repo.fetchSingleRefWithTags(
+                originUrl.toString(),
+                currentVersion,
+                /* fetchTags= */ true,
+                /* partialFetch= */ false,
+                Optional.empty());
+      } catch (RepoException e) {
+        gitRevision =
+            repo.fetchSingleRef(
+                originUrl.toString(), currentVersion, /* partialFetch= */ false, Optional.empty());
+      }
       Path git = Files.createDirectories(origin);
+      ImmutableList<String> upstreamTags =
+          repo.showRef().keySet().stream()
+              .filter(ref -> ref.startsWith("refs/tags/"))
+              .collect(toImmutableList());
 
       console.progressFmt("Checking out git files");
       repo.withWorkTree(git).forceCheckout(gitRevision.getSha1());
@@ -145,7 +163,8 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
               destinationOnlyPaths,
               percentSimilar,
               generatorOptions,
-              generalOptions);
+              generalOptions,
+              upstreamTags);
 
       console.progressFmt("Computing globs");
       cached = Optional.of(heuristics.run());
@@ -169,6 +188,7 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
    *     destination file
    * @param generatorOptions the generator options from {@link com.google.copybara.Options}
    * @param generalOptions the general options from {@link com.google.copybara.Options}
+   * @param versions a list of version refs from the upstream
    * @return the object
    */
   protected ConfigGenHeuristics getConfigGenHeuristics(
@@ -177,7 +197,8 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
       ImmutableSet<Path> destinationOnlyPaths,
       int percentSimilar,
       GeneratorOptions generatorOptions,
-      GeneralOptions generalOptions) {
+      GeneralOptions generalOptions,
+      ImmutableList<String> versions) {
     return new ConfigGenHeuristics(
         origin,
         destination,
@@ -185,7 +206,8 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
         percentSimilar,
         generatorOptions.computeGlobIgnoreCarriageReturn,
         generatorOptions.computeGlobIgnoreWhitespace,
-        generalOptions);
+        generalOptions,
+        versions);
   }
 
   @Override

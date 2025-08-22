@@ -19,6 +19,7 @@ package com.google.copybara.configgen;
 import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.configgen.ConfigGenHeuristics.GeneratorMove;
 import com.google.copybara.testing.OptionsBuilder;
@@ -77,7 +78,9 @@ public class ConfigGenHeuristicsTest {
     writeFile(origin, "fileA", "aaa\n".repeat(20));
     writeFile(destination, "fileB", "aaa\r\n".repeat(20) + "CHANGED");
     ConfigGenHeuristics.Result result =
-        createHeuristics(/* ignoreCarriageReturn= */ true, /* ignoreWhitespace= */ false).run();
+        createHeuristics(
+                /* ignoreCarriageReturn= */ true, /* ignoreWhitespace= */ false, ImmutableList.of())
+            .run();
 
     globMatches(result.getOriginGlob(), "a/b/c/fileA");
   }
@@ -87,7 +90,9 @@ public class ConfigGenHeuristicsTest {
     writeFile(origin, "fileA", "aaa                 \n".repeat(20));
     writeFile(destination, "fileB", "aaa \n".repeat(20) + "CHANGED");
     ConfigGenHeuristics.Result result =
-        createHeuristics(/* ignoreCarriageReturn= */ false, /* ignoreWhitespace= */ true).run();
+        createHeuristics(
+                /* ignoreCarriageReturn= */ false, /* ignoreWhitespace= */ true, ImmutableList.of())
+            .run();
 
     globMatches(result.getOriginGlob(), "a/b/c/fileA");
   }
@@ -265,6 +270,86 @@ public class ConfigGenHeuristicsTest {
         .containsExactly(Path.of("include/fileA"));
   }
 
+  @Test
+  public void getVersionStringSeparator_simple_worksCorrectly() throws IOException {
+    ConfigGenHeuristics.Result result =
+        createHeuristics(false, false, ImmutableList.of("1.0.1", "1.0.2")).run();
+
+    assertThat(result.getVersionSeparator()).hasValue(".");
+  }
+
+  @Test
+  public void getVersionStringSeparator_withPrefix_worksCorrectly() throws IOException {
+    ConfigGenHeuristics.Result result =
+        createHeuristics(false, false, ImmutableList.of("v1.0.1", "v1.0.2")).run();
+
+    assertThat(result.getVersionSeparator()).hasValue(".");
+  }
+
+  @Test
+  public void getVersionStringSeparator_underscore_worksCorrectly() throws IOException {
+    ConfigGenHeuristics.Result result =
+        createHeuristics(false, false, ImmutableList.of("1_0_1", "1_0_2")).run();
+
+    assertThat(result.getVersionSeparator()).hasValue("_");
+  }
+
+  @Test
+  public void getVersionStringSeparator_notFullSemVer_worksCorrectly() throws IOException {
+    ConfigGenHeuristics.Result result =
+        createHeuristics(false, false, ImmutableList.of("1.1", "1.2")).run();
+
+    assertThat(result.getVersionSeparator()).hasValue(".");
+  }
+
+  @Test
+  public void getVersionStringSeparator_mostCommonSeparator_worksCorrectly() throws IOException {
+    ConfigGenHeuristics.Result result =
+        createHeuristics(false, false, ImmutableList.of("1.0.0", "1.0.1", "main", "2_0_0", "1.0.3"))
+            .run();
+
+    assertThat(result.getVersionSeparator()).hasValue(".");
+  }
+
+  @Test
+  public void getVersionStringSeparator_nonSemVer_noResult() throws IOException {
+    ConfigGenHeuristics.Result result =
+        createHeuristics(false, false, ImmutableList.of("versionone", "versiontwo")).run();
+
+    assertThat(result.getVersionSeparator()).isEmpty();
+  }
+
+  @Test
+  public void shouldUseVersionSelector_twoTagsWithSeparator_true() throws IOException {
+    ConfigGenHeuristics.Result result =
+        createHeuristics(false, false, ImmutableList.of("1.0.0", "1.0.1")).run();
+
+    assertThat(result.getShouldUseVersionSelector()).isTrue();
+  }
+
+  @Test
+  public void shouldUseVersionSelector_oneTagWithSeparator_true() throws IOException {
+    ConfigGenHeuristics.Result result =
+        createHeuristics(false, false, ImmutableList.of("1.0.0")).run();
+
+    assertThat(result.getShouldUseVersionSelector()).isTrue();
+  }
+
+  @Test
+  public void shouldUseVersionSelector_twoTagsWithNoSeparator_false() throws IOException {
+    ConfigGenHeuristics.Result result =
+        createHeuristics(false, false, ImmutableList.of("main", "stable", "experimental")).run();
+
+    assertThat(result.getShouldUseVersionSelector()).isFalse();
+  }
+
+  @Test
+  public void shouldUseVersionSelector_noTags_false() throws IOException {
+    ConfigGenHeuristics.Result result = createHeuristics(false, false, ImmutableList.of()).run();
+
+    assertThat(result.getShouldUseVersionSelector()).isFalse();
+  }
+
   private void globMatches(Glob glob, String path) {
     Path root = Paths.get("/");
     PathMatcher matcher = glob.relativeTo(root);
@@ -284,11 +369,14 @@ public class ConfigGenHeuristicsTest {
   }
 
   private ConfigGenHeuristics createHeuristics() {
-    return createHeuristics(/* ignoreCarriageReturn= */ false, /* ignoreWhitespace= */ false);
+    return createHeuristics(
+        /* ignoreCarriageReturn= */ false,
+        /* ignoreWhitespace= */ false,
+        /* tags= */ ImmutableList.of());
   }
 
   private ConfigGenHeuristics createHeuristics(
-      boolean ignoreCarriageReturn, boolean ignoreWhitespace) {
+      boolean ignoreCarriageReturn, boolean ignoreWhitespace, ImmutableList<String> tags) {
     return new ConfigGenHeuristics(
         origin,
         destination,
@@ -296,6 +384,7 @@ public class ConfigGenHeuristicsTest {
         30,
         ignoreCarriageReturn,
         ignoreWhitespace,
-        optionsBuilder.general);
+        optionsBuilder.general,
+        tags);
   }
 }

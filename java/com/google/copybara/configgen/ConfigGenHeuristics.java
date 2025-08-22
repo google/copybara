@@ -35,6 +35,8 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.RenameDetector;
 import com.google.copybara.util.console.Console;
+import com.google.re2j.Matcher;
+import com.google.re2j.Pattern;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -47,6 +49,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -66,6 +69,10 @@ import java.util.stream.Collectors;
  * <p>Note that the generation is not perfect and should be reviewed by a human.
  */
 public class ConfigGenHeuristics {
+  // Regex to parse upstream semver-like version refs. Group 3 is expected to capture the separator
+  // character.
+  private static final Pattern UPSTREAM_VERSION_REF_REGEX =
+      Pattern.compile("^v?(\\d+)(([^\\d\\n])(?:\\d+)){0,2}$");
 
   private final Path origin;
   private final Path destination;
@@ -74,6 +81,7 @@ public class ConfigGenHeuristics {
   private final boolean ignoreCarriageReturn;
   private final boolean ignoreWhitespace;
   private final GeneralOptions generalOptions;
+  private final ImmutableList<String> versions;
 
   /**
    * Creates the Generator object
@@ -87,6 +95,7 @@ public class ConfigGenHeuristics {
    *     comparisons.
    * @param ignoreWhitespace Whether to ignore whitespace characters in file content comparisons.
    * @param generalOptions the {@link GeneralOptions} object.
+   * @param versions the list of version refs from the upstream
    */
   public ConfigGenHeuristics(
       Path origin,
@@ -95,7 +104,8 @@ public class ConfigGenHeuristics {
       int percentSimilar,
       boolean ignoreCarriageReturn,
       boolean ignoreWhitespace,
-      GeneralOptions generalOptions) {
+      GeneralOptions generalOptions,
+      ImmutableList<String> versions) {
     this.origin = checkNotNull(origin);
     this.destination = checkNotNull(destination);
     this.destinationOnlyPaths = checkNotNull(destinationOnlyPaths);
@@ -103,6 +113,7 @@ public class ConfigGenHeuristics {
     this.ignoreCarriageReturn = ignoreCarriageReturn;
     this.ignoreWhitespace = ignoreWhitespace;
     this.generalOptions = generalOptions;
+    this.versions = versions;
   }
 
   /** Result of the config generation */
@@ -111,14 +122,20 @@ public class ConfigGenHeuristics {
     private final Glob originGlob;
     private final GeneratorTransformations transformations;
     private final DestinationExcludePaths destinationExcludePaths;
+    private final boolean shouldUseVersionSelector;
+    private final Optional<String> versionSeparator;
 
     public Result(
         Glob originFiles,
         GeneratorTransformations transformations,
-        DestinationExcludePaths destinationExcludePaths) {
+        DestinationExcludePaths destinationExcludePaths,
+        boolean shouldUseVersionSelector,
+        Optional<String> versionSeparator) {
       this.originGlob = originFiles;
       this.transformations = transformations;
       this.destinationExcludePaths = destinationExcludePaths;
+      this.shouldUseVersionSelector = shouldUseVersionSelector;
+      this.versionSeparator = versionSeparator;
     }
 
     public Glob getOriginGlob() {
@@ -131,6 +148,14 @@ public class ConfigGenHeuristics {
 
     public DestinationExcludePaths getDestinationExcludePaths() {
       return destinationExcludePaths;
+    }
+
+    public boolean getShouldUseVersionSelector() {
+      return shouldUseVersionSelector;
+    }
+
+    public Optional<String> getVersionSeparator() {
+      return versionSeparator;
     }
   }
 
@@ -166,8 +191,14 @@ public class ConfigGenHeuristics {
     DestinationExcludePaths destinationExcludePaths =
         new DestinationExcludePaths(
             getDestinationExcludePaths(g3Files, similarFiles, destinationOnlyPaths));
+    Optional<String> tagSeparator = getVersionStringSeparator(versions);
+
     return new ConfigGenHeuristics.Result(
-        originGlob.glob, new GeneratorTransformations(moves), destinationExcludePaths);
+        originGlob.glob,
+        new GeneratorTransformations(moves),
+        destinationExcludePaths,
+        tagSeparator.isPresent(),
+        tagSeparator);
   }
 
   /**
@@ -204,6 +235,22 @@ public class ConfigGenHeuristics {
                   BinaryOperator.maxBy(Comparator.comparingInt(PathAndScore::score))));
     }
     return destinationToOriginMapping;
+  }
+
+  private Optional<String> getVersionStringSeparator(ImmutableList<String> versions) {
+    HashMap<String, Integer> separators = new HashMap<>();
+    if (versions.isEmpty()) {
+      return Optional.empty();
+    }
+
+    for (String version : versions) {
+      Matcher matcher = UPSTREAM_VERSION_REF_REGEX.matcher(version);
+      if (matcher.matches() && matcher.groupCount() >= 3) {
+        separators.put(matcher.group(3), separators.getOrDefault(matcher.group(3), 0) + 1);
+      }
+    }
+
+    return separators.entrySet().stream().max(Entry.comparingByValue()).map(Entry::getKey);
   }
 
   private IncludesGlob getOriginGlob(
