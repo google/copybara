@@ -107,9 +107,8 @@ public class GitTestUtil {
       @Override
       public LowLevelHttpResponse execute() throws IOException {
         assertWithMessage(
-                String.format(
-                    "Request <%s> did not match predicate: '%s'",
-                    this.getContentAsString(), requestValidator))
+                "Request <%s> did not match predicate: '%s'",
+                this.getContentAsString(), requestValidator)
             .that(requestValidator.test(this.getContentAsString()))
             .isTrue();
         // Responses contain a IntputStream for content. Cannot be reused between for two
@@ -520,8 +519,9 @@ public class GitTestUtil {
       for (String prefix : mappingPrefixes) {
         if (url.startsWith(prefix)) {
           Path repo = httpsRepos.resolve(url.replace(prefix, ""));
-          assertWithMessage(String.format("Url %s is not mocked for %s", url, repo))
-              .that(Files.isDirectory(repo)).isTrue();
+          assertWithMessage("Url %s is not mocked for %s", url, repo)
+              .that(Files.isDirectory(repo))
+              .isTrue();
           return "file:///" + repo;
         }
       }
