@@ -52,7 +52,6 @@ def copybara_repositories():
         url = "https://github.com/bazelbuild/bazel-skylib/archive/" + skylib_version + ".zip",
     )
 
-
     # Stuff used by Bazel Starlark syntax package transitively:
     # LICENSE: The Apache Software License, Version 2.0
     maybe(
@@ -61,7 +60,7 @@ def copybara_repositories():
         sha256 = "10a0d58f39a1a909e95e00e8ba0b5b1dc64d02997f741151953a2b3659f6e78c",
         strip_prefix = "protobuf-29.0",
         urls = [
-            "https://github.com/protocolbuffers/protobuf/releases/download/v29.0/protobuf-29.0.tar.gz"
+            "https://github.com/protocolbuffers/protobuf/releases/download/v29.0/protobuf-29.0.tar.gz",
         ],
     )
 

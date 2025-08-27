@@ -26,7 +26,6 @@ java_library(
     plugins = ["//java/com/google/copybara/doc:document"],
     deps = [
         "//java/com/google/copybara:base",
-        "//java/com/google/copybara/config:base",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/remotefile/extractutil",
         "//java/com/google/copybara/util",
