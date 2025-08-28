@@ -35,6 +35,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitCredential.UserPassword;
 import com.google.copybara.git.GitRepository;
+import com.google.copybara.git.github.util.GitHubHost;
 import com.google.copybara.json.GsonParserUtil;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
@@ -55,22 +56,24 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   private static final JsonFactory JSON_FACTORY = new GsonFactory();
-  private static final String API_URL = "https://api.github.com";
-  private static final String GITHUB_WEB_URL = "https://github.com";
 
   private final GitRepository repo;
   private final HttpTransport httpTransport;
   private final String storePath;
   private final Console console;
   private final boolean bearerAuth;
+  private final String apiUrl;
+  private final String githubWebUrl;
 
-  public GitHubApiTransportImpl(GitRepository repo, HttpTransport httpTransport,
+  public GitHubApiTransportImpl(GitHubHost ghHost, GitRepository repo, HttpTransport httpTransport,
       String storePath, boolean bearerAuth, Console console) {
     this.repo = Preconditions.checkNotNull(repo);
     this.httpTransport = Preconditions.checkNotNull(httpTransport);
     this.storePath = storePath;
     this.console = Preconditions.checkNotNull(console);
     this.bearerAuth = bearerAuth;
+    this.apiUrl = ghHost.getAPIEndpoint();
+    this.githubWebUrl = ghHost.getHostUrl();
   }
 
   @SuppressWarnings("unchecked")
@@ -87,7 +90,7 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
       Object responseObj = GsonParserUtil.parseHttpResponse(response, responseType, false);
       if (responseObj instanceof PaginatedPayload) {
         return (T)
-            ((PaginatedPayload) responseObj).annotatePayload(API_URL, maybeGetLinkHeader(response));
+            ((PaginatedPayload) responseObj).annotatePayload(apiUrl, maybeGetLinkHeader(response));
       }
       return (T) responseObj;
     } catch (HttpResponseException e) {
@@ -152,7 +155,7 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
           response, responseType, false);
       if (responseObj instanceof PaginatedPayload) {
         return (T)
-            ((PaginatedPayload) responseObj).annotatePayload(API_URL, maybeGetLinkHeader(response));
+            ((PaginatedPayload) responseObj).annotatePayload(apiUrl, maybeGetLinkHeader(response));
       }
       return (T) responseObj;
 
@@ -221,34 +224,34 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
 
   private GenericUrl getFullEndpointURL(String path) {
     String maybePrefix = path.startsWith("/") ? "" : "/";
-    return new GenericUrl(URI.create(API_URL + maybePrefix + path));
+    return new GenericUrl(URI.create(apiUrl + maybePrefix + path));
   }
 
   /**
    * Gets the credentials from git credential helper. First we try
-   * to get it for the api.github.com host, just in case the user has an specific token for that
-   * url, otherwise we use the github.com host one.
+   * to get it for the API endpoint host, just in case the user has an specific token for that
+   * url, otherwise we use the web url host one.
    */
   private UserPassword getCredentials() throws RepoException, ValidationException {
     try {
-      return repo.credentialFill(API_URL);
+      return repo.credentialFill(apiUrl);
     } catch (ValidationException e) {
       try {
-        return repo.credentialFill(GITHUB_WEB_URL);
+        return repo.credentialFill(githubWebUrl);
       } catch (ValidationException e1) {
         // Ugly, but helpful...
         throw new ValidationException(String.format(
-            "Cannot get credentials for host https://api.github.com or https://github.com from"
+            "Cannot get credentials for host %s or %s from"
                 + " credentials helper. Make sure either your credential helper has the username"
                 + " and password/token or if you don't use one, that file '%s'"
                 + " contains one of the two lines: \nEither:\n"
-                + "https://USERNAME:TOKEN@api.github.com\n"
+                + "https://USERNAME:TOKEN@%s\n"
                 + "or:\n"
-                + "https://USERNAME:TOKEN@github.com\n"
+                + "https://USERNAME:TOKEN@%s\n"
                 + "\n"
                 + "Note that spaces or other special characters need to be escaped. For example"
                 + " ' ' should be %%20 and '@' should be %%40 (For example when using the email"
-                + " as username)", storePath), e1);
+                + " as username)", apiUrl, githubWebUrl, apiUrl, githubWebUrl, storePath), e1);
       }
     }
   }

@@ -3450,7 +3450,7 @@ Name | Type | Description
 <a id="git.github_origin" aria-hidden="true"></a>
 ### git.github_origin
 
-Defines a Git origin for a Github repository. This origin should be used for public branches. Use github_pr_origin for importing Pull Requests.
+Defines a Git origin for a GitHub or GitHub Enterprise repository. This origin should be used for public branches. Use github_pr_origin for importing Pull Requests.
 
 <code><a href="#origin">origin</a></code> <code>git.github_origin(<a href=#git.github_origin.url>url</a>, <a href=#git.github_origin.ref>ref</a>=None, <a href=#git.github_origin.submodules>submodules</a>='NO', <a href=#git.github_origin.excluded_submodules>excluded_submodules</a>=[], <a href=#git.github_origin.first_parent>first_parent</a>=True, <a href=#git.github_origin.partial_fetch>partial_fetch</a>=False, <a href=#git.github_origin.patch>patch</a>=None, <a href=#git.github_origin.describe_version>describe_version</a>=None, <a href=#git.github_origin.version_selector>version_selector</a>=None, <a href=#git.github_origin.primary_branch_migration>primary_branch_migration</a>=False, <a href=#git.github_origin.enable_lfs>enable_lfs</a>=False, <a href=#git.github_origin.credentials>credentials</a>=None)</code>
 

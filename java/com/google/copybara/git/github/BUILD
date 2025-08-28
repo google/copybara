@@ -42,6 +42,7 @@ java_library(
     ),
     javacopts = JAVACOPTS,
     deps = [
+        ":util",
         "//java/com/google/copybara/checks",
         "//java/com/google/copybara/doc:annotations",  # unuseddeps:keep
         "//java/com/google/copybara/exception",

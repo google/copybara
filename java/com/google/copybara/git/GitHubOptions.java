@@ -23,6 +23,7 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.Option;
@@ -39,7 +40,11 @@ import com.google.copybara.git.github.util.GitHubHost;
 import com.google.copybara.jcommander.DurationConverter;
 import com.google.copybara.jcommander.GreaterThanZeroListValidator;
 import com.google.copybara.jcommander.SemicolonSeparatedListSplitter;
+import com.google.copybara.starlark.StarlarkUtil;
 import com.google.copybara.util.console.Console;
+import java.util.Set;
+import net.starlark.java.eval.EvalException;
+
 import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
@@ -86,6 +91,9 @@ public class GitHubOptions implements Option {
       arity = 1)
   public boolean gitHubApiBearerAuth = false;
 
+  public GitHubHost getGitHubHost(String url) throws ValidationException {
+    return GitHubHost.fromUrl(url);
+  }
 
   public GitHubOptions(GeneralOptions generalOptions, GitOptions gitOptions) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
@@ -100,7 +108,7 @@ public class GitHubOptions implements Option {
       GitHubHost ghHost) {
     return (console) -> {
       String project = ghHost.getProjectNameFromUrl(url);
-      return newGitHubRestApi(project, checker, credentials, console);
+      return newGitHubRestApi(ghHost, project, checker, credentials, console);
     };
   }
 
@@ -112,7 +120,7 @@ public class GitHubOptions implements Option {
       GitHubHost ghHost) {
     return (console) -> {
       String project = ghHost.getProjectNameFromUrl(url);
-      return newGitHubGraphQLApi(project, checker, credentials, console);
+      return newGitHubGraphQLApi(ghHost, project, checker, credentials, console);
     };
   }
 
@@ -121,10 +129,30 @@ public class GitHubOptions implements Option {
    *
    * <p>The project for 'https://github.com/foo/bar' is 'foo/bar'.
    */
-  public GitHubApi newGitHubRestApi(
+  public GitHubApi newGitHubRestApi(GitHubHost ghHost,
       String gitHubProject, @Nullable CredentialFileHandler credentials) throws RepoException {
-    return newGitHubRestApi(
+    return newGitHubRestApi(ghHost,
         gitHubProject, /* checker= */ null, credentials, generalOptions.console());
+  }
+
+  /**
+   * Returns a new Github.com specific {@link GitHubApi} instance for the given project enforcing the given {@link
+   * Checker}.
+   *
+   * <p>The project for 'https://github.com/foo/bar' is 'foo/bar'.
+   *
+   * @param gitHubProject the project
+   * @param checker the checker to enforce
+   * @param credentials the credentials to use for GitHub API auth
+   * @param console the console, used for logging
+   * @return the instance
+   * @throws RepoException if there is a failure in using the credentials
+   */
+  public GitHubApi newGitHubRestApi(String gitHubProject,
+      @Nullable Checker checker,
+      @Nullable CredentialFileHandler credentials,
+      Console console) throws RepoException {
+    return newGitHubRestApi(GitHubHost.GITHUB_COM, gitHubProject, checker, credentials, console);
   }
 
   /**
@@ -134,6 +162,7 @@ public class GitHubOptions implements Option {
    * <p>The project for 'https://github.com/foo/bar' is 'foo/bar'.
    */
   public GitHubApi newGitHubRestApi(
+      GitHubHost ghHost,
       String gitHubProject,
       @Nullable Checker checker,
       @Nullable CredentialFileHandler credentials,
@@ -144,7 +173,7 @@ public class GitHubOptions implements Option {
     if (storePath == null) {
       storePath = "~/.git-credentials";
     }
-    GitHubApiTransport transport = newTransport(repo, storePath, console);
+    GitHubApiTransport transport = newTransport(ghHost, repo, storePath, console);
     if (checker != null) {
       transport = new GitHubApiTransportWithChecker(transport, new ApiChecker(checker, console));
     }
@@ -156,10 +185,31 @@ public class GitHubOptions implements Option {
    *
    * <p>The project for 'https://github.com/foo/bar' is 'foo/bar'.
    */
-  public GitHubGraphQLApi newGitHubGraphQLApi(
+  public GitHubGraphQLApi newGitHubGraphQLApi(GitHubHost ghHost,
       String gitHubProject, @Nullable CredentialFileHandler credentials) throws RepoException {
-    return newGitHubGraphQLApi(
+    return newGitHubGraphQLApi(ghHost,
         gitHubProject, /* checker= */ null, credentials, generalOptions.console());
+  }
+
+  /**
+   * Returns a new GitHub.com specific {@link GitHubApi} instance for the given project enforcing the given {@link
+   * Checker}.
+   *
+   * <p>The project for 'https://github.com/foo/bar' is 'foo/bar'.
+   * @param gitHubProject the GitHub project
+   * @param checker the checker to enforce
+   * @param credentials the credentials to use for the GitHub API
+   * @param console the console, for logging
+   * @return the instance
+   * @throws RepoException if there is an issue using the provided credentials
+   */
+  public GitHubGraphQLApi newGitHubGraphQLApi(
+      String gitHubProject,
+      @Nullable Checker checker,
+      @Nullable CredentialFileHandler credentials,
+      Console console)
+      throws RepoException {
+    return newGitHubGraphQLApi(GitHubHost.GITHUB_COM, gitHubProject, checker, credentials, console);
   }
 
   /**
@@ -169,6 +219,7 @@ public class GitHubOptions implements Option {
    * <p>The project for 'https://github.com/foo/bar' is 'foo/bar'.
    */
   public GitHubGraphQLApi newGitHubGraphQLApi(
+      GitHubHost ghHost,
       String gitHubProject,
       @Nullable Checker checker,
       @Nullable CredentialFileHandler credentials,
@@ -180,7 +231,7 @@ public class GitHubOptions implements Option {
     if (storePath == null) {
       storePath = "~/.git-credentials";
     }
-    GitHubApiTransport transport = newTransport(repo, storePath, console);
+    GitHubApiTransport transport = newTransport(ghHost, repo, storePath, console);
     if (checker != null) {
       transport = new GitHubApiTransportWithChecker(transport, new ApiChecker(checker, console));
     }
@@ -210,9 +261,9 @@ public class GitHubOptions implements Option {
     // Accept any by default
   }
 
-  private GitHubApiTransport newTransport(
+  private GitHubApiTransport newTransport(GitHubHost ghHost,
       GitRepository repo, String storePath, Console console) {
-    return new GitHubApiTransportImpl(
+    return new GitHubApiTransportImpl(ghHost,
         repo, newHttpTransport(), storePath, gitHubApiBearerAuth, console);
   }
 

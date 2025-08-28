@@ -337,37 +337,20 @@ public class GitOriginTest {
   }
 
   @Test
-  public void testInvalidGithubUrl() throws Exception {
-    ValidationException expected =
-        assertThrows(
-            ValidationException.class,
-            () ->
-                skylark.eval(
-                    "result",
-                    "result = git.github_origin(\n"
-                        + "    url = 'https://foo.com/copybara',\n"
-                        + "    ref = 'main',\n"
-                        + ")"));
-    console
-        .assertThat()
-        .onceInLog(MessageType.ERROR, ".*Invalid Github URL: https://foo.com/copybara.*");
-  }
-
-  @Test
-  public void testInvalidGithubUrlWithGithubString() throws Exception {
-    ValidationException expected =
-        assertThrows(
-            ValidationException.class,
-            () ->
-                skylark.eval(
-                    "result",
-                    "result = git.github_origin(\n"
-                        + "    url = 'https://foo.com/github.com',\n"
-                        + "    ref = 'main',\n"
-                        + ")"));
-    console
-        .assertThat()
-        .onceInLog(MessageType.ERROR, ".*Invalid Github URL: https://foo.com/github.com.*");
+  public void testGithubOriginForEnterpriseUrl() throws Exception {
+    origin = skylark.eval("result",
+        "result = git.github_origin(\n"
+        + "    url = 'https://some.github-enterprise.net/copybara',\n"
+        + "    ref = 'main',\n"
+        + ")");
+    assertThat(origin.toString())
+        .isEqualTo(
+            "GitOrigin{"
+                + "repoUrl=https://some.github-enterprise.net/copybara, "
+                + "ref=main, "
+                + "repoType=GITHUB, "
+                + "primaryBranchMigrationMode=false"
+                + "}");
   }
 
   @Test
