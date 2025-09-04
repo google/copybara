@@ -4846,7 +4846,7 @@ all([-1, 0, 1]) == False</pre>
 
 Parameter | Description
 --------- | -----------
-<span id=all.elements href=#all.elements>elements</span> | <code>unknown</code><br><p>A string or a collection of elements.</p>
+<span id=all.elements href=#all.elements>elements</span> | <code>sequence</code><br><p>A collection of elements.</p>
 
 <a id="any" aria-hidden="true"></a>
 ### any
@@ -4861,7 +4861,7 @@ any([False, 0, ""]) == False</pre>
 
 Parameter | Description
 --------- | -----------
-<span id=any.elements href=#any.elements>elements</span> | <code>unknown</code><br><p>A string or a collection of elements.</p>
+<span id=any.elements href=#any.elements>elements</span> | <code>sequence</code><br><p>A collection of elements.</p>
 
 <a id="bool" aria-hidden="true"></a>
 ### bool
@@ -4897,7 +4897,7 @@ Parameter | Description
 
 Returns a list of strings: the names of the attributes and methods of the parameter object.
 
-<code>sequence</code> <code>dir(<a href=#dir.x>x</a>)</code>
+<code>list of string</code> <code>dir(<a href=#dir.x>x</a>)</code>
 
 
 <h4 id="parameters.dir">Parameters:</h4>
