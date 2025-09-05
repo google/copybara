@@ -5251,7 +5251,7 @@ Creates a list where items go from <code>start</code> to <code>stop</code>, usin
 range(3, 9, 2) == [3, 5, 7]
 range(3, 0, -1) == [3, 2, 1]</pre>
 
-<code>list of int</code> <code>range(<a href=#range.start_or_stop>start_or_stop</a>, <a href=#range.stop_or_none>stop_or_none</a>=None, <a href=#range.step>step</a>=1)</code>
+<code>list of int</code> <code>range(<a href=#range.start_or_stop>start_or_stop</a>, <a href=#range.stop>stop</a>=unbound, <a href=#range.step>step</a>=1)</code>
 
 
 <h4 id="parameters.range">Parameters:</h4>
@@ -5259,7 +5259,7 @@ range(3, 0, -1) == [3, 2, 1]</pre>
 Parameter | Description
 --------- | -----------
 <span id=range.start_or_stop href=#range.start_or_stop>start_or_stop</span> | <code><a href="#int">int</a></code><br><p>Value of the start element if stop is provided, otherwise value of stop and the actual start is 0</p>
-<span id=range.stop_or_none href=#range.stop_or_none>stop_or_none</span> | <code><a href="#int">int</a></code> or <code>NoneType</code><br><p>optional index of the first item <i>not</i> to be included in the resulting list; generation of the list stops before <code>stop</code> is reached.</p>
+<span id=range.stop href=#range.stop>stop</span> | <code><a href="#int">int</a></code><br><p>optional index of the first item <i>not</i> to be included in the resulting list; generation of the list stops before <code>stop</code> is reached.</p>
 <span id=range.step href=#range.step>step</span> | <code><a href="#int">int</a></code><br><p>The increment (default is 1). It may be negative.</p>
 
 <a id="repr" aria-hidden="true"></a>
@@ -8118,7 +8118,7 @@ Returns a string in which the string elements of the argument have been joined b
 Parameter | Description
 --------- | -----------
 <span id=string.join.self href=#string.join.self>self</span> | <code><a href="#string">string</a></code><br><p></p>
-<span id=string.join.elements href=#string.join.elements>elements</span> | <code>unknown</code><br><p>The objects to join.</p>
+<span id=string.join.elements href=#string.join.elements>elements</span> | <code>iterable of string</code><br><p>The objects to join.</p>
 
 <a id="string.lower" aria-hidden="true"></a>
 ### string.lower
@@ -8265,7 +8265,7 @@ Parameter | Description
 
 Returns a list of all the words in the string, using <code>sep</code> as the separator, optionally limiting the number of splits to <code>maxsplit</code>. Except for splitting from the right, this method behaves like split().
 
-<code>list of string</code> <code>string.rsplit(<a href=#string.rsplit.self>self</a>, <a href=#string.rsplit.sep>sep</a>, <a href=#string.rsplit.maxsplit>maxsplit</a>=None)</code>
+<code>list of string</code> <code>string.rsplit(<a href=#string.rsplit.self>self</a>, <a href=#string.rsplit.sep>sep</a>, <a href=#string.rsplit.maxsplit>maxsplit</a>=unbound)</code>
 
 
 <h4 id="parameters.string.rsplit">Parameters:</h4>
@@ -8274,7 +8274,7 @@ Parameter | Description
 --------- | -----------
 <span id=string.rsplit.self href=#string.rsplit.self>self</span> | <code><a href="#string">string</a></code><br><p>This string.</p>
 <span id=string.rsplit.sep href=#string.rsplit.sep>sep</span> | <code><a href="#string">string</a></code><br><p>The string to split on.</p>
-<span id=string.rsplit.maxsplit href=#string.rsplit.maxsplit>maxsplit</span> | <code><a href="#int">int</a></code> or <code>NoneType</code><br><p>The maximum number of splits.</p>
+<span id=string.rsplit.maxsplit href=#string.rsplit.maxsplit>maxsplit</span> | <code><a href="#int">int</a></code><br><p>The maximum number of splits.</p>
 
 <a id="string.rstrip" aria-hidden="true"></a>
 ### string.rstrip
@@ -8296,7 +8296,7 @@ Parameter | Description
 
 Returns a list of all the words in the string, using <code>sep</code> as the separator, optionally limiting the number of splits to <code>maxsplit</code>.
 
-<code>list of string</code> <code>string.split(<a href=#string.split.self>self</a>, <a href=#string.split.sep>sep</a>, <a href=#string.split.maxsplit>maxsplit</a>=None)</code>
+<code>list of string</code> <code>string.split(<a href=#string.split.self>self</a>, <a href=#string.split.sep>sep</a>, <a href=#string.split.maxsplit>maxsplit</a>=unbound)</code>
 
 
 <h4 id="parameters.string.split">Parameters:</h4>
@@ -8305,7 +8305,7 @@ Parameter | Description
 --------- | -----------
 <span id=string.split.self href=#string.split.self>self</span> | <code><a href="#string">string</a></code><br><p>This string.</p>
 <span id=string.split.sep href=#string.split.sep>sep</span> | <code><a href="#string">string</a></code><br><p>The string to split on.</p>
-<span id=string.split.maxsplit href=#string.split.maxsplit>maxsplit</span> | <code><a href="#int">int</a></code> or <code>NoneType</code><br><p>The maximum number of splits.</p>
+<span id=string.split.maxsplit href=#string.split.maxsplit>maxsplit</span> | <code><a href="#int">int</a></code><br><p>The maximum number of splits.</p>
 
 <a id="string.splitlines" aria-hidden="true"></a>
 ### string.splitlines
