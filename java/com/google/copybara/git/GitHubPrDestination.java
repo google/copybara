@@ -371,14 +371,18 @@ public class GitHubPrDestination implements Destination<GitRevision> {
       return gitHubDestinationOptions.destinationPrBranch;
     }
     String contextReference = changeRevision.contextReference();
-    // We could do more magic here with the change identity. But this is already complex so we
-    // require  a group identity either provided by the origin or the workflow (Will be implemented
-    // later.
-    checkCondition(contextReference != null,
-        "git.github_pr_destination is incompatible with the current origin. Origin has to be"
-            + " able to provide the contextReference or use '%s' flag",
-        GitHubDestinationOptions.GITHUB_DESTINATION_PR_BRANCH);
-    String branchNameFromUser = getCustomBranchName(contextReference);
+
+    String branchNameFromUser = prBranch;
+    if (branchNameFromUser == null) {
+      // We could do more magic here with the change identity. But this is already complex so we
+      // require a group identity either provided by the origin or the workflow (Will be implemented
+      // later.
+      checkCondition(contextReference != null,
+          "git.github_pr_destination is incompatible with the current origin. Origin has to be"
+              + " able to provide the contextReference or use '%s' flag",
+          GitHubDestinationOptions.GITHUB_DESTINATION_PR_BRANCH);
+      branchNameFromUser = getCustomBranchName(contextReference);
+    }
     String branchName =
         branchNameFromUser != null
             ? branchNameFromUser
