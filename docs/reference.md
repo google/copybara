@@ -5313,7 +5313,7 @@ set({"k1": "v1", "k2": "v2"})  # set(["k1", "k2"]), a set of two elements
 
 Parameter | Description
 --------- | -----------
-<span id=set.elements href=#set.elements>elements</span> | <code>unknown</code><br><p>A set, a sequence of hashable values, or a dict.</p>
+<span id=set.elements href=#set.elements>elements</span> | <code>sequence</code><br><p>An iterable of hashable values.</p>
 
 <a id="sorted" aria-hidden="true"></a>
 ### sorted
@@ -5996,7 +5996,7 @@ Adds an item to the end of the list.
 
 Parameter | Description
 --------- | -----------
-<span id=list.append.item href=#list.append.item>item</span> | <code>unknown</code><br><p>Item to add at the end.</p>
+<span id=list.append.item href=#list.append.item>item</span> | <code>?</code><br><p>Item to add at the end.</p>
 
 <a id="list.clear" aria-hidden="true"></a>
 ### list.clear
@@ -6017,23 +6017,23 @@ Adds all items to the end of the list.
 
 Parameter | Description
 --------- | -----------
-<span id=list.extend.items href=#list.extend.items>items</span> | <code>unknown</code><br><p>Items to add at the end.</p>
+<span id=list.extend.items href=#list.extend.items>items</span> | <code>list of ?</code><br><p>Items to add at the end.</p>
 
 <a id="list.index" aria-hidden="true"></a>
 ### list.index
 
 Returns the index in the list of the first item whose value is x. It is an error if there is no such item.
 
-<code><a href="#int">int</a></code> <code>list.index(<a href=#list.index.x>x</a>, <a href=#list.index.start>start</a>=None, <a href=#list.index.end>end</a>=None)</code>
+<code><a href="#int">int</a></code> <code>list.index(<a href=#list.index.x>x</a>, <a href=#list.index.start>start</a>=unbound, <a href=#list.index.end>end</a>=unbound)</code>
 
 
 <h4 id="parameters.list.index">Parameters:</h4>
 
 Parameter | Description
 --------- | -----------
-<span id=list.index.x href=#list.index.x>x</span> | <code>unknown</code><br><p>The object to search.</p>
-<span id=list.index.start href=#list.index.start>start</span> | <code><a href="#int">int</a></code> or <code>NoneType</code><br><p>The start index of the list portion to inspect.</p>
-<span id=list.index.end href=#list.index.end>end</span> | <code><a href="#int">int</a></code> or <code>NoneType</code><br><p>The end index of the list portion to inspect.</p>
+<span id=list.index.x href=#list.index.x>x</span> | <code>?</code><br><p>The object to search.</p>
+<span id=list.index.start href=#list.index.start>start</span> | <code><a href="#int">int</a></code><br><p>The start index of the list portion to inspect.</p>
+<span id=list.index.end href=#list.index.end>end</span> | <code><a href="#int">int</a></code><br><p>The end index of the list portion to inspect.</p>
 
 <a id="list.insert" aria-hidden="true"></a>
 ### list.insert
@@ -6048,21 +6048,21 @@ Inserts an item at a given position.
 Parameter | Description
 --------- | -----------
 <span id=list.insert.index href=#list.insert.index>index</span> | <code><a href="#int">int</a></code><br><p>The index of the given position.</p>
-<span id=list.insert.item href=#list.insert.item>item</span> | <code>unknown</code><br><p>The item.</p>
+<span id=list.insert.item href=#list.insert.item>item</span> | <code>?</code><br><p>The item.</p>
 
 <a id="list.pop" aria-hidden="true"></a>
 ### list.pop
 
 Removes the item at the given position in the list, and returns it. If no <code>index</code> is specified, it removes and returns the last item in the list.
 
-<code>unknown</code> <code>list.pop(<a href=#list.pop.i>i</a>=-1)</code>
+<code>?</code> <code>list.pop(<a href=#list.pop.i>i</a>=-1)</code>
 
 
 <h4 id="parameters.list.pop">Parameters:</h4>
 
 Parameter | Description
 --------- | -----------
-<span id=list.pop.i href=#list.pop.i>i</span> | <code><a href="#int">int</a></code> or <code>NoneType</code><br><p>The index of the item.</p>
+<span id=list.pop.i href=#list.pop.i>i</span> | <code><a href="#int">int</a></code><br><p>The index of the item.</p>
 
 <a id="list.remove" aria-hidden="true"></a>
 ### list.remove
@@ -6076,7 +6076,7 @@ Removes the first item from the list whose value is x. It is an error if there i
 
 Parameter | Description
 --------- | -----------
-<span id=list.remove.x href=#list.remove.x>x</span> | <code>unknown</code><br><p>The object to remove.</p>
+<span id=list.remove.x href=#list.remove.x>x</span> | <code>?</code><br><p>The object to remove.</p>
 
 
 
@@ -7315,7 +7315,7 @@ Parameter | Description
 
 ## set
 
-The built-in set type. A set is a mutable, iterable collection of unique values &ndash; the set's
+The built-in set type. A set is a mutable collection of unique values &ndash; the set's
 <em>elements</em>. The <a href="../globals/all#type">type name</a> of a set is <code>"set"</code>.
 
 <p>Sets provide constant-time operations to insert, remove, or check for the presence of a value.
@@ -7478,7 +7478,7 @@ set([1, 2, 3]).difference([0, 1], [3, 4])  # set([2])
 
 Parameter | Description
 --------- | -----------
-<span id=set.difference.others href=#set.difference.others>others</span> | <code><a href="#list">list</a></code><br><p>Sets, sequences of hashable elements, or dicts.</p>
+<span id=set.difference.others href=#set.difference.others>others</span> | <code><a href="#list">list</a></code><br><p>Collections of hashable elements.</p>
 
 <a id="set.difference_update" aria-hidden="true"></a>
 ### set.difference_update
@@ -7507,7 +7507,7 @@ s.difference_update([0, 1], [4, 5])  # None; s is set([3])
 
 Parameter | Description
 --------- | -----------
-<span id=set.difference_update.others href=#set.difference_update.others>others</span> | <code><a href="#list">list</a></code><br><p>Sets, sequences of hashable elements, or dicts.</p>
+<span id=set.difference_update.others href=#set.difference_update.others>others</span> | <code><a href="#list">list</a></code><br><p>Collections of hashable elements.</p>
 
 <a id="set.discard" aria-hidden="true"></a>
 ### set.discard
@@ -7563,7 +7563,7 @@ set([1, 2, 3]).intersection([0, 1], [1, 2])  # set([1])
 
 Parameter | Description
 --------- | -----------
-<span id=set.intersection.others href=#set.intersection.others>others</span> | <code><a href="#list">list</a></code><br><p>Sets, sequences of hashable elements, or dicts.</p>
+<span id=set.intersection.others href=#set.intersection.others>others</span> | <code><a href="#list">list</a></code><br><p>Collections of hashable elements.</p>
 
 <a id="set.intersection_update" aria-hidden="true"></a>
 ### set.intersection_update
@@ -7593,7 +7593,7 @@ s.intersection_update([0, 1], [1, 2])  # None; s is set([1])
 
 Parameter | Description
 --------- | -----------
-<span id=set.intersection_update.others href=#set.intersection_update.others>others</span> | <code><a href="#list">list</a></code><br><p>Sets, sequences of hashable elements, or dicts.</p>
+<span id=set.intersection_update.others href=#set.intersection_update.others>others</span> | <code><a href="#list">list</a></code><br><p>Collections of hashable elements.</p>
 
 <a id="set.isdisjoint" aria-hidden="true"></a>
 ### set.isdisjoint
@@ -7615,7 +7615,7 @@ set([1, 2]).isdisjoint([2, 3])  # False
 
 Parameter | Description
 --------- | -----------
-<span id=set.isdisjoint.other href=#set.isdisjoint.other>other</span> | <code>unknown</code><br><p>A set, a sequence of hashable elements, or a dict.</p>
+<span id=set.isdisjoint.other href=#set.isdisjoint.other>other</span> | <code>unknown</code><br><p>A collection of hashable elements.</p>
 
 <a id="set.issubset" aria-hidden="true"></a>
 ### set.issubset
@@ -7639,7 +7639,7 @@ set([1, 2]).issubset([2, 3])     # False
 
 Parameter | Description
 --------- | -----------
-<span id=set.issubset.other href=#set.issubset.other>other</span> | <code>unknown</code><br><p>A set, a sequence of hashable elements, or a dict.</p>
+<span id=set.issubset.other href=#set.issubset.other>other</span> | <code>unknown</code><br><p>A collection of hashable elements.</p>
 
 <a id="set.issuperset" aria-hidden="true"></a>
 ### set.issuperset
@@ -7663,7 +7663,7 @@ set([1, 2, 3]).issuperset([2, 3, 4])  # False
 
 Parameter | Description
 --------- | -----------
-<span id=set.issuperset.other href=#set.issuperset.other>other</span> | <code>unknown</code><br><p>A set, a sequence of hashable elements, or a dict.</p>
+<span id=set.issuperset.other href=#set.issuperset.other>other</span> | <code>unknown</code><br><p>A collection of hashable elements.</p>
 
 <a id="set.pop" aria-hidden="true"></a>
 ### set.pop
@@ -7709,8 +7709,8 @@ Parameter | Description
 <a id="set.symmetric_difference" aria-hidden="true"></a>
 ### set.symmetric_difference
 
-Returns a new mutable set containing the symmetric difference of this set with another set,
-sequence, or dict.
+Returns a new mutable set containing the symmetric difference of this set with another collection of
+hashable elements.
 
 <p>If <code>s</code> and <code>t</code> are sets, <code>s.symmetric_difference(t)</code> is
 equivalent to <code>s ^ t</code>; however, note that the <code>^</code> operation requires both
@@ -7730,13 +7730,13 @@ set([1, 2]).symmetric_difference([2, 3])  # set([1, 3])
 
 Parameter | Description
 --------- | -----------
-<span id=set.symmetric_difference.other href=#set.symmetric_difference.other>other</span> | <code>unknown</code><br><p>A set, a sequence of hashable elements, or a dict.</p>
+<span id=set.symmetric_difference.other href=#set.symmetric_difference.other>other</span> | <code>unknown</code><br><p>A collection of hashable elements.</p>
 
 <a id="set.symmetric_difference_update" aria-hidden="true"></a>
 ### set.symmetric_difference_update
 
-Returns a new mutable set containing the symmetric difference of this set with another set,
-sequence, or dict.
+Returns a new mutable set containing the symmetric difference of this set with another collection of
+hashable elements.
 
 <p>If <code>s</code> and <code>t</code> are sets, <code>s.symmetric_difference_update(t)</code> is
 equivalent to `s ^= t<code>; however, note that the </code>^=` augmented assignment requires both
@@ -7757,7 +7757,7 @@ s.symmetric_difference_update([2, 3])  # None; s == set([1, 3])
 
 Parameter | Description
 --------- | -----------
-<span id=set.symmetric_difference_update.other href=#set.symmetric_difference_update.other>other</span> | <code>unknown</code><br><p>A set, a sequence of hashable elements, or a dict.</p>
+<span id=set.symmetric_difference_update.other href=#set.symmetric_difference_update.other>other</span> | <code>unknown</code><br><p>A collection of hashable elements.</p>
 
 <a id="set.union" aria-hidden="true"></a>
 ### set.union
@@ -7785,7 +7785,7 @@ set([1, 2]).union([2, 3], {3: "a", 4: "b"})  # set([1, 2, 3, 4])
 
 Parameter | Description
 --------- | -----------
-<span id=set.union.others href=#set.union.others>others</span> | <code><a href="#list">list</a></code><br><p>Sets, sequences of hashable elements, or dicts.</p>
+<span id=set.union.others href=#set.union.others>others</span> | <code><a href="#list">list</a></code><br><p>Collections of hashable elements.</p>
 
 <a id="set.update" aria-hidden="true"></a>
 ### set.update
@@ -7814,7 +7814,7 @@ unchanged.
 
 Parameter | Description
 --------- | -----------
-<span id=set.update.others href=#set.update.others>others</span> | <code><a href="#list">list</a></code><br><p>Sets, sequences of hashable elements, or dicts.</p>
+<span id=set.update.others href=#set.update.others>others</span> | <code><a href="#list">list</a></code><br><p>Collections of hashable elements.</p>
 
 
 
