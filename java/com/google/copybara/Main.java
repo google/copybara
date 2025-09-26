@@ -16,6 +16,8 @@
 
 package com.google.copybara;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
+import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static com.google.copybara.GeneralOptions.NOPROMPT;
 import static com.google.copybara.MainArguments.COPYBARA_SKYLARK_CONFIG_FILENAME;
 import static com.google.copybara.exception.ValidationException.checkCondition;
@@ -23,14 +25,17 @@ import static com.google.copybara.exception.ValidationException.checkCondition;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.Parameters;
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.MainArguments.CommandWithArgs;
 import com.google.copybara.config.ConfigValidator;
@@ -222,6 +227,8 @@ public class Main {
       CommandWithArgs cmdToRun = mainArgs.parseCommand(commands, commands.get("migrate"));
       subcommand = cmdToRun.getSubcommand();
 
+      warnAboutPossibleFlags(cmdToRun, console);
+
       initEnvironment(options, cmdToRun.getSubcommand(), ImmutableList.copyOf(args));
 
       GeneralOptions generalOptions = options.get(GeneralOptions.class);
@@ -273,6 +280,46 @@ public class Main {
       handleUnexpectedError(console, "Unexpected error: " + e.getMessage(), args, e);
       return new CommandResult(ExitCode.INTERNAL_ERROR, subcommand, commandEnv);
     }
+  }
+
+  private void warnAboutPossibleFlags(CommandWithArgs cmdToRun, Console console) {
+    ImmutableList<String> possibleFlags =
+        cmdToRun.getArgs().stream().filter(arg -> arg.startsWith("--")).collect(toImmutableList());
+    if (!possibleFlags.isEmpty()) {
+      for (String possibleFlag : possibleFlags) {
+        ImmutableList<String> candidates =
+            jCommander.getDescriptions().values().stream()
+                .flatMap(s -> Splitter.on(", ").splitToStream(s.getNames()))
+                .sorted()
+                .distinct()
+                .filter(s -> flagDistance(s, possibleFlag) <= 1)
+                .collect(toImmutableList());
+        if (candidates.isEmpty()) {
+          console.warnFmt(
+              "Argument '%s' looks like a flag, but was not parsed as one, is this"
+                  + " intentional?",
+              possibleFlag);
+        } else {
+          console.warnFmt(
+              "Argument '%s' looks like a flag, but was not parsed as one, did you mean one"
+                  + " of %s?",
+              possibleFlag, candidates);
+        }
+      }
+    }
+  }
+
+  /** Naive algorithm to provide similar flags, intended to propose dropped pre- and suffixes */
+  private int flagDistance(String flag, String input) {
+    ImmutableSet<String> flagSet =
+        ImmutableSet.copyOf(Splitter.on(CharMatcher.anyOf("_-")).splitToList(flag)).stream()
+            .map(String::toLowerCase)
+            .collect(toImmutableSet());
+    ImmutableSet<String> inputSet =
+        ImmutableSet.copyOf(Splitter.on(CharMatcher.anyOf("_-")).splitToList(input)).stream()
+            .map(String::toLowerCase)
+            .collect(toImmutableSet());
+    return inputSet.size() - Sets.intersection(flagSet, inputSet).size();
   }
 
   public ImmutableSet<CopybaraCmd> getCommands(ModuleSet moduleSet,

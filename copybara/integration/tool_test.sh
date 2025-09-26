@@ -1366,9 +1366,43 @@ core.workflow(
 )
 EOF
 
-  copybara_with_exit_code $CONFIGURATION_ERROR copy.bara.sky default --last-rev --some-other-flag
+  copybara_with_exit_code $CONFIGURATION_ERROR copy.bara.sky default --last-rev=--some-other-flag
 
   expect_log "Invalid refspec: --some-other-flag"
 }
+
+function test_bad_flag_warning() {
+  remote=$(temp_dir remote)
+  destination=$(empty_git_bare_repo)
+
+  pushd $remote || return
+    run_git init .
+    commit_initial=$(single_file_commit "initial rev commit" file2.txt "initial")
+  popd || return
+  primary=$(get_primary_branch $remote)
+
+    cat > copy.bara.sky <<EOF
+core.workflow(
+    name = "default",
+    origin = git.origin(
+      url = "file://$remote",
+      ref = "$primary",
+    ),
+    origin_files = glob(include = ["**"], exclude = ["file2.txt"]),
+    destination = git.destination(
+      url = "file://$destination",
+      fetch = "$primary",
+      push = "$primary",
+    ),
+    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
+    mode = "ITERATIVE",
+)
+EOF
+
+  copybara_with_exit_code $CONFIGURATION_ERROR copy.bara.sky default --last-rev=fooBar --some-other-flag
+
+  expect_log "Argument '--some-other-flag' looks like a flag"
+}
+
 
 run_suite "Integration tests for Copybara code sharing tool."
