@@ -150,38 +150,35 @@ public abstract class RustVersionRequirement implements StarlarkValue {
     public abstract Optional<String> preReleaseIdentifier();
 
     public static Comparator<String> getPreReleaseComparator() {
-      return new Comparator<>() {
-        @Override
-        public int compare(String o1, String o2) {
-          // This follows the SemVer specification: https://semver.org/#spec-item-11
-          if (o1.equals(o2)) {
-            return 0;
-          }
-
-          // Split the pre-release strings into lists, separated by .
-          ArrayList<String> list1 = new ArrayList<>(Arrays.asList(o1.split("\\.")));
-          ArrayList<String> list2 = new ArrayList<>(Arrays.asList(o2.split("\\.")));
-
-          for (int i = 0; i < min(list1.size(), list2.size()); i++) {
-            // If both elements are numeric, they are compared as numbers.
-            int result;
-            String elem1 = list1.get(i);
-            String elem2 = list2.get(i);
-            // Numeric elements are compared as numbers.
-            if (Ints.tryParse(elem1) != null && Ints.tryParse(elem2) != null) {
-              result = Integer.compare(Integer.parseInt(elem1), Integer.parseInt(elem2));
-            } else {
-              result = elem1.compareTo(elem2);
-            }
-
-            if (result != 0) {
-              return result;
-            }
-          }
-
-          // If the pre-release identifiers are equal to this point, the larger identifier wins.
-          return Integer.compare(list1.size(), list2.size());
+      return (o1, o2) -> {
+        // This follows the SemVer specification: https://semver.org/#spec-item-11
+        if (o1.equals(o2)) {
+          return 0;
         }
+
+        // Split the pre-release strings into lists, separated by .
+        ArrayList<String> list1 = new ArrayList<>(Arrays.asList(o1.split("\\.")));
+        ArrayList<String> list2 = new ArrayList<>(Arrays.asList(o2.split("\\.")));
+
+        for (int i = 0; i < min(list1.size(), list2.size()); i++) {
+          // If both elements are numeric, they are compared as numbers.
+          int result;
+          String elem1 = list1.get(i);
+          String elem2 = list2.get(i);
+          // Numeric elements are compared as numbers.
+          if (Ints.tryParse(elem1) != null && Ints.tryParse(elem2) != null) {
+            result = Integer.compare(Integer.parseInt(elem1), Integer.parseInt(elem2));
+          } else {
+            result = elem1.compareTo(elem2);
+          }
+
+          if (result != 0) {
+            return result;
+          }
+        }
+
+        // If the pre-release identifiers are equal to this point, the larger identifier wins.
+        return Integer.compare(list1.size(), list2.size());
       };
     }
 
