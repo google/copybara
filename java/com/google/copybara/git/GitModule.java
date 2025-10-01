@@ -3585,12 +3585,17 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     return null;
   }
 
+  // TODO(linjordan): Remove this method once the experiment is fully rolled out.
+  protected boolean isGitRepositoryHookExperimentEnabled() {
+    return options
+        .get(GeneralOptions.class)
+        .isTemporaryFeature("enable_git_repository_hook_experiment", true);
+  }
+
   @Nullable
   protected GitRepositoryHook maybeGetGitRepositoryHook(
       GitRepositoryHook.GitRepositoryData gitRepositoryData) {
-    if (!options
-        .get(GeneralOptions.class)
-        .isTemporaryFeature("enable_git_repository_hook_experiment", false)) {
+    if (!isGitRepositoryHookExperimentEnabled()) {
       return null;
     }
 

@@ -130,8 +130,6 @@ public class GitOriginTest {
     firstCommitRef = repo.parseRef("HEAD");
 
     originFiles = Glob.ALL_FILES;
-    options.general.setTemporaryFeaturesForTest(
-        ImmutableMap.of("enable_git_repository_hook_experiment", "true"));
   }
 
   private void createTestRepo(Path folder) throws Exception {
