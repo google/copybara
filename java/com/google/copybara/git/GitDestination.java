@@ -59,6 +59,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitDestination.WriterImpl.WriteHook;
 import com.google.copybara.git.GitRepository.GitLogEntry;
+import com.google.copybara.git.GitRevision;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.revision.Change;
 import com.google.copybara.revision.Revision;
@@ -853,8 +854,16 @@ public class GitDestination implements Destination<GitRevision> {
     }
 
     private String getCompleteRef(String fetch) {
-      // Assume that it is a branch. Doesn't work for tags. But we don't update tags (For now).
-      return fetch.startsWith("refs/") ? fetch : "refs/heads/" + fetch;
+      // If it's already a full reference, return as-is
+      if (fetch.startsWith("refs/")) {
+        return fetch;
+      }
+      // If it's a commit SHA, return as-is (don't add refs/heads/ prefix)
+      if (GitRevision.COMPLETE_SHA1_PATTERN.matcher(fetch).matches()) {
+        return fetch;
+      }
+      // For everything else (branches, tags), assume it's a branch
+      return "refs/heads/" + fetch;
     }
 
     private void configForPush(GitRepository repo, String repoUrl, String push)
