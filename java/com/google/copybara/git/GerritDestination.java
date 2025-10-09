@@ -621,7 +621,8 @@ public final class GerritDestination implements Destination<GitRevision> {
                 primaryBranchMigrationMode),
             integrates,
             checker,
-            credentials),
+            credentials,
+            /* lfsSource= */ null),
         submit);
   }
 

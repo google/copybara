@@ -79,7 +79,8 @@ public class GitLabMrWriter extends WriterImpl<GitLabMrDestination.GitLabWriterS
         params.gitOptions().gitTagOverwrite,
         params.checker().orElse(null),
         params.destinationOptions(),
-        params.credentials());
+        params.credentials(),
+        /* lfsSource= */ null);
     this.params = params;
   }
 

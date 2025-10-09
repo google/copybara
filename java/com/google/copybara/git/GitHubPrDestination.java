@@ -213,7 +213,8 @@ public class GitHubPrDestination implements Destination<GitRevision> {
         gitOptions.gitTagOverwrite,
         checker,
         destinationOptions,
-        credentials) {
+        credentials,
+        /* lfsSource= */ null) {
       @Override
       public ImmutableList<DestinationEffect> write(
           TransformResult transformResult, Glob destinationFiles, Console console)

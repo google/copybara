@@ -1709,7 +1709,23 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
               defaultValue = "None",
               named = true,
               positional = false,
-              doc = CREDENTIAL_DOC)
+              doc = CREDENTIAL_DOC),
+          @Param(
+              name = "lfs_source",
+              allowedTypes = {
+                  @ParamType(type = String.class),
+                  @ParamType(type = NoneType.class),
+              },
+              defaultValue = "None",
+              named = true,
+              positional = false,
+              doc = "Git repository URL to use for pulling LFS files. This is required when "
+                  + "GIT_LFS_SKIP_SMUDGE=1 is set in the environment, which causes git operations to "
+                  + "work with LFS pointer files instead of actual file content. When specified, "
+                  + "Copybara will pull the actual LFS file contents from this URL before pushing to "
+                  + "the destination. This can be the same as the origin URL or a different URL if "
+                  + "LFS files are stored elsewhere. Example: "
+                  + "'git@github.com:AppliedNeuron/core-stack.git'")
       },
       useStarlarkThread = true)
   @UsesFlags(GitDestinationOptions.class)
@@ -1724,6 +1740,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Boolean primaryBranchMigration,
       Object checker,
       @Nullable Object credentials,
+      Object lfsSource,
       StarlarkThread thread)
       throws EvalException {
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
@@ -1758,7 +1775,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             ? defaultGitIntegrate
             : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"),
         maybeChecker,
-        credentialHandler);
+        credentialHandler,
+        convertFromNoneable(lfsSource, null));
   }
 
   @SuppressWarnings("unused")
@@ -2019,7 +2037,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             ? defaultGitIntegrate
             : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"),
         checkerObj,
-        credentialHandler);
+        credentialHandler,
+        /* lfsSource= */ null);
   }
 
   @SuppressWarnings("unused")

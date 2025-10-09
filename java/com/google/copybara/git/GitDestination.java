@@ -116,6 +116,8 @@ public class GitDestination implements Destination<GitRevision> {
   @Nullable private final Checker checker;
   private final LazyResourceLoader<GitRepository> localRepo;
   @Nullable private final CredentialFileHandler credentials;
+  @Nullable private final String lfsSource;
+  
   GitDestination(
       String repoUrl,
       String fetch,
@@ -130,7 +132,8 @@ public class GitDestination implements Destination<GitRevision> {
       WriteHook writerHook,
       Iterable<GitIntegrateChanges> integrates,
       @Nullable Checker checker,
-      @Nullable CredentialFileHandler credentials) {
+      @Nullable CredentialFileHandler credentials,
+      @Nullable String lfsSource) {
     this.repoUrl = checkNotNull(repoUrl);
     this.fetch = checkNotNull(fetch);
     this.push = checkNotNull(push);
@@ -146,6 +149,7 @@ public class GitDestination implements Destination<GitRevision> {
     this.checker = checker;
     this.localRepo = memoized(ignored -> destinationOptions.localGitRepo(repoUrl, credentials));
     this.credentials = credentials;
+    this.lfsSource = lfsSource;
   }
 
   /**
@@ -199,7 +203,8 @@ public class GitDestination implements Destination<GitRevision> {
         gitOptions.gitTagOverwrite,
         checker,
         destinationOptions,
-        credentials);
+        credentials,
+        lfsSource);
   }
 
   /**
@@ -252,6 +257,7 @@ public class GitDestination implements Destination<GitRevision> {
     private final boolean gitTagOverwrite;
     @Nullable private final Checker checker;
     private final GitDestinationOptions destinationOptions;
+    @Nullable private final String lfsSource;
 
     /** Create a new git.destination writer */
     WriterImpl(
@@ -278,7 +284,8 @@ public class GitDestination implements Destination<GitRevision> {
         boolean gitTagOverwrite,
         Checker checker,
         GitDestinationOptions destinationOptions,
-        @Nullable CredentialFileHandler credentials) {
+        @Nullable CredentialFileHandler credentials,
+        @Nullable String lfsSource) {
       this.skipPush = skipPush;
       this.repoUrl = checkNotNull(repoUrl);
       this.remoteFetch = checkNotNull(remoteFetch);
@@ -304,6 +311,7 @@ public class GitDestination implements Destination<GitRevision> {
       this.gitTagOverwrite = gitTagOverwrite;
       this.checker = checker;
       this.destinationOptions = checkNotNull(destinationOptions);
+      this.lfsSource = lfsSource;
     }
 
     @Override
@@ -377,6 +385,7 @@ public class GitDestination implements Destination<GitRevision> {
           ChangeReader.Builder.forDestination(repo, baseConsole)
               .setFirstParent(lastRevFirstParent)
               .grep("^" + labelName + ORIGIN_LABEL_SEPARATOR);
+      
       try {
         // Using same visitChangePageSize for now
         GitVisitorUtil.visitChanges(
@@ -514,6 +523,10 @@ public class GitDestination implements Destination<GitRevision> {
 
       GitRevision localBranchRevision = getLocalBranchRevision(scratchClone);
       updateLocalBranchToBaseline(scratchClone, baseline);
+      
+      // Capture firstWrite state before it gets modified
+      boolean isFirstWrite = state.firstWrite;
+      
       if (state.firstWrite) {
         String reference = baseline != null ? baseline : state.localBranch;
         configForPush(getRepository(console), repoUrl, remotePush);
@@ -551,6 +564,12 @@ public class GitDestination implements Destination<GitRevision> {
       excludedAdder.findSubmodules(console);
 
       GitRepository alternate = scratchClone.withWorkTree(transformResult.getPath());
+
+      // Push LFS objects to destination at the start of the workflow
+      // This must happen after we have the origin files in transformResult.getPath()
+      if (isFirstWrite && lfsSource != null) {
+        pushLfsObjectsToDestination(alternate, destinationFiles, console);
+      }
 
       console.progress("Git Destination: Adding all files");
       try (ProfilerTask ignored = generalOptions.profiler().start("add_files")) {
@@ -683,6 +702,7 @@ public class GitDestination implements Destination<GitRevision> {
                 originChanges,
                 new DestinationEffect.DestinationRef(head.getSha1(), "commit", /*url=*/ null)));
       }
+      
       String push =
           writeHook.getPushReference(scratchClone, getCompleteRef(remotePush), transformResult);
       console.progress(String.format("Git Destination: Pushing to %s %s", repoUrl, push));
@@ -690,25 +710,88 @@ public class GitDestination implements Destination<GitRevision> {
           || !Objects.equals(remoteFetch, remotePush), "non fast-forward push is only"
           + " allowed when fetch != push");
 
-      String serverResponse =
-          generalOptions.repoTask(
-              "push",
-              () ->
-                  scratchClone
-                      .push()
-                      .withRefspecs(
-                          repoUrl,
-                          tagName != null
-                              ? ImmutableList.of(
-                                  scratchClone.createRefSpec(
-                                      (nonFastForwardPush ? "+" : "") + "HEAD:" + push),
-                                  scratchClone.createRefSpec(
-                                      (gitTagOverwrite ? "+" : "") + tagName))
-                              : ImmutableList.of(
-                                  scratchClone.createRefSpec(
-                                      (nonFastForwardPush ? "+" : "") + "HEAD:" + push)))
-                      .withPushOptions(ImmutableList.copyOf(gitOptions.gitPushOptions))
-                      .run());
+      String serverResponse;
+      try {
+        // First attempt: Try to push normally
+        serverResponse =
+            generalOptions.repoTask(
+                "push",
+                () ->
+                    scratchClone
+                        .push()
+                        .withRefspecs(
+                            repoUrl,
+                            tagName != null
+                                ? ImmutableList.of(
+                                    scratchClone.createRefSpec(
+                                        (nonFastForwardPush ? "+" : "") + "HEAD:" + push),
+                                    scratchClone.createRefSpec(
+                                        (gitTagOverwrite ? "+" : "") + tagName))
+                                : ImmutableList.of(
+                                    scratchClone.createRefSpec(
+                                        (nonFastForwardPush ? "+" : "") + "HEAD:" + push)))
+                        .withPushOptions(ImmutableList.copyOf(gitOptions.gitPushOptions))
+                        .run());
+      } catch (RepoException | ValidationException pushException) {
+        // Check if this looks like an LFS-related push failure
+        boolean isLfsError = pushException.getMessage().contains("failed to push some refs");
+        
+        if (isLfsError && lfsSource != null) {
+          // LFS error detected and lfsSource is configured - try the LFS workaround
+          console.warn("Push failed, attempting LFS workaround...");
+          logger.atInfo().log("Push failed with potential LFS error, attempting LFS pull workaround");
+          
+          try {
+            scratchClone.lfsPull(lfsSource);
+            console.progress("Git Destination: Retrying push after LFS pull");
+            
+            // Retry the push after LFS pull
+            serverResponse =
+                generalOptions.repoTask(
+                    "push",
+                    () ->
+                        scratchClone
+                            .push()
+                            .withRefspecs(
+                                repoUrl,
+                                tagName != null
+                                    ? ImmutableList.of(
+                                        scratchClone.createRefSpec(
+                                            (nonFastForwardPush ? "+" : "") + "HEAD:" + push),
+                                        scratchClone.createRefSpec(
+                                            (gitTagOverwrite ? "+" : "") + tagName))
+                                    : ImmutableList.of(
+                                        scratchClone.createRefSpec(
+                                            (nonFastForwardPush ? "+" : "") + "HEAD:" + push)))
+                            .withPushOptions(ImmutableList.copyOf(gitOptions.gitPushOptions))
+                            .run());
+            
+            console.info("Push succeeded after LFS workaround");
+            logger.atInfo().log("Push succeeded after LFS pull workaround");
+          } catch (RepoException lfsOrRetryException) {
+            // LFS pull failed or retry push failed
+            logger.atSevere().withCause(lfsOrRetryException).log(
+                "Push failed even after LFS workaround attempt");
+            throw new RepoException(
+                "Failed to push to " + repoUrl + " even after attempting LFS workaround. "
+                + "Original error: " + pushException.getMessage() 
+                + ". Retry error: " + lfsOrRetryException.getMessage(),
+                lfsOrRetryException);
+          }
+        } else {
+          // Not an LFS error, or no lfsSource configured - just rethrow original exception
+          if (isLfsError && lfsSource == null) {
+            logger.atWarning().log(
+                "Push failed with potential LFS error but no lfs_source configured. "
+                + "Consider setting lfs_source in git.destination()");
+            console.warnFmt(
+                "Push appears to have failed due to LFS, but no lfs_source is configured. "
+                + "Add 'lfs_source' parameter to git.destination() to enable LFS support.");
+          }
+          throw pushException;
+        }
+      }
+      
       return writeHook.afterPush(serverResponse, messageInfo, head, originChanges);
     }
 
@@ -811,6 +894,70 @@ public class GitDestination implements Destination<GitRevision> {
      */
     public GitRepository getRepository(Console console) throws RepoException, ValidationException {
       return state.localRepo.load(console);
+    }
+
+    /**
+     * Pushes LFS objects to the destination repository that match the destination files glob.
+     *
+     * <p>This is called once at the start of a workflow to ensure all needed LFS objects are
+     * available at the destination before commits are pushed.
+     *
+     * @param repo The git repository (origin checkout with LFS files)
+     * @param destinationFiles Glob pattern for files to include
+     * @param console Console for progress messages
+     * @throws RepoException if LFS operations fail
+     */
+    private void pushLfsObjectsToDestination(
+        GitRepository repo, Glob destinationFiles, Console console) throws RepoException {
+      console.progress("Git Destination: Checking for LFS files to push");
+      
+      try {
+        ImmutableList<String> lfsFiles = repo.lfsListFiles();
+        if (lfsFiles.isEmpty()) {
+          console.info("No LFS files found in source");
+          return;
+        }
+        
+        console.progressFmt("Git Destination: Found %d LFS file(s)", lfsFiles.size());
+        
+        // Filter LFS files by destination glob pattern
+        PathMatcher pathMatcher = destinationFiles.relativeTo(repo.getWorkTree());
+        ImmutableList.Builder<String> objectIdsToPush = ImmutableList.builder();
+        
+        for (String lfsLine : lfsFiles) {
+          // Format: <OID> * <filepath> or <OID> - <filepath>
+          // Extract OID and filepath
+          String[] parts = lfsLine.split("\\s+", 3);
+          if (parts.length >= 3) {
+            String objectId = parts[0];
+            String filepath = parts[2];
+            
+            Path filePath = repo.getWorkTree().resolve(filepath);
+            if (pathMatcher.matches(filePath)) {
+              objectIdsToPush.add(objectId);
+              console.verboseFmt("  Including LFS file: %s (OID: %s)", filepath, objectId);
+            } else {
+              console.verboseFmt("  Skipping LFS file: %s (not in destination_files)", filepath);
+            }
+          }
+        }
+        
+        ImmutableList<String> objectIds = objectIdsToPush.build();
+        if (objectIds.isEmpty()) {
+          console.info("No LFS files match destination_files pattern");
+          return;
+        }
+        
+        console.progressFmt("Git Destination: Pushing %d LFS object(s) to %s", 
+            objectIds.size(), repoUrl);
+        repo.lfsPushObjects(repoUrl, objectIds);
+        console.info("Successfully pushed LFS objects to destination");
+        
+      } catch (RepoException e) {
+        logger.atWarning().withCause(e).log("Failed to push LFS objects to destination");
+        console.warnFmt("Warning: Could not push LFS objects: %s", e.getMessage());
+        // Don't fail the migration if LFS push fails - continue and let regular push handle it
+      }
     }
 
     private void updateLocalBranchToBaseline(GitRepository repo, String baseline)

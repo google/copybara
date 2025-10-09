@@ -1680,6 +1680,94 @@ public class GitRepository {
     return git(getCwd(), Optional.empty(), addGitDirAndWorkTreeParams(argv));
   }
 
+  /**
+   * Pulls Git LFS files into the working tree.
+   * 
+   * <p>This is necessary when GIT_LFS_SKIP_SMUDGE=1 is set, which causes git operations to
+   * work with LFS pointer files instead of actual file content. This method temporarily
+   * configures remote.origin.url, pulls the LFS files, then cleans up the configuration.
+   *
+   * @param remoteUrl The URL to set as remote.origin.url for LFS operations
+   * @throws RepoException if LFS operations fail
+   */
+  public void lfsPull(String remoteUrl) throws RepoException {
+    logger.atInfo().log("Pulling Git LFS files from %s", remoteUrl);
+    try {
+      // Step 1: Add remote.origin.url (required for git lfs pull to work)
+      simpleCommand("config", "remote.origin.url", remoteUrl);
+      
+      // Step 2: Pull LFS files
+      simpleCommand("lfs", "pull");
+      
+      // Step 3: Unset remote.origin.url (cleanup)
+      simpleCommand("config", "--unset", "remote.origin.url");
+      
+      logger.atInfo().log("Successfully pulled Git LFS files");
+    } catch (RepoException e) {
+      // Attempt cleanup even on error
+      try {
+        simpleCommand("config", "--unset", "remote.origin.url");
+      } catch (RepoException cleanupError) {
+        logger.atWarning().withCause(cleanupError).log(
+            "Failed to cleanup remote.origin.url after LFS error");
+      }
+      throw new RepoException("Failed to pull LFS files: " + e.getMessage(), e);
+    }
+  }
+
+  /**
+   * Lists Git LFS files with their object IDs and file paths.
+   *
+   * <p>Returns output from "git lfs ls-files -l" which includes object IDs and paths.
+   * Output format: <OID> - <filepath>
+   *
+   * @return List of lines from git lfs ls-files -l, or empty list if no LFS files
+   * @throws RepoException if the command fails
+   */
+  public ImmutableList<String> lfsListFiles() throws RepoException {
+    try {
+      CommandOutput output = simpleCommandNoRedirectOutput("lfs", "ls-files", "-l");
+      return ImmutableList.copyOf(
+          Splitter.on('\n').omitEmptyStrings().trimResults().split(output.getStdout()));
+    } catch (RepoException e) {
+      // If LFS is not installed or no LFS files exist, return empty list
+      logger.atInfo().withCause(e).log("Could not list LFS files, returning empty list");
+      return ImmutableList.of();
+    }
+  }
+
+  /**
+   * Pushes specific Git LFS objects by their object IDs to a remote URL.
+   *
+   * <p>This is used to proactively push LFS objects to the destination before pushing commits,
+   * ensuring that the destination has all necessary LFS file content.
+   *
+   * @param destinationUrl The destination repository URL
+   * @param objectIds List of LFS object IDs to push
+   * @throws RepoException if the push operation fails
+   */
+  public void lfsPushObjects(String destinationUrl, ImmutableList<String> objectIds)
+      throws RepoException {
+    if (objectIds.isEmpty()) {
+      logger.atInfo().log("No LFS objects to push");
+      return;
+    }
+
+    logger.atInfo().log("Pushing %d LFS object(s) to %s", objectIds.size(), destinationUrl);
+    
+    for (String objectId : objectIds) {
+      try {
+        simpleCommand("lfs", "push", destinationUrl, "--object-id", objectId);
+      } catch (RepoException e) {
+        logger.atWarning().withCause(e).log(
+            "Failed to push LFS object %s to %s", objectId, destinationUrl);
+        // Continue with other objects even if one fails
+      }
+    }
+    
+    logger.atInfo().log("Successfully pushed LFS objects");
+  }
+
   CommandOutput simpleCommandNoRedirectOutput(String... argv) throws RepoException {
     Iterable<String> params = addGitDirAndWorkTreeParams(Arrays.asList(argv));
     try {
@@ -1863,6 +1951,7 @@ public class GitRepository {
     List<String> allParams = new ArrayList<>(Iterables.size(params) + 1);
     allParams.add(gitEnv.resolveGitBinary());
     Iterables.addAll(allParams, params);
+    
     Command cmd =
         new Command(
             Iterables.toArray(allParams, String.class), gitEnv.getEnvironment(), cwd.toFile());
@@ -1870,9 +1959,12 @@ public class GitRepository {
     CommandRunner runner =
         (timeout.isPresent() ? new CommandRunner(cmd, timeout.get()) : new CommandRunner(cmd))
             .withVerbose(verbose);
-    return maxLogLines >= 0
+    
+    CommandOutputWithStatus result = maxLogLines >= 0
         ? runner.withMaxStdOutLogLines(maxLogLines).execute()
         : runner.execute();
+    
+    return result;
   }
 
   @Override
@@ -2690,6 +2782,13 @@ public class GitRepository {
         if (!batchRes.isEmpty()) {
           logger.atInfo().log("First commit: %s", batchRes.get(0));
           logger.atInfo().log("Last commit: %s", Iterables.getLast(batchRes));
+          // Log each commit that was searched for GitOrigin-RevID tracking
+          // for (GitLogEntry entry : batchRes) {
+          //   // System.out.println(String.format("COPYBARA_SEARCH: Searched commit: SHA=%s, Author=%s, Message=%s", 
+          //   //     entry.commit().getSha1(), 
+          //   //     entry.author().getName(), 
+          //   //     entry.body().length() > 100 ? entry.body().substring(0, 100) + "..." : entry.body()));
+          // }
         }
         if (batchSize > 0) {
           // Merge commit shows multiple entries when using -m and --name-only but first parent is
