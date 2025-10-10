@@ -1,4 +1,4 @@
-# Copyright 2016 Google Inc.
+# Copyright 2016 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,6 +34,7 @@ all_tests(
         "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/util/console/testing",
         "//java/com/google/copybara/version",
+        "//third_party:apache_commons_compress",
         "//third_party:google_http_client",
         "//third_party:google_http_client_test",
         "//third_party:guava_testlib",

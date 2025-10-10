@@ -266,7 +266,7 @@ public class ConsistencyFileTest {
         assertThrows(
             ValidationException.class,
             () -> ConsistencyFile.fromBytes(newConsistencyContent.getBytes(UTF_8)));
-    assertThat(throwable).hasMessageThat().contains("path value is invalid");
+    assertThat(throwable).hasMessageThat().contains("path value is invalid: fo\0o");
   }
 
   @Test
@@ -287,7 +287,7 @@ public class ConsistencyFileTest {
         assertThrows(
             ValidationException.class,
             () -> ConsistencyFile.fromBytes(newConsistencyContent.getBytes(UTF_8)));
-    assertThat(throwable).hasMessageThat().contains("hash value is invalid");
+    assertThat(throwable).hasMessageThat().contains("hash value is invalid: gg");
   }
 
   @Test
