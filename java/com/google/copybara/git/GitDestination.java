@@ -366,6 +366,7 @@ public class GitDestination implements Destination<GitRevision> {
          throw e;
       } catch (ValidationException e) {
         // TODO(joshgoldman): only return null for CannotResolveRevisionException, not all VE
+        baseConsole.warnFmt("Error caught when fetching from destination: %s", e.getMessage());
         return null;
       }
       GitRevision startRef = getLocalBranchRevision(repo);
@@ -389,7 +390,7 @@ public class GitDestination implements Destination<GitRevision> {
             "get_destination_status",
             visitChangePageSize);
       } catch (CannotResolveRevisionException e) {
-        // TODO: handle
+        baseConsole.warnFmt("Error caught when visiting changes: %s", e.getMessage());
         return null;
       }
       return visitor.getDestinationStatus();
