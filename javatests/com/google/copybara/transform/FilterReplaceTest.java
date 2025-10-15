@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Google Inc.
+ * Copyright (C) 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.jimfs.Jimfs;
-import com.google.copybara.Core;
+import com.google.copybara.CoreModule;
 import com.google.copybara.Transformation;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
@@ -72,7 +72,7 @@ public class FilterReplaceTest {
     write("file1.txt", original);
     write("file2.txt", "other\n");
 
-    Transformation transformation = eval(Core.SIMPLE_FILTER_REPLACE_EXAMPLE);
+    Transformation transformation = eval(CoreModule.SIMPLE_FILTER_REPLACE_EXAMPLE);
     transform(transformation);
 
     assertThatPath(checkoutDir)
@@ -333,7 +333,7 @@ public class FilterReplaceTest {
         + "Some text // TODO(foo, bar, baz)\n"
         + "more text\n");
 
-    Transformation t = eval(Core.TODO_FILTER_REPLACE_EXAMPLE);
+    Transformation t = eval(CoreModule.TODO_FILTER_REPLACE_EXAMPLE);
 
     transform(t);
 

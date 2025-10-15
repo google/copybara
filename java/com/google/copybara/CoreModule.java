@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2016 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -124,7 +124,7 @@ import net.starlark.java.syntax.Location;
     name = "core",
     doc = "Core functionality for creating migrations, and basic transformations.")
 @UsesFlags({GeneralOptions.class, DebugOptions.class})
-public class Core implements LabelsAwareModule, StarlarkValue {
+public class CoreModule implements LabelsAwareModule, StarlarkValue {
 
   // Restrict for label ids like 'BAZEL_REV_ID' or 'Bazel-RevId'.
   //
@@ -142,7 +142,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   private StarlarkThread.PrintHandler printHandler;
   @Nullable private SkylarkConsole console;
 
-  public Core(
+  public CoreModule(
       GeneralOptions generalOptions, WorkflowOptions workflowOptions, DebugOptions debugOptions,
   FolderModule folderModule) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);

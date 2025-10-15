@@ -107,7 +107,7 @@ public class ModuleSupplier {
         options.get(FolderDestinationOptions.class),
         general);
     return ImmutableSet.of(
-        new Core(
+        new CoreModule(
             general,
             options.get(WorkflowOptions.class),
             options.get(DebugOptions.class),
