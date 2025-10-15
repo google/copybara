@@ -606,12 +606,8 @@ public class Core implements LabelsAwareModule, StarlarkValue {
           "custom_rev_id is not allowed to be used in CHANGE_REQUEST mode if"
               + " set_rev_id is set to true. custom_rev_id is used for looking"
               + " for the baseline in the origin. No revId is stored in the destination.");
-    } else {
-      check(
-          mode == WorkflowMode.CHANGE_REQUEST || mode == WorkflowMode.CHANGE_REQUEST_FROM_SOT,
-          "'set_rev_id = False' is only supported"
-              + " for CHANGE_REQUEST and CHANGE_REQUEST_FROM_SOT mode.");
     }
+    // Note: set_rev_id = False is now supported for all workflow modes
     if (smartPrune) {
       check(
           mode == WorkflowMode.CHANGE_REQUEST,
