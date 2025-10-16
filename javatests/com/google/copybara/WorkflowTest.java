@@ -394,9 +394,9 @@ public class WorkflowTest {
     origin.addSimpleChangeWithFixedReference(42, "beaver");
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflow("default", SQUASH);
-    EmptyChangeException e =
+    ValidationException e =
         assertThrows(
-            EmptyChangeException.class, () -> workflow.run(workdir, ImmutableList.of("HEAD")));
+            ValidationException.class, () -> workflow.run(workdir, ImmutableList.of("HEAD")));
     assertThat(e)
         .hasMessageThat()
         .contains(
@@ -466,9 +466,8 @@ public class WorkflowTest {
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflow("default", SQUASH);
 
-    EmptyChangeException e =
-        assertThrows(
-            EmptyChangeException.class, () -> workflow.run(workdir, ImmutableList.of("0")));
+    ValidationException e =
+        assertThrows(ValidationException.class, () -> workflow.run(workdir, ImmutableList.of("0")));
     assertThat(e).hasMessageThat().contains("Ref 1 is not an ancestor of ref 0");
   }
 
@@ -479,9 +478,8 @@ public class WorkflowTest {
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflow("default", SQUASH);
 
-    EmptyChangeException e =
-        assertThrows(
-            EmptyChangeException.class, () -> workflow.run(workdir, ImmutableList.of("0")));
+    ValidationException e =
+        assertThrows(ValidationException.class, () -> workflow.run(workdir, ImmutableList.of("0")));
     assertThat(e)
         .hasMessageThat()
         .contains("Could not enforce --pinned-fixed-ref. Cause: Cannot find any change for 99");

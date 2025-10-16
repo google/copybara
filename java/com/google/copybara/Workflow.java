@@ -40,7 +40,6 @@ import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.Migration;
 import com.google.copybara.effect.DestinationEffect;
 import com.google.copybara.exception.CommandLineException;
-import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.feedback.FinishHookContext;
@@ -338,11 +337,11 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     }
   }
 
-  private void validateExpectedFixedRef(O resolvedRef) throws EmptyChangeException {
+  private void validateExpectedFixedRef(O resolvedRef) throws ValidationException {
     if (!Strings.isNullOrEmpty(expectedFixedRef)
         && !Strings.isNullOrEmpty(resolvedRef.fixedReference())
         && !resolvedRef.fixedReference().equals(expectedFixedRef)) {
-      throw new EmptyChangeException(
+      throw new ValidationException(
           String.format(
               "Not migrating ref %s, its fixed ref %s did not match the expected fixed ref %s.",
               Optional.ofNullable(resolvedRef.contextReference()).orElse(resolvedRef.asString()),
@@ -361,8 +360,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
               "origin.resolve_pinned_fixed_ref", () -> origin.resolve(pinnedFixedRef));
       return origin.resolveAncestorRef(pinnedFixedRef, resolvedRef);
     } catch (ValidationException e) {
-      throw new EmptyChangeException(
-          e, String.format("Could not enforce --pinned-fixed-ref. Cause: %s", e.getMessage()));
+      throw new ValidationException(
+          String.format("Could not enforce --pinned-fixed-ref. Cause: %s", e.getMessage()), e);
     }
   }
 
