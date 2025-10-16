@@ -5182,8 +5182,8 @@ public class WorkflowTest {
         .assertThat()
         .onceInLog(
             MessageType.WARNING,
-            "The baseline ref \\[v2.0.0\\] is newer than incoming ref \\[v1.0.0\\]. The change"
-                + " response will have no changes generated because the current baseline is newer");
+            "The incoming ref \\[v1.0.0\\] is not newer than the baseline ref \\[v2.0.0\\]. The"
+                + " change response will have no changes generated.");
   }
 
   @Test

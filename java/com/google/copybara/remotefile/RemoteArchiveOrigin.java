@@ -262,9 +262,9 @@ public class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
             generalOptions
                 .console()
                 .warnFmt(
-                    "The baseline ref [%s] is newer than incoming ref [%s]. The change response"
-                        + " will have no changes generated because the current baseline is newer.",
-                    fromRef.fixedReference(), toRef.fixedReference());
+                    "The incoming ref [%s] is not newer than the baseline ref [%s]. "
+                        + "The change response will have no changes generated.",
+                    toRef.fixedReference(), fromRef.fixedReference());
             return noChanges(EmptyReason.TO_IS_ANCESTOR);
           }
         } catch (ValidationException e) {
