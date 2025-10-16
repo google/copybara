@@ -353,7 +353,12 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
   private O handlePinnedFixedRef(O resolvedRef, String pinnedFixedRef)
       throws ValidationException, RepoException {
+    // Resolve the ref specified with --pinned-fixed-ref to ensure it is in the local repo cache, so
+    // `git merge-base` does not fail.
     try {
+      O unused =
+          generalOptions.repoTask(
+              "origin.resolve_pinned_fixed_ref", () -> origin.resolve(pinnedFixedRef));
       return origin.resolveAncestorRef(pinnedFixedRef, resolvedRef);
     } catch (ValidationException e) {
       throw new EmptyChangeException(

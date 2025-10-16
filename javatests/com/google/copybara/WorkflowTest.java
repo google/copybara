@@ -473,6 +473,21 @@ public class WorkflowTest {
   }
 
   @Test
+  public void pinnedFixedRef_doesNotExist() throws Exception {
+    options.workflowOptions.pinnedFixedRef = "99";
+    origin.addSimpleChangeWithContextReference(0, "ref");
+    transformations = ImmutableList.of();
+    Workflow<?, ?> workflow = skylarkWorkflow("default", SQUASH);
+
+    EmptyChangeException e =
+        assertThrows(
+            EmptyChangeException.class, () -> workflow.run(workdir, ImmutableList.of("0")));
+    assertThat(e)
+        .hasMessageThat()
+        .contains("Could not enforce --pinned-fixed-ref. Cause: Cannot find any change for 99");
+  }
+
+  @Test
   public void contextReferenceAsLabel() throws Exception {
     origin.addSimpleChange(/*timestamp*/ 1);
     transformations = ImmutableList.of(
