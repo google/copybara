@@ -53,7 +53,7 @@ public class CredentialFileHandler {
   private volatile Credential currentPassword;
   private volatile Credential currentUsername;
 
-  private final boolean disabled;
+  private final boolean enabled;
 
   public CredentialFileHandler(
       String scheme,
@@ -61,13 +61,13 @@ public class CredentialFileHandler {
       String path,
       CredentialIssuer username,
       CredentialIssuer password,
-      boolean disabled) {
+      boolean enabled) {
     this.scheme = checkNotNull(scheme);
     this.host = checkNotNull(host);
     this.path = checkNotNull(path);
     this.username = checkNotNull(username);
     this.password = checkNotNull(password);
-    this.disabled = disabled;
+    this.enabled = enabled;
   }
 
   public CredentialFileHandler(
@@ -75,13 +75,13 @@ public class CredentialFileHandler {
       String path,
       CredentialIssuer username,
       CredentialIssuer password,
-      boolean disabled) {
-    this("https", host, path, username, password, disabled);
+      boolean enable) {
+    this("https", host, path, username, password, enable);
   }
 
   public CredentialFileHandler(
       String host, String path, CredentialIssuer username, CredentialIssuer password) {
-    this("https", host, path, username, password, false);
+    this("https", host, path, username, password, true);
   }
 
   public CredentialFileHandler(
@@ -90,7 +90,7 @@ public class CredentialFileHandler {
       String path,
       CredentialIssuer username,
       CredentialIssuer password) {
-    this(scheme, host, path, username, password, false);
+    this(scheme, host, path, username, password, true);
   }
 
   /** Obtain a token for the username field from the username Issuer. */
@@ -103,8 +103,7 @@ public class CredentialFileHandler {
     return getPasswordCred().provideSecret();
   }
 
-  private synchronized Credential getPasswordCred()
-      throws CredentialIssuingException, CredentialRetrievalException {
+  private synchronized Credential getPasswordCred() throws CredentialIssuingException {
     if (currentPassword == null || !currentPassword.valid()) {
       currentPassword = password.issue();
       logger.atInfo().log("Refreshing password %s", currentPassword.printableValue());
@@ -121,7 +120,7 @@ public class CredentialFileHandler {
   }
 
   public void install(GitRepository repo, Path credentialHelper) throws RepoException {
-    if (disabled) {
+    if (!enabled) {
       return;
     }
     repo.replaceLocalConfigField("credential", "useHttpPath", "true");

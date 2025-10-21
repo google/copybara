@@ -3568,7 +3568,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       return null;
     }
     return new CredentialFileHandler(host, path.replaceAll("^/+", ""),
-        issuer.username(), issuer.password(), !options.get(GitOptions.class).useConfigCredentials);
+        issuer.username(), issuer.password(), options.get(GitOptions.class).useConfigCredentials);
   }
 
   @Nullable protected CredentialFileHandler getCredentialHandler(
