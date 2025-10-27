@@ -23,6 +23,7 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
@@ -62,6 +63,13 @@ public class GitOptions implements Option {
               + " copybara under the hood use the -c flags: git -c google.foo=bar -c google.baz=qux"
               + " ...")
   Map<String, String> gitOptionsParams = new HashMap<>();
+
+  @Parameter(
+      names = "--git-http-follow-redirects",
+      description =
+          "Whether git should follow HTTP redirects. For a list of valid options, please see"
+              + " https://git-scm.com/docs/git-config#Documentation/git-config.txt-httpfollowRedirects")
+  String httpFollowRedirects = null;
 
   @Parameter(
       names = "--git-push-option",
@@ -265,6 +273,9 @@ public class GitOptions implements Option {
     String path = storePath == null ? "" : " --file=" + storePath;
     repo.withCredentialHelper("store" + path);
     repo.replaceLocalConfigField("fetch", "prune", "false");
+    if (!Strings.isNullOrEmpty(httpFollowRedirects)) {
+      repo.withHttpFollowRedirectsOption(httpFollowRedirects);
+    }
     return repo;
   }
 

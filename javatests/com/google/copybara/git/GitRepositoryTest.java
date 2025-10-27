@@ -773,6 +773,25 @@ public class GitRepositoryTest {
   }
 
   @Test
+  public void testHttpFollowRedirectsOption() throws Exception {
+    GitRepository local =
+        GitRepository.newBareRepo(
+            Files.createTempDirectory("localDir"),
+            getGitEnv(),
+            /* verbose= */ true,
+            DEFAULT_TIMEOUT,
+            /* noVerify= */ false);
+    local.init();
+
+    local.withHttpFollowRedirectsOption("true");
+
+    CommandOutput commandOutput =
+        local.simpleCommand("config", "--get-all", "http.followRedirects");
+    assertThat(commandOutput.getStdout().trim()).hasLength(4);
+    assertThat(commandOutput.getStdout().contains("true")).isTrue();
+  }
+
+  @Test
   public void testFetchSingleRefWithTags_sha1Reference() throws Exception {
     GitRepository local =
         GitRepository.newBareRepo(

@@ -1722,6 +1722,12 @@ public class GitRepository {
     return this;
   }
 
+  @CanIgnoreReturnValue
+  public GitRepository withHttpFollowRedirectsOption(String option) throws RepoException {
+    replaceLocalConfigField("http", "followRedirects", checkNotNull(option));
+    return this;
+  }
+
   public void replaceLocalConfigField(String category, String field, String value)
       throws RepoException {
     this.simpleCommand(
