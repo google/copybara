@@ -433,8 +433,10 @@ public class WorkflowTest {
   @Test
   public void pinnedFixedRef() throws Exception {
     options.workflowOptions.pinnedFixedRef = "0";
-    origin.addSimpleChangeWithContextReference(1, "ancestor"); // has a ref of 0
-    origin.addSimpleChangeWithContextReference(2, "descendant"); // has a ref of 1
+    origin.addSimpleChangeWithFixedAndContextReference(
+        /* timestamp= */ 1, /* contextRef= */ "ancestor", /* fixedReference= */ "0");
+    origin.addSimpleChangeWithFixedAndContextReference(
+        /* timestamp= */ 2, /* contextRef= */ "descendant", /* fixedReference= */ "1");
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflow("default", SQUASH);
 
@@ -447,8 +449,10 @@ public class WorkflowTest {
   @Test
   public void pinnedFixedRef_ancestorIsSameAsDescendant() throws Exception {
     options.workflowOptions.pinnedFixedRef = "1";
-    origin.addSimpleChangeWithContextReference(1, "ancestor"); // has a ref of 0
-    origin.addSimpleChangeWithContextReference(2, "descendant"); // has a ref of 1
+    origin.addSimpleChangeWithFixedAndContextReference(
+        /* timestamp= */ 1, /* contextRef= */ "ancestor", /* fixedReference= */ "0");
+    origin.addSimpleChangeWithFixedAndContextReference(
+        /* timestamp= */ 2, /* contextRef= */ "descendant", /* fixedReference= */ "1");
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflow("default", SQUASH);
 
@@ -461,8 +465,10 @@ public class WorkflowTest {
   @Test
   public void pinnedFixedRef_notAncestor() throws Exception {
     options.workflowOptions.pinnedFixedRef = "1";
-    origin.addSimpleChangeWithContextReference(1, "ancestor"); // has a ref of 0
-    origin.addSimpleChangeWithContextReference(2, "descendant"); // has a ref of 1
+    origin.addSimpleChangeWithFixedAndContextReference(
+        /* timestamp= */ 1, /* contextRef= */ "ancestor", /* fixedReference= */ "0");
+    origin.addSimpleChangeWithFixedAndContextReference(
+        /* timestamp= */ 2, /* contextRef= */ "descendant", /* fixedReference= */ "1");
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflow("default", SQUASH);
 

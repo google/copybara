@@ -123,6 +123,13 @@ public class DummyOrigin implements Origin<DummyRevision> {
     return this;
   }
 
+  @CanIgnoreReturnValue
+  public DummyOrigin addSimpleChangeWithFixedAndContextReference(
+      int timestamp, String contextRef, String fixedReference) throws IOException {
+    addChangeWithRef(timestamp, contextRef, fixedReference);
+    return this;
+  }
+
   private void addChangeWithRef(
       int timestamp, @Nullable String contextRef, @Nullable String fixedReference)
       throws IOException {
