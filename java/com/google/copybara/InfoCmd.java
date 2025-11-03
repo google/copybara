@@ -79,12 +79,18 @@ public class InfoCmd implements CopybaraCmd {
     if (configFileArgs.hasWorkflowName()) {
       ImmutableMap<String, String> context = contextProvider.getContext(
           config, configFileArgs, configLoaderProvider, commandEnv.getOptions(), console);
-      infoWithFailureHandling(
-          commandEnv.getOptions(), config.getConfig(), configFileArgs.getWorkflowName(), context);
+      boolean hasAvailableChanges =
+          infoWithFailureHandling(
+              commandEnv.getOptions(),
+              config.getConfig(),
+              configFileArgs.getWorkflowName(),
+              context);
+
+      return hasAvailableChanges ? ExitCode.SUCCESS : ExitCode.NO_OP;
     } else {
       showAllMigrations(commandEnv, config.getConfig());
+      return ExitCode.SUCCESS;
     }
-    return ExitCode.SUCCESS;
   }
 
   private static void listMigrations(CommandEnv commandEnv, Config config) {
@@ -121,11 +127,11 @@ public class InfoCmd implements CopybaraCmd {
   }
 
   /** Retrieves the {@link Info} of the {@code migrationName} and prints it to the console. */
-  private static void infoWithFailureHandling (
+  private static boolean infoWithFailureHandling(
       Options options, Config config, String migrationName, ImmutableMap<String, String> context)
       throws ValidationException, RepoException {
     try {
-      info(options, config, migrationName, context);
+      return info(options, config, migrationName, context);
     } catch (ValidationException | RepoException e) {
       options.get(GeneralOptions.class).eventMonitors()
           .dispatchEvent(d -> d.onInfoFailed(new InfoFailedEvent(e.getMessage(), context)));
@@ -134,12 +140,13 @@ public class InfoCmd implements CopybaraCmd {
   }
 
   /** Retrieves the {@link Info} of the {@code migrationName} and prints it to the console. */
-  private static void info(
+  private static boolean info(
       Options options, Config config, String migrationName, ImmutableMap<String, String> context)
       throws ValidationException, RepoException {
     Info<? extends Revision> info = getInfo(migrationName, config);
     Console console = options.get(GeneralOptions.class).console();
     int outputSize = 0;
+    boolean hasAvailableChanges = false;
     for (MigrationReference<? extends Revision> migrationRef : info.migrationReferences()) {
       console.info(String.format(
           "'%s': last_migrated %s - last_available %s.",
@@ -153,6 +160,7 @@ public class InfoCmd implements CopybaraCmd {
           migrationRef.getAvailableToMigrate();
       int outputLimit = options.get(GeneralOptions.class).getOutputLimit();
       if (!availableToMigrate.isEmpty()) {
+        hasAvailableChanges = true;
         console.infoFmt(
             "Available changes %s:",
             availableToMigrate.size() <= outputLimit
@@ -180,6 +188,7 @@ public class InfoCmd implements CopybaraCmd {
     }
     options.get(GeneralOptions.class).eventMonitors()
         .dispatchEvent(e -> e.onInfoFinished(new InfoFinishedEvent(info, context)));
+    return hasAvailableChanges;
   }
 
   /** Returns the {@link Info} of the {@code migrationName}. */

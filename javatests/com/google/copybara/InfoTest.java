@@ -182,7 +182,8 @@ public class InfoTest {
     CommandEnv commandEnv =
         prepAndGetCommandEnv(info, ImmutableList.of("copy.bara.sky", "workflow"));
     Mockito.<Info<? extends Revision>>when(migration.getInfo()).thenReturn(mockedInfo);
-    info.run(commandEnv);
+    ExitCode exitCode = info.run(commandEnv);
+    assertThat(exitCode).isEqualTo(ExitCode.NO_OP);
     assertThat(eventMonitor.infoFinishedEvent).isNotNull();
     assertThat(eventMonitor.infoFinishedEvent.getInfo()).isEqualTo(mockedInfo);
     console
@@ -234,8 +235,9 @@ public class InfoTest {
     CommandEnv commandEnv =
         prepAndGetCommandEnv(info, ImmutableList.of("copy.bara.sky", "workflow"));
 
-    info.run(commandEnv);
+    ExitCode exitCode = info.run(commandEnv);
 
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
     assertThat(eventMonitor.infoFinishedEvent).isNotNull();
     assertThat(eventMonitor.infoFinishedEvent.getInfo()).isEqualTo(mockedInfo);
     console
