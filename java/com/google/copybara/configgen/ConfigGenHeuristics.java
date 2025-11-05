@@ -172,7 +172,7 @@ public class ConfigGenHeuristics {
     ImmutableSet<Path> gitFiles = listFiles(origin);
     ImmutableSet<Path> g3Files = listFiles(destination);
     Map<Path, PathAndScore> destinationToOriginMapping =
-        getDestinationToOriginMapping(gitFiles, g3Files);
+        getDestinationToOriginMapping(gitFiles, g3Files, generalOptions.console());
 
     // Map of Origin file paths to destination file paths.
     // If multiple destination file map to the same origin file, we preserve the mapping with the
@@ -210,7 +210,7 @@ public class ConfigGenHeuristics {
    * @throws IOException if there is an error reading the origin or destination files
    */
   protected Map<Path, PathAndScore> getDestinationToOriginMapping(
-      ImmutableSet<Path> gitFiles, ImmutableSet<Path> g3Files) throws IOException {
+      ImmutableSet<Path> gitFiles, ImmutableSet<Path> g3Files, Console console) throws IOException {
     SimilarityDetector similarityDetector =
         SimilarityDetector.create(
             origin,
@@ -580,7 +580,7 @@ public class ConfigGenHeuristics {
       return Optional.empty();
     }
 
-    private static SimilarityDetector create(
+    protected static SimilarityDetector create(
         Path parent,
         ImmutableSet<Path> files,
         ImmutableSet<Path> destinationOnlyPaths,
