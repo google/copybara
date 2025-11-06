@@ -360,4 +360,23 @@ public class FileUtilTest {
     assertThat(numDeleted).isEqualTo(1);
     assertThatPath(temp).containsFiles("foo/exclude.txt", "other.txt").containsNoMoreFiles();
   }
+
+  @Test
+  public void testResolveDirInCache() throws Exception {
+    // Short URL.
+    Path simple = FileUtil.resolveDirInCache("https://example.com/foo/bar", temp);
+    assertThatPath(simple).isEqualTo(temp.resolve("https%3A%2F%2Fexample%2Ecom%2Ffoo%2Fbar"));
+
+    // URL with spaces and other characters.
+    Path withSpaces = FileUtil.resolveDirInCache("a url with spaces and+", temp);
+    assertThatPath(withSpaces).isEqualTo(temp.resolve("a+url+with+spaces+and%2B"));
+
+    // Long URL that gets truncated.
+    String longUrl = "https://example.com/foo/bar/" + "abcde".repeat(50);
+    Path longPath = FileUtil.resolveDirInCache(longUrl, temp);
+    String expected =
+        "https%3A%2F%2Fexample%2Ecom%2Ffoo%2Fbar%2Fabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeab_a86e66b8ea3e27788d7692bb6c64e10ab67b60dc";
+    assertThat(longPath.getFileName().toString()).isEqualTo(expected);
+    assertThatPath(longPath.getParent()).isEqualTo(temp);
+  }
 }
