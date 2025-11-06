@@ -569,12 +569,6 @@ public class GitDestination implements Destination<GitRevision> {
 
       GitRepository alternate = scratchClone.withWorkTree(transformResult.getPath());
 
-      // Push LFS objects to destination at the start of the workflow
-      // This must happen after we have the origin files in transformResult.getPath()
-      if (isFirstWrite && lfsSource != null) {
-        pushLfsObjectsToDestination(alternate, destinationFiles, console);
-      }
-
       console.progress("Git Destination: Adding all files");
       try (ProfilerTask ignored = generalOptions.profiler().start("add_files")) {
         alternate.add().force().all().run();
@@ -746,8 +740,12 @@ public class GitDestination implements Destination<GitRevision> {
           console.warn("Push failed, attempting LFS workaround...");
           logger.atInfo().log("Push failed with potential LFS error, attempting LFS pull workaround");
           
+          // Get the origin commit SHA from transformResult
+          String originRef = transformResult.getCurrentRevision().asString();
+          logger.atInfo().log("Will pull LFS objects for origin commit: %s", originRef);
+          
           try {
-            scratchClone.lfsPull(lfsSource);
+            scratchClone.lfsPullForRef(lfsSource, originRef);
             console.progress("Git Destination: Retrying push after LFS pull");
             
             // Retry the push after LFS pull
@@ -903,70 +901,6 @@ public class GitDestination implements Destination<GitRevision> {
      */
     public GitRepository getRepository(Console console) throws RepoException, ValidationException {
       return state.localRepo.load(console);
-    }
-
-    /**
-     * Pushes LFS objects to the destination repository that match the destination files glob.
-     *
-     * <p>This is called once at the start of a workflow to ensure all needed LFS objects are
-     * available at the destination before commits are pushed.
-     *
-     * @param repo The git repository (origin checkout with LFS files)
-     * @param destinationFiles Glob pattern for files to include
-     * @param console Console for progress messages
-     * @throws RepoException if LFS operations fail
-     */
-    private void pushLfsObjectsToDestination(
-        GitRepository repo, Glob destinationFiles, Console console) throws RepoException {
-      console.progress("Git Destination: Checking for LFS files to push");
-      
-      try {
-        ImmutableList<String> lfsFiles = repo.lfsListFiles();
-        if (lfsFiles.isEmpty()) {
-          console.info("No LFS files found in source");
-          return;
-        }
-        
-        console.progressFmt("Git Destination: Found %d LFS file(s)", lfsFiles.size());
-        
-        // Filter LFS files by destination glob pattern
-        PathMatcher pathMatcher = destinationFiles.relativeTo(repo.getWorkTree());
-        ImmutableList.Builder<String> objectIdsToPush = ImmutableList.builder();
-        
-        for (String lfsLine : lfsFiles) {
-          // Format: <OID> * <filepath> or <OID> - <filepath>
-          // Extract OID and filepath
-          String[] parts = lfsLine.split("\\s+", 3);
-          if (parts.length >= 3) {
-            String objectId = parts[0];
-            String filepath = parts[2];
-            
-            Path filePath = repo.getWorkTree().resolve(filepath);
-            if (pathMatcher.matches(filePath)) {
-              objectIdsToPush.add(objectId);
-              console.verboseFmt("  Including LFS file: %s (OID: %s)", filepath, objectId);
-            } else {
-              console.verboseFmt("  Skipping LFS file: %s (not in destination_files)", filepath);
-            }
-          }
-        }
-        
-        ImmutableList<String> objectIds = objectIdsToPush.build();
-        if (objectIds.isEmpty()) {
-          console.info("No LFS files match destination_files pattern");
-          return;
-        }
-        
-        console.progressFmt("Git Destination: Pushing %d LFS object(s) to %s", 
-            objectIds.size(), repoUrl);
-        repo.lfsPushObjects(repoUrl, objectIds);
-        console.info("Successfully pushed LFS objects to destination");
-        
-      } catch (RepoException e) {
-        logger.atWarning().withCause(e).log("Failed to push LFS objects to destination");
-        console.warnFmt("Warning: Could not push LFS objects: %s", e.getMessage());
-        // Don't fail the migration if LFS push fails - continue and let regular push handle it
-      }
     }
 
     private void updateLocalBranchToBaseline(GitRepository repo, String baseline)

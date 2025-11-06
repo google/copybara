@@ -1681,28 +1681,34 @@ public class GitRepository {
   }
 
   /**
-   * Pulls Git LFS files into the working tree.
+   * Pulls Git LFS files for a specific commit/ref into the working tree.
    * 
    * <p>This is necessary when GIT_LFS_SKIP_SMUDGE=1 is set, which causes git operations to
    * work with LFS pointer files instead of actual file content. This method temporarily
    * configures remote.origin.url, pulls the LFS files, then cleans up the configuration.
    *
+   * <p>This method pulls only the LFS objects referenced by the specified commit,
+   * which is much faster than pulling all LFS files for large repositories.
+   *
    * @param remoteUrl The URL to set as remote.origin.url for LFS operations
+   * @param ref Git ref (commit SHA, branch, or tag) to pull LFS files for (required)
    * @throws RepoException if LFS operations fail
    */
-  public void lfsPull(String remoteUrl) throws RepoException {
-    logger.atInfo().log("Pulling Git LFS files from %s", remoteUrl);
+  public void lfsPullForRef(String remoteUrl, String ref) throws RepoException {
+    logger.atInfo().log("Pulling LFS files for ref '%s' from %s", ref, remoteUrl);
+    
     try {
       // Step 1: Add remote.origin.url (required for git lfs pull to work)
       simpleCommand("config", "remote.origin.url", remoteUrl);
       
-      // Step 2: Pull LFS files
-      simpleCommand("lfs", "pull");
+      // Step 2: Pull LFS files only for the specific ref
+      logger.atInfo().log("Executing: git lfs pull origin %s", ref);
+      simpleCommand("lfs", "pull", "origin", ref);
       
       // Step 3: Unset remote.origin.url (cleanup)
       simpleCommand("config", "--unset", "remote.origin.url");
       
-      logger.atInfo().log("Successfully pulled Git LFS files");
+      logger.atInfo().log("Successfully pulled LFS files for ref '%s'", ref);
     } catch (RepoException e) {
       // Attempt cleanup even on error
       try {
@@ -1713,59 +1719,6 @@ public class GitRepository {
       }
       throw new RepoException("Failed to pull LFS files: " + e.getMessage(), e);
     }
-  }
-
-  /**
-   * Lists Git LFS files with their object IDs and file paths.
-   *
-   * <p>Returns output from "git lfs ls-files -l" which includes object IDs and paths.
-   * Output format: <OID> - <filepath>
-   *
-   * @return List of lines from git lfs ls-files -l, or empty list if no LFS files
-   * @throws RepoException if the command fails
-   */
-  public ImmutableList<String> lfsListFiles() throws RepoException {
-    try {
-      CommandOutput output = simpleCommandNoRedirectOutput("lfs", "ls-files", "-l");
-      return ImmutableList.copyOf(
-          Splitter.on('\n').omitEmptyStrings().trimResults().split(output.getStdout()));
-    } catch (RepoException e) {
-      // If LFS is not installed or no LFS files exist, return empty list
-      logger.atInfo().withCause(e).log("Could not list LFS files, returning empty list");
-      return ImmutableList.of();
-    }
-  }
-
-  /**
-   * Pushes specific Git LFS objects by their object IDs to a remote URL.
-   *
-   * <p>This is used to proactively push LFS objects to the destination before pushing commits,
-   * ensuring that the destination has all necessary LFS file content.
-   *
-   * @param destinationUrl The destination repository URL
-   * @param objectIds List of LFS object IDs to push
-   * @throws RepoException if the push operation fails
-   */
-  public void lfsPushObjects(String destinationUrl, ImmutableList<String> objectIds)
-      throws RepoException {
-    if (objectIds.isEmpty()) {
-      logger.atInfo().log("No LFS objects to push");
-      return;
-    }
-
-    logger.atInfo().log("Pushing %d LFS object(s) to %s", objectIds.size(), destinationUrl);
-    
-    for (String objectId : objectIds) {
-      try {
-        simpleCommand("lfs", "push", destinationUrl, "--object-id", objectId);
-      } catch (RepoException e) {
-        logger.atWarning().withCause(e).log(
-            "Failed to push LFS object %s to %s", objectId, destinationUrl);
-        // Continue with other objects even if one fails
-      }
-    }
-    
-    logger.atInfo().log("Successfully pushed LFS objects");
   }
 
   CommandOutput simpleCommandNoRedirectOutput(String... argv) throws RepoException {
