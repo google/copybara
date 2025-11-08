@@ -1115,9 +1115,7 @@ public class GerritDestinationTest {
         return;
       }
     }
-    assertWithMessage(String.format("'%s' not found in:\n    %s", ref,
-        Joiner.on("\n    ").join(messages)))
-        .fail();
+    assertWithMessage("'%s' not found in:\n    %s", ref, Joiner.on("\n    ").join(messages)).fail();
   }
 
   @Test

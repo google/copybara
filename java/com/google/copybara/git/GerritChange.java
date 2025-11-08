@@ -285,7 +285,9 @@ class GerritChange {
       }
       Preconditions.checkState(
           e.getKey().startsWith(basePath + "/"),
-          String.format("Unexpected response reference %s for %s", e.getKey(), basePath));
+          "Unexpected response reference %s for %s",
+          e.getKey(),
+          basePath);
       Matcher matcher = WHOLE_GERRIT_REF.matcher(e.getKey());
       Preconditions.checkArgument(
           matcher.matches(),

@@ -29,7 +29,6 @@ import static org.mockito.Mockito.mock;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -1282,10 +1281,12 @@ public class GitOriginTest {
 
     String expected = importNoopChanges ? headSha1 : feature1Merge;
     String actual = Iterables.getLast(destination.processed).getOriginRef().asString();
-    assertWithMessage(String.format("Expected:\n%s\nBut found:\n%s",
-        Iterables.getOnlyElement(repo.log(expected).withLimit(1).run()),
-        Iterables.getOnlyElement(repo.log(actual).withLimit(1).run())))
-        .that(actual).isEqualTo(expected);
+    assertWithMessage(
+            "Expected:\n%s\nBut found:\n%s",
+            Iterables.getOnlyElement(repo.log(expected).withLimit(1).run()),
+            Iterables.getOnlyElement(repo.log(actual).withLimit(1).run()))
+        .that(actual)
+        .isEqualTo(expected);
     return Iterables.getLast(destination.processed).getOriginChanges();
   }
 
@@ -1573,9 +1574,7 @@ public class GitOriginTest {
     List<Change<GitRevision>> changesWithRev =
         newReader().changes(origin.resolve(branch2), origin.resolve("HEAD")).getChanges();
     assertWithMessage(
-            String.format(
-                "%s\n\n skipped to %s\n\nnot to contain any in\n%s",
-                changes, branch2, handledChanges))
+            "%s\n\n skipped to %s\n\nnot to contain any in\n%s", changes, branch2, handledChanges)
         .that(changesWithRev)
         .containsNoneIn(handledChanges);
     assertThat(changesWithRev).hasSize(5);
