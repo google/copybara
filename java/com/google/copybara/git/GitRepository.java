@@ -40,7 +40,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
-import com.google.common.collect.Sets;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.AuthorParser;
@@ -80,7 +79,6 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -3050,14 +3048,30 @@ public class GitRepository {
 
     @Override
     public void validate(List<String> options) throws ValidationException {
-      if (this.allowedOptions.isPresent() && !allowedOptions.get().containsAll(options)) {
+      if (allowedOptions.isEmpty()) {
+        return;
+      }
+      ImmutableSet<String> allowedKeys = ImmutableSet.copyOf(allowedOptions.get());
+      ImmutableList<String> invalid =
+          options.stream()
+              .filter(option -> !isAllowedOption(option, allowedKeys))
+              .collect(toImmutableList());
+      if (!invalid.isEmpty()) {
         throw new ValidationException(
             String.format(
                 "Push options have failed validation. The allowed push options are %s, but found"
                     + " push options not on the allowlist: %s",
-                allowedOptions.get(),
-                Sets.difference(new HashSet<>(options), new HashSet<>(allowedOptions.get()))));
+                allowedKeys, invalid));
       }
+    }
+
+    private static boolean isAllowedOption(String option, Set<String> allowedKeys) {
+      // Options can be key-value pairs, e.g. "option1=value1".
+      // In that case, check if the key is allowed instead of the whole option.
+      if (option.contains("=")) {
+        return allowedKeys.contains(option.substring(0, option.indexOf('=')));
+      }
+      return allowedKeys.contains(option);
     }
   }
 }
