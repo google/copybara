@@ -63,7 +63,7 @@ public final class SequenceTest {
     public TransformationStatus transform(TransformWork work) throws IOException {
       if (useTreeState) {
         if (expectCacheHit != null) {
-          assertWithMessage(name + "'s cache usage was incorrect")
+          assertWithMessage("%s's cache usage was incorrect", name)
               .that(work.getTreeState().isCached())
               .isEqualTo(expectCacheHit);
         }

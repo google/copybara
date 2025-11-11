@@ -275,13 +275,9 @@ public class ConsoleTest {
     assertThat(out.toString(StandardCharsets.UTF_8.name()))
         .endsWith("Do you want to proceed? [y/n] ");
     if (expectedResponse) {
-      assertWithMessage("Input text '" + inputText + "' should return true.")
-          .that(prompt)
-          .isTrue();
+      assertWithMessage("Input text '%s' should return true.", inputText).that(prompt).isTrue();
     } else {
-      assertWithMessage("Input text '" + inputText + "' should return false.")
-          .that(prompt)
-          .isFalse();
+      assertWithMessage("Input text '%s' should return false.", inputText).that(prompt).isFalse();
     }
   }
 }

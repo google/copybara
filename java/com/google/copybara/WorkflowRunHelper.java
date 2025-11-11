@@ -833,8 +833,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         result = writer.write(transformResult, getDestinationFiles(), processConsole);
       }
       Verify.verifyNotNull(result, "Destination returned a null result.");
-      Verify
-          .verify(!result.isEmpty(), "Destination " + writer + " returned an empty set of effects");
+      Verify.verify(!result.isEmpty(), "Destination %s returned an empty set of effects", writer);
 
       if (!mergeErrorPaths.isEmpty()) {
         DestinationEffect mergeErrorDestinationEffect =

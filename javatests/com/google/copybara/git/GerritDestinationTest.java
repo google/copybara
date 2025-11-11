@@ -153,15 +153,16 @@ public class GerritDestinationTest {
     String line = null;
     for (LabelFinder label : ChangeMessage.parseMessage(log.body()).getLabels()) {
       if (label.isLabel(GerritDestination.CHANGE_ID_LABEL)) {
-        assertWithMessage(log.body() + " has a Change-Id label that doesn't"
-            + " match the regex").that(label.getValue()).matches("I[0-9a-f]{40}$");
+        assertWithMessage("%s has a Change-Id label that doesn't" + " match the regex", log.body())
+            .that(label.getValue())
+            .matches("I[0-9a-f]{40}$");
         assertThat(line).isNull(); // Multiple Change-Ids are not allowed.
         line = label.getLine();
       }
     }
-    assertWithMessage(
-        "Cannot find " + GerritDestination.CHANGE_ID_LABEL + " in:\n" + log.body())
-        .that(line).isNotNull();
+    assertWithMessage("Cannot find %s in:\n%s", GerritDestination.CHANGE_ID_LABEL, log.body())
+        .that(line)
+        .isNotNull();
     return line;
   }
 
@@ -206,11 +207,12 @@ public class GerritDestinationTest {
     ImmutableSet<String> refs = repo.showRef().keySet();
     List<String> first = refs.stream()
         .filter(e -> compiled.matcher(e).find()).collect(Collectors.toList());
-    assertWithMessage("Multiple refs found: " + first).that((first.size() < 2))
-        .isTrue();
+    assertWithMessage("Multiple refs found: %s", first).that((first.size() < 2)).isTrue();
     if (first.isEmpty()) {
-      assertWithMessage("Cannot find reference " + refRegex + " in repo. Refs:\n    "
-          + Joiner.on("\n    ").join(refs)).fail();
+      assertWithMessage(
+              "Cannot find reference %s in repo. Refs:\n    %s",
+              refRegex, Joiner.on("\n    ").join(refs))
+          .fail();
     }
     return first.get(0);
   }
@@ -1870,9 +1872,9 @@ public class GerritDestinationTest {
                           "[{"
                               + "\"change_id\" : \"%s\", "
                               + "\"status\" : \"NEW\", "
-                              + "\"_number\" : \"" + changeNum + "\", "
+                              + "\"_number\" : \"%s\", "
                               + "\"current_revision\" : \"%s\"}]",
-                          change, currentRev.getSha1()));
+                          change, changeNum, currentRev.getSha1()));
                 });
   }
 

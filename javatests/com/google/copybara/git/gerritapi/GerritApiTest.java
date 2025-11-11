@@ -113,7 +113,7 @@ public class GerritApiTest {
               if (entry.getKey().test(requestString)) {
                 apiCalled.set(true);
                 byte[] content = entry.getValue();
-                assertWithMessage("'" + method + " " + url + "'").that(content).isNotNull();
+                assertWithMessage("'%s %s'", method, url).that(content).isNotNull();
                 if (content.length == 0) {
                   // No content
                   response.setStatusCode(204);

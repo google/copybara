@@ -124,12 +124,13 @@ public class LogSubjects {
           matches.add(message);
         }
       }
-      assertWithMessage(regex + " was not found in log the expected number of times (" + times + ")"
-          + " Do you have [] or other unescaped chars in the regex? Existing messages:"
-          + "\n--------\n"
-          + Joiner.on("\n").join(messages)
-          + "\n--------\n")
-          .that(matches).hasSize(times);
+      assertWithMessage(
+              "%s was not found in log the expected number of times (%s)"
+                  + " Do you have [] or other unescaped chars in the regex? Existing messages:"
+                  + "\n--------\n%s\n--------\n",
+              regex, times, Joiner.on("\n").join(messages))
+          .that(matches)
+          .hasSize(times);
       return this;
     }
 
@@ -139,11 +140,13 @@ public class LogSubjects {
           .isNotEmpty();
       Message next = messages.removeFirst();
       try {
-        assertWithMessage(regex + " does not match " + next.getText()
-            + ". Do you have [] or other unescaped chars in the regex?")
-            .that(next.getText()).matches(regex);
+        assertWithMessage(
+                "%s does not match %s. Do you have [] or other unescaped chars in the regex?",
+                regex, next.getText())
+            .that(next.getText())
+            .matches(regex);
         if (type != null) {
-          assertWithMessage("type of message with text: " + next.getText())
+          assertWithMessage("type of message with text: %s", next.getText())
               .that(next.getType())
               .isEqualTo(type);
         }

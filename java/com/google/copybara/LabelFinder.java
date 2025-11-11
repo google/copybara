@@ -145,7 +145,7 @@ public class LabelFinder {
   }
 
   private void checkIsLabel() {
-    checkState(isLabel(), "Not a label: '" + line + "'. Please call isLabel() first");
+    checkState(isLabel(), "Not a label: '%s'. Please call isLabel() first", line);
   }
 
   public String getLine() {

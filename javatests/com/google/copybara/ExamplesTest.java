@@ -71,14 +71,15 @@ public class ExamplesTest {
     // critical to have an accurate number, but that we don't lose at least these.
     assertWithMessage("Less examples than expected").that(result.size()).isAtLeast(48);
     Set<? extends Class<?>> modules = result.stream().map(e -> e.cls).collect(Collectors.toSet());
-    assertWithMessage("Less classes than expected: " + modules).that(modules.size()).isAtLeast(5);
+    assertWithMessage("Less classes than expected: %s", modules).that(modules.size()).isAtLeast(5);
 
     List<Result> errors = result.stream().filter(Result::isError).collect(Collectors.toList());
 
     assertWithMessage(
-        "Errors in examples(" + errors.size() + "):\n\n"
-            + Joiner.on("\n-----------------------------\n")
-            .join(errors)).that(errors).isEmpty();
+            "Errors in examples(%s):\n\n%s",
+            errors.size(), Joiner.on("\n-----------------------------\n").join(errors))
+        .that(errors)
+        .isEmpty();
   }
 
   protected SkylarkTestExecutor getExecutor() {

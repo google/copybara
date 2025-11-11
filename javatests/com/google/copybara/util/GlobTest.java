@@ -440,8 +440,9 @@ public class GlobTest {
     System.err.println("---------->" + expression + "<---------");
     System.err.println("---------->" + glob.toString() + "<---------");
     // Check toString implementation is a valid glob
-    assertWithMessage("Non-equal result for " + expression +" / " + glob)
-        .that(skylark.<Glob>eval("result", "result=" + glob.toString())).isEqualTo(glob);
+    assertWithMessage("Non-equal result for %s / %s", expression, glob)
+        .that(skylark.<Glob>eval("result", "result=" + glob.toString()))
+        .isEqualTo(glob);
     return glob;
   }
 }
