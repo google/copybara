@@ -27,7 +27,7 @@ import java.util.regex.Pattern;
  */
 public class WildcardRustVersionRequirement extends RustVersionRequirement {
   static final Pattern VALID_WILDCARD_FORMAT_REGEX =
-      Pattern.compile("^[0-9]+(\\.[0-9]+)?(\\.[0-9]+)?(\\.[*]){1}$");
+      Pattern.compile("^[0-9]+(\\.[0-9]+)?(\\.[0-9]+)?(\\.[*xX]){1}$");
 
   private WildcardRustVersionRequirement(String requirement) throws ValidationException {
     super(requirement);
@@ -54,7 +54,7 @@ public class WildcardRustVersionRequirement extends RustVersionRequirement {
   private SemanticVersion getRequiredVersion() throws ValidationException {
     // crates.io doesn't allow bare * versions
     // https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#wildcard-requirements
-    return SemanticVersion.createFromVersionString(requirement.replace("\\.*", ""));
+    return SemanticVersion.createFromVersionString(requirement.replace("\\.*", "").replace("\\.x", "").replace("\\.X",""));
   }
 
   private SemanticVersion getNextVersion() throws ValidationException {

@@ -24,21 +24,37 @@ import com.google.copybara.exception.ValidationException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import java.util.List;
+import java.util.Arrays;
 
 @RunWith(JUnit4.class)
 public class WildcardRustVersionRequirementTest {
   @Test
   public void testGetCorrectRustVersionRequirementObject() throws Exception {
-    assertThat(getVersionRequirement("1.2.*", false)).isInstanceOf(WildcardRustVersionRequirement.class);
+    List<String> versions = Arrays.asList("1.2.*", "1.2.x", "1.2.X", "1.*", "1.x", "1.X");
+    for (String version : versions) {
+            assertThat(getVersionRequirement(version, false)).isInstanceOf(WildcardRustVersionRequirement.class);
+    }
   }
 
   @Test
   public void testMultipleVersionRequirements() throws Exception {
-    assertThat(MultipleRustVersionRequirement.create("1.2.*").fulfills("1.2.5")).isTrue();
-    assertThat(MultipleRustVersionRequirement.create("1.2.*").fulfills("1.3.0")).isFalse();
-    assertThat(MultipleRustVersionRequirement.create("1.2.*").fulfills("1.0.1")).isFalse();
-    assertThat(MultipleRustVersionRequirement.create("1.2.*").fulfills("0.2.5")).isFalse();
-    assertThat(MultipleRustVersionRequirement.create("1.2.*").fulfills("2.0.0")).isFalse();
+    List<String> versions = Arrays.asList("1.2.*", "1.2.x", "1.2.X");
+    for (String version : versions) {
+        assertThat(MultipleRustVersionRequirement.create(version).fulfills("1.2.5")).isTrue();
+        assertThat(MultipleRustVersionRequirement.create(version).fulfills("1.3.0")).isFalse();
+        assertThat(MultipleRustVersionRequirement.create(version).fulfills("1.0.1")).isFalse();
+        assertThat(MultipleRustVersionRequirement.create(version).fulfills("0.2.5")).isFalse();
+        assertThat(MultipleRustVersionRequirement.create(version).fulfills("2.0.0")).isFalse();
+    }
+    versions = Arrays.asList("1.*", "1.x", "1.X");
+    for (String version : versions) {
+        assertThat(MultipleRustVersionRequirement.create(version).fulfills("1.2.5")).isTrue();
+        assertThat(MultipleRustVersionRequirement.create(version).fulfills("1.3.0")).isTrue();
+        assertThat(MultipleRustVersionRequirement.create(version).fulfills("1.0.1")).isTrue();
+        assertThat(MultipleRustVersionRequirement.create(version).fulfills("0.2.5")).isFalse();
+        assertThat(MultipleRustVersionRequirement.create(version).fulfills("2.0.0")).isFalse();
+    }
   }
 
   @Test
@@ -49,5 +65,15 @@ public class WildcardRustVersionRequirementTest {
     assertThat(e)
         .hasMessageThat()
         .contains("The string -6.2.3 is not a valid wildcard version requirement.");
+
+    List<String> versions = Arrays.asList("*", "x", "X");
+    for (String version : versions) {
+        e =
+            assertThrows(
+                ValidationException.class, () -> WildcardRustVersionRequirement.create(version));
+        assertThat(e)
+            .hasMessageThat()
+            .contains("The string " + version + " is not a valid wildcard version requirement.");
+    }
   }
 }
