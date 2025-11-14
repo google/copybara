@@ -19,6 +19,7 @@ package com.google.copybara.transform;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 
+import com.google.copybara.ModuleSet;
 import com.google.copybara.action.StarlarkAction;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
@@ -114,6 +115,16 @@ public class CoreTest {
                 skylark.eval(
                     "f", "core.transform([], name='foo')\ncore.transform([], name='foo')\n"));
     assertThat(expected).hasMessageThat().contains("Name `foo` already used.");
+  }
+
+  @Test
+  public void duplicateName_sameModuleSet_differentConfigFiles_shouldNotError() throws Exception {
+    ModuleSet moduleSet = skylark.createModuleSet();
+    var unused = skylark.evalWithModuleSet(
+        "f", "f = core.transform([], name='foo')\n", moduleSet);
+    // Should not throw.
+    unused = skylark.evalWithModuleSet(
+        "f", "f = core.transform([], name='foo')\n", moduleSet);
   }
 
   @Test

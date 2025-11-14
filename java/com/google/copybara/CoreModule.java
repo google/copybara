@@ -81,6 +81,7 @@ import com.google.re2j.Pattern;
 import java.nio.charset.Charset;
 import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.UnsupportedCharsetException;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IllegalFormatException;
 import java.util.Map;
@@ -140,6 +141,7 @@ public class CoreModule implements LabelsAwareModule, StarlarkValue {
   private ConfigFile mainConfigFile;
   private Supplier<ImmutableMap<String, ConfigFile>> allConfigFiles;
   private StarlarkThread.PrintHandler printHandler;
+  private final HashMap<ConfigFile, HashSet<String>> transformNames = new HashMap<>();
   @Nullable private SkylarkConsole console;
 
   public CoreModule(
@@ -1731,8 +1733,6 @@ public class CoreModule implements LabelsAwareModule, StarlarkValue {
         workflowOptions.parallelizer());
   }
 
-  private final HashSet<String> transformNames = new HashSet<>();
-
   @SuppressWarnings("unused")
   @StarlarkMethod(
       name = "transform",
@@ -1835,7 +1835,8 @@ public class CoreModule implements LabelsAwareModule, StarlarkValue {
       noopBehavior = Sequence.NoopBehavior.FAIL_IF_ANY_NOOP;
     }
     String convertedName = convertFromNoneable(name, null);
-    if (convertedName != null && !transformNames.add(convertedName)) {
+    transformNames.putIfAbsent(mainConfigFile, new HashSet<>());
+    if (convertedName != null && !transformNames.get(mainConfigFile).add(convertedName)) {
       throw new ValidationException(String.format("Name `%s` already used.", convertedName));
     }
     Sequence forward =
