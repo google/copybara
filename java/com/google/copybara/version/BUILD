@@ -33,6 +33,7 @@ java_library(
         "//java/com/google/copybara/revision",
         "//java/com/google/copybara/templatetoken",
         "//java/com/google/copybara/util/console",
+        "//third_party:error_prone",
         "//third_party:guava",
         "//third_party:jsr305",
         "//third_party:re2j",

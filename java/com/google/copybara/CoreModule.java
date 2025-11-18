@@ -107,6 +107,7 @@ import net.starlark.java.eval.StarlarkThread.PrintHandler;
 import net.starlark.java.eval.StarlarkValue;
 import net.starlark.java.eval.Structure;
 import net.starlark.java.syntax.Location;
+import com.google.copybara.version.CustomVersionSelector;
 
 /**
  * Main configuration class for creating migrations.
@@ -2275,6 +2276,53 @@ public class CoreModule implements LabelsAwareModule, StarlarkValue {
     } catch (IllegalFormatException e) {
       throw Starlark.errorf("Invalid format: %s: %s", format, e.getMessage());
     }
+  }
+
+  @Example(
+      title = "Create a simple custom version selector",
+      before =
+          "To define a simple custom version selector, define a callable that takes two strings and"
+              + " compares them.",
+      code =
+          """
+          core.custom_version_selector(
+              comparator = lambda left, right: -1 if left < right else 1 if left > right else 0,
+              regex_filter = r'.*'
+          )
+          """)
+  @StarlarkMethod(
+      name = "custom_version_selector",
+      doc =
+          "This is experimental: Custom version selector, users are able to define their own"
+              + " sorting comparator and filter candidates by regex. The custom version selector"
+              + " will choose the greatest version from the candidates that match the filter"
+              + " regex.",
+      parameters = {
+        @Param(
+            name = "comparator",
+            named = true,
+            doc =
+                "A callable comparator of two strings as a callable. The comparator should take two"
+                    + " strings arguments named 'left' and 'right' and return -1, 0, or 1.",
+            allowedTypes = {
+              @ParamType(type = StarlarkCallable.class),
+            }),
+        @Param(
+            name = "regex_filter",
+            named = true,
+            doc = "Only versions that match this regex will be considered.",
+            defaultValue = "None",
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            }),
+      },
+      useStarlarkThread = true)
+  public VersionSelector customVersionSelector(
+      StarlarkCallable comparator, Object rawRegexFilter, StarlarkThread thread)
+      throws EvalException {
+    String filterByRegex = convertFromNoneable(rawRegexFilter, /* defaultValue= */ null);
+    return new CustomVersionSelector(comparator, filterByRegex);
   }
 
   @SuppressWarnings("unused")
