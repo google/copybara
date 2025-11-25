@@ -24,5 +24,5 @@ steps:
 options:
   machine_type: N1_HIGHCPU_32
 substitutions:
-  _BAZEL_SHA256: e45b3b77bf94e6eeb9a2a7151e4474f75247cc52501e5da6a24f976d71e10b14
+  _BAZEL_SHA256: fedbeb377c97000d1ba27cfdcc22e1025303b4b0abffcd940a94250147fe0fcf
 timeout: 30m

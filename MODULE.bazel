@@ -4,21 +4,21 @@ module(
     compatibility_level = 0,
 )
 
-bazel_dep(name = "bazel_skylib", version = "1.7.1")
+bazel_dep(name = "bazel_skylib", version = "1.8.1")
 bazel_dep(name = "blake3", version = "1.5.1.bcr.1")
 bazel_dep(name = "buildifier_prebuilt", version = "6.4.0")
 bazel_dep(name = "grpc", version = "1.73.1", repo_name = "com_github_grpc_grpc")
 bazel_dep(name = "grpc-java", version = "1.71.0")
-bazel_dep(name = "platforms", version = "0.0.10")
-bazel_dep(name = "protobuf", version = "29.0", repo_name = "com_google_protobuf")
-bazel_dep(name = "rules_cc", version = "0.1.1")
-bazel_dep(name = "rules_java", version = "8.11.0")
+bazel_dep(name = "platforms", version = "1.0.0")
+bazel_dep(name = "protobuf", version = "32.1", repo_name = "com_google_protobuf")
+bazel_dep(name = "rules_cc", version = "0.2.13")
+bazel_dep(name = "rules_java", version = "9.0.3")
 bazel_dep(name = "rules_jvm_external", version = "6.5")
 bazel_dep(name = "rules_license", version = "1.0.0")
 bazel_dep(name = "rules_shell", version = "0.3.0")
 
 bazel_dep(name = "rules_pkg", version = "1.0.1")
-bazel_dep(name = "rules_python", version = "0.40.0")
+bazel_dep(name = "rules_python", version = "1.4.1")
 bazel_dep(name = "zstd-jni", version = "1.5.6-9")
 
 

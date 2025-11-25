@@ -4962,7 +4962,7 @@ Parameter | Description
 
 Causes execution to fail with an error.
 
-<code>fail(<a href=#fail.msg>msg</a>=None, <a href=#fail.attr>attr</a>=None, <a href=#fail.sep>sep</a>=" ", <a href=#fail.args>args</a>)</code>
+<code>fail(<a href=#fail.msg>msg</a>=None, <a href=#fail.attr>attr</a>=None, <a href=#fail.sep>sep</a>=" ", <a href=#fail.stack_trace>stack_trace</a>=True, <a href=#fail.args>args</a>)</code>
 
 
 <h4 id="parameters.fail">Parameters:</h4>
@@ -4972,6 +4972,7 @@ Parameter | Description
 <span id=fail.msg href=#fail.msg>msg</span> | <code>unknown</code><br><p>Deprecated: use positional arguments instead. This argument acts like an implicit leading positional argument.</p>
 <span id=fail.attr href=#fail.attr>attr</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>Deprecated. Causes an optional prefix containing this string to be added to the error message.</p>
 <span id=fail.sep href=#fail.sep>sep</span> | <code><a href="#string">string</a></code><br><p>The separator string between the objects, default is space (" ").</p>
+<span id=fail.stack_trace href=#fail.stack_trace>stack_trace</span> | <code><a href="#bool">bool</a></code><br><p>If False stack trace is elided from failure for friendlier user messages</p>
 <span id=fail.args href=#fail.args>args</span> | <code><a href="#list">list</a></code><br><p>A list of values, formatted with debugPrint (which is equivalent to str by default) and joined with sep (defaults to " "), that appear in the error message.</p>
 
 <a id="float" aria-hidden="true"></a>
