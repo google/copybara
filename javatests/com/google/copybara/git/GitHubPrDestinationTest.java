@@ -1110,6 +1110,25 @@ public class GitHubPrDestinationTest {
     assertThat(status.getPendingChanges()).isEmpty();
   }
 
+  @Test
+  public void testParseGithubHostName() throws Exception {
+    String customHost = "ghes.example.com";
+    String orgAndRepoName = "my-org/my-repo";
+    String url = "https://" + customHost + "/" + orgAndRepoName;
+    GitHubPrDestination d =
+        skylark.eval(
+            "r",
+            String.format(
+                "r = git.github_pr_destination("
+                    + "    url = '%s',"
+                    + "    destination_ref = 'main',"
+                    + "    github_host_name = '%s'"
+                    + ")",
+                url, customHost));
+
+    assertThat(d.getProjectName()).isEqualTo(orgAndRepoName);
+  }
+
   private void mockNoPullRequestsGet(String branchName) {
     gitUtil.mockApi("GET", getPullRequestsUrl(branchName), mockResponse("[]"));
   }

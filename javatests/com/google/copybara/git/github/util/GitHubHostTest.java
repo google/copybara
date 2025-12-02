@@ -105,4 +105,11 @@ public class GitHubHostTest {
     assertThat(host.getUserNameFromUrl("git@some.company.example.com:foo/bar.git"))
         .isEqualTo("foo");
   }
+
+  @Test
+  public void testIsGithubUrl() throws Exception {
+    GitHubHost ghesHost = new GitHubHost("depot.code.corp.goog");
+    assertThat(ghesHost.isGitHubUrl("git@depot.code.corp.goog:si/copybara")).isTrue();
+    assertThat(ghesHost.isGitHubUrl("git@github.com:foo/bar.git")).isFalse();
+  }
 }
