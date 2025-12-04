@@ -1402,7 +1402,13 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             positional = false,
             doc =
                 "The repo id of the github repository, used as a stable reference to the repo for"
-                    + " validation.")
+                    + " validation."),
+        @Param(
+            name = "github_host_name",
+            defaultValue = "'github.com'",
+            named = true,
+            positional = false,
+            documented = false)
       },
       useStarlarkThread = true)
   @UsesFlags({GitOriginOptions.class, GitHubOptions.class})
@@ -1420,9 +1426,11 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Boolean enableLfs,
       @Nullable Object credentials,
       @Nullable Object repoId,
+      String githubHostName,
       StarlarkThread thread)
       throws EvalException {
-    check(GITHUB_COM.isGitHubUrl(checkNotEmpty(url, "url")), "Invalid Github URL: %s", url);
+    GitHubHost githubHost = new GitHubHost(githubHostName);
+    check(githubHost.isGitHubUrl(checkNotEmpty(url, "url")), "Invalid Github URL: %s", url);
 
     if (versionSelector != Starlark.NONE) {
       check(

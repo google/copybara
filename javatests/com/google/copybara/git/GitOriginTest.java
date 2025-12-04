@@ -1232,6 +1232,56 @@ public class GitOriginTest {
             "main_branch_change");
   }
 
+  @Test
+  public void testParseGithubHostName() throws Exception {
+    String customHost = "ghes.example.com";
+    String url = "https://" + customHost + "/my-org/my-repo";
+    origin =
+        skylark.eval(
+            "r",
+            String.format(
+                "r = git.github_origin(" + "    url = '%s'," + "    github_host_name = '%s'" + ")",
+                url, customHost));
+
+    assertThat(origin.toString()).contains(url);
+  }
+
+  @Test
+  public void testCorrectGithubUrlGitOrigin() throws Exception {
+    String customHost = "ghes.example.com";
+    String orgAndRepoName = "my-org/my-repo";
+    String url = "https://" + customHost + "/" + orgAndRepoName;
+    GitOrigin origin =
+        skylark.eval(
+            "r",
+            String.format(
+                "r = git.github_origin(" + "    url = '%s'," + "    github_host_name = '%s'" + ")",
+                url, customHost));
+
+    assertThat(origin.toString()).contains(orgAndRepoName);
+  }
+
+  @Test
+  public void testInvalidGithubUrlGitOrigin() throws Exception {
+    String customHost = "ghes.example.com";
+    String orgAndRepoName = "my-org/my-repo";
+    String url = "https://" + customHost + "/" + orgAndRepoName;
+
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                skylark.eval(
+                    "r",
+                    String.format(
+                        "r = git.github_origin("
+                            + "    url = '%s',"
+                            + "    github_host_name = 'gitrepo.gitcentral.git.com'"
+                            + ")",
+                        url)));
+    assertThat(e).hasMessageThat().contains("Invalid Github URL");
+  }
+
   @SuppressWarnings("unchecked")
   private ImmutableList<? extends Change<?>> checkChangesMergeNoop(boolean importNoopChanges)
       throws Exception {
