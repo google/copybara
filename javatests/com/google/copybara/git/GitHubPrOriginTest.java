@@ -1483,6 +1483,25 @@ public class GitHubPrOriginTest {
     assertThat(result.getPassword_BeCareful()).isEqualTo("top_secret");
   }
 
+  @Test
+  public void testParseGithubPrOrigin() throws Exception {
+    String customHost = "ghes.example.com";
+    String orgAndRepoName = "my-org/my-repo";
+    String url = "https://" + customHost + "/" + orgAndRepoName;
+    GitHubPrOrigin origin =
+        skylark.eval(
+            "r",
+            String.format(
+                "r = git.github_pr_origin("
+                    + "    url = '%s',"
+                    + "    github_host_name = '%s'"
+                    + ")",
+                url, customHost));
+
+    assertThat(origin.toString()).contains(orgAndRepoName);
+    assertThat(origin.toString()).contains(customHost);
+  }
+
   private void checkResolve(GitHubPrOrigin origin, String reference, int prNumber)
       throws RepoException, IOException, ValidationException {
     GitRepository remote = gitUtil.mockRemoteRepo("github.com/google/example");

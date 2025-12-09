@@ -1151,7 +1151,15 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "None",
             named = true,
             positional = false,
-            doc = CREDENTIAL_DOC)
+            doc = CREDENTIAL_DOC),
+        @Param(
+            name = "github_host_name",
+            defaultValue = "'github.com'",
+            named = true,
+            positional = false,
+            doc =
+                "**EXPERIMENTAL feature.** The host name of the GitHub repository, used to"
+                    + " construct the URL. Required for GitHub Enterprise.")
       },
       useStarlarkThread = true)
   @UsesFlags({GitHubPrOriginOptions.class, GitOriginOptions.class, GitHubOptions.class})
@@ -1176,10 +1184,12 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object branch,
       Object describeVersion,
       @Nullable Object credentials,
+      String githubHostName,
       StarlarkThread thread)
       throws EvalException {
     checkNotEmpty(url, "url");
-    check(GITHUB_COM.isGitHubUrl(url), "Invalid Github URL: %s", url);
+    GitHubHost githubHost = new GitHubHost(githubHostName);
+    check(githubHost.isGitHubUrl(url), "Invalid Github URL: %s", url);
     PatchTransformation patchTransformation = maybeGetPatchTransformation(patch);
 
     List<String> excludedSubmoduleList =
