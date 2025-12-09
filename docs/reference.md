@@ -3506,6 +3506,7 @@ Parameter | Description
 <span id=git.github_origin.enable_lfs href=#git.github_origin.enable_lfs>enable_lfs</span> | <code><a href="#bool">bool</a></code><br><p>If true, Large File Storage support is enabled for the origin.</p>
 <span id=git.github_origin.credentials href=#git.github_origin.credentials>credentials</span> | <code>UsernamePasswordIssuer</code> or <code>NoneType</code><br><p>EXPERIMENTAL: Read credentials from config file to access the Git Repo. This expects a 'credentials.username_password' specifying the username to use for the remote git host and a password or token. This is gated by the '--use-credentials-from-config' flag</p>
 <span id=git.github_origin.repo_id href=#git.github_origin.repo_id>repo_id</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>The repo id of the github repository, used as a stable reference to the repo for validation.</p>
+<span id=git.github_origin.github_host_name href=#git.github_origin.github_host_name>github_host_name</span> | <code><a href="#string">string</a></code><br><p>**EXPERIMENTAL feature** The github host name of the repository.</p>
 
 
 
@@ -3552,6 +3553,7 @@ Parameter | Description
 <span id=git.github_pr_destination.checker href=#git.github_pr_destination.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker that validates the commit files & message. If `api_checker` is not set, it will also be used for checking API calls. If only `api_checker`is used, that checker will only apply to API calls.</p>
 <span id=git.github_pr_destination.draft href=#git.github_pr_destination.draft>draft</span> | <code><a href="#bool">bool</a></code><br><p>Flag create pull request as draft or not.</p>
 <span id=git.github_pr_destination.credentials href=#git.github_pr_destination.credentials>credentials</span> | <code>UsernamePasswordIssuer</code> or <code>NoneType</code><br><p>EXPERIMENTAL: Read credentials from config file to access the Git Repo. This expects a 'credentials.username_password' specifying the username to use for the remote git host and a password or token. This is gated by the '--use-credentials-from-config' flag</p>
+<span id=git.github_pr_destination.github_host_name href=#git.github_pr_destination.github_host_name>github_host_name</span> | <code><a href="#string">string</a></code><br><p>**EXPERIMENTAL feature** The GitHub host name to use for the migration.</p>
 
 
 <h4 id="example.git.github_pr_destination">Examples:</h4>

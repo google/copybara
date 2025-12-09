@@ -147,6 +147,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
           + USE_CREDENTIALS_FROM_CONFIG
           + "' flag";
 
+  private static final String EXPERIMENTAL_PREFIX = "**EXPERIMENTAL feature** ";
   public static final String GITLAB_CREDENTIAL_DOC =
       "Read credentials from config file to access the GitLab Repo. This expects a"
           + " `credentials.username_password` specifying the username to use for the remote GitLab"
@@ -1408,7 +1409,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "'github.com'",
             named = true,
             positional = false,
-            documented = false)
+            doc = EXPERIMENTAL_PREFIX + "The github host name of the repository.")
       },
       useStarlarkThread = true)
   @UsesFlags({GitOriginOptions.class, GitHubOptions.class})
@@ -2268,7 +2269,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "'github.com'",
             named = true,
             positional = false,
-            documented = false)
+            doc = EXPERIMENTAL_PREFIX + "The GitHub host name to use for the migration.")
       },
       useStarlarkThread = true)
   @UsesFlags({GitDestinationOptions.class, GitHubDestinationOptions.class, GitHubOptions.class})
