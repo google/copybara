@@ -323,6 +323,25 @@ public class GitDestinationTest {
   }
 
   @Test
+  public void parseGithubHostName() throws Exception {
+    String customHost = "ghes.example.com";
+    String orgAndRepoName = "my-org/my-repo";
+    String url = "https://" + customHost + "/" + orgAndRepoName;
+    GitDestination destination =
+        skylark.eval(
+            "r",
+            String.format(
+                "r = git.github_destination("
+                    + "    url = '%s',"
+                    + "    github_host_name = '%s'"
+                    + ")",
+                url, customHost));
+
+    assertThat(destination.toString()).contains(orgAndRepoName);
+    assertThat(destination.toString()).contains(customHost);
+  }
+
+  @Test
   public void processFirstCommit() throws Exception {
     fetch = "testPullFromRef";
     push = "testPushToRef";

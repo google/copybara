@@ -1979,8 +1979,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             named = true,
             positional = false,
             doc = CREDENTIAL_DOC),
-       // Experimental flag to push to a fork instead of the main repo.
-       // Do not use this flag.
+        // Experimental flag to push to a fork instead of the main repo.
+        // Do not use this flag.
         @Param(
             name = "push_to_fork",
             allowedTypes = {
@@ -1990,6 +1990,14 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             named = true,
             positional = false,
             documented = false),
+        @Param(
+            name = "github_host_name",
+            defaultValue = "'github.com'",
+            named = true,
+            positional = false,
+            doc =
+                "**EXPERIMENTAL feature.** The host name of the GitHub repository, used to"
+                    + " construct the URL. Required for GitHub Enterprise.")
       },
       useStarlarkThread = true)
   @UsesFlags({GitDestinationOptions.class, GitHubOptions.class})
@@ -2010,6 +2018,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object checker,
       @Nullable Object credentials,
       Boolean pushToFork,
+      String githubHostName,
       StarlarkThread thread)
       throws EvalException {
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
@@ -2043,10 +2052,12 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
 
     Checker apiCheckerObj = convertFromNoneable(apiChecker, null);
     Checker checkerObj = convertFromNoneable(checker, null);
+    GitHubHost githubHost = new GitHubHost(githubHostName);
     CredentialFileHandler credentialHandler;
     try {
-      credentialHandler = getCredentialHandler(
-          GITHUB_COM.getHost(), GITHUB_COM.getProjectNameFromUrl(url), credentials);
+      credentialHandler =
+          getCredentialHandler(
+              githubHost.getHost(), githubHost.getProjectNameFromUrl(url), credentials);
     } catch (ValidationException e) {
       throw new EvalException("Cannot parse url", e);
     }
@@ -2071,7 +2082,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             effectiveDeletePrBranch,
             getGeneralConsole(),
             apiCheckerObj != null ? apiCheckerObj : checkerObj,
-            GITHUB_COM,
+            githubHost,
             credentialHandler,
             pushToFork),
         Starlark.isNullOrNone(integrates)
