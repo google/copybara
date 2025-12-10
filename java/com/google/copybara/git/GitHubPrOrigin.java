@@ -28,6 +28,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
+import com.google.common.base.MoreObjects.ToStringHelper;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Collections2;
@@ -73,7 +74,6 @@ import com.google.copybara.revision.Change;
 import com.google.copybara.transform.patch.PatchTransformation;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
-import com.google.common.base.MoreObjects.ToStringHelper;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
@@ -915,7 +915,8 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
 
   @Override
   public String toString() {
-    ToStringHelper helper = MoreObjects.toStringHelper(this).add("url", url);
+    ToStringHelper helper =
+        MoreObjects.toStringHelper(this).add("ghHost", ghHost.getHost()).add("url", url);
     return helper.toString();
   }
 }

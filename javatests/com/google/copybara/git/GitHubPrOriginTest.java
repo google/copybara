@@ -1498,8 +1498,8 @@ public class GitHubPrOriginTest {
                     + ")",
                 url, customHost));
 
-    assertThat(origin.toString()).contains(orgAndRepoName);
-    assertThat(origin.toString()).contains(customHost);
+    assertThat(origin.toString()).contains("ghHost=" + customHost);
+    assertThat(origin.toString()).contains("url=" + url);
   }
 
   private void checkResolve(GitHubPrOrigin origin, String reference, int prNumber)

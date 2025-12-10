@@ -1280,7 +1280,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         patchTransformation,
         convertFromNoneable(branch, null),
         convertDescribeVersion(describeVersion),
-        GITHUB_COM,
+        githubHost,
         githubPreSubmitApprovalsProvider(fixedUrl, credHandler),
         credHandler,
         /* gitRepositoryHook= */ null);
