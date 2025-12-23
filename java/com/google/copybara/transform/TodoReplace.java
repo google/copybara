@@ -95,9 +95,11 @@ public class TodoReplace implements Transformation {
   }
 
   private Pattern createPattern(ImmutableList<String> todoTags) {
-    return Pattern.compile("((?:"
-        + Joiner.on("|").join(todoTags.stream().map(Pattern::quote).collect(Collectors.toList()))
-        + ") ?)\\((.*?)\\)");
+    return Pattern.compile(
+        "((?:"
+            + Joiner.on("|")
+                .join(todoTags.stream().map(Pattern::quote).collect(Collectors.toList()))
+            + ") ?)(?:\\((.*?)\\):|: (.*?) -)");
   }
 
   @Override
@@ -125,16 +127,25 @@ public class TodoReplace implements Transformation {
       StringBuffer sb = new StringBuffer();
       boolean modified = false;
       while (matcher.find()) {
-        if (matcher.group(2).trim().isEmpty()) {
-          matcher.appendReplacement(sb, matcher.group(0));
+        boolean newTodoFormat = matcher.group(3) != null;
+        String matchedUsers = newTodoFormat ? matcher.group(3) : matcher.group(2);
+        if (matchedUsers.trim().isEmpty()) {
+          matcher.appendReplacement(sb, matcher.group(0) + ":");
           continue;
         }
-        List<String> users = Splitter.on(",").splitToList(matcher.group(2));
+        List<String> users = Splitter.on(",").splitToList(matchedUsers);
         List<String> mappedUsers = mapUsers(users, matcher.group(0), file.getPath(), console);
         modified |= !users.equals(mappedUsers);
         String result = matcher.group(1);
         if (!mappedUsers.isEmpty()) {
-          result += "(" + Joiner.on(",").join(mappedUsers) + ")";
+          String todoContent = Joiner.on(",").join(mappedUsers);
+          if (newTodoFormat) {
+            result += ": " + todoContent + " -";
+          } else {
+            result += "(" + todoContent + "):";
+          }
+        } else {
+          result += ":";
         }
         matcher.appendReplacement(sb, Matcher.quoteReplacement(result));
       }
