@@ -239,7 +239,8 @@ public class GerritDestinationTest {
             originRef,
             console -> new DummyEndpoint(),
             console -> gitRevisionWriter.getFeedbackEndPoint(console),
-            () -> gitRevisionWriter.getDestinationReader(console, "foo", workdir));
+            () -> gitRevisionWriter.getDestinationReader(console, "foo", workdir),
+            "SQUASH");
     ImmutableList<DestinationEffect> result =
         gitRevisionWriter
             .write(

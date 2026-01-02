@@ -420,6 +420,82 @@ public class TransformWorkTest {
   }
 
   @Test
+  public void squashModeSquashFlagSetToFalse_setsTransformWorkModeToSquash()
+      throws IOException, ValidationException, RepoException {
+    FileSystem fileSystem = Jimfs.newFileSystem();
+    Path base = fileSystem.getPath("foo");
+    touchFile(base.resolve("not_important.txt"), "");
+    Files.createDirectories(workdir.resolve("folder"));
+    origin.addChange(0, base, "message", /* matchesGlob= */ true);
+    OptionsBuilder options = new OptionsBuilder();
+    console = new TestingConsole();
+    options.setConsole(console);
+    options.testingOptions.origin = origin;
+    options.testingOptions.destination = destination;
+    options.setForce(true);
+    var unused = options.setSquash(false);
+    runWorkflow(
+        "test",
+        """
+        def test(ctx):
+            ctx.console.info('Mode is: ' + ctx.mode)
+        """,
+        "SQUASH",
+        options);
+    console.assertThat().onceInLog(MessageType.INFO, "Mode is: SQUASH");
+  }
+
+  @Test
+  public void iterativeModeSquashFlagSetToFalse_setsTransformWorkModeToIterative()
+      throws IOException, ValidationException, RepoException {
+    origin.addSimpleChangeWithFixedReference(0, "0");
+    origin.addSimpleChangeWithFixedReference(1, "1");
+    OptionsBuilder options = new OptionsBuilder();
+    console = new TestingConsole();
+    options.setConsole(console);
+    options.testingOptions.origin = origin;
+    options.testingOptions.destination = destination;
+    options.setLastRevision("0");
+    options.setForce(true);
+    var unused = options.setSquash(false);
+
+    runWorkflow(
+        "test",
+        """
+        def test(ctx):
+            ctx.console.info('Mode is: ' + ctx.mode)
+        """,
+        "ITERATIVE",
+        options);
+    console.assertThat().onceInLog(MessageType.INFO, "Mode is: ITERATIVE");
+  }
+
+  @Test
+  public void iterativeModeSquashFlagSetToTrue_setsTransformWorkModeToSquash()
+      throws IOException, ValidationException, RepoException {
+    origin.addSimpleChangeWithFixedReference(0, "0");
+    origin.addSimpleChangeWithFixedReference(1, "1");
+    OptionsBuilder options = new OptionsBuilder();
+    console = new TestingConsole();
+    options.setConsole(console);
+    options.testingOptions.origin = origin;
+    options.testingOptions.destination = destination;
+    options.setLastRevision("0");
+    options.setForce(true);
+    var unused = options.setSquash(true);
+
+    runWorkflow(
+        "test",
+        """
+        def test(ctx):
+            ctx.console.info('Mode is: ' + ctx.mode)
+        """,
+        "ITERATIVE",
+        options);
+    console.assertThat().onceInLog(MessageType.INFO, "Mode is: SQUASH");
+  }
+
+  @Test
   public void testConsoleError() throws IOException, ValidationException, RepoException {
     FileSystem fileSystem = Jimfs.newFileSystem();
     Path base = fileSystem.getPath("foo");
@@ -715,6 +791,22 @@ public class TransformWorkTest {
   }
 
   @Test
+  public void canAccessModeInDynamicTransform() throws Exception {
+    Transformation transformation =
+        skylark.eval(
+            "transformation",
+            """
+            def test(ctx):
+                ctx.console.info('Mode is: ' + ctx.mode)
+
+            transformation = core.transform([test])
+            """);
+
+    transformation.transform(TransformWorks.of(workdir, "test", console, "SQUASH"));
+    console.assertThat().onceInLog(MessageType.INFO, "Mode is: SQUASH");
+  }
+
+  @Test
   public void testSymlinks_escape() throws Exception {
     Path base = Files.createDirectories(workdir.resolve("foo"));
     Path badTarget = Files.createTempFile("badPrefix", "THE CONTENT");
@@ -761,7 +853,8 @@ transformation = core.transform([test])
 
   @Test
   public void symlinks_withCwdSymlink_worksCorrectly() throws Exception {
-    workdir = Files.createSymbolicLink(workdir.resolve("symlink"), workdir).resolve("nested_workdir");
+    workdir =
+        Files.createSymbolicLink(workdir.resolve("symlink"), workdir).resolve("nested_workdir");
     Path base = Files.createDirectories(workdir.resolve("foo"));
     Files.write(
         Files.createDirectory(base.resolve("a")).resolve("file.txt"),
@@ -924,6 +1017,28 @@ transformation = core.transform([test])
         + "    transformations = [" + functionName + "],\n"
         + "    authoring = authoring.pass_thru('foo <foo@foo.com>'),\n"
         + ")\n").getMigration("default").run(workdir, ImmutableList.of());
+  }
+
+  private void runWorkflow(
+      String functionName, String function, String mode, OptionsBuilder options)
+      throws RepoException, IOException, ValidationException {
+    SkylarkTestExecutor skylark = new SkylarkTestExecutor(options);
+
+    skylark
+        .loadConfig(
+            """
+            %s
+            core.workflow(
+                name = 'default',
+                origin = testing.origin(),
+                destination = testing.destination(),
+                transformations = [%s],
+                authoring = authoring.pass_thru('foo <foo@foo.com>'),
+                mode = '%s')
+            """
+                .formatted(function, functionName, mode))
+        .getMigration("default")
+        .run(workdir, ImmutableList.of());
   }
 
   private void checkAddLabel(String originalMsg, String expected) throws Exception {

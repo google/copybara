@@ -112,6 +112,7 @@ public final class TransformWork extends CheckoutFileSystem
   private final LazyResourceLoader<Endpoint> destinationApi;
   private final ResourceSupplier<DestinationReader> destinationReader;
   @Nullable private final DestinationInfo destinationInfo;
+  private final String mode;
 
   public TransformWork(
       Path checkoutDir,
@@ -122,7 +123,8 @@ public final class TransformWork extends CheckoutFileSystem
       Revision resolvedReference,
       LazyResourceLoader<Endpoint> originApi,
       LazyResourceLoader<Endpoint> destinationApi,
-      ResourceSupplier<DestinationReader> destinationReader) {
+      ResourceSupplier<DestinationReader> destinationReader,
+      String mode) {
     this(
         checkoutDir,
         metadata,
@@ -138,7 +140,8 @@ public final class TransformWork extends CheckoutFileSystem
         originApi,
         destinationApi,
         destinationReader,
-        /* destinationInfo= */ null);
+        /* destinationInfo= */ null,
+        mode);
   }
 
   private TransformWork(
@@ -156,7 +159,8 @@ public final class TransformWork extends CheckoutFileSystem
       LazyResourceLoader<Endpoint> originApi,
       LazyResourceLoader<Endpoint> destinationApi,
       ResourceSupplier<DestinationReader> destinationReader,
-      @Nullable DestinationInfo destinationInfo) {
+      @Nullable DestinationInfo destinationInfo,
+      String mode) {
     super(checkoutDir);
     this.metadata = Preconditions.checkNotNull(metadata);
     this.changes = changes;
@@ -172,6 +176,7 @@ public final class TransformWork extends CheckoutFileSystem
     this.destinationApi = Preconditions.checkNotNull(destinationApi);
     this.destinationReader = Preconditions.checkNotNull(destinationReader);
     this.destinationInfo = destinationInfo;
+    this.mode = mode;
   }
 
   /**
@@ -181,6 +186,12 @@ public final class TransformWork extends CheckoutFileSystem
   @StarlarkMethod(name = "message", doc = "Message to be used in the change", structField = true)
   public String getMessage() {
     return metadata.getMessage();
+  }
+
+  /** The workflow mode. */
+  @StarlarkMethod(name = "mode", doc = "The workflow mode", structField = true)
+  public String getMode() {
+    return this.mode;
   }
 
   @StarlarkMethod(name = "author", doc = "Author to be used in the change", structField = true)
@@ -615,7 +626,8 @@ public final class TransformWork extends CheckoutFileSystem
         originApi,
         destinationApi,
         destinationReader,
-        destinationInfo);
+        destinationInfo,
+        mode);
   }
 
   /**
@@ -643,7 +655,8 @@ public final class TransformWork extends CheckoutFileSystem
         originApi,
         destinationApi,
         destinationReader,
-        destinationInfo);
+        destinationInfo,
+        mode);
   }
 
   @VisibleForTesting
@@ -664,7 +677,8 @@ public final class TransformWork extends CheckoutFileSystem
         originApi,
         destinationApi,
         destinationReader,
-        destinationInfo);
+        destinationInfo,
+        mode);
   }
 
   @VisibleForTesting
@@ -684,7 +698,8 @@ public final class TransformWork extends CheckoutFileSystem
         originApi,
         destinationApi,
         destinationReader,
-        destinationInfo);
+        destinationInfo,
+        mode);
   }
 
   @VisibleForTesting
@@ -705,7 +720,8 @@ public final class TransformWork extends CheckoutFileSystem
         originApi,
         destinationApi,
         destinationReader,
-        destinationInfo);
+        destinationInfo,
+        mode);
   }
 
   public TransformWork insideExplicitTransform() {
@@ -725,7 +741,8 @@ public final class TransformWork extends CheckoutFileSystem
         originApi,
         destinationApi,
         destinationReader,
-        destinationInfo);
+        destinationInfo,
+        mode);
   }
 
   public TransformWork withCurrentRev(Revision currentRev) {
@@ -745,7 +762,8 @@ public final class TransformWork extends CheckoutFileSystem
         originApi,
         destinationApi,
         destinationReader,
-        destinationInfo);
+        destinationInfo,
+        mode);
   }
 
   public TransformWork withDestinationInfo(@Nullable DestinationInfo newDestinationInfo) {
@@ -764,7 +782,8 @@ public final class TransformWork extends CheckoutFileSystem
         originApi,
         destinationApi,
         destinationReader,
-        newDestinationInfo);
+        newDestinationInfo,
+        mode);
   }
 
   /**

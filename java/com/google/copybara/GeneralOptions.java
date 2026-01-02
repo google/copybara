@@ -295,6 +295,11 @@ public final class GeneralOptions implements Option {
     this.fileSystem = fileSystem;
   }
 
+  @VisibleForTesting
+  public void setSquashForTest(boolean squash) {
+    this.squash = squash;
+  }
+
   public GeneralOptions withProfiler(Profiler profiler) {
     this.profiler = Preconditions.checkNotNull(profiler);
     return this;

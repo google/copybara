@@ -160,6 +160,11 @@ public class OptionsBuilder {
     return this;
   }
 
+  public final OptionsBuilder setSquash(boolean squash) {
+    general.setSquashForTest(squash);
+    return this;
+  }
+
   /**
    * Returns all options to include in the built {@link Options} instance. This can be overridden by
    * child classes, in which case it should also include the superclass' instances.

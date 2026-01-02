@@ -641,7 +641,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                   getResolvedRefForTransform(rev),
                   originApi,
                   destinationApi,
-                  destinationReader)
+                  destinationReader,
+                  workflow.getMode().toString())
               .withLastRev(lastRev)
               .withCurrentRev(rev)
               .withDestinationInfo(writer.getDestinationInfo());
@@ -691,7 +692,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                               getResolvedRefForTransform(rev),
                               destinationApi,
                               originApi,
-                              () -> DestinationReader.NOT_IMPLEMENTED)
+                              () -> DestinationReader.NOT_IMPLEMENTED,
+                              workflow.getMode().toString())
                           .withDestinationInfo(writer.getDestinationInfo()));
           if (status.isNoop()) {
             console.warnFmt("No-op detected running the transformations in reverse. The most"
@@ -1103,18 +1105,19 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
 
       TransformWork baselineTransformWork =
           new TransformWork(
-              baselineWorkdir,
-              // We don't care about the message or author and this guarantees that it will
-              // work with the transformations
-              metadata,
-              // We don't care about the changes that are imported.
-              Changes.EMPTY,
-              baselineConsole,
-              new MigrationInfo(workflow.getRevIdLabel(), writer),
-              resolvedRef,
-              originApi,
-              destinationApi,
-              destinationReader)
+                  baselineWorkdir,
+                  // We don't care about the message or author and this guarantees that it will
+                  // work with the transformations
+                  metadata,
+                  // We don't care about the changes that are imported.
+                  Changes.EMPTY,
+                  baselineConsole,
+                  new MigrationInfo(workflow.getRevIdLabel(), writer),
+                  resolvedRef,
+                  originApi,
+                  destinationApi,
+                  destinationReader,
+                  workflow.getMode().toString())
               // Again, we don't care about this
               .withLastRev(lastRev)
               .withCurrentRev(baseline)

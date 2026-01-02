@@ -44,14 +44,22 @@ public class TransformWorks {
    * Creates an instance with reasonable defaults for testing.
    */
   public static TransformWork of(Path checkoutDir, String msg, Console console) {
+    return of(checkoutDir, msg, console, "SQUASH");
+  }
+
+  /** Creates an instance with reasonable defaults for testing, including a migration mode. */
+  public static TransformWork of(Path checkoutDir, String msg, Console console, String mode) {
     return new TransformWork(
         checkoutDir,
         new Metadata(msg, new Author("foo", "foo@foo.com"), ImmutableSetMultimap.of()),
         Changes.EMPTY,
         console,
         new MigrationInfo(DummyOrigin.LABEL_NAME, /* destinationVisitable= */ null),
-        new DummyRevision("1234567890"), c -> new DummyEndpoint(), c -> new DummyEndpoint(),
-        () -> DestinationReader.NOT_IMPLEMENTED);
+        new DummyRevision("1234567890"),
+        c -> new DummyEndpoint(),
+        c -> new DummyEndpoint(),
+        () -> DestinationReader.NOT_IMPLEMENTED,
+        mode);
   }
 
   /** Creates an instance with reasonable defaults for testing, including a DestinationReader */
@@ -66,7 +74,8 @@ public class TransformWorks {
         new DummyRevision("1234567890"),
         c -> new DummyEndpoint(),
         c -> new DummyEndpoint(),
-        () -> destinationReader);
+        () -> destinationReader,
+        "SQUASH");
   }
 
   /**
@@ -80,8 +89,11 @@ public class TransformWorks {
         Changes.EMPTY,
         console,
         new MigrationInfo(DummyOrigin.LABEL_NAME, /* destinationVisitable= */ null),
-        new DummyRevision("1234567890"), originApi, destinationApi,
-        () -> DestinationReader.NOT_IMPLEMENTED);
+        new DummyRevision("1234567890"),
+        originApi,
+        destinationApi,
+        () -> DestinationReader.NOT_IMPLEMENTED,
+        "SQUASH");
   }
 
 

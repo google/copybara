@@ -8615,6 +8615,7 @@ author | <code><a href="#author">author</a></code><br><p>Author to be used in th
 changes | <code><a href="#changes">Changes</a></code><br><p>List of changes that will be migrated</p>
 console | <code>Console</code><br><p>Get an instance of the console to report errors or warnings</p>
 message | <code><a href="#string">string</a></code><br><p>Message to be used in the change</p>
+mode | <code><a href="#string">string</a></code><br><p>The workflow mode</p>
 params | <code><a href="#dict">dict</a></code><br><p>Parameters for the function if created with core.dynamic_transform</p>
 
 
