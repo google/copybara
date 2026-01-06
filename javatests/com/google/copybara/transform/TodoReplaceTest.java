@@ -117,26 +117,6 @@ public final class TodoReplaceTest {
   }
 
   @Test
-  public void testNewTodoMapping() throws Exception {
-    TodoReplace replace = todoReplace("mapping = { 'aaa': 'foo', 'bbb' : 'bar'}");
-    write("one", "" + "aaa\n" + "// TODO: aaa, bbb,other - Example\n");
-    write("two", "// TODO: aaa - Other Example\n");
-    run(replace);
-
-    assertThatPath(checkoutDir)
-        .containsFile("one", "" + "aaa\n" + "// TODO: foo, bar,other - Example\n")
-        .containsFile("two", "// TODO: foo - Other Example\n")
-        .containsNoMoreFiles();
-
-    run(replace.reverse());
-
-    assertThatPath(checkoutDir)
-        .containsFile("one", "" + "aaa\n" + "// TODO: aaa, bbb,other - Example\n")
-        .containsFile("two", "// TODO: aaa - Other Example\n")
-        .containsNoMoreFiles();
-  }
-
-  @Test
   public void testMultipleNotFound() throws Exception {
     TodoReplace replace = todoReplace("mapping = { 'test': 'foo'}");
     write("one", "# TODO(danmane,mrry,opensource): Flip these switches\n");
@@ -166,7 +146,7 @@ public final class TodoReplaceTest {
     ValidationException notFound = assertThrows(ValidationException.class, () -> run(replace));
     assertThat(notFound)
         .hasMessageThat()
-        .contains("Cannot find a mapping 'bbb' in 'TODO(bbb):' (/one.txt)");
+        .contains("Cannot find a mapping 'bbb' in 'TODO(bbb)' (/one.txt)");
     // Does not conform the pattern for users
     write("one.txt", "// TODO(aaa foo/1234): Example\n");
 
@@ -259,11 +239,6 @@ public final class TodoReplaceTest {
     assertThatPath(checkoutDir)
         .containsFile("one.txt", "// TODO: Example\n")
         .containsNoMoreFiles();
-
-    // and the new format
-    write("one.txt", "// TODO: aaa, bbb - Example\n");
-    run(replace);
-    assertThatPath(checkoutDir).containsFile("one.txt", "// TODO: Example\n").containsNoMoreFiles();
 
     // Does not conform the pattern, will be scrubbed anyway
     write("one.txt", "// TODO(aaa, bbb foo/1234): Example\n");
