@@ -329,7 +329,6 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
               @ParamType(type = NoneType.class),
             },
             defaultValue = "None",
-            documented = true,
             named = true,
             positional = false,
             doc =

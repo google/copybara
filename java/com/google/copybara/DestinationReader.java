@@ -32,13 +32,8 @@ import net.starlark.java.eval.NoneType;
 import net.starlark.java.eval.StarlarkList;
 import net.starlark.java.eval.StarlarkValue;
 
-/**
- * An api handle to read files from the destination, rather than just the origin.
- */
-@StarlarkBuiltin(
-    name = "destination_reader",
-    doc = "Handle to read from the destination",
-    documented = true)
+/** An api handle to read files from the destination, rather than just the origin. */
+@StarlarkBuiltin(name = "destination_reader", doc = "Handle to read from the destination")
 public abstract class DestinationReader implements StarlarkValue {
 
   public static final DestinationReader NOT_IMPLEMENTED =

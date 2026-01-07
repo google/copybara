@@ -52,7 +52,6 @@ public class ArchiveModule implements StarlarkValue {
   @StarlarkMethod(
       name = "create",
       doc = "Creates an archive, possibly compressed, from a list of files.",
-      documented = true,
       parameters = {
         @Param(
             name = "archive",
@@ -86,7 +85,6 @@ public class ArchiveModule implements StarlarkValue {
   @StarlarkMethod(
       name = "extract",
       doc = "Extract the contents of the archive to a path.",
-      documented = true,
       parameters = {
         @Param(name = "archive", named = true, doc = "The path to the archive file."),
         @Param(

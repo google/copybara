@@ -54,8 +54,7 @@ import net.starlark.java.eval.StarlarkValue;
  */
 @StarlarkBuiltin(
     name = "origin",
-    doc = "A Origin represents a source control repository from which source is copied.",
-    documented = true)
+    doc = "A Origin represents a source control repository from which source is copied.")
 public interface Origin<R extends Revision> extends ConfigItemDescription, StarlarkValue {
 
   /**

@@ -23,10 +23,7 @@ import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.eval.StarlarkValue;
 
 /** An interface for performing checks and transformations on change descriptions. */
-@StarlarkBuiltin(
-    name = "description_checker",
-    doc = "A checker to be run on change descriptions",
-    documented = true)
+@StarlarkBuiltin(name = "description_checker", doc = "A checker to be run on change descriptions")
 public interface DescriptionChecker extends StarlarkValue {
 
   /**

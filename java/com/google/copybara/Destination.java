@@ -38,8 +38,7 @@ import net.starlark.java.eval.StarlarkValue;
 /** A repository which a source of truth can be copied to. */
 @StarlarkBuiltin(
     name = "destination",
-    doc = "A repository which a source of truth can be copied to",
-    documented = true)
+    doc = "A repository which a source of truth can be copied to")
 public interface Destination<R extends Revision> extends ConfigItemDescription, StarlarkValue {
 
   /**

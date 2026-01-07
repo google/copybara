@@ -159,16 +159,18 @@ public class RustModule implements StarlarkValue {
       doc =
           "Represents a Cargo version requirement. You can compare version strings against this"
               + "object to determine if they meet this requirement or not. ",
-      documented = true,
       parameters = {
         @Param(name = "requirement", named = true, doc = "The Cargo version requirement"),
-        @Param(name = "allow_epochs", named = true, defaultValue = "False", doc = "Allow epoch version requirements"),
+        @Param(
+            name = "allow_epochs",
+            named = true,
+            defaultValue = "False",
+            doc = "Allow epoch version requirements"),
       })
   @Example(
       title = "Create a version requirement object",
       before = "Example:  Create a requirement object and compare a version string against it.",
-      code =
-          "rust.create_version_requirement(\">= 0.5\")")
+      code = "rust.create_version_requirement(\">= 0.5\")")
   @SuppressWarnings("unused")
   public RustVersionRequirement getVersionRequirement(String requirement, boolean allowEpochs)
       throws ValidationException {
@@ -405,12 +407,15 @@ public class RustModule implements StarlarkValue {
       documented = false,
       parameters = {
         @Param(name = "requirement", named = true, doc = "The Cargo version requirement"),
-        @Param(name = "allow_epochs", named = true, defaultValue = "False", doc = "Allow epoch version requirements"),
-
+        @Param(
+            name = "allow_epochs",
+            named = true,
+            defaultValue = "False",
+            doc = "Allow epoch version requirements"),
       })
   @SuppressWarnings("unused")
-  public RustCratesIoVersionSelector getCratesIoVersionSelector(String requirement, boolean allowEpochs)
-      throws ValidationException {
+  public RustCratesIoVersionSelector getCratesIoVersionSelector(
+      String requirement, boolean allowEpochs) throws ValidationException {
     return new RustCratesIoVersionSelector(
         RustVersionRequirement.getVersionRequirement(requirement, allowEpochs));
   }
