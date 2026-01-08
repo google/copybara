@@ -562,6 +562,12 @@ public class GitTestUtil {
           String.format("Expected request to contain '%s'", expected), s -> s.contains(expected));
     }
 
+    public static MockRequestAssertion doesNotContain(String expected) {
+      return new MockRequestAssertion(
+          String.format("Expected request to not contain '%s'", expected),
+          s -> !s.contains(expected));
+    }
+
     public static MockRequestAssertion equals(String expected) {
       return new MockRequestAssertion(
           String.format("Expected request to be equal to '%s'", expected), s -> s.equals(expected));

@@ -18,6 +18,7 @@ package com.google.copybara.git;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Utf8;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Endpoint;
@@ -62,7 +63,16 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
 
   private final boolean allowSubmitChange;
 
-  GerritEndpoint(LazyResourceLoader<GerritApi> apiSupplier, String url, Console console,
+  private static final int GERRIT_MAX_MESSAGE_BYTES = 16 << 10;
+  private static final String TRUNCATED_PREFIX = "(truncated): ";
+  private static final int TRUNCATED_PREFIX_BYTES = Utf8.encodedLength(TRUNCATED_PREFIX);
+  private static final int TRUNCATED_MESSAGE_MAX_BYTES =
+      TRUNCATED_PREFIX_BYTES + GERRIT_MAX_MESSAGE_BYTES;
+
+  GerritEndpoint(
+      LazyResourceLoader<GerritApi> apiSupplier,
+      String url,
+      Console console,
       boolean allowSubmitChange) {
     this.apiSupplier = Preconditions.checkNotNull(apiSupplier);
     this.url = Preconditions.checkNotNull(url);
@@ -165,14 +175,28 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
       })
   public ReviewResult postReview(String changeId, String revisionId, SetReviewInput reviewInput)
       throws EvalException, ValidationException {
+    SetReviewInput finalReviewInput = maybeTruncateMessage(reviewInput);
     try {
       GerritApi gerritApi = apiSupplier.load(console);
-      return gerritApi.setReview(changeId, revisionId, reviewInput);
+      return gerritApi.setReview(changeId, revisionId, finalReviewInput);
     } catch (GerritApiException re) {
       throw handleGerritApiException(re, "post_review");
     } catch (RepoException | ValidationException | RuntimeException e) {
       throw new EvalException("Error calling post_review: " + e.getMessage(), e);
     }
+  }
+
+  private static SetReviewInput maybeTruncateMessage(SetReviewInput reviewInput) {
+    if (reviewInput.getMessage() != null
+        && Utf8.encodedLength(reviewInput.getMessage()) > GERRIT_MAX_MESSAGE_BYTES) {
+      String nonTruncatedMessage = TRUNCATED_PREFIX + reviewInput.getMessage();
+      String truncatedMessage =
+          // Assume each char is largest case scenario of 4 bytes
+          nonTruncatedMessage.substring(0, TRUNCATED_MESSAGE_MAX_BYTES / 4);
+      return SetReviewInput.create(
+          truncatedMessage, reviewInput.getLabels(), reviewInput.getTag(), reviewInput.getNotify());
+    }
+    return reviewInput;
   }
 
   @StarlarkMethod(

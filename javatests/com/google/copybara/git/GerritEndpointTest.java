@@ -540,6 +540,58 @@ public class GerritEndpointTest {
   }
 
   @Test
+  public void testPostMessageTooLongHasPrefix() throws Exception {
+    int maxMessageBytes = 16 << 10;
+    // Every UTF-8 character is at least 1 byte, and then we add 1 to push it over the limit.
+    String reallyLongMessageString = new String(new char[maxMessageBytes + 1]).replace('\0', 'a');
+    gitUtil.mockApi(
+        eq("POST"),
+        matches(BASE_URL + "/changes/.*/revisions/.*/review"),
+        mockResponse(postLabel()));
+    gitUtil.mockApi(
+        eq("POST"),
+        contains("/changes/12345/revisions/sha1/review"),
+        mockResponseAndValidateRequest(
+            postLabel(), MockRequestAssertion.contains("\"message\":\"(truncated): ")));
+    runFeedback(
+        ImmutableList.<String>builder()
+            .add(
+                "res = ctx.destination.post_review('12345', 'sha1',"
+                    + " git.review_input({'Code-Review': 1}, '"
+                    + reallyLongMessageString
+                    + "'))")
+            .addAll(checkFieldStarLark("res", "labels", "{'Code-Review': 1}"))
+            .build());
+  }
+
+  @Test
+  public void testPostMessageTooLongTruncated() throws Exception {
+    int maxMessageBytes = 16 << 10;
+    // Every UTF-8 character is at least 1 byte, and then we add 1 to push it over the limit.
+    String reallyLongMessageString = new String(new char[maxMessageBytes + 1]).replace('\0', 'a');
+    gitUtil.mockApi(
+        eq("POST"),
+        matches(BASE_URL + "/changes/.*/revisions/.*/review"),
+        mockResponse(postLabel()));
+    gitUtil.mockApi(
+        eq("POST"),
+        contains("/changes/12345/revisions/sha1/review"),
+        mockResponseAndValidateRequest(
+            postLabel(),
+            MockRequestAssertion.doesNotContain(
+                "\"message\":\"" + reallyLongMessageString + "\"")));
+    runFeedback(
+        ImmutableList.<String>builder()
+            .add(
+                "res = ctx.destination.post_review('12345', 'sha1',"
+                    + " git.review_input({'Code-Review': 1}, '"
+                    + reallyLongMessageString
+                    + "'))")
+            .addAll(checkFieldStarLark("res", "labels", "{'Code-Review': 1}"))
+            .build());
+  }
+
+  @Test
   public void testPostTag() throws Exception {
     gitUtil.mockApi(
         eq("POST"),

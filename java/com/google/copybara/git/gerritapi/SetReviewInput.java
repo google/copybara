@@ -76,6 +76,10 @@ public class SetReviewInput implements StarlarkValue {
     return labels;
   }
 
+  public NotifyType getNotify() {
+    return notify;
+  }
+
   @Nullable public String getTag() {
     return tag;
   }
