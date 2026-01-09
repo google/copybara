@@ -147,8 +147,10 @@ public class CredentialFileHandlerTest {
         .isEqualTo("anotherToken");
     assertThat(new String(Files.readAllBytes(file), UTF_8))
         .isEqualTo(
-            "https://x-access-token:yetAnotherToken@github.com/google/copybara\n"
-                + "https://x-access-token:anotherToken@github.com/copybara/google\n");
+            """
+            https://x-access-token:yetAnotherToken@github.com/google/copybara
+            https://x-access-token:anotherToken@github.com/copybara/google
+            """);
     assertThat(underTest1.getScrubbedFileContentForDebug(file)).doesNotContain("Token");
     assertThat(underTest1.getScrubbedFileContentForDebug(file))
         .contains("x-access-token:<scrubbed>@");

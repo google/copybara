@@ -121,11 +121,13 @@ public class GitHubTriggerTest {
     GitHubTrigger gitHubTrigger =
         skylarkTestExecutor.eval(
             "e",
-            "e = git.github_trigger(\n"
-                + "  url = 'https://github.com/google/example', \n"
-                + "  checker = testing.dummy_checker(),\n"
-                + "  events = ['STATUS', 'ISSUES'],\n"
-                + ")\n");
+            """
+            e = git.github_trigger(
+              url = 'https://github.com/google/example',\s
+              checker = testing.dummy_checker(),
+              events = ['STATUS', 'ISSUES'],
+            )
+            """);
 
     assertThat(gitHubTrigger.describe()).containsExactly(
         "type", "github_trigger",

@@ -59,13 +59,15 @@ public final class HttpEndpointUrlEncodedFormContentTest {
     var unused =
         starlark.eval(
             "resp",
-            "endpoint = testing.get_endpoint(\n"
-                + "  http.endpoint(host = \"foo.com\")\n"
-                + "  )\n"
-                + "resp = endpoint.post(\n"
-                + "  url = \"http://foo.com\",\n"
-                + "  content = http.urlencoded_form({})\n"
-                + ")");
+            """
+            endpoint = testing.get_endpoint(
+              http.endpoint(host = "foo.com")
+              )
+            resp = endpoint.post(
+              url = "http://foo.com",
+              content = http.urlencoded_form({})
+            )\
+            """);
   }
 
   @Test
@@ -78,15 +80,17 @@ public final class HttpEndpointUrlEncodedFormContentTest {
         });
     starlark.eval(
         "resp",
-        "endpoint = testing.get_endpoint(\n"
-            + "  http.endpoint(host = \"foo.com\")\n"
-            + "  )\n"
-            + "resp = endpoint.post(\n"
-            + "  url = \"http://foo.com\",\n"
-            + "  content = http.urlencoded_form({\n"
-            + "    \"testfield\": \"http://foo.com\",\n"
-            + "    \"foofield\": \"@special#\",\n"
-            + "  })\n"
-            + ")");
+        """
+        endpoint = testing.get_endpoint(
+          http.endpoint(host = "foo.com")
+          )
+        resp = endpoint.post(
+          url = "http://foo.com",
+          content = http.urlencoded_form({
+            "testfield": "http://foo.com",
+            "foofield": "@special#",
+          })
+        )\
+        """);
   }
 }

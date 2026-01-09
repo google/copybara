@@ -41,15 +41,17 @@ import org.junit.runners.JUnit4;
 public class BuildozerPrintExecutorTest {
 
   public static final String BUILD_FILE =
-      "cc_library(\n"
-          + "    name = \"bar_library\",\n"
-          + "    srcs = [\n"
-          + "        \"foo.cc\",\n"
-          + "    ],\n"
-          + "    deps = [\n"
-          + "        \"//base\",\n"
-          + "    ],\n"
-          + ")";
+      """
+      cc_library(
+          name = "bar_library",
+          srcs = [
+              "foo.cc",
+          ],
+          deps = [
+              "//base",
+          ],
+      )\
+      """;
   private OptionsBuilder options;
   private Path checkoutDir;
   private TestingConsole console;
@@ -99,15 +101,17 @@ public class BuildozerPrintExecutorTest {
     transform(t);
     assertThat(Files.readString(checkoutDir.resolve("outfile")).trim())
         .isEqualTo(
-            "cc_library(\n"
-                + "    name = \"bar_library\",\n"
-                + "    srcs = [\n"
-                + "        \"foo.cc\",\n"
-                + "    ],\n"
-                + "    deps = [\n"
-                + "        \"//base\",\n"
-                + "    ],\n"
-                + ")");
+            """
+            cc_library(
+                name = "bar_library",
+                srcs = [
+                    "foo.cc",
+                ],
+                deps = [
+                    "//base",
+                ],
+            )\
+            """);
   }
 
   @Test

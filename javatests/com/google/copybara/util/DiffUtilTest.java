@@ -86,7 +86,12 @@ public class DiffUtilTest {
     writeFile(right, "file1.txt", "foo\r\n");
     writeFile(right, "file2.txt", "foo\r");
     Map<String, String> env =
-        setDotGitconfigContents("[core]\n" + "autocrlf=true\n" + "safecrlf=warn\n");
+        setDotGitconfigContents(
+            """
+            [core]
+            autocrlf=true
+            safecrlf=warn
+            """);
 
     byte[] diffContents = DiffUtil.diff(left, right, VERBOSE, env);
 
@@ -139,13 +144,15 @@ public class DiffUtilTest {
     assertThat(diffContentsIgnoreCr).isEmpty();
     assertThat(diffContents)
         .isEqualTo(
-            "diff --git a/left/file1.txt b/right/file1.txt\n"
-                + "index e48b03e..257cc56 100644\n"
-                + "--- a/left/file1.txt\n"
-                + "+++ b/right/file1.txt\n"
-                + "@@ -1 +1 @@\n"
-                + "-foo\r\n"
-                + "+foo\n");
+            """
+            diff --git a/left/file1.txt b/right/file1.txt
+            index e48b03e..257cc56 100644
+            --- a/left/file1.txt
+            +++ b/right/file1.txt
+            @@ -1 +1 @@
+            -foo\r
+            +foo
+            """);
   }
 
   @Test
@@ -166,10 +173,14 @@ public class DiffUtilTest {
         DiffUtil.filterDiff(
             DiffUtil.diff(left, right, VERBOSE, testEnv), f -> f.equals("left/file1.txt"));
     assertThat(one).contains("diff --git a/left/file1.txt b/right/file1.txt");
-    assertThat(one).contains("-foo-left\n"
-        + "\\ No newline at end of file\n"
-        + "+foo-right\n"
-        + "\\ No newline at end of file");
+    assertThat(one)
+        .contains(
+            """
+            -foo-left
+            \\ No newline at end of file
+            +foo-right
+            \\ No newline at end of file\
+            """);
     assertThat(one).doesNotContain("diff --git a/left/file2.txt b/right/file2.txt");
   }
 
@@ -179,21 +190,28 @@ public class DiffUtilTest {
     writeFile(left, "file1.txt", "foo-left");
     writeFile(right, "file1.txt", "foo-right");
 
-    Map<String, String> env = setDotGitconfigContents("[diff]\n" + "noprefix = true\n");
+    Map<String, String> env =
+        setDotGitconfigContents(
+            """
+            [diff]
+            noprefix = true
+            """);
 
     // diffutil ignores git prefix setting
     byte[] bytes = DiffUtil.diff(left, right, VERBOSE, env);
     assertThat(new String(bytes, StandardCharsets.UTF_8))
         .isEqualTo(
-            "diff --git a/left/file1.txt b/right/file1.txt\n"
-                + "index 5ca5c10..5fcb760 100644\n"
-                + "--- a/left/file1.txt\n"
-                + "+++ b/right/file1.txt\n"
-                + "@@ -1 +1 @@\n"
-                + "-foo-left\n"
-                + "\\ No newline at end of file\n"
-                + "+foo-right\n"
-                + "\\ No newline at end of file\n");
+            """
+            diff --git a/left/file1.txt b/right/file1.txt
+            index 5ca5c10..5fcb760 100644
+            --- a/left/file1.txt
+            +++ b/right/file1.txt
+            @@ -1 +1 @@
+            -foo-left
+            \\ No newline at end of file
+            +foo-right
+            \\ No newline at end of file
+            """);
   }
 
   @Test
@@ -233,13 +251,15 @@ public class DiffUtilTest {
     writeFile(right, "file1.txt", "b\n");
 
     String patch =
-        "diff --git a/left/file1.txt b/right/file1.txt\n"
-            + "index e48b03e..257cc56 100644\n"
-            + "--- a/left/file1.txt\n"
-            + "+++ b/right/file1.txt\n"
-            + "@@ -1 +1 @@\n"
-            + "-a\n"
-            + "+b\n";
+        """
+        diff --git a/left/file1.txt b/right/file1.txt
+        index e48b03e..257cc56 100644
+        --- a/left/file1.txt
+        +++ b/right/file1.txt
+        @@ -1 +1 @@
+        -a
+        +b
+        """;
 
     String patchName = "patch.txt";
     writeFile(rootPath, patchName, patch);

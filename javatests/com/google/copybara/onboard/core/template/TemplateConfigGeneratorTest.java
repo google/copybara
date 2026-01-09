@@ -148,7 +148,10 @@ public class TemplateConfigGeneratorTest {
         };
     assertThat(generator.generate(RESOLVER))
         .isEqualTo(
-            "load('//devtools/bar/baz', 'bara')\n" + "load('//devtools/foo/bar', 'one', 'two')\n");
+            """
+            load('//devtools/bar/baz', 'bara')
+            load('//devtools/foo/bar', 'one', 'two')
+            """);
   }
 
   @Test

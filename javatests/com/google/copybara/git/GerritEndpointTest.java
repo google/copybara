@@ -112,10 +112,12 @@ public class GerritEndpointTest {
   public void testParsingWithChecker() throws Exception {
     skylark.eval(
         "e",
-        "e = git.gerrit_api(\n"
-            + "url = 'https://test.googlesource.com/example', \n"
-            + "checker = testing.dummy_checker(),\n"
-            + ")\n");
+        """
+        e = git.gerrit_api(
+        url = 'https://test.googlesource.com/example',\s
+        checker = testing.dummy_checker(),
+        )
+        """);
   }
 
   @Test
@@ -251,123 +253,126 @@ public class GerritEndpointTest {
         eq("GET"),
         startsWith(BASE_URL + "/changes/"),
         mockResponse(
-            "{\n"
-                + "  \"id\": \"copybara-project~Ie39b6e2c0c6e5ef8839013360bba38238c6ecfcd\",\n"
-                + "  \"project\": \"copybara-project\",\n"
-                + "  \"branch\": \"master\",\n"
-                + "  \"topic\": \"test_topic\",\n"
-                + "  \"hashtags\": [],\n"
-                + "  \"change_id\": \"Ie39b6e2c0c6e5ef8839013360bba38238c6ecfcd\",\n"
-                + "  \"subject\": \"JUST A TEST\",\n"
-                + "  \"status\": \"NEW\",\n"
-                + "  \"created\": \"2017-12-01 17:33:30.000000000\",\n"
-                + "  \"updated\": \"2017-12-02 17:33:30.000000000\",\n"
-                + "  \"submitted\": \"2017-12-03 17:33:30.000000000\",\n"
-                + "  \"submit_type\": \"MERGE_IF_NECESSARY\",\n"
-                + "  \"submittable\": true,\n"
-                + "  \"insertions\": 2,\n"
-                + "  \"deletions\": 10,\n"
-                + "  \"unresolved_comment_count\": 0,\n"
-                + "  \"has_review_started\": true,\n"
-                + "  \"_number\": 1082,\n"
-                + "  \"owner\": {\n"
-                + "    \"_account_id\": 12345,\n"
-                + "    \"name\": \"Glorious Copybara\",\n"
-                + "    \"email\": \"no-reply@glorious-copybara.com\",\n"
-                + "    \"secondary_emails\": [\"foo@bar.com\"],\n"
-                + "    \"username\": \"glorious.copybara\"\n"
-                + "  },\n"
-                + "  \"labels\": {\n"
-                + "    \"Code-Review\": {\n"
-                + "      \"all\": [\n"
-                + "        {\n"
-                + "          \"value\": 2,\n"
-                + "          \"date\": \"2017-01-01 12:00:00.000000000\",\n"
-                + "          \"permitted_voting_range\": {\n"
-                + "            \"min\": 2,\n"
-                + "            \"max\": 2\n"
-                + "          },\n"
-                + "          \"_account_id\": 123456\n"
-                + "        },\n"
-                + "        {\n"
-                + "          \"value\": 0,\n"
-                + "          \"_account_id\": 123456\n"
-                + "        },\n"
-                + "        {\n"
-                + "          \"value\": 0,\n"
-                + "          \"_account_id\": 123456\n"
-                + "        }\n"
-                + "      ],\n"
-                + "      \"values\": {\n"
-                + "        \"-2\": \"Do not submit\",\n"
-                + "        \"-1\": \"I would prefer that you didn\\u0027t submit this\",\n"
-                + "        \" 0\": \"No score\",\n"
-                + "        \"+1\": \"Looks good to me, but someone else must approve\",\n"
-                + "        \"+2\": \"Looks good to me, approved\"\n"
-                + "      },\n"
-                + "      \"default_value\": 0\n"
-                + "    }\n"
-                + "},\n"
-                + "  \"current_revision\": \"foo\",\n"
-                + "  \"revisions\": {\n"
-                + "    \"foo\": {\n"
-                + "      \"kind\": \"REWORK\",\n"
-                + "      \"_number\": 1,\n"
-                + "      \"created\": \"2017-12-07 19:11:59.000000000\",\n"
-                + "      \"uploader\": {\n"
-                + "        \"_account_id\": 12345\n"
-                + "      },\n"
-                + "      \"ref\": \"refs/changes/11/11111/1\",\n"
-                + "      \"fetch\": {\n"
-                + "        \"https\": {\n"
-                + "          \"url\": \"https://foo.bar/copybara/test\",\n"
-                + "          \"ref\": \"refs/changes/11/11111/1\"\n"
-                + "        }\n"
-                + "      },\n"
-                + "      \"commit\": {\n"
-                + "        \"parents\": [\n"
-                + "          {\n"
-                + "            \"commit\": \"e6b7772add9d2137fd5f879192bd249dfc4d0a00\",\n"
-                + "            \"subject\": \"Parent commit description.\"\n"
-                + "          }\n"
-                + "        ],\n"
-                + "        \"author\": {\n"
-                + "          \"name\": \"Glorious Copybara\",\n"
-                + "          \"email\": \"no-reply@glorious-copybara.com\",\n"
-                + "          \"date\": \"2017-12-01 00:00:00.000000000\",\n"
-                + "          \"tz\": -480\n"
-                + "        },\n"
-                + "        \"committer\": {\n"
-                + "          \"name\": \"Glorious Copybara\",\n"
-                + "          \"email\": \"no-reply@glorious-copybara.com\",\n"
-                + "          \"date\": \"2017-12-01 00:00:00.000000000\",\n"
-                + "          \"tz\": -480\n"
-                + "        },\n"
-                + "        \"subject\": \"JUST A TEST\",\n"
-                + "        \"message\": \"JUST A TEST\\n\\nSecond line of description.\n\"\n"
-                + "      }\n"
-                + "    }\n"
-                + "  },\n"
-                + "  \"messages\": [\n"
-                + "      {\n"
-                + "        \"id\": \"e6aa8a323fd948cc9986dd4d8b4c253487bab253\",\n"
-                + "        \"tag\": \"autogenerated:gerrit:newPatchSet\",\n"
-                + "        \"author\": {\n"
-                + "          \"_account_id\": 12345,\n"
-                + "          \"name\": \"Glorious Copybara\",\n"
-                + "          \"email\": \"no-reply@glorious-copybara.com\"\n"
-                + "        },\n"
-                + "        \"real_author\": {\n"
-                + "          \"_account_id\": 12345,\n"
-                + "          \"name\": \"Glorious Copybara\",\n"
-                + "          \"email\": \"no-reply@glorious-copybara.com\"\n"
-                + "        },\n"
-                + "        \"date\": \"2017-12-01 00:00:00.000000000\",\n"
-                + "        \"message\": \"Uploaded patch set 1.\",\n"
-                + "        \"_revision_number\": 1\n"
-                + "      }\n"
-                + "  ]\n"
-                + "}\n"));
+            """
+            {
+              "id": "copybara-project~Ie39b6e2c0c6e5ef8839013360bba38238c6ecfcd",
+              "project": "copybara-project",
+              "branch": "master",
+              "topic": "test_topic",
+              "hashtags": [],
+              "change_id": "Ie39b6e2c0c6e5ef8839013360bba38238c6ecfcd",
+              "subject": "JUST A TEST",
+              "status": "NEW",
+              "created": "2017-12-01 17:33:30.000000000",
+              "updated": "2017-12-02 17:33:30.000000000",
+              "submitted": "2017-12-03 17:33:30.000000000",
+              "submit_type": "MERGE_IF_NECESSARY",
+              "submittable": true,
+              "insertions": 2,
+              "deletions": 10,
+              "unresolved_comment_count": 0,
+              "has_review_started": true,
+              "_number": 1082,
+              "owner": {
+                "_account_id": 12345,
+                "name": "Glorious Copybara",
+                "email": "no-reply@glorious-copybara.com",
+                "secondary_emails": ["foo@bar.com"],
+                "username": "glorious.copybara"
+              },
+              "labels": {
+                "Code-Review": {
+                  "all": [
+                    {
+                      "value": 2,
+                      "date": "2017-01-01 12:00:00.000000000",
+                      "permitted_voting_range": {
+                        "min": 2,
+                        "max": 2
+                      },
+                      "_account_id": 123456
+                    },
+                    {
+                      "value": 0,
+                      "_account_id": 123456
+                    },
+                    {
+                      "value": 0,
+                      "_account_id": 123456
+                    }
+                  ],
+                  "values": {
+                    "-2": "Do not submit",
+                    "-1": "I would prefer that you didn\\u0027t submit this",
+                    " 0": "No score",
+                    "+1": "Looks good to me, but someone else must approve",
+                    "+2": "Looks good to me, approved"
+                  },
+                  "default_value": 0
+                }
+            },
+              "current_revision": "foo",
+              "revisions": {
+                "foo": {
+                  "kind": "REWORK",
+                  "_number": 1,
+                  "created": "2017-12-07 19:11:59.000000000",
+                  "uploader": {
+                    "_account_id": 12345
+                  },
+                  "ref": "refs/changes/11/11111/1",
+                  "fetch": {
+                    "https": {
+                      "url": "https://foo.bar/copybara/test",
+                      "ref": "refs/changes/11/11111/1"
+                    }
+                  },
+                  "commit": {
+                    "parents": [
+                      {
+                        "commit": "e6b7772add9d2137fd5f879192bd249dfc4d0a00",
+                        "subject": "Parent commit description."
+                      }
+                    ],
+                    "author": {
+                      "name": "Glorious Copybara",
+                      "email": "no-reply@glorious-copybara.com",
+                      "date": "2017-12-01 00:00:00.000000000",
+                      "tz": -480
+                    },
+                    "committer": {
+                      "name": "Glorious Copybara",
+                      "email": "no-reply@glorious-copybara.com",
+                      "date": "2017-12-01 00:00:00.000000000",
+                      "tz": -480
+                    },
+                    "subject": "JUST A TEST",
+                    "message": "JUST A TEST\\n\\nSecond line of description.
+            "
+                  }
+                }
+              },
+              "messages": [
+                  {
+                    "id": "e6aa8a323fd948cc9986dd4d8b4c253487bab253",
+                    "tag": "autogenerated:gerrit:newPatchSet",
+                    "author": {
+                      "_account_id": 12345,
+                      "name": "Glorious Copybara",
+                      "email": "no-reply@glorious-copybara.com"
+                    },
+                    "real_author": {
+                      "_account_id": 12345,
+                      "name": "Glorious Copybara",
+                      "email": "no-reply@glorious-copybara.com"
+                    },
+                    "date": "2017-12-01 00:00:00.000000000",
+                    "message": "Uploaded patch set 1.",
+                    "_revision_number": 1
+                  }
+              ]
+            }
+            """));
     runFeedback(
         ImmutableList.<String>builder()
             .add("res = ctx.destination.get_change('12345', include_results = ['LABELS'])")

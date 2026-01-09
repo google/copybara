@@ -65,30 +65,40 @@ public final class ReplaceTest {
 
   @Test
   public void invalidRegex() throws ValidationException {
-    skylark.evalFails("core.replace(\n"
-            + "  before = '${foo}',\n"
-            + "  after = '${foo}bar',\n"
-            + "  regex_groups = {\n"
-            + "       'foo' : '(unfinished group',\n"
-            + "  },\n"
-            + ")",
+    skylark.evalFails(
+        """
+        core.replace(
+          before = '${foo}',
+          after = '${foo}bar',
+          regex_groups = {
+               'foo' : '(unfinished group',
+          },
+        )\
+        """,
         "'regex_groups' includes invalid regex for key foo");
   }
 
   @Test
   public void missingReplacement() throws ValidationException {
     skylark.evalFails(
-        "core.replace(\n" + "  before = 'asdf',\n" + ")",
+        """
+        core.replace(
+          before = 'asdf',
+        )\
+        """,
         "missing 1 required positional argument: after");
   }
 
   @Test
   public void testSimpleReplaceWithoutGroups() throws Exception {
     Replace transformation =
-        eval("core.replace(\n"
-            + "  before = 'foo',\n"
-            + "  after  = 'bar',\n"
-            + ")");
+        eval(
+            """
+            core.replace(
+              before = 'foo',
+              after  = 'bar',
+            )\
+            """);
 
     Path file1 = checkoutDir.resolve("file1.txt");
     writeFile(file1, "foo");
@@ -172,27 +182,37 @@ public final class ReplaceTest {
         + ")");
 
     Path file1 = checkoutDir.resolve("file1.txt");
-    writeFile(file1,
-        "#include <fooBAZbar>\n" +
-        "<fooBAZbar>\n" +
-        "fooQUXbar  // IGNORE");
+    writeFile(
+        file1,
+        """
+        #include <fooBAZbar>
+        <fooBAZbar>
+        fooQUXbar  // IGNORE\
+        """);
     transform(transformation);
 
     assertThatPath(checkoutDir)
-        .containsFile("file1.txt",
-            "#include <fooBAZbar>\n" +
-            "<barBAZfoo>\n" +
-            "fooQUXbar  // IGNORE");
+        .containsFile(
+            "file1.txt",
+            """
+            #include <fooBAZbar>
+            <barBAZfoo>
+            fooQUXbar  // IGNORE\
+            """);
   }
 
 
   @Test
   public void testWithGlob() throws Exception {
-    Replace transformation = eval("core.replace(\n"
-        + "  before = 'foo',\n"
-        + "  after = 'bar',\n"
-        + "  paths = glob(['**.java']),\n"
-        + ")");
+    Replace transformation =
+        eval(
+            """
+            core.replace(
+              before = 'foo',
+              after = 'bar',
+              paths = glob(['**.java']),
+            )\
+            """);
 
     prepareGlobTree();
 
@@ -208,11 +228,15 @@ public final class ReplaceTest {
 
   @Test
   public void testWithSequence() throws Exception {
-    Replace transformation = eval("core.replace(\n"
-        + "  before = 'foo',\n"
-        + "  after = 'bar',\n"
-        + "  paths = ['file1.java', 'folder/file1.java'],\n"
-        + ")");
+    Replace transformation =
+        eval(
+            """
+            core.replace(
+              before = 'foo',
+              after = 'bar',
+              paths = ['file1.java', 'folder/file1.java'],
+            )\
+            """);
 
     prepareGlobTree();
 
@@ -227,11 +251,15 @@ public final class ReplaceTest {
 
   @Test
   public void testWithGlobFolderPrefix() throws Exception {
-    Replace transformation = eval("core.replace(\n"
-        + "  before = 'foo',\n"
-        + "  after = 'bar',\n"
-        + "  paths = glob(['folder/**.java']),\n"
-        + ")");
+    Replace transformation =
+        eval(
+            """
+            core.replace(
+              before = 'foo',
+              after = 'bar',
+              paths = glob(['folder/**.java']),
+            )\
+            """);
 
     prepareGlobTree();
 
@@ -248,11 +276,15 @@ public final class ReplaceTest {
 
   @Test
   public void testWithGlobFolderPrefixUnlikeBash() throws Exception {
-    Replace transformation = eval("core.replace(\n"
-        + "  before = 'foo',\n"
-        + "  after = 'bar',\n"
-        + "  paths = glob(['folder/**/*.java']),\n"
-        + ")");
+    Replace transformation =
+        eval(
+            """
+            core.replace(
+              before = 'foo',
+              after = 'bar',
+              paths = glob(['folder/**/*.java']),
+            )\
+            """);
 
     prepareGlobTree();
 
@@ -270,14 +302,18 @@ public final class ReplaceTest {
 
   @Test
   public void testUsesTwoDifferentGroups() throws Exception {
-    Replace transformation = eval("core.replace(\n"
-        + "  before = 'bef${a}ore${b}',\n"
-        + "  after = 'af${b}ter${a}',\n"
-        + "  regex_groups = {\n"
-        + "       'a' : 'a+',\n"
-        + "       'b' : '[bB]',\n"
-        + "  },\n"
-        + ")");
+    Replace transformation =
+        eval(
+            """
+            core.replace(
+              before = 'bef${a}ore${b}',
+              after = 'af${b}ter${a}',
+              regex_groups = {
+                   'a' : 'a+',
+                   'b' : '[bB]',
+              },
+            )\
+            """);
 
     writeFile(checkoutDir.resolve("before_and_after"), ""
         + "not a match: beforeB\n"
@@ -293,14 +329,18 @@ public final class ReplaceTest {
 
   @Test
   public void testWithRepeatedGroups() throws Exception {
-    Replace transformation = eval("core.replace(\n"
-        + "  before = 'foo/${a}/${a}',\n"
-        + "  after = '${a}',\n"
-        + "  regex_groups = {\n"
-        + "       'a' : '[a-z]+',\n"
-        + "  },\n"
-        + "  repeated_groups = True,\n"
-        + ")");
+    Replace transformation =
+        eval(
+            """
+            core.replace(
+              before = 'foo/${a}/${a}',
+              after = '${a}',
+              regex_groups = {
+                   'a' : '[a-z]+',
+              },
+              repeated_groups = True,
+            )\
+            """);
 
     writeFile(checkoutDir.resolve("before_and_after"), ""
         + "foo/bar/bar\n"
@@ -318,14 +358,18 @@ public final class ReplaceTest {
 
   @Test
   public void testNoBacktracking() throws Exception {
-    Replace transformation = eval("core.replace(\n"
-        + "  before = 'foo/${a}${a}',\n"
-        + "  after = '${a}',\n"
-        + "  regex_groups = {\n"
-        + "       'a' : '[a-z]+',\n"
-        + "  },\n"
-        + "  repeated_groups = True,\n"
-        + ")");
+    Replace transformation =
+        eval(
+            """
+            core.replace(
+              before = 'foo/${a}${a}',
+              after = '${a}',
+              regex_groups = {
+                   'a' : '[a-z]+',
+              },
+              repeated_groups = True,
+            )\
+            """);
 
     writeFile(checkoutDir.resolve("before_and_after"), "foo/barbar\n");
     // Because we don't use backtracking this repeated group is expected to fail.
@@ -335,38 +379,47 @@ public final class ReplaceTest {
 
   @Test
   public void beforeUsesUndeclaredGroup() throws ValidationException {
-    skylark.evalFails("core.replace(\n"
-            + "  before = 'foo${bar}${baz}',\n"
-            + "  after = 'foo${baz}',\n"
-            + "  regex_groups = {\n"
-            + "       'baz' : '.*',\n"
-            + "  },\n"
-            + ")",
+    skylark.evalFails(
+        """
+        core.replace(
+          before = 'foo${bar}${baz}',
+          after = 'foo${baz}',
+          regex_groups = {
+               'baz' : '.*',
+          },
+        )\
+        """,
         "used but not defined: bar");
   }
 
   @Test
   public void afterUsesUndeclaredGroup() throws ValidationException {
-    skylark.evalFails("core.replace(\n"
-            + "  before = 'foo${bar}${iru}',\n"
-            + "  after = 'foo${bar}',\n"
-            + "  regex_groups = {\n"
-            + "       'bar' : '.*',\n"
-            + "  },\n"
-            + ")",
+    skylark.evalFails(
+        """
+        core.replace(
+          before = 'foo${bar}${iru}',
+          after = 'foo${bar}',
+          regex_groups = {
+               'bar' : '.*',
+          },
+        )\
+        """,
         "used but not defined: iru");
   }
 
   @Test
   public void beforeDoesNotUseADeclaredGroup() throws ValidationException {
-    skylark.evalFails("core.replace(\n"
-            + "  before = 'foo${baz}',\n"
-            + "  after = 'foo${baz}${bar}',\n"
-            + "  regex_groups = {\n"
-            + "       'baz' : '.*',\n"
-            + "       'bar' : '[a-z]+',\n"
-            + "  },\n"
-            + ")",
+    skylark.evalFails(
+        """
+        core.replace(
+          before = 'foo${baz}',
+          after = 'foo${baz}${bar}',
+          regex_groups = {
+               'baz' : '.*',
+               'bar' : '[a-z]+',
+          },
+        )\
+        """,
         "defined but not used: \\[bar\\]");
   }
 
@@ -398,13 +451,17 @@ public final class ReplaceTest {
 
   @Test
   public void categoryComplementDoesNotSpanLine() throws Exception {
-    Replace transformation = eval("core.replace(\n"
-        + "  before = 'bef${a}ore',\n"
-        + "  after = 'aft${a}er',\n"
-        + "  regex_groups = {\n"
-        + "       'a' : '[^/]+',\n"
-        + "  },\n"
-        + ")");
+    Replace transformation =
+        eval(
+            """
+            core.replace(
+              before = 'bef${a}ore',
+              after = 'aft${a}er',
+              regex_groups = {
+                   'a' : '[^/]+',
+              },
+            )\
+            """);
 
     writeFile(checkoutDir.resolve("before_and_after"), ""
         + "obviously match: befASDFore/\n"
@@ -422,10 +479,14 @@ public final class ReplaceTest {
 
   @Test
   public void multipleMatchesPerLine() throws Exception {
-    Replace transformation = eval("core.replace(\n"
-        + "  before = 'before',\n"
-        + "  after = 'after',\n"
-        + ")");
+    Replace transformation =
+        eval(
+            """
+            core.replace(
+              before = 'before',
+              after = 'after',
+            )\
+            """);
 
     writeFile(checkoutDir.resolve("before_and_after"), "before ... still before");
 
@@ -437,13 +498,17 @@ public final class ReplaceTest {
 
   @Test
   public void showOriginalTemplateInToString() throws ValidationException {
-    Replace transformation = eval("core.replace(\n"
-        + "  before = 'a${b}c',\n"
-        + "  after = 'c${b}a',\n"
-        + "  regex_groups = {\n"
-        + "       'b' : '.*',\n"
-        + "  },\n"
-        + ")");
+    Replace transformation =
+        eval(
+            """
+            core.replace(
+              before = 'a${b}c',
+              after = 'c${b}a',
+              regex_groups = {
+                   'b' : '.*',
+              },
+            )\
+            """);
 
     String string = transformation.toString();
     assertThat(string).contains("before=a${b}c");
@@ -464,10 +529,14 @@ public final class ReplaceTest {
 
   @Test
   public void showReasonableDefaultGlobInToString() throws ValidationException {
-    Replace transformation = eval("core.replace(\n"
-        + "  before = 'before',\n"
-        + "  after = 'after',\n"
-        + ")");
+    Replace transformation =
+        eval(
+            """
+            core.replace(
+              before = 'before',
+              after = 'after',
+            )\
+            """);
 
     String string = transformation.toString();
     assertThat(string).contains("glob(include = [\"**\"])");
@@ -475,22 +544,30 @@ public final class ReplaceTest {
 
   @Test
   public void showMultilineInToString() throws Exception {
-    Replace replace = eval("core.replace(\n"
-        + "  before = 'before',\n"
-        + "  after = 'after',\n"
-        + "  multiline = True,\n"
-        + ")");
+    Replace replace =
+        eval(
+            """
+            core.replace(
+              before = 'before',
+              after = 'after',
+              multiline = True,
+            )\
+            """);
 
     assertThat(replace.toString())
         .contains("multiline=true");
     assertThat(replace.reverse().toString())
         .contains("multiline=true");
 
-    replace = eval("core.replace(\n"
-        + "  before = 'before',\n"
-        + "  after = 'after',\n"
-        + "  multiline = False,\n"
-        + ")");
+    replace =
+        eval(
+            """
+            core.replace(
+              before = 'before',
+              after = 'after',
+              multiline = False,
+            )\
+            """);
 
     assertThat(replace.toString())
         .contains("multiline=false");
@@ -500,20 +577,28 @@ public final class ReplaceTest {
 
   @Test
   public void nopReplaceShouldThrowException() throws Exception {
-    Replace replace = eval("core.replace(\n"
-        + "  before = \"this string doesn't appear anywhere in source\",\n"
-        + "  after = 'lulz',\n"
-        + ")");
+    Replace replace =
+        eval(
+            """
+            core.replace(
+              before = "this string doesn't appear anywhere in source",
+              after = 'lulz',
+            )\
+            """);
     TransformationStatus status = transform(replace);
     assertThat(status.isNoop()).isTrue();
   }
 
   @Test
   public void replaceErrorEscapesNewLine() throws Exception {
-    Replace replace = eval("core.replace(\n"
-        + "  before = \"hello\\n\\r\\tbye!\",\n"
-        + "  after = 'lulz',\n"
-        + ")");
+    Replace replace =
+        eval(
+            """
+            core.replace(
+              before = "hello\\n\\r\\tbye!",
+              after = 'lulz',
+            )\
+            """);
     TransformationStatus status = transform(replace);
     assertThat(status.isNoop()).isTrue();
     assertThat(status.getMessage()).contains("hello\\n\\r\\tbye!");
@@ -522,19 +607,29 @@ public final class ReplaceTest {
   @Test
   public void noopReplaceAsWarning() throws Exception {
     writeFile(checkoutDir.resolve("foo"), "");
-    TransformationStatus status = transform(eval("core.replace(\n"
-        + "  before = \"BEFORE this string doesn't appear anywhere in source\",\n"
-        + "  after = 'lulz',\n"
-        + ")"));
+    TransformationStatus status =
+        transform(
+            eval(
+                """
+                core.replace(
+                  before = "BEFORE this string doesn't appear anywhere in source",
+                  after = 'lulz',
+                )\
+                """));
     assertThat(status.isNoop()).isTrue();
     assertThat(status.getMessage())
         .matches(".*BEFORE.*lulz.*was a no-op because it didn't change any of the matching files");
 
-    status = transform(eval("core.replace(\n"
-        + "  before = \"BEFORE this string doesn't appear anywhere in source\",\n"
-        + "  after = 'lulz',\n"
-        + "  paths = glob(['bad_path/**'])\n"
-        + ")"));
+    status =
+        transform(
+            eval(
+                """
+                core.replace(
+                  before = "BEFORE this string doesn't appear anywhere in source",
+                  after = 'lulz',
+                  paths = glob(['bad_path/**'])
+                )\
+                """));
     assertThat(status.isNoop()).isTrue();
     assertThat(status.getMessage())
         .matches(".*BEFORE.*lulz.*was a no-op because it didn't match any file");
@@ -542,10 +637,14 @@ public final class ReplaceTest {
 
   @Test
   public void useDollarSignInAfter() throws Exception {
-    Replace replace = eval("core.replace(\n"
-        + "  before = 'before',\n"
-        + "  after = 'after$$',\n"
-        + ")");
+    Replace replace =
+        eval(
+            """
+            core.replace(
+              before = 'before',
+              after = 'after$$',
+            )\
+            """);
 
     writeFile(checkoutDir.resolve("before_and_after"), "before ... still before");
     transform(replace);
@@ -556,10 +655,14 @@ public final class ReplaceTest {
 
   @Test
   public void useBackslashInAfter() throws Exception {
-    Replace replace = eval("core.replace(\n"
-        + "  before = 'before',\n"
-        + "  after = 'after\\\\',\n"
-        + ")");
+    Replace replace =
+        eval(
+            """
+            core.replace(
+              before = 'before',
+              after = 'after\\\\',
+            )\
+            """);
 
     writeFile(checkoutDir.resolve("before_and_after"), "before ... still before");
     transform(replace);
@@ -569,10 +672,14 @@ public final class ReplaceTest {
 
   @Test
   public void useEscapedDollarInBeforeAndAfter() throws Exception {
-    Replace replace = eval("core.replace(\n"
-        + "  before = 'be$$fore',\n"
-        + "  after = 'after$$',\n"
-        + ")");
+    Replace replace =
+        eval(
+            """
+            core.replace(
+              before = 'be$$fore',
+              after = 'after$$',
+            )\
+            """);
 
     writeFile(checkoutDir.resolve("before_and_after"), "be$fore ... still be$fore");
     transform(replace);
@@ -582,10 +689,14 @@ public final class ReplaceTest {
 
   @Test
   public void useBackslashInBeforeAndAfter() throws Exception {
-    Replace replace = eval("core.replace(\n"
-        + "  before = 'be\\\\fore',\n"
-        + "  after = 'after\\\\',\n"
-        + ")");
+    Replace replace =
+        eval(
+            """
+            core.replace(
+              before = 'be\\\\fore',
+              after = 'after\\\\',
+            )\
+            """);
 
     writeFile(checkoutDir.resolve("before_and_after"), "be\\fore ... still be\\fore");
     transform(replace);
@@ -596,13 +707,17 @@ public final class ReplaceTest {
 
   @Test
   public void reverse() throws Exception {
-    Replace replace = eval("core.replace(\n"
-        + "  before = 'x${foo}y',\n"
-        + "  after = 'y${foo}x',\n"
-        + "  regex_groups = {\n"
-        + "       'foo' : '[0-9]+',\n"
-        + "  },\n"
-        + ")");
+    Replace replace =
+        eval(
+            """
+            core.replace(
+              before = 'x${foo}y',
+              after = 'y${foo}x',
+              regex_groups = {
+                   'foo' : '[0-9]+',
+              },
+            )\
+            """);
     writeFile(checkoutDir.resolve("file"), "!@# y123x ...");
     transform(replace.reverse());
 
@@ -612,11 +727,15 @@ public final class ReplaceTest {
 
   @Test
   public void multiline() throws Exception {
-    Replace replace = eval("core.replace(\n"
-        + "  before = 'foo\\nbar',\n"
-        + "  after = 'bar\\nfoo',\n"
-        + "  multiline = True,\n"
-        + ")");
+    Replace replace =
+        eval(
+            """
+            core.replace(
+              before = 'foo\\nbar',
+              after = 'bar\\nfoo',
+              multiline = True,
+            )\
+            """);
 
     writeFile(checkoutDir.resolve("file"), "aaa foo\nbar bbb foo\nbar ccc");
     transform(replace);
@@ -644,14 +763,18 @@ public final class ReplaceTest {
 
   @Test
   public void multilineFieldActivatesRegexMultilineSemantics() throws Exception {
-    Replace replace = eval("core.replace(\n"
-        + "  before = 'foo${eol}',\n"
-        + "  after = 'bar${eol}',\n"
-        + "  regex_groups = {\n"
-        + "       'eol' : '$',\n"
-        + "  },\n"
-        + "  multiline = True,\n"
-        + ")");
+    Replace replace =
+        eval(
+            """
+            core.replace(
+              before = 'foo${eol}',
+              after = 'bar${eol}',
+              regex_groups = {
+                   'eol' : '$',
+              },
+              multiline = True,
+            )\
+            """);
 
     writeFile(checkoutDir.resolve("file"), ""
         + "a foo\n"
@@ -772,10 +895,13 @@ public final class ReplaceTest {
 
   @Test
   public void noCharacterFollowingDollar() throws ValidationException {
-    skylark.evalFails("core.replace(\n"
-            + "  before = 'foo$',\n"
-            + "  after = 'ok',\n"
-            + ")",
+    skylark.evalFails(
+        """
+        core.replace(
+          before = 'foo$',
+          after = 'ok',
+        )\
+        """,
         "Expect [$] or [{] after every [$]");
   }
 

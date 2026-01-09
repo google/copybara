@@ -65,9 +65,12 @@ public class GerritOriginTest {
           AuthoringMappingMode.OVERWRITE,
           ImmutableSet.of());
   private static final String CHANGE_ID = "Id5287e977c0d840a6d84eb2c3c1841036c411890";
-  private static final String CHANGE_DESCRIPTION = "Create patch set 2\n"
-      + "\n"
-      + "Uploaded patch set 2.";
+  private static final String CHANGE_DESCRIPTION =
+      """
+      Create patch set 2
+
+      Uploaded patch set 2.\
+      """;
   public static final String REPO_URL = "localhost:33333/foo/bar";
 
   private GitOrigin origin;

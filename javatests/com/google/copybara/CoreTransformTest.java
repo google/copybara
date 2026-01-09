@@ -207,12 +207,14 @@ public final class CoreTransformTest {
   @Test
   public void testSecondLayerTransformWithOuterNoop() throws Exception {
     String secondLayerTransform =
-        "core.transform([\n"
-          + "    core.replace(\n"
-          + "        before = 'not found',\n"
-          + "        after = 'not important',\n"
-          + "    ),\n"
-          + "]),\n";
+        """
+        core.transform([
+            core.replace(
+                before = 'not found',
+                after = 'not important',
+            ),
+        ]),
+        """;
 
     ExplicitReversal t =
         skylark.eval("x", "x="
@@ -240,12 +242,14 @@ public final class CoreTransformTest {
   public void testSecondLayerTransformWithInnerAndOuterNoop()
       throws ValidationException, IOException {
     String secondLayerTransform =
-        "core.transform([\n"
-            + "    core.replace(\n"
-            + "        before = 'not found',\n"
-            + "        after = 'not important',\n"
-            + "    ),\n"
-            + "], ignore_noop=False),\n";
+        """
+        core.transform([
+            core.replace(
+                before = 'not found',
+                after = 'not important',
+            ),
+        ], ignore_noop=False),
+        """;
 
     ExplicitReversal t =
         skylark.eval("x", "x="

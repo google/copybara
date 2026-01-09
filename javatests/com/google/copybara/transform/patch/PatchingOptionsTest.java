@@ -282,56 +282,94 @@ public class PatchingOptionsTest {
   }
 
   private void checkApplyDifferentBaseline() throws Exception {
-    writeFile(left, "file1.txt", "foo\n"
-        + "more foo\n");
+    writeFile(
+        left,
+        "file1.txt",
+        """
+        foo
+        more foo
+        """);
     writeFile(left, "b/file2.txt", "bar");
-    writeFile(left, "file5.txt", "mmm\n"
-        + "zzzzzzzzz\n"
-        + "zzzzzzzzzzzzzz\n"
-        + "zzzzzzzzzzzzzzzzzzzz\n"
-        + "bar\n"
-        + "foo\n"
-        + "bar");
-    writeFile(right, "file1.txt", "new foo\n"
-        + "more foo\n");
+    writeFile(
+        left,
+        "file5.txt",
+        """
+        mmm
+        zzzzzzzzz
+        zzzzzzzzzzzzzz
+        zzzzzzzzzzzzzzzzzzzz
+        bar
+        foo
+        bar\
+        """);
+    writeFile(
+        right,
+        "file1.txt",
+        """
+        new foo
+        more foo
+        """);
     writeFile(right, "c/file3.txt", "bar");
-    writeFile(right, "file5.txt", "mmm\n"
-        + "zzzzzzzzz\n"
-        + "zzzzzzzzzzzzzz\n"
-        + "zzzzzzzzzzzzzzzzzzzz\n"
-        + "bar\n"
-        + "xxx\n"
-        + "bar");
-    writeFile(destination, "file1.txt", "foo\n"
-        + "more foo\n"
-        + "added foo\n");
+    writeFile(
+        right,
+        "file5.txt",
+        """
+        mmm
+        zzzzzzzzz
+        zzzzzzzzzzzzzz
+        zzzzzzzzzzzzzzzzzzzz
+        bar
+        xxx
+        bar\
+        """);
+    writeFile(
+        destination,
+        "file1.txt",
+        """
+        foo
+        more foo
+        added foo
+        """);
     writeFile(destination, "b/file2.txt", "bar");
     writeFile(destination, "c/file4.txt", "bar");
-    writeFile(destination, "file5.txt", "vvv\n"
-        + "zzzzzzzzz\n"
-        + "zzzzzzzzzzzzzz\n"
-        + "zzzzzzzzzzzzzzzzzzzz\n"
-        + "bar\n"
-        + "foo\n"
-        + "bar");
+    writeFile(
+        destination,
+        "file5.txt",
+        """
+        vvv
+        zzzzzzzzz
+        zzzzzzzzzzzzzz
+        zzzzzzzzzzzzzzzzzzzz
+        bar
+        foo
+        bar\
+        """);
 
     byte[] diffContents = DiffUtil.diff(left, right, VERBOSE, System.getenv());
 
     runPatch(destination, diffContents, /*reverse=*/ false, STRIP_SLASHES, NO_EXCLUDED);
 
     assertThatPath(destination)
-        .containsFile("file1.txt", "new foo\n"
-            + "more foo\n"
-            + "added foo\n")
+        .containsFile(
+            "file1.txt",
+            """
+            new foo
+            more foo
+            added foo
+            """)
         .containsFile("c/file3.txt", "bar")
         .containsFile("c/file4.txt", "bar")
-        .containsFile("file5.txt", "vvv\n"
-            + "zzzzzzzzz\n"
-            + "zzzzzzzzzzzzzz\n"
-            + "zzzzzzzzzzzzzzzzzzzz\n"
-            + "bar\n"
-            + "xxx\n"
-            + "bar")
+        .containsFile(
+            "file5.txt",
+            """
+            vvv
+            zzzzzzzzz
+            zzzzzzzzzzzzzz
+            zzzzzzzzzzzzzzzzzzzz
+            bar
+            xxx
+            bar\
+            """)
         .containsNoMoreFiles();
   }
 
@@ -400,23 +438,27 @@ public class PatchingOptionsTest {
     writeFile(
         left,
         "file.txt",
-        "mmm\n"
-            + "zzzzzzzzz\n"
-            + "zzzzzzzzzzzzzz\n"
-            + "zzzzzzzzzzzzzzzzzzzz\n"
-            + "bar\n"
-            + "foo\n"
-            + "bar");
+        """
+        mmm
+        zzzzzzzzz
+        zzzzzzzzzzzzzz
+        zzzzzzzzzzzzzzzzzzzz
+        bar
+        foo
+        bar\
+        """);
     writeFile(
         right,
         "file.txt",
-        "mmm\n"
-            + "zzzzzzzzz\n"
-            + "zzzzzzzzzzzzzz\n"
-            + "zzzzzzzzzzzzzzzzzzzz\n"
-            + "bar\n"
-            + "xxx\n"
-            + "bar");
+        """
+        mmm
+        zzzzzzzzz
+        zzzzzzzzzzzzzz
+        zzzzzzzzzzzzzzzzzzzz
+        bar
+        xxx
+        bar\
+        """);
     writeFile(
         destination,
         "file.txt",
@@ -435,12 +477,14 @@ public class PatchingOptionsTest {
     assertThatPath(destination)
         .containsFile(
             "file.txt",
-            "zzzzzzzzz\n"
-                + "zzzzzzzzzzzzzz\n"
-                + "zzzzzzzzzzzzzzzzzzzz\n"
-                + "bar\n"
-                + "xxx\n"
-                + "bar")
+            """
+            zzzzzzzzz
+            zzzzzzzzzzzzzz
+            zzzzzzzzzzzzzzzzzzzz
+            bar
+            xxx
+            bar\
+            """)
         .containsNoMoreFiles();
   }
 

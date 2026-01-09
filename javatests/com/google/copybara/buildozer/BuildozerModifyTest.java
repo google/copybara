@@ -311,8 +311,11 @@ public final class BuildozerModifyTest {
         + ")");
 
     Files.createDirectories(checkoutDir.resolve("foo"));
-    String original = "proto_library(name = 'bar', deps = ['old_one'])\n"
-        + "proto_library(name = 'baz')\n";
+    String original =
+        """
+        proto_library(name = 'bar', deps = ['old_one'])
+        proto_library(name = 'baz')
+        """;
     Files.write(checkoutDir.resolve("foo/BUILD"), original.getBytes(UTF_8));
 
     transform(modify);
@@ -353,8 +356,11 @@ public final class BuildozerModifyTest {
         + ")");
 
     Files.createDirectories(checkoutDir.resolve("foo"));
-    String original = "proto_library(name = 'bar', deps = ['new_one','old_one'])\n"
-        + "proto_library(name = 'baz', deps = ['new_one'])\n";
+    String original =
+        """
+        proto_library(name = 'bar', deps = ['new_one','old_one'])
+        proto_library(name = 'baz', deps = ['new_one'])
+        """;
     Files.write(checkoutDir.resolve("foo/BUILD"), original.getBytes(UTF_8));
 
     transform(modify);

@@ -926,14 +926,20 @@ public class GitHubDestinationTest {
   public void testLabelIsPropagated()
       throws ValidationException {
     options.setForce(force);
-    GitDestination dest =  skylark.eval("result",
-        String.format("result = git.github_destination(\n"
-            + "    url = '%s',\n"
-            + "    fetch = '%s',\n"
-            + "    push = '%s',\n"
-            + "    tag_name = 'guten_tag',\n"
-            + "    tag_msg = 'tag msg',\n"
-            + ")", url, fetch, push));
+    GitDestination dest =
+        skylark.eval(
+            "result",
+            String.format(
+                """
+                result = git.github_destination(
+                    url = '%s',
+                    fetch = '%s',
+                    push = '%s',
+                    tag_name = 'guten_tag',
+                    tag_msg = 'tag msg',
+                )\
+                """,
+                url, fetch, push));
     assertThat(dest.describe(Glob.ALL_FILES).get("tagName")).contains("guten_tag");
     assertThat(dest.describe(Glob.ALL_FILES).get("tagMsg")).contains("tag msg");
   }
@@ -988,12 +994,17 @@ public class GitHubDestinationTest {
 
   private GitDestination evalDestination()
       throws ValidationException {
-    return skylark.eval("result",
-        String.format("result = git.github_destination(\n"
-            + "    url = '%s',\n"
-            + "    fetch = '%s',\n"
-            + "    push = '%s',\n"
-            + ")", url, fetch, push));
+    return skylark.eval(
+        "result",
+        String.format(
+            """
+            result = git.github_destination(
+                url = '%s',
+                fetch = '%s',
+                push = '%s',
+            )\
+            """,
+            url, fetch, push));
   }
 
   private GitDestination destination() throws ValidationException {
@@ -1005,13 +1016,18 @@ public class GitHubDestinationTest {
       String prBranchToUpdate, String deletePrBranch)
       throws ValidationException {
     options.setForce(force);
-    return skylark.eval("result",
-        String.format("result = git.github_destination(\n"
-            + "    url = '%s',\n"
-            + "    fetch = '%s',\n"
-            + "    push = '%s',\n"
-            + "    pr_branch_to_update = '%s',\n"
-            + "    delete_pr_branch = %s,\n"
-            + ")", url, fetch, push, prBranchToUpdate, deletePrBranch));
+    return skylark.eval(
+        "result",
+        String.format(
+            """
+            result = git.github_destination(
+                url = '%s',
+                fetch = '%s',
+                push = '%s',
+                pr_branch_to_update = '%s',
+                delete_pr_branch = %s,
+            )\
+            """,
+            url, fetch, push, prBranchToUpdate, deletePrBranch));
   }
 }

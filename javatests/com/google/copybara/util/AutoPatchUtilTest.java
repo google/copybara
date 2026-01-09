@@ -151,44 +151,50 @@ public class AutoPatchUtilTest {
                 root.resolve(SOME_DIR).resolve("file1.txt".concat(PATCH_FILE_NAME_SUFFIX))))
         .isEqualTo(
             PATCH_FILE_PREFIX.concat(
-                "@@\n"
-                    + "-foo-origin\n"
-                    + "\\ No newline at end of file\n"
-                    + "+foo-destination\n"
-                    + "\\ No newline at end of file\n"));
+                """
+                @@
+                -foo-origin
+                \\ No newline at end of file
+                +foo-destination
+                \\ No newline at end of file
+                """));
     assertThat(
             Files.readString(
                 root.resolve(SOME_DIR).resolve("file2.txt".concat(PATCH_FILE_NAME_SUFFIX))))
         .isEqualTo(
             PATCH_FILE_PREFIX.concat(
-                "@@\n"
-                    + "-bar-origin\n"
-                    + "\\ No newline at end of file\n"
-                    + "+bar-destination\n"
-                    + "\\ No newline at end of file\n"));
+                """
+                @@
+                -bar-origin
+                \\ No newline at end of file
+                +bar-destination
+                \\ No newline at end of file
+                """));
     assertThat(
             Files.readString(
                 root.resolve(SOME_DIR).resolve("file3.java".concat(PATCH_FILE_NAME_SUFFIX))))
         .isEqualTo(
             PATCH_FILE_PREFIX.concat(
-                "@@\n"
-                    + "-public static foo() {\n"
-                    + "-  System.out.println(\"foo\");\n"
-                    + "+public static bar() {\n"
-                    + "+  System.out.println(\"bar\");\n"
-                    + " }\n"
-                    + " \n"
-                    + " \n"
-                    + "@@ public static common() {  System.out.println(\"common\");\n"
-                    + " \n"
-                    + " \n"
-                    + " \n"
-                    + "-public static fooAgain() {\n"
-                    + "-  System.out.println(\"foo again\");}\n"
-                    + "\\ No newline at end of file\n"
-                    + "+public static barAgain() {\n"
-                    + "+  System.out.println(\"bar again\");}\n"
-                    + "\\ No newline at end of file\n"));
+                """
+                @@
+                -public static foo() {
+                -  System.out.println("foo");
+                +public static bar() {
+                +  System.out.println("bar");
+                 }
+                \s
+                \s
+                @@ public static common() {  System.out.println("common");
+                \s
+                \s
+                \s
+                -public static fooAgain() {
+                -  System.out.println("foo again");}
+                \\ No newline at end of file
+                +public static barAgain() {
+                +  System.out.println("bar again");}
+                \\ No newline at end of file
+                """));
   }
 
   @Test
@@ -217,11 +223,13 @@ public class AutoPatchUtilTest {
                 root.resolve(trailingSlash).resolve("file1.txt".concat(PATCH_FILE_NAME_SUFFIX))))
         .isEqualTo(
             PATCH_FILE_PREFIX.concat(
-                "@@\n"
-                    + "-foo-origin\n"
-                    + "\\ No newline at end of file\n"
-                    + "+foo-destination\n"
-                    + "\\ No newline at end of file\n"));
+                """
+                @@
+                -foo-origin
+                \\ No newline at end of file
+                +foo-destination
+                \\ No newline at end of file
+                """));
   }
 
   @Test
@@ -294,11 +302,13 @@ public class AutoPatchUtilTest {
         root,
         SOME_DIR.concat("file1.txt").concat(PATCH_FILE_NAME_SUFFIX),
         PATCH_FILE_PREFIX.concat(
-            "@@\n"
-                + "-foo-origin\n"
-                + "\\ No newline at end of file\n"
-                + "+foo-destination\n"
-                + "\\ No newline at end of file\n"));
+            """
+            @@
+            -foo-origin
+            \\ No newline at end of file
+            +foo-destination
+            \\ No newline at end of file
+            """));
 
     assertThat(
             Files.exists(root.resolve(SOME_DIR.concat("file1.txt").concat(PATCH_FILE_NAME_SUFFIX))))
@@ -329,20 +339,24 @@ public class AutoPatchUtilTest {
         destination,
         SOME_DIR.concat("file1.txt").concat(PATCH_FILE_NAME_SUFFIX),
         PATCH_FILE_PREFIX.concat(
-            "@@\n"
-                + "-foo-origin\n"
-                + "\\ No newline at end of file\n"
-                + "+foo-destination\n"
-                + "\\ No newline at end of file\n"));
+            """
+            @@
+            -foo-origin
+            \\ No newline at end of file
+            +foo-destination
+            \\ No newline at end of file
+            """));
     writeFile(
         root,
         SOME_DIR.concat("file1.txt").concat(PATCH_FILE_NAME_SUFFIX),
         PATCH_FILE_PREFIX.concat(
-            "@@\n"
-                + "-foo-origin\n"
-                + "\\ No newline at end of file\n"
-                + "+foo-destination\n"
-                + "\\ No newline at end of file\n"));
+            """
+            @@
+            -foo-origin
+            \\ No newline at end of file
+            +foo-destination
+            \\ No newline at end of file
+            """));
 
     assertThat(
             Files.exists(root.resolve(SOME_DIR.concat("file1.txt").concat(PATCH_FILE_NAME_SUFFIX))))
@@ -415,11 +429,13 @@ public class AutoPatchUtilTest {
                 root.resolve(SOME_DIR).resolve("file1.txt".concat(PATCH_FILE_NAME_SUFFIX))))
         .isEqualTo(
             PATCH_FILE_PREFIX.concat(
-                "@@ -1 +1 @@\n"
-                    + "-foo-origin\n"
-                    + "\\ No newline at end of file\n"
-                    + "+foo-destination\n"
-                    + "\\ No newline at end of file\n"));
+                """
+                @@ -1 +1 @@
+                -foo-origin
+                \\ No newline at end of file
+                +foo-destination
+                \\ No newline at end of file
+                """));
   }
 
   @Test
@@ -446,15 +462,17 @@ public class AutoPatchUtilTest {
                 root.resolve(SOME_DIR).resolve("file1.txt".concat(PATCH_FILE_NAME_SUFFIX))))
         .isEqualTo(
             PATCH_FILE_PREFIX.concat(
-                "diff --git a/origin/some/dir/file1.txt b/destination/some/dir/file1.txt\n"
-                    + "index 8d53fda..64ace07 100644\n"
-                    + "--- a/origin/some/dir/file1.txt\n"
-                    + "+++ b/destination/some/dir/file1.txt\n"
-                    + "@@\n"
-                    + "-foo-origin\n"
-                    + "\\ No newline at end of file\n"
-                    + "+foo-destination\n"
-                    + "\\ No newline at end of file\n"));
+                """
+                diff --git a/origin/some/dir/file1.txt b/destination/some/dir/file1.txt
+                index 8d53fda..64ace07 100644
+                --- a/origin/some/dir/file1.txt
+                +++ b/destination/some/dir/file1.txt
+                @@
+                -foo-origin
+                \\ No newline at end of file
+                +foo-destination
+                \\ No newline at end of file
+                """));
   }
 
   private Path createDir(Path parent, String name) throws IOException {

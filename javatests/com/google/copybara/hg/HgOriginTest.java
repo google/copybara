@@ -91,7 +91,12 @@ public class HgOriginTest {
     return skylark.eval(
         "result",
         String.format(
-            "result = hg.origin(\n" + "    url = '%s', \n" + "    ref = '%s')", url, configRef));
+            """
+            result = hg.origin(
+                url = '%s',\s
+                ref = '%s')\
+            """,
+            url, configRef));
   }
 
   @Test
@@ -162,7 +167,13 @@ public class HgOriginTest {
     origin =
         skylark.eval(
             "result",
-            String.format("result = hg.origin(\n" + "    url = '%s', \n" + "    ref = '')", url));
+            String.format(
+                """
+                result = hg.origin(
+                    url = '%s',\s
+                    ref = '')\
+                """,
+                url));
     CannotResolveRevisionException expected1 =
         assertThrows(CannotResolveRevisionException.class, () -> origin.resolve(null));
     assertThat(expected1.getMessage())

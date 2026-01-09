@@ -502,17 +502,19 @@ public class GitHubPrDestinationTest {
         "POST",
         "https://api.github.com/repos/foo/pulls",
         mockResponseAndValidateRequest(
-            "{\n"
-                + "  \"id\": 1,\n"
-                + "  \"number\": 12345,\n"
-                + "  \"state\": \"open\",\n"
-                + "  \"title\": \"test summary\",\n"
-                + "  \"body\": \"test summary\"\n"
-                + "}",
+            """
+            {
+              "id": 1,
+              "number": 12345,
+              "state": "open",
+              "title": "test summary",
+              "body": "test summary"
+            }\
+            """,
             MockRequestAssertion.equals(
-                    "{\"base\":\"main\",\"body\":\"test summary\\n\",\"draft\":false,\"head\":\""
-                        + "feature"
-                        + "\",\"title\":\"test summary\"}")));
+                "{\"base\":\"main\",\"body\":\"test summary\\n\",\"draft\":false,\"head\":\""
+                    + "feature"
+                    + "\",\"title\":\"test summary\"}")));
 
     GitHubPrDestination d =
         skylark.eval(
@@ -545,16 +547,23 @@ public class GitHubPrDestinationTest {
 
     assertThat(remote.refExists("feature")).isTrue();
     assertThat(Iterables.transform(remote.log("feature").run(), GitLogEntry::body))
-        .containsExactly("first change\n",
-            "test summary\n"
-                + "\n"
-                + "DummyOrigin-RevId: one\n",
-            "test summary\n"
-                + "\n"
-                + "DummyOrigin-RevId: two\n",
-            "test summary\n"
-                + "\n"
-                + "DummyOrigin-RevId: three\n");
+        .containsExactly(
+            "first change\n",
+            """
+            test summary
+
+            DummyOrigin-RevId: one
+            """,
+            """
+            test summary
+
+            DummyOrigin-RevId: two
+            """,
+            """
+            test summary
+
+            DummyOrigin-RevId: three
+            """);
 
     // If we don't keep writer state (same as a new migration). We do a rebase of
     // all the changes.
@@ -582,7 +591,13 @@ public class GitHubPrDestinationTest {
         TransformResults.of(this.workdir, new DummyRevision("four")), Glob.ALL_FILES, console);
 
     assertThat(Iterables.transform(remote.log("feature").run(), GitLogEntry::body))
-        .containsExactly("first change\n", "test summary\n" + "\n" + "DummyOrigin-RevId: four\n");
+        .containsExactly(
+            "first change\n",
+            """
+            test summary
+
+            DummyOrigin-RevId: four
+            """);
   }
 
   @Test
@@ -692,10 +707,14 @@ public class GitHubPrDestinationTest {
 
     assertThat(remote.refExists(branchName)).isTrue();
     assertThat(Iterables.transform(remote.log(branchName).run(), GitLogEntry::body))
-        .containsExactly("first change\n", "second change\n",
-        "test summary\n"
-            + "\n"
-            + "DummyOrigin-RevId: one\n");
+        .containsExactly(
+            "first change\n",
+            "second change\n",
+            """
+            test summary
+
+            DummyOrigin-RevId: one
+            """);
   }
 
   @Test

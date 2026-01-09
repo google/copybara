@@ -669,22 +669,26 @@ public class GerritApiTest {
   }
 
   private String mockCheckSubmitRequirementResult() {
-    return "{\n"
-        + "  \"name\": \"Code-Review\",\n"
-        + "  \"status\": \"SATISFIED\",\n"
-        + "  \"submittability_expression_result\": {\n"
-        + "    \"expression\": \"label:Code-Review=+2\",\n"
-        + "    \"fulfilled\": true,\n"
-        + "    \"status\": \"PASS\"\n"
-        + "  },\n"
-        + "  \"is_legacy\": false\n"
-        + "}";
+    return """
+    {
+      "name": "Code-Review",
+      "status": "SATISFIED",
+      "submittability_expression_result": {
+        "expression": "label:Code-Review=+2",
+        "fulfilled": true,
+        "status": "PASS"
+      },
+      "is_legacy": false
+    }\
+    """;
   }
 
   private String mockAddReviewerResult() {
-    return "{\n"
-        + "    \"input\": \"test@google.com\"\n"
-        + "  }";
+    return """
+    {
+        "input": "test@google.com"
+      }\
+    """;
   }
   @Test
   public void testGetAccessInfo() throws Exception {

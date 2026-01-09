@@ -70,9 +70,13 @@ public final class VerifyMatchTest {
 
   @Test
   public void testSimpleMatchPasses() throws Exception {
-    VerifyMatch transformation = eval("core.verify_match(\n"
-        + "  regex = 'foo',\n"
-        + ")");
+    VerifyMatch transformation =
+        eval(
+            """
+            core.verify_match(
+              regex = 'foo',
+            )\
+            """);
 
     Path file1 = checkoutDir.resolve("file1.txt");
     writeFile(file1, "foo");
@@ -110,10 +114,14 @@ public final class VerifyMatchTest {
 
   @Test
   public void testSimpleMatchVerifyNoMatchPasses() throws Exception {
-    VerifyMatch transformation = eval("core.verify_match(\n"
-        + "  regex = 'bar',\n"
-        + "  verify_no_match = True,\n"
-        + ")");
+    VerifyMatch transformation =
+        eval(
+            """
+            core.verify_match(
+              regex = 'bar',
+              verify_no_match = True,
+            )\
+            """);
 
     Path file1 = checkoutDir.resolve("file1.txt");
     writeFile(file1, "foo");
@@ -122,9 +130,13 @@ public final class VerifyMatchTest {
 
   @Test
   public void testSimpleMatchFails() throws Exception {
-    VerifyMatch transformation = eval("core.verify_match(\n"
-        + "  regex = 'foo',\n"
-        + ")");
+    VerifyMatch transformation =
+        eval(
+            """
+            core.verify_match(
+              regex = 'foo',
+            )\
+            """);
     Path file1 = checkoutDir.resolve("file1.txt");
     writeFile(file1, "bar");
     ValidationException e =
@@ -142,10 +154,14 @@ public final class VerifyMatchTest {
 
   @Test
   public void testSimpleMatchFails_customMsg() throws Exception {
-    VerifyMatch transformation = eval("core.verify_match(\n"
-        + "  regex = 'customMsg',\n"
-        + "  failure_message = 'Oh Noes',\n"
-        + ")");
+    VerifyMatch transformation =
+        eval(
+            """
+            core.verify_match(
+              regex = 'customMsg',
+              failure_message = 'Oh Noes',
+            )\
+            """);
     Path file1 = checkoutDir.resolve("file1.txt");
     writeFile(file1, "bar");
     assertThrows(ValidationException.class, () -> transform(transformation));
@@ -154,10 +170,14 @@ public final class VerifyMatchTest {
 
   @Test
   public void testSimpleReversalMatchFails() throws Exception {
-    VerifyMatch transformation = eval("core.verify_match(\n"
-        + "  regex = 'foo',\n"
-        + "  also_on_reversal = True,\n"
-        + ")");
+    VerifyMatch transformation =
+        eval(
+            """
+            core.verify_match(
+              regex = 'foo',
+              also_on_reversal = True,
+            )\
+            """);
     Path file1 = checkoutDir.resolve("file1.txt");
     writeFile(file1, "bar");
     ValidationException e =
@@ -172,10 +192,14 @@ public final class VerifyMatchTest {
 
   @Test
   public void testSimpleNoMatchFails() throws Exception {
-    VerifyMatch transformation = eval("core.verify_match(\n"
-        + "  regex = 'foo',\n"
-        + "  verify_no_match = True,\n"
-        + ")");
+    VerifyMatch transformation =
+        eval(
+            """
+            core.verify_match(
+              regex = 'foo',
+              verify_no_match = True,
+            )\
+            """);
     Path file1 = checkoutDir.resolve("file1.txt");
     writeFile(file1, "foo");
     assertThrows(ValidationException.class, () -> transform(transformation));
@@ -189,10 +213,14 @@ public final class VerifyMatchTest {
 
   @Test
   public void testNoMatchMultiline() throws Exception {
-    VerifyMatch transformation = eval("core.verify_match(\n"
-        + "  regex = 'foo',\n"
-        + "  verify_no_match = True,\n"
-        + ")");
+    VerifyMatch transformation =
+        eval(
+            """
+            core.verify_match(
+              regex = 'foo',
+              verify_no_match = True,
+            )\
+            """);
     Path file1 = checkoutDir.resolve("file1.txt");
     writeFile(file1, "bar\n\nfoo\nbar\nother\n");
     assertThrows(ValidationException.class, () -> transform(transformation));
@@ -206,20 +234,28 @@ public final class VerifyMatchTest {
 
   @Test
   public void testWithGlob() throws Exception {
-    VerifyMatch transformation = eval("core.verify_match(\n"
-        + "  regex = 'foo',\n"
-        + "  paths = glob(['**.java']),\n"
-        + ")");
+    VerifyMatch transformation =
+        eval(
+            """
+            core.verify_match(
+              regex = 'foo',
+              paths = glob(['**.java']),
+            )\
+            """);
     prepareGlobTree();
     transform(transformation);
   }
 
   @Test
   public void testWithGlobFails() throws Exception {
-    VerifyMatch transformation = eval("core.verify_match(\n"
-        + "  regex = 'foo',\n"
-        + "  paths = glob(['**.txt']),\n"
-        + ")");
+    VerifyMatch transformation =
+        eval(
+            """
+            core.verify_match(
+              regex = 'foo',
+              paths = glob(['**.txt']),
+            )\
+            """);
 
     prepareGlobTree();
     assertThrows(ValidationException.class, () -> transform(transformation));
@@ -234,9 +270,13 @@ public final class VerifyMatchTest {
 
   @Test
   public void testApacheLicense() throws Exception {
-    VerifyMatch transformation = eval("core.verify_match(\n"
-        + "  regex = '[\\n] [*] Copyright [(]C[)] 2016 Google Inc[.]',\n"
-        + ")");
+    VerifyMatch transformation =
+        eval(
+            """
+            core.verify_match(
+              regex = '[\\n] [*] Copyright [(]C[)] 2016 Google Inc[.]',
+            )\
+            """);
 
     Path file1 = checkoutDir.resolve("file1.txt");
     writeFile(file1, "/*\n"

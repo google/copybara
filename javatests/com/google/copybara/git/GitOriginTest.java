@@ -184,11 +184,15 @@ public class GitOriginTest {
     ApprovalsProvider provider = mock(ApprovalsProvider.class);
     options.gitOrigin.approvalsProvider = provider;
 
-    origin = skylark.eval("result",
-        "result = git.origin(\n"
-            + "    url = 'https://my-server.org/copybara',\n"
-            + "    ref = 'main',\n"
-            + ")");
+    origin =
+        skylark.eval(
+            "result",
+            """
+            result = git.origin(
+                url = 'https://my-server.org/copybara',
+                ref = 'main',
+            )\
+            """);
     assertThat(origin.getApprovalsProvider()).isEqualTo(provider);
   }
 
@@ -197,10 +201,12 @@ public class GitOriginTest {
     origin =
         skylark.eval(
             "result",
-            "result = git.github_origin(\n"
-                + "    url = 'https://github.com/google/copybara',\n"
-                + "    ref = 'main',\n"
-                + ")");
+            """
+            result = git.github_origin(
+                url = 'https://github.com/google/copybara',
+                ref = 'main',
+            )\
+            """);
     assertThat(origin.getApprovalsProvider()).isInstanceOf(GitHubPostSubmitApprovalsProvider.class);
   }
 
@@ -209,11 +215,13 @@ public class GitOriginTest {
     origin =
         skylark.eval(
             "result",
-            "result = git.github_origin(\n"
-                + "    url = 'https://github.com/copybara',\n"
-                + "    ref = 'main',\n"
-                + "    enable_lfs = True,\n"
-                + ")");
+            """
+            result = git.github_origin(
+                url = 'https://github.com/copybara',
+                ref = 'main',
+                enable_lfs = True,
+            )\
+            """);
     ImmutableMultimap<String, String> actual = origin.describe(Glob.ALL_FILES);
 
     assertThat(actual.get("enableLfs")).containsExactly("true");
@@ -221,11 +229,15 @@ public class GitOriginTest {
 
   @Test
   public void testGitOriginHttp() throws Exception {
-    origin = skylark.eval("result",
-        "result = git.origin(\n"
-            + "    url = 'http://my-server.org/copybara',\n"
-            + "    ref = 'master'\n"
-            + ")");
+    origin =
+        skylark.eval(
+            "result",
+            """
+            result = git.origin(
+                url = 'http://my-server.org/copybara',
+                ref = 'master'
+            )\
+            """);
     assertThat(origin.toString())
         .isEqualTo(
             "GitOrigin{"
@@ -294,10 +306,14 @@ public class GitOriginTest {
 
   @Test
   public void testGitOriginWithEmptyRef() throws Exception {
-    origin = skylark.eval("result",
-        "result = git.origin(\n"
-            + "    url = 'https://my-server.org/copybara',\n"
-            + ")");
+    origin =
+        skylark.eval(
+            "result",
+            """
+            result = git.origin(
+                url = 'https://my-server.org/copybara',
+            )\
+            """);
     assertThat(origin.toString())
         .isEqualTo(
             "GitOrigin{"
@@ -310,11 +326,15 @@ public class GitOriginTest {
 
   @Test
   public void testGerritOrigin() throws Exception {
-    origin = skylark.eval("result",
-        "result = git.gerrit_origin(\n"
-            + "    url = 'https://gerrit-server.org/copybara',\n"
-            + "    ref = 'main',\n"
-            + ")");
+    origin =
+        skylark.eval(
+            "result",
+            """
+            result = git.gerrit_origin(
+                url = 'https://gerrit-server.org/copybara',
+                ref = 'main',
+            )\
+            """);
     assertThat(origin.toString())
         .isEqualTo(
             "GitOrigin{"
@@ -357,10 +377,12 @@ public class GitOriginTest {
             () ->
                 skylark.eval(
                     "result",
-                    "result = git.github_origin(\n"
-                        + "    url = 'https://foo.com/copybara',\n"
-                        + "    ref = 'main',\n"
-                        + ")"));
+                    """
+                    result = git.github_origin(
+                        url = 'https://foo.com/copybara',
+                        ref = 'main',
+                    )\
+                    """));
     console
         .assertThat()
         .onceInLog(MessageType.ERROR, ".*Invalid Github URL: https://foo.com/copybara.*");
@@ -374,10 +396,12 @@ public class GitOriginTest {
             () ->
                 skylark.eval(
                     "result",
-                    "result = git.github_origin(\n"
-                        + "    url = 'https://foo.com/github.com',\n"
-                        + "    ref = 'main',\n"
-                        + ")"));
+                    """
+                    result = git.github_origin(
+                        url = 'https://foo.com/github.com',
+                        ref = 'main',
+                    )\
+                    """));
     console
         .assertThat()
         .onceInLog(MessageType.ERROR, ".*Invalid Github URL: https://foo.com/github.com.*");
@@ -615,13 +639,16 @@ public class GitOriginTest {
 
   @Test
   public void testPatch() throws Exception {
-    String patch = "diff --git a/foo.txt b/foo.txt\n"
-        + "new file mode 100644\n"
-        + "index 0000000..1f0d200\n"
-        + "--- /dev/null\n"
-        + "+++ b/foo.txt\n"
-        + "@@ -0,0 +1 @@\n"
-        + "+some test\n";
+    String patch =
+        """
+        diff --git a/foo.txt b/foo.txt
+        new file mode 100644
+        index 0000000..1f0d200
+        --- /dev/null
+        +++ b/foo.txt
+        @@ -0,0 +1 @@
+        +some test
+        """;
     skylark.addConfigFile("some/patch.patch", patch);
 
     moreOriginArgs = "patch = patch.apply(['some/patch.patch'])";
@@ -1415,12 +1442,14 @@ public class GitOriginTest {
         skylark.eval(
             "result",
             String.format(
-                "result = git.origin(\n"
-                    + "    url = '%s',\n"
-                    + "    version_selector = core.latest_version(\n"
-                    + "        format = \"refs/tags/2.0.0\"\n"
-                    + "    ),\n"
-                    + ")",
+                """
+                result = git.origin(
+                    url = '%s',
+                    version_selector = core.latest_version(
+                        format = "refs/tags/2.0.0"
+                    ),
+                )\
+                """,
                 url));
     repo.tag("1.0.0").run();
     repo.tag("2.0.0").run();
@@ -1443,12 +1472,14 @@ public class GitOriginTest {
         skylark.eval(
             "result",
             String.format(
-                "result = git.origin(\n"
-                    + "    url = '%s',\n"
-                    + "    version_selector = core.latest_version(\n"
-                    + "        format = \"refs/tags/2.0.0\"\n"
-                    + "    ),\n"
-                    + ")",
+                """
+                result = git.origin(
+                    url = '%s',
+                    version_selector = core.latest_version(
+                        format = "refs/tags/2.0.0"
+                    ),
+                )\
+                """,
                 url));
     repo.tag("1.0.0").run();
     repo.tag("2.0.0").run();
@@ -2017,13 +2048,15 @@ public class GitOriginTest {
     origin =
         skylark.eval(
             "result",
-            "result = git.origin(\n"
-                + "    url = 'https://my-server.org/copybara',\n"
-                + "    ref = 'main',\n"
-                + "    credentials = credentials.username_password(\n"
-                + "      credentials.static_value('test@example.com'),\n"
-                + "      credentials.static_secret('password', 'top_secret'))\n"
-                + "    )");
+            """
+            result = git.origin(
+                url = 'https://my-server.org/copybara',
+                ref = 'main',
+                credentials = credentials.username_password(
+                  credentials.static_value('test@example.com'),
+                  credentials.static_secret('password', 'top_secret'))
+                )\
+            """);
     assertThat(origin.describeCredentials()).isNotEmpty();
     GitRepository repository = origin.getRepository();
     UserPassword result = repository

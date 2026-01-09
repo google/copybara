@@ -57,13 +57,15 @@ public final class HttpEndpointJsonContentTest {
     var unused =
         starlark.eval(
             "resp",
-            "endpoint = testing.get_endpoint(\n"
-                + "  http.endpoint(host = \"foo.com\")\n"
-                + "  )\n"
-                + "resp = endpoint.post(\n"
-                + "  url = \"http://foo.com\",\n"
-                + "  content = http.json({})\n"
-                + ")");
+            """
+            endpoint = testing.get_endpoint(
+              http.endpoint(host = "foo.com")
+              )
+            resp = endpoint.post(
+              url = "http://foo.com",
+              content = http.json({})
+            )\
+            """);
   }
 
   @Test
@@ -76,15 +78,17 @@ public final class HttpEndpointJsonContentTest {
         });
     starlark.eval(
         "resp",
-        "endpoint = testing.get_endpoint(\n"
-            + "  http.endpoint(host = \"foo.com\")\n"
-            + "  )\n"
-            + "resp = endpoint.post(\n"
-            + "  url = \"http://foo.com\",\n"
-            + "  content = http.json({\n"
-            + "    \"testfield\": \"http://foo.com\",\n"
-            + "    \"foofield\": \"@special#\",\n"
-            + "  })\n"
-            + ")");
+        """
+        endpoint = testing.get_endpoint(
+          http.endpoint(host = "foo.com")
+          )
+        resp = endpoint.post(
+          url = "http://foo.com",
+          content = http.json({
+            "testfield": "http://foo.com",
+            "foofield": "@special#",
+          })
+        )\
+        """);
   }
 }

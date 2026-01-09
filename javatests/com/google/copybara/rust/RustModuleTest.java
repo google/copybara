@@ -94,12 +94,14 @@ public class RustModuleTest {
     String cargoToml = "";
     Files.writeString(cratePath.resolve("Cargo.toml"), cargoToml);
     String cargoVcsJson =
-        "{\n"
-            + "  \"git\": {\n"
-            + "    \"sha1\": \"test\"\n"
-            + "  },\n"
-            + "  \"path_in_vcs\": \"foo\"\n"
-            + "}";
+        """
+        {
+          "git": {
+            "sha1": "test"
+          },
+          "path_in_vcs": "foo"
+        }\
+        """;
     Files.writeString(cratePath.resolve(".cargo_vcs_info.json"), cargoVcsJson);
 
     runTransformation(
@@ -120,7 +122,12 @@ public class RustModuleTest {
     Files.createDirectories(cratePath);
     String cargoToml = "[package]\n" + "repository = \"http://copy/bara\"";
     Files.writeString(cratePath.resolve("Cargo.toml"), cargoToml);
-    String cargoVcsJson = "{\n" + "  \"path_in_vcs\": \"foo\"\n" + "}";
+    String cargoVcsJson =
+        """
+        {
+          "path_in_vcs": "foo"
+        }\
+        """;
     Files.writeString(cratePath.resolve(".cargo_vcs_info.json"), cargoVcsJson);
 
     runTransformation(
@@ -141,7 +148,13 @@ public class RustModuleTest {
     Files.createDirectories(cratePath);
     String cargoToml = "[package]\nrepository = \"http://foo\"";
     Files.writeString(cratePath.resolve("Cargo.toml"), cargoToml);
-    String cargoVcsJson = "{\n" + "  \"git\": {},\n" + "  \"path_in_vcs\": \"foo\"\n" + "}";
+    String cargoVcsJson =
+        """
+        {
+          "git": {},
+          "path_in_vcs": "foo"
+        }\
+        """;
     Files.writeString(cratePath.resolve(".cargo_vcs_info.json"), cargoVcsJson);
 
     runTransformation(
@@ -263,12 +276,14 @@ public class RustModuleTest {
     String cargoToml = String.format("[package]\n" + "repository = \"%s\"", url);
     String cargoVcsJson =
         String.format(
-            "{\n"
-                + "  \"git\": {\n"
-                + "    \"sha1\": \"%s\"\n"
-                + "  },\n"
-                + "  \"path_in_vcs\": \"%s\"\n"
-                + "}",
+            """
+            {
+              "git": {
+                "sha1": "%s"
+              },
+              "path_in_vcs": "%s"
+            }\
+            """,
             "should_not_exist", "");
     Files.writeString(cratePath.resolve("Cargo.toml"), cargoToml);
     Files.writeString(cratePath.resolve(".cargo_vcs_info.json"), cargoVcsJson);
@@ -343,12 +358,14 @@ public class RustModuleTest {
     String cargoToml = "[package]\n" + "repository = \"https://do/not/use\"";
     String cargoVcsJson =
         String.format(
-            "{\n"
-                + "  \"git\": {\n"
-                + "    \"sha1\": \"%s\"\n"
-                + "  },\n"
-                + "  \"path_in_vcs\": \"\"\n"
-                + "}",
+            """
+            {
+              "git": {
+                "sha1": "%s"
+              },
+              "path_in_vcs": ""
+            }\
+            """,
             repo.getHeadRef().getSha1());
     Files.writeString(cratePath.resolve("Cargo.toml"), cargoToml);
     Files.writeString(cratePath.resolve(".cargo_vcs_info.json"), cargoVcsJson);
@@ -403,12 +420,14 @@ public class RustModuleTest {
     String cargoToml = String.format("[package]\n" + "repository = \"%s\"", url);
     String cargoVcsJson =
         String.format(
-            "{\n"
-                + "  \"git\": {\n"
-                + "    \"sha1\": \"%s\"\n"
-                + "  },\n"
-                + "  \"path_in_vcs\": \"%s\"\n"
-                + "}",
+            """
+            {
+              "git": {
+                "sha1": "%s"
+              },
+              "path_in_vcs": "%s"
+            }\
+            """,
             repo.getHeadRef().getSha1(), vcsPath);
     Files.writeString(cratePath.resolve("Cargo.toml"), cargoToml);
     Files.writeString(cratePath.resolve(".cargo_vcs_info.json"), cargoVcsJson);

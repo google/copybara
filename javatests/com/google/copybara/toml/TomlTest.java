@@ -181,21 +181,29 @@ public class TomlTest {
 
 
   public <T> T parseToml(Class<T> clazz, String content, String key) throws ValidationException {
-    return clazz.cast(skylark.eval(
-        "x",
-        String.format("toml_content = %s\n"
-            + "toml_result = toml.parse(content = toml_content)\n"
-            + "x = toml_result.get(key ='%s')", content, key))
-    );
+    return clazz.cast(
+        skylark.eval(
+            "x",
+            String.format(
+                """
+                toml_content = %s
+                toml_result = toml.parse(content = toml_content)
+                x = toml_result.get(key ='%s')\
+                """,
+                content, key)));
   }
 
   private <T> T parseTomlOrDefault(Class<T> clazz, String content, String key, String defaultValue)
       throws ValidationException {
-    return clazz.cast(skylark.eval(
-        "x",
-        String.format("toml_content = %s\n"
-                + "toml_result = toml.parse(content = toml_content)\n"
-                + "x = toml_result.get_or_default(key ='%s', default = %s)", content, key,
-            defaultValue)));
+    return clazz.cast(
+        skylark.eval(
+            "x",
+            String.format(
+                """
+                toml_content = %s
+                toml_result = toml.parse(content = toml_content)
+                x = toml_result.get_or_default(key ='%s', default = %s)\
+                """,
+                content, key, defaultValue)));
   }
 }

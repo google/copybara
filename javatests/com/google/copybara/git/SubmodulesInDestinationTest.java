@@ -99,12 +99,17 @@ public final class SubmodulesInDestinationTest {
   }
 
   private GitDestination destination() throws ValidationException {
-    return skylark.eval("result",
-        String.format("result = git.destination(\n"
-            + "    url = '%s',\n"
-            + "    fetch = '%s',\n"
-            + "    push = '%s',\n"
-            + ")", url, fetch, push));
+    return skylark.eval(
+        "result",
+        String.format(
+            """
+            result = git.destination(
+                url = '%s',
+                fetch = '%s',
+                push = '%s',
+            )\
+            """,
+            url, fetch, push));
   }
 
   private void writeWithSubmoduleInDestination() throws Exception {

@@ -99,35 +99,41 @@ import org.mockito.stubbing.Answer;
 public class GerritDestinationTest {
 
   // TODO(danielromero): Remove once we are sure that Gerrit has transitioned completely
-  private static final String GERRIT_RESPONSE_OLD = "Counting objects: 9, done.\n"
-      + "Delta compression using up to 4 threads.\n"
-      + "Compressing objects: 100% (6/6), done.\n"
-      + "Writing objects: 100% (9/9), 3.20 KiB | 0 bytes/s, done.\n"
-      + "Total 9 (delta 4), reused 0 (delta 0)\n"
-      + "remote: Resolving deltas: 100% (4/4)\n"
-      + "remote: Processing changes: updated: 1, done\n"
-      + "remote:\n"
-      + "remote: Updated Changes:\n"
-      + "remote:   https://some.url.google.com/1234 This is a message\n"
-      + "remote:\n"
-      + "To sso://team/copybara-team/copybara\n"
-      + " * [new branch]      HEAD -> refs/for/master%notify=NONE\n"
-      + "<o> [master] ~/dev/copybara$\n";
-  private static final String GERRIT_RESPONSE = "Counting objects: 9, done.\n"
-      + "Delta compression using up to 4 threads.\n"
-      + "Compressing objects: 100% (6/6), done.\n"
-      + "Writing objects: 100% (9/9), 3.20 KiB | 0 bytes/s, done.\n"
-      + "Total 9 (delta 4), reused 0 (delta 0)\n"
-      + "remote: Resolving deltas: 100% (4/4)\n"
-      + "remote: Processing changes: updated: 1, done\n"
-      + "remote:\n"
-      + "remote: SUCCESS\n"
-      + "remote:\n"
-      + "remote:   https://some.url.google.com/1234 This is a message [NEW]\n"
-      + "remote:\n"
-      + "To sso://team/copybara-team/copybara\n"
-      + " * [new branch]      HEAD -> refs/for/master%notify=NONE\n"
-      + "<o> [master] ~/dev/copybara$\n";
+  private static final String GERRIT_RESPONSE_OLD =
+      """
+      Counting objects: 9, done.
+      Delta compression using up to 4 threads.
+      Compressing objects: 100% (6/6), done.
+      Writing objects: 100% (9/9), 3.20 KiB | 0 bytes/s, done.
+      Total 9 (delta 4), reused 0 (delta 0)
+      remote: Resolving deltas: 100% (4/4)
+      remote: Processing changes: updated: 1, done
+      remote:
+      remote: Updated Changes:
+      remote:   https://some.url.google.com/1234 This is a message
+      remote:
+      To sso://team/copybara-team/copybara
+       * [new branch]      HEAD -> refs/for/master%notify=NONE
+      <o> [master] ~/dev/copybara$
+      """;
+  private static final String GERRIT_RESPONSE =
+      """
+      Counting objects: 9, done.
+      Delta compression using up to 4 threads.
+      Compressing objects: 100% (6/6), done.
+      Writing objects: 100% (9/9), 3.20 KiB | 0 bytes/s, done.
+      Total 9 (delta 4), reused 0 (delta 0)
+      remote: Resolving deltas: 100% (4/4)
+      remote: Processing changes: updated: 1, done
+      remote:
+      remote: SUCCESS
+      remote:
+      remote:   https://some.url.google.com/1234 This is a message [NEW]
+      remote:
+      To sso://team/copybara-team/copybara
+       * [new branch]      HEAD -> refs/for/master%notify=NONE
+      <o> [master] ~/dev/copybara$
+      """;
 
   private static final String CONSTANT_CHANGE_ID = "I" + Strings.repeat("a", 40);
   private static final String BASE_URL = "https://user:SECRET@copybara-not-real.com";
@@ -1507,14 +1513,22 @@ public class GerritDestinationTest {
   @Test
   public void validationErrorForMissingPullFromRef() {
     skylark.evalFails(
-        "git.gerrit_destination(\n" + "    url = 'file:///foo',\n" + ")",
+        """
+        git.gerrit_destination(
+            url = 'file:///foo',
+        )\
+        """,
         "missing 1 required positional argument: fetch");
   }
 
   @Test
   public void validationErrorForMissingUrl() {
     skylark.evalFails(
-        "git.gerrit_destination(\n" + "    fetch = 'master',\n" + ")",
+        """
+        git.gerrit_destination(
+            fetch = 'master',
+        )\
+        """,
         "missing 1 required positional argument: url");
   }
 

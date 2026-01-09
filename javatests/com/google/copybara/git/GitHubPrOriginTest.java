@@ -1455,9 +1455,11 @@ public class GitHubPrOriginTest {
     GitHubPrOrigin prOrigin =
         skylark.eval(
             "result",
-            "result = git.github_pr_origin(\n"
-                + "    url = 'https://github.com/google/copybara'\n"
-                + ")");
+            """
+            result = git.github_pr_origin(
+                url = 'https://github.com/google/copybara'
+            )\
+            """);
     assertThat(prOrigin.getApprovalsProvider())
         .isInstanceOf(GitHubPreSubmitApprovalsProvider.class);
   }
@@ -1469,12 +1471,14 @@ public class GitHubPrOriginTest {
     GitHubPrOrigin origin =
         skylark.eval(
             "result",
-            "result = git.github_pr_origin(\n"
-                + "    url = 'https://github.com/foo/bar',\n"
-                + "    credentials = credentials.username_password(\n"
-                + "      credentials.static_value('test@example.com'),\n"
-                + "      credentials.static_secret('password', 'top_secret'))\n"
-                + "    )");
+            """
+            result = git.github_pr_origin(
+                url = 'https://github.com/foo/bar',
+                credentials = credentials.username_password(
+                  credentials.static_value('test@example.com'),
+                  credentials.static_secret('password', 'top_secret'))
+                )\
+            """);
     assertThat(origin.describeCredentials()).isNotEmpty();
     GitRepository repository = origin.getRepository();
     UserPassword result = repository

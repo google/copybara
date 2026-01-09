@@ -226,36 +226,48 @@ public class GitDestinationTest {
     return skylark.eval(
         "result",
         String.format(
-            "result = git.destination(\n"
-                + "    url = '%s',\n"
-                + "    fetch = '%s',\n"
-                + "    push = '%s',\n"
-                + "    partial_fetch = %s,\n"
-                + "    checker = %s,\n"
-                + "    primary_branch_migration = %s,\n"
-                + "    integrates = [git.integrate()],\n"
-                + ")",
+            """
+            result = git.destination(
+                url = '%s',
+                fetch = '%s',
+                push = '%s',
+                partial_fetch = %s,
+                checker = %s,
+                primary_branch_migration = %s,
+                integrates = [git.integrate()],
+            )\
+            """,
             url, fetch, push, partialClone, checker, primaryBranchMigration));
   }
 
   private GitDestination evalDestinationWithTag(String tagMsg)
       throws ValidationException {
     return tagMsg == null
-        ? skylark.eval("result",
-        String.format("result = git.destination(\n"
-            + "    url = '%s',\n"
-            + "    fetch = '%s',\n"
-            + "    push = '%s',\n"
-            + "    tag_name = '%s',\n"
-            + ")", url, fetch, push, tagName))
-        : skylark.eval("result",
-            String.format("result = git.destination(\n"
-                + "    url = '%s',\n"
-                + "    fetch = '%s',\n"
-                + "    push = '%s',\n"
-                + "    tag_name = '%s',\n"
-                + "    tag_msg = '%s',\n"
-                + ")", url, fetch, push, tagName, tagMsg));
+        ? skylark.eval(
+            "result",
+            String.format(
+                """
+                result = git.destination(
+                    url = '%s',
+                    fetch = '%s',
+                    push = '%s',
+                    tag_name = '%s',
+                )\
+                """,
+                url, fetch, push, tagName))
+        : skylark.eval(
+            "result",
+            String.format(
+                """
+                result = git.destination(
+                    url = '%s',
+                    fetch = '%s',
+                    push = '%s',
+                    tag_name = '%s',
+                    tag_msg = '%s',
+                )\
+                """,
+                url, fetch, push, tagName, tagMsg));
   }
 
   private void assertFilesInDir(int expected, String ref, String path) throws Exception {
@@ -425,9 +437,13 @@ public class GitDestinationTest {
          workdir, new DummyRevision("ref2")).withChanges(changes).
         withSummary("message_tag"), destinationFiles, console);
      CommandOutput commandOutput = repo().simpleCommand("tag", "-n9");
-     assertThat(commandOutput.getStdout()).matches(".*test_v1.*message_tag\n"
-         + ".*\n"
-         + ".*DummyOrigin-RevId: ref2\n");
+    assertThat(commandOutput.getStdout())
+        .matches(
+            """
+            .*test_v1.*message_tag
+            .*
+            .*DummyOrigin-RevId: ref2
+            """);
   }
 
   @Test
@@ -2156,10 +2172,13 @@ public class GitDestinationTest {
     Writer<GitRevision> writer = firstCommitWriter();
     Files.write(workdir.resolve("test.txt"), "".getBytes(UTF_8));
     DummyRevision rev = new DummyRevision("first_commit");
-    String msg = "This is a message\n"
-        + "\n"
-        + "That already has a label\n"
-        + "THE_LABEL: value\n";
+    String msg =
+        """
+        This is a message
+
+        That already has a label
+        THE_LABEL: value
+        """;
     writer.write(
         new TransformResult(workdir, rev, rev.getAuthor(), msg, rev, /*workflowName*/ "default",
                             TransformWorks.EMPTY_CHANGES, "first_commit", /*setRevId=*/ true,
@@ -2168,11 +2187,15 @@ public class GitDestinationTest {
         console);
 
     String body = lastCommit("HEAD").body();
-    assertThat(body).isEqualTo("This is a message\n"
-        + "\n"
-        + "That already has a label\n"
-        + "THE_LABEL: value\n"
-        + "DummyOrigin-RevId: first_commit\n");
+    assertThat(body)
+        .isEqualTo(
+            """
+            This is a message
+
+            That already has a label
+            THE_LABEL: value
+            DummyOrigin-RevId: first_commit
+            """);
     // Double check that we can access it as a label.
     assertThat(ChangeMessage.parseMessage(body).labelsAsMultimap())
         .containsEntry("DummyOrigin-RevId", "first_commit");
@@ -2186,11 +2209,13 @@ public class GitDestinationTest {
     Files.write(workdir.resolve("test.txt"), "".getBytes(UTF_8));
     DummyRevision rev = new DummyRevision("first_commit");
     String msg =
-        "This is a message\n"
-            + "\n"
-            + "I have an integration label below\n"
-            + "THE_LABEL: value\n"
-            + "COPYBARA_INTEGRATE_REVIEW=INTEGRATE_THIS";
+        """
+        This is a message
+
+        I have an integration label below
+        THE_LABEL: value
+        COPYBARA_INTEGRATE_REVIEW=INTEGRATE_THIS\
+        """;
     writer.write(
         new TransformResult(
                 workdir,
@@ -2214,12 +2239,14 @@ public class GitDestinationTest {
     String body = lastCommit("HEAD").body();
     assertThat(body)
         .isEqualTo(
-            "This is a message\n"
-                + "\n"
-                + "I have an integration label below\n"
-                + "THE_LABEL: value\n"
-                + "COPYBARA_INTEGRATE_REVIEW=INTEGRATE_THIS\n"
-                + "DummyOrigin-RevId: first_commit\n");
+            """
+            This is a message
+
+            I have an integration label below
+            THE_LABEL: value
+            COPYBARA_INTEGRATE_REVIEW=INTEGRATE_THIS
+            DummyOrigin-RevId: first_commit
+            """);
     // Double check that we can access it as a label.
     assertThat(ChangeMessage.parseMessage(body).labelsAsMultimap())
         .containsEntry("DummyOrigin-RevId", "first_commit");
@@ -2258,23 +2285,31 @@ public class GitDestinationTest {
 
   @Test
   public void testFetchPushParamsSimple() throws Exception {
-    GitDestination gitDestination = skylark.eval("result",
-        "result = git.destination(\n"
-            + "    url = 'file:///foo/bar/baz',\n"
-            + "    push = 'test',\n"
-            + ")");
+    GitDestination gitDestination =
+        skylark.eval(
+            "result",
+            """
+            result = git.destination(
+                url = 'file:///foo/bar/baz',
+                push = 'test',
+            )\
+            """);
     assertThat(gitDestination.getFetch()).isEqualTo("test");
     assertThat(gitDestination.getPush()).isEqualTo("test");
   }
 
   @Test
   public void testFetchPushParamsExplicit() throws Exception {
-    GitDestination gitDestination = skylark.eval("result",
-        "result = git.destination(\n"
-            + "    url = 'file:///foo/bar/baz',\n"
-            + "    fetch = 'test1',\n"
-            + "    push = 'test2',\n"
-            + ")");
+    GitDestination gitDestination =
+        skylark.eval(
+            "result",
+            """
+            result = git.destination(
+                url = 'file:///foo/bar/baz',
+                fetch = 'test1',
+                push = 'test2',
+            )\
+            """);
     assertThat(gitDestination.getFetch()).isEqualTo("test1");
     assertThat(gitDestination.getPush()).isEqualTo("test2");
   }
@@ -2283,11 +2318,15 @@ public class GitDestinationTest {
   public void testFetchPushParamsCliFlags() throws Exception {
     options.gitDestination.fetch = "aaa";
     options.gitDestination.push = "bbb";
-    GitDestination gitDestination = skylark.eval("result",
-        "result = git.destination(\n"
-            + "    url = 'file:///foo/bar/baz',\n"
-            + "    push = 'test',\n"
-            + ")");
+    GitDestination gitDestination =
+        skylark.eval(
+            "result",
+            """
+            result = git.destination(
+                url = 'file:///foo/bar/baz',
+                push = 'test',
+            )\
+            """);
     assertThat(gitDestination.getFetch()).isEqualTo("aaa");
     assertThat(gitDestination.getPush()).isEqualTo("bbb");
   }
@@ -2324,12 +2363,14 @@ public class GitDestinationTest {
     GitDestination destination =
         skylark.eval(
             "result",
-            "result = git.destination(\n"
-                + "    url = 'https://my-server.org/copybara',\n"
-                + "    credentials = credentials.username_password(\n"
-                + "      credentials.static_value('test@example.com'),\n"
-                + "      credentials.static_secret('password', 'top_secret'))\n"
-                + "    )");
+            """
+            result = git.destination(
+                url = 'https://my-server.org/copybara',
+                credentials = credentials.username_password(
+                  credentials.static_value('test@example.com'),
+                  credentials.static_secret('password', 'top_secret'))
+                )\
+            """);
     assertThat(destination.describeCredentials()).isNotEmpty();
     GitRepository repository = destination.getLocalRepo().load(console);
     UserPassword result = repository

@@ -201,10 +201,13 @@ public final class QuiltTransformationTest {
     skylark.addConfigFile("patches/diff.patch", patchFile.readContent());
     skylark.addConfigFile("patches/series", seriesFile.readContent());
     QuiltTransformation transformation =
-        skylark.eval("r",
-            "r = patch.quilt_apply(\n"
-                + "  series = 'patches/series',\n"
-                + ")\n");
+        skylark.eval(
+            "r",
+            """
+            r = patch.quilt_apply(
+              series = 'patches/series',
+            )
+            """);
     transformation.transform(TransformWorks.of(checkoutDir, "testmsg", console));
     assertThatPath(checkoutDir)
         .containsFile("file1.txt", "line1\nbar\nline3")
@@ -221,10 +224,13 @@ public final class QuiltTransformationTest {
     Files.write(checkoutDir.resolve("file2.txt"), "bar\n".getBytes(UTF_8));
     skylark.addConfigFile("patches/series", seriesFile.readContent());
     QuiltTransformation transformation =
-        skylark.eval("r",
-            "r = patch.quilt_apply(\n"
-                + "  series = 'patches/series',\n"
-                + ")\n");
+        skylark.eval(
+            "r",
+            """
+            r = patch.quilt_apply(
+              series = 'patches/series',
+            )
+            """);
   }
 
   @Test
@@ -233,9 +239,13 @@ public final class QuiltTransformationTest {
     Files.write(checkoutDir.resolve("file2.txt"), "bar\n".getBytes(UTF_8));
     skylark.addConfigFile("patches/series", seriesFile.readContent());
 
-    skylark.evalFails("patch.quilt_apply(\n"
-        + "  series = 'patches/series',\n"
-        + ")\n", "Cannot resolve 'patches");
+    skylark.evalFails(
+        """
+        patch.quilt_apply(
+          series = 'patches/series',
+        )
+        """,
+        "Cannot resolve 'patches");
   }
 
   @Test
@@ -243,11 +253,16 @@ public final class QuiltTransformationTest {
     Files.write(checkoutDir.resolve("file1.txt"), "line1\nfoo\nline3".getBytes(UTF_8));
     Files.write(checkoutDir.resolve("file2.txt"), "bar\n".getBytes(UTF_8));
     skylark.addConfigFile("patches/series", "");
-    assertThrows(ValidationException.class,
-        () -> skylark.eval("r",
-            "r = patch.quilt_apply(\n"
-                + "  series = 'patches/series',\n"
-                + ")\n"));
+    assertThrows(
+        ValidationException.class,
+        () ->
+            skylark.eval(
+                "r",
+                """
+                r = patch.quilt_apply(
+                  series = 'patches/series',
+                )
+                """));
   }
 
   @Test
@@ -257,10 +272,13 @@ public final class QuiltTransformationTest {
     skylark.addConfigFile("patches/diff.patch", patchFile.readContent());
     skylark.addConfigFile("patches/series", seriesFile.readContent());
     QuiltTransformation transformation =
-        skylark.eval("r",
-            "r = patch.quilt_apply(\n"
-                + "  series = 'patches/series',\n"
-                + ")\n");
+        skylark.eval(
+            "r",
+            """
+            r = patch.quilt_apply(
+              series = 'patches/series',
+            )
+            """);
 
     // Add some configuration to the environment that will cause quilt to fail. Copybara needs to
     // strip that configuration from the environment before it invokes quilt.

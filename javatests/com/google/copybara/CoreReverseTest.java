@@ -114,10 +114,12 @@ public final class CoreReverseTest {
         () ->
             skylark.eval(
                 "foo",
-                "foo = core.reverse([\n"
-                    + "   mock.transform('foo', False),\n"
-                    + "   mock.transform('bar'),\n"
-                    + "])"));
+                """
+                foo = core.reverse([
+                   mock.transform('foo', False),
+                   mock.transform('bar'),
+                ])\
+                """));
     console.assertThat().onceInLog(MessageType.ERROR, ".*foo is not reversible.*");
   }
 

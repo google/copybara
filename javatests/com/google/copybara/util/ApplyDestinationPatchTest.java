@@ -133,9 +133,27 @@ public class ApplyDestinationPatchTest {
   @Test
   public void simpleMergeConflictTest() throws Exception {
     String filename = testName.getMethodName() + ".txt";
-    writeFile(baseline, filename, "a\n" + "b\n");
-    writeFile(left, filename, "a\n" + "left\n");
-    writeFile(right, filename, "a\n" + "right\n");
+    writeFile(
+        baseline,
+        filename,
+        """
+        a
+        b
+        """);
+    writeFile(
+        left,
+        filename,
+        """
+        a
+        left
+        """);
+    writeFile(
+        right,
+        filename,
+        """
+        a
+        right
+        """);
 
     String expected = "" + "a\n" + "<<<<<<<\n" + "left\n" + "=======\n" + "right\n" + ">>>>>>>\n";
 

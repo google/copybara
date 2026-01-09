@@ -1266,11 +1266,14 @@ public class WorkflowTest {
     options.workflowOptions.lastRevision = null;
     skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of("3"));
 
-    assertThat(Iterables.getLast(destination.processed).getChangesSummary()).isEqualTo(
-        "Copybara import of the project:\n"
-            + "\n"
-            + "  - 3 pending2 by Copybara <no-reply@google.com>\n"
-            + "  - 2 pending1 by Copybara <no-reply@google.com>\n");
+    assertThat(Iterables.getLast(destination.processed).getChangesSummary())
+        .isEqualTo(
+            """
+            Copybara import of the project:
+
+              - 3 pending2 by Copybara <no-reply@google.com>
+              - 2 pending1 by Copybara <no-reply@google.com>
+            """);
     assertThat(Lists.transform(destination.processed, input -> input.getOriginRef().asString()))
         .isEqualTo(Lists.newArrayList("1", "3"));
 
@@ -1279,12 +1282,15 @@ public class WorkflowTest {
 
     skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of("5"));
 
-    assertThat(Iterables.getLast(destination.processed).getChangesSummary()).isEqualTo(
-        "Copybara import of the project:\n"
-            + "\n"
-            + "  - 5 pending3 by Copybara <no-reply@google.com>\n"
-            + "  - 3 pending2 by Copybara <no-reply@google.com>\n"
-            + "  - 2 pending1 by Copybara <no-reply@google.com>\n");
+    assertThat(Iterables.getLast(destination.processed).getChangesSummary())
+        .isEqualTo(
+            """
+            Copybara import of the project:
+
+              - 5 pending3 by Copybara <no-reply@google.com>
+              - 3 pending2 by Copybara <no-reply@google.com>
+              - 2 pending1 by Copybara <no-reply@google.com>
+            """);
     // We migrate everything from pending1
     assertThat(Lists.transform(destination.processed, input -> input.getOriginRef().asString()))
         .isEqualTo(Lists.newArrayList("1", "3", "5"));
@@ -1849,10 +1855,13 @@ public class WorkflowTest {
 
     // We skip changes that only touch foo.
     assertThat(Iterables.getLast(destination.processed).getChangesSummary())
-        .isEqualTo("Copybara import of the project:\n"
-            + "\n"
-            + "  - 2 only bar by Copybara <no-reply@google.com>\n"
-            + "  - 0 foo and bar by Copybara <no-reply@google.com>\n");
+        .isEqualTo(
+            """
+            Copybara import of the project:
+
+              - 2 only bar by Copybara <no-reply@google.com>
+              - 0 foo and bar by Copybara <no-reply@google.com>
+            """);
     // We use as reference for the destination label the last change that affects
     // origin_files.
     assertThat(Iterables.getLast(destination.processed).getOriginRef().asString())
@@ -2425,10 +2434,12 @@ public class WorkflowTest {
     workflow.run(workdir, ImmutableList.of("HEAD"));
 
     mergeImport =
-        "core.merge_import_config(\n"
-            + "  package_path = \"\",\n"
-            + "  use_consistency_file = True,\n"
-            + ")";
+        """
+        core.merge_import_config(
+          package_path = "",
+          use_consistency_file = True,
+        )\
+        """;
     consistencyFilePath = "\"foo.bara.consistency\"";
 
     // merge import will not run if there is no lastRev, so create and import
@@ -2464,10 +2475,12 @@ public class WorkflowTest {
   public void mergeImport_consistencyFile_validateUsesConsistencyFileSet() throws Exception {
     // use_consistency_file is set to False by default, but setting it here for readability
     mergeImport =
-        "core.merge_import_config(\n"
-            + "  package_path = \"\",\n"
-            + "  use_consistency_file = False,\n"
-            + ")";
+        """
+        core.merge_import_config(
+          package_path = "",
+          use_consistency_file = False,
+        )\
+        """;
     consistencyFilePath = "\"foo.bara.consistency\"";
 
     ValidationException ve =
@@ -2483,10 +2496,12 @@ public class WorkflowTest {
   @Test
   public void mergeImport_useConsistencyFileSet_validateConsistencyFilePathSet() throws Exception {
     mergeImport =
-        "core.merge_import_config(\n"
-            + "  package_path = \"\",\n"
-            + "  use_consistency_file = True,\n"
-            + ")";
+        """
+        core.merge_import_config(
+          package_path = "",
+          use_consistency_file = True,
+        )\
+        """;
 
     ValidationException ve =
         assertThrows(
@@ -2510,10 +2525,12 @@ public class WorkflowTest {
 
     skylark = new SkylarkTestExecutor(options);
     mergeImport =
-        "core.merge_import_config(\n"
-            + "  package_path = \"\",\n"
-            + "  use_consistency_file = True,\n"
-            + ")";
+        """
+        core.merge_import_config(
+          package_path = "",
+          use_consistency_file = True,
+        )\
+        """;
     consistencyFilePath = "\"foo.bara.consistency\"";
     Path testDir = Files.createTempDirectory("testDir");
 
@@ -2595,10 +2612,12 @@ public class WorkflowTest {
 
     // config setup
     mergeImport =
-        "core.merge_import_config(\n"
-            + "  package_path = \"\",\n"
-            + "  use_consistency_file = True,\n"
-            + ")";
+        """
+        core.merge_import_config(
+          package_path = "",
+          use_consistency_file = True,
+        )\
+        """;
     consistencyFilePath = "\"foo.bara.consistency\"";
     // Make sure that the entire flow works even if the origin doesn't support
     // history (e.g. folder origin). There should be no need to look at origin
@@ -2701,10 +2720,12 @@ public class WorkflowTest {
 
     // config setup
     mergeImport =
-        "core.merge_import_config(\n"
-            + "  package_path = \"\",\n"
-            + "  use_consistency_file = True,\n"
-            + ")";
+        """
+        core.merge_import_config(
+          package_path = "",
+          use_consistency_file = True,
+        )\
+        """;
     consistencyFilePath = "\"foo.bara.consistency\"";
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
@@ -2760,10 +2781,12 @@ public class WorkflowTest {
 
     // config setup
     mergeImport =
-        "core.merge_import_config(\n"
-            + "  package_path = \"\",\n"
-            + "  use_consistency_file = True,\n"
-            + ")";
+        """
+        core.merge_import_config(
+          package_path = "",
+          use_consistency_file = True,
+        )\
+        """;
     consistencyFilePath = "\"foo.bara.consistency\"";
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
@@ -2830,10 +2853,12 @@ public class WorkflowTest {
 
     // config setup
     mergeImport =
-        "core.merge_import_config(\n"
-            + "  package_path = \"\",\n"
-            + "  use_consistency_file = True,\n"
-            + ")";
+        """
+        core.merge_import_config(
+          package_path = "",
+          use_consistency_file = True,
+        )\
+        """;
     consistencyFilePath = "\"foo.bara.consistency\"";
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
@@ -2907,10 +2932,12 @@ public class WorkflowTest {
   @Test
   public void mergeImport_mergeConflict_writesDestinationEffect() throws Exception {
     mergeImport =
-        "core.merge_import_config(\n"
-            + "  package_path = \"\",\n"
-            + "  use_consistency_file = True,\n"
-            + ")";
+        """
+        core.merge_import_config(
+          package_path = "",
+          use_consistency_file = True,
+        )\
+        """;
     consistencyFilePath = "\"foo.bara.consistency\"";
     afterMigration = "[lambda ctx: ctx.destination.message(str(ctx.effects))]";
     Path testDir = Files.createTempDirectory("merge_import");
@@ -3037,19 +3064,21 @@ public class WorkflowTest {
             .get("dir/foo.txt"))
         .isEqualTo("foo\na\nb\nc\nbar");
     assertThat(
-        destination
-            .processed
-            .get(destination.processed.size() - 1)
-            .getWorkdir()
-            .get("dir/GOIMPORT/AUTOPATCHES/foo.txt.patch"))
+            destination
+                .processed
+                .get(destination.processed.size() - 1)
+                .getWorkdir()
+                .get("dir/GOIMPORT/AUTOPATCHES/foo.txt.patch"))
         .isEqualTo(
-            "This patch file was generated by Copybara!\n"
-                + "@@ foo\n"
-                + " a\n"
-                + " b\n"
-                + " c\n"
-                + "+bar\n"
-                + "\\ No newline at end of file\n");
+            """
+            This patch file was generated by Copybara!
+            @@ foo
+             a
+             b
+             c
+            +bar
+            \\ No newline at end of file
+            """);
     assertThat(
         destination
             .processed
@@ -3138,21 +3167,23 @@ public class WorkflowTest {
             .get("dir/foo.txt"))
         .isEqualTo("foo\nX\nb\nc\nbXr");
     assertThat(
-        destination
-            .processed
-            .get(destination.processed.size() - 1)
-            .getWorkdir()
-            .get("dir/GOIMPORT/AUTOPATCHES/foo.txt.patch"))
+            destination
+                .processed
+                .get(destination.processed.size() - 1)
+                .getWorkdir()
+                .get("dir/GOIMPORT/AUTOPATCHES/foo.txt.patch"))
         .isEqualTo(
-            "This patch file was generated by Copybara!\n"
-                + "@@\n"
-                + " foo\n"
-                + "-a\n"
-                + "+X\n"
-                + " b\n"
-                + " c\n"
-                + "+bXr\n"
-                + "\\ No newline at end of file\n");
+            """
+            This patch file was generated by Copybara!
+            @@
+             foo
+            -a
+            +X
+             b
+             c
+            +bXr
+            \\ No newline at end of file
+            """);
     assertThat(
         destination
             .processed
@@ -3231,14 +3262,16 @@ public class WorkflowTest {
   @Test
   public void mergeImportConfiguration_wildcard_glob() throws Exception {
     mergeImport =
-        "core.merge_import_config(\n"
-            + "        package_path = \"\",\n"
-            + "        paths = glob(\n"
-            + "            include = [\n"
-            + "                \"**\",\n"
-            + "            ],\n"
-            + "        ),\n"
-            + "    )";
+        """
+        core.merge_import_config(
+                package_path = "",
+                paths = glob(
+                    include = [
+                        "**",
+                    ],
+                ),
+            )\
+        """;
     FileSystem fileSystem = Jimfs.newFileSystem();
     Path base1 = Files.createTempDirectory(fileSystem.getPath("/"), "base");
 
@@ -3302,9 +3335,11 @@ public class WorkflowTest {
 
     // config setup
     mergeImport =
-        "core.merge_import_config(\n"
-            + "  package_path = \"\",\n"
-            + ")";
+        """
+        core.merge_import_config(
+          package_path = "",
+        )\
+        """;
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
     Path testDir = Files.createTempDirectory("consistency");
@@ -3374,14 +3409,16 @@ public class WorkflowTest {
   @Test
   public void mergeImportConfiguration_selective_glob() throws Exception {
     mergeImport =
-        "core.merge_import_config(\n"
-            + "        package_path = \"\",\n"
-            + "        paths = glob(\n"
-            + "            include = [\n"
-            + "                \"foo.txt\",\n"
-            + "            ],\n"
-            + "        ),\n"
-            + "    )";
+        """
+        core.merge_import_config(
+                package_path = "",
+                paths = glob(
+                    include = [
+                        "foo.txt",
+                    ],
+                ),
+            )\
+        """;
     FileSystem fileSystem = Jimfs.newFileSystem();
     Path base1 = Files.createTempDirectory(fileSystem.getPath("/"), "base");
 
@@ -3448,17 +3485,19 @@ public class WorkflowTest {
   @Test
   public void mergeImportConfiguration_package_path() throws Exception {
     mergeImport =
-        "core.merge_import_config(\n"
-            + "        package_path = \"folder\",\n"
-            + "        paths = glob(\n"
-            + "            include = [\n"
-            + "                \"**\",\n"
-            + "            ],\n"
-            + "            exclude = [\n"
-            + "                \"not_merged.txt\",\n"
-            + "            ],\n"
-            + "        ),\n"
-            + "    )";
+        """
+        core.merge_import_config(
+                package_path = "folder",
+                paths = glob(
+                    include = [
+                        "**",
+                    ],
+                    exclude = [
+                        "not_merged.txt",
+                    ],
+                ),
+            )\
+        """;
     FileSystem fileSystem = Jimfs.newFileSystem();
     Path base1 = Files.createTempDirectory(fileSystem.getPath("/"), "base");
 
@@ -4258,9 +4297,11 @@ public class WorkflowTest {
         + ")\n";
     loadConfig(config).getMigration("default").run(workdir, ImmutableList.of());
     assertThat(Iterables.getOnlyElement(destination.processed).getChangesSummary())
-        .isEqualTo("example2\n"
-            + "other42\n");
-
+        .isEqualTo(
+            """
+            example2
+            other42
+            """);
   }
 
   @Test

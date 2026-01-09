@@ -32,20 +32,22 @@ public final class ConfigBuilderTest {
 
   private SkylarkTestExecutor skylark;
   private static final String GIT_TO_GIT_CONFIG =
-      "transformations = [\n"
-          + "    # TODO: Insert your transformations here\n"
-          + "]\n"
-          + "\n"
-          + "core.workflow(\n"
-          + "    name = 'default',\n"
-          + "    origin = git.origin(\n"
-          + "    url = \"github.com/origin\"), \n"
-          + "    destination = git.destination(\n"
-          + "    url = \"github.com/destination\"),\n"
-          + "    authoring = authoring.pass_thru(\"Name <foo@bar.com>\"),\n"
-          + "    mode='SQUASH',\n"
-          + "    transformations = transformations,\n"
-          + ")";
+      """
+      transformations = [
+          # TODO: Insert your transformations here
+      ]
+
+      core.workflow(
+          name = 'default',
+          origin = git.origin(
+          url = "github.com/origin"),\s
+          destination = git.destination(
+          url = "github.com/destination"),
+          authoring = authoring.pass_thru("Name <foo@bar.com>"),
+          mode='SQUASH',
+          transformations = transformations,
+      )\
+      """;
 
   @Before
   public void setUp() throws Exception {

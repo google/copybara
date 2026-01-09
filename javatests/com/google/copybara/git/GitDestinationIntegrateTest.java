@@ -441,10 +441,13 @@ public class GitDestinationIntegrateTest {
         .containsNoMoreFiles();
 
     GitLogEntry merge = getLastMigratedChange(primaryBranch);
-    assertThat(merge.body()).isEqualTo(
-        "Merge pull request #20 from some_user:1234-foo.bar.baz%3\n"
-            + "\n"
-            + "DummyOrigin-RevId: test\n");
+    assertThat(merge.body())
+        .isEqualTo(
+            """
+            Merge pull request #20 from some_user:1234-foo.bar.baz%3
+
+            DummyOrigin-RevId: test
+            """);
 
     assertThat(Lists.transform(merge.parents(), GitRevision::getSha1))
         .isEqualTo(Lists.newArrayList(previous.commit().getSha1(), secondChange.getSha1()));
@@ -564,9 +567,13 @@ public class GitDestinationIntegrateTest {
         .containsNoMoreFiles();
 
     GitLogEntry merge = getLastMigratedChange(primaryBranch);
-    assertThat(merge.body()).isEqualTo("Merge Gerrit change 1020 Patch Set 1\n"
-        + "\n"
-        + "DummyOrigin-RevId: test\n");
+    assertThat(merge.body())
+        .isEqualTo(
+            """
+            Merge Gerrit change 1020 Patch Set 1
+
+            DummyOrigin-RevId: test
+            """);
 
     assertThat(Lists.transform(merge.parents(), GitRevision::getSha1))
         .isEqualTo(Lists.newArrayList(previous.commit().getSha1(), firstChange.getSha1()));

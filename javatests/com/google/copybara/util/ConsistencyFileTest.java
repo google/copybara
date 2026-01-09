@@ -407,13 +407,15 @@ public class ConsistencyFileTest {
     // possible that these end up sorted by coincidence
     assertThat(new String(consistencyFile.toBytes()))
         .matches(
-            "(?s).*test/foo/a.*\n"
-                + "test/foo/b.*\n"
-                + "test/foo/c.*\n"
-                + "test/foo/d.*\n"
-                + "test/foo/e.*\n"
-                + "test/foo/f.*\n"
-                + "test/foo/g.*");
+            """
+            (?s).*test/foo/a.*
+            test/foo/b.*
+            test/foo/c.*
+            test/foo/d.*
+            test/foo/e.*
+            test/foo/f.*
+            test/foo/g.*\
+            """);
   }
 
   @Test

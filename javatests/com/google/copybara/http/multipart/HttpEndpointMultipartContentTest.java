@@ -80,13 +80,15 @@ public class HttpEndpointMultipartContentTest {
     var unused =
         starlark.eval(
             "resp",
-            "endpoint = testing.get_endpoint(\n"
-                + "  http.endpoint(host = \"foo.com\")\n"
-                + "  )\n"
-                + "resp = endpoint.post(\n"
-                + "  url = \"http://foo.com\",\n"
-                + "  content = http.multipart_form([])\n"
-                + ")");
+            """
+            endpoint = testing.get_endpoint(
+              http.endpoint(host = "foo.com")
+              )
+            resp = endpoint.post(
+              url = "http://foo.com",
+              content = http.multipart_form([])
+            )\
+            """);
   }
 
   @Test
@@ -102,15 +104,17 @@ public class HttpEndpointMultipartContentTest {
         });
     starlark.eval(
         "resp",
-        "endpoint = testing.get_endpoint(\n"
-            + "  http.endpoint(host = \"foo.com\")\n"
-            + "  )\n"
-            + "resp = endpoint.post(\n"
-            + "  url = \"http://foo.com\",\n"
-            + "  content = http.multipart_form([\n"
-            + "    http.multipart_form_text(\"testfield\", \"testtext\")\n"
-            + "  ])\n"
-            + ")");
+        """
+        endpoint = testing.get_endpoint(
+          http.endpoint(host = "foo.com")
+          )
+        resp = endpoint.post(
+          url = "http://foo.com",
+          content = http.multipart_form([
+            http.multipart_form_text("testfield", "testtext")
+          ])
+        )\
+        """);
   }
 
   @Test
@@ -132,21 +136,23 @@ public class HttpEndpointMultipartContentTest {
 
     starlark.eval(
         "resp",
-        "endpoint = testing.get_endpoint(\n"
-            + "  http.endpoint(host = \"foo.com\")\n"
-            + "  )\n"
-            + "test_file = testing.get_checkout(\"testfile.txt\")\n"
-            + "resp = endpoint.post(\n"
-            + "  url = \"http://foo.com\",\n"
-            + "  content = http.multipart_form([\n"
-            + "    http.multipart_form_file(\n"
-            + "      \"testfield\",\n"
-            + "      test_file,\n"
-            + "      content_type=\"application/json\",\n"
-            + "      filename=\"newname.txt\"\n"
-            + "    )\n"
-            + "  ])\n"
-            + ")");
+        """
+        endpoint = testing.get_endpoint(
+          http.endpoint(host = "foo.com")
+          )
+        test_file = testing.get_checkout("testfile.txt")
+        resp = endpoint.post(
+          url = "http://foo.com",
+          content = http.multipart_form([
+            http.multipart_form_file(
+              "testfield",
+              test_file,
+              content_type="application/json",
+              filename="newname.txt"
+            )
+          ])
+        )\
+        """);
   }
 
   @Test
@@ -170,16 +176,18 @@ public class HttpEndpointMultipartContentTest {
 
     starlark.eval(
         "resp",
-        "endpoint = testing.get_endpoint(\n"
-            + "  http.endpoint(host = \"foo.com\")\n"
-            + "  )\n"
-            + "resp = endpoint.post(\n"
-            + "  url = \"http://foo.com\",\n"
-            + "  content = http.multipart_form([\n"
-            + "    http.multipart_form_text(\"testfield\", \"testtext\"),\n"
-            + "    http.multipart_form_text(\"foofield\", \"footext\")\n"
-            + "  ])\n"
-            + ")");
+        """
+        endpoint = testing.get_endpoint(
+          http.endpoint(host = "foo.com")
+          )
+        resp = endpoint.post(
+          url = "http://foo.com",
+          content = http.multipart_form([
+            http.multipart_form_text("testfield", "testtext"),
+            http.multipart_form_text("foofield", "footext")
+          ])
+        )\
+        """);
   }
 
   @Test

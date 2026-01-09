@@ -156,11 +156,14 @@ public class PatchTransformationTest {
     Files.write(checkoutDir.resolve("test.txt"), "foo\n".getBytes(UTF_8));
     skylark.addConfigFile("diff.patch", patchFile.readContent());
     PatchTransformation transformation =
-        skylark.eval("r",
-            "r = patch.apply(\n"
-                + "  patches = ['diff.patch'],\n"
-                + "  excluded_patch_paths = ['excluded/*'],\n"
-                + ")\n");
+        skylark.eval(
+            "r",
+            """
+            r = patch.apply(
+              patches = ['diff.patch'],
+              excluded_patch_paths = ['excluded/*'],
+            )
+            """);
     transformation.transform(TransformWorks.of(checkoutDir, "testmsg", console));
     assertThatPath(checkoutDir)
         .containsFile("test.txt", "bar\n")
@@ -180,11 +183,14 @@ public class PatchTransformationTest {
         + "-foo\n"
         + "+bar\n");
     PatchTransformation transformation =
-        skylark.eval("r",
-            "r = patch.apply(\n"
-                + "  patches = ['diff.patch'],\n"
-                + "  strip = 0,\n"
-                + ")\n");
+        skylark.eval(
+            "r",
+            """
+            r = patch.apply(
+              patches = ['diff.patch'],
+              strip = 0,
+            )
+            """);
     transformation.transform(TransformWorks.of(checkoutDir, "testmsg", console));
     assertThatPath(checkoutDir)
         .containsFile("test.txt", "bar\n")
@@ -209,11 +215,13 @@ public class PatchTransformationTest {
     PatchTransformation transformation =
         skylark.eval(
             "r",
-            "r = patch.apply(\n"
-                + "  patches = ['diff.patch'],\n"
-                + "  strip = 0,\n"
-                + "  directory = 'sub/',\n"
-                + ")\n");
+            """
+            r = patch.apply(
+              patches = ['diff.patch'],
+              strip = 0,
+              directory = 'sub/',
+            )
+            """);
     transformation.transform(TransformWorks.of(checkoutDir, "testmsg", console));
     assertThatPath(checkoutDir).containsFile("sub/dir/test.txt", "bar\n").containsNoMoreFiles();
   }
@@ -224,11 +232,14 @@ public class PatchTransformationTest {
     skylark.addConfigFile("diff.patch", patchFile.readContent());
     skylark.addConfigFile("series", seriesFile.readContent());
     PatchTransformation transformation =
-        skylark.eval("r",
-            "r = patch.apply(\n"
-                + "  series = 'series',\n"
-                + "  excluded_patch_paths = ['excluded/*'],\n"
-                + ")\n");
+        skylark.eval(
+            "r",
+            """
+            r = patch.apply(
+              series = 'series',
+              excluded_patch_paths = ['excluded/*'],
+            )
+            """);
     transformation.transform(TransformWorks.of(checkoutDir, "testmsg", console));
     assertThatPath(checkoutDir)
         .containsFile("test.txt", "bar\n")
@@ -241,11 +252,14 @@ public class PatchTransformationTest {
     Files.write(checkoutDir.resolve("test.txt"), "foo\n".getBytes(UTF_8));
     skylark.addConfigFile("series", seriesFile.readContent());
     PatchTransformation ignore =
-        skylark.eval("r",
-            "r = patch.apply(\n"
-                + "  series = 'series',\n"
-                + "  excluded_patch_paths = ['excluded/*'],\n"
-                + ")\n");
+        skylark.eval(
+            "r",
+            """
+            r = patch.apply(
+              series = 'series',
+              excluded_patch_paths = ['excluded/*'],
+            )
+            """);
   }
 
   @Test
@@ -253,11 +267,14 @@ public class PatchTransformationTest {
     patchingOptions.validateOnLoad = false;
     Files.write(checkoutDir.resolve("test.txt"), "foo\n".getBytes(UTF_8));
     PatchTransformation transformation =
-        skylark.eval("r",
-            "r = patch.apply(\n"
-                + "  patches = ['diff.patch'],\n"
-                + "  excluded_patch_paths = ['excluded/*'],\n"
-                + ")\n");
+        skylark.eval(
+            "r",
+            """
+            r = patch.apply(
+              patches = ['diff.patch'],
+              excluded_patch_paths = ['excluded/*'],
+            )
+            """);
     console.assertThat().onceInLog(MessageType.ERROR, "Cannot load.*");
   }
 
@@ -265,11 +282,14 @@ public class PatchTransformationTest {
   public void testParseSkylarkSeries_empty() throws Exception {
     skylark.addConfigFile("series", "");
     PatchTransformation transformation =
-        skylark.eval("r",
-            "r = patch.apply(\n"
-                + "  series = 'series',\n"
-                + "  excluded_patch_paths = ['excluded/*'],\n"
-                + ")\n");
+        skylark.eval(
+            "r",
+            """
+            r = patch.apply(
+              series = 'series',
+              excluded_patch_paths = ['excluded/*'],
+            )
+            """);
   }
 
   @Test

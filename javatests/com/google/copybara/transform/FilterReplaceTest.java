@@ -338,17 +338,23 @@ public class FilterReplaceTest {
     transform(t);
 
     assertThatPath(checkoutDir)
-        .containsFile("file.txt",
-            "Some text // TODO(fooz, bar, bazz)\n"
-                + "more text\n")
+        .containsFile(
+            "file.txt",
+            """
+            Some text // TODO(fooz, bar, bazz)
+            more text
+            """)
         .containsNoMoreFiles();
 
     transform(t.reverse());
 
     assertThatPath(checkoutDir)
-        .containsFile("file.txt",
-            "Some text // TODO(foo, bar, baz)\n"
-                + "more text\n")
+        .containsFile(
+            "file.txt",
+            """
+            Some text // TODO(foo, bar, baz)
+            more text
+            """)
         .containsNoMoreFiles();
   }
 

@@ -69,9 +69,11 @@ public class CompressionModuleTest {
     var unused =
         starlark.eval(
             "zip_path",
-            "zip_path = testing.get_checkout(\"testfile.zip\")\n"
-                + "unzipped_path = testing.get_checkout(\"unzipped\")\n"
-                + "compression.unzip_path(zip_path, unzipped_path)");
+            """
+            zip_path = testing.get_checkout("testfile.zip")
+            unzipped_path = testing.get_checkout("unzipped")
+            compression.unzip_path(zip_path, unzipped_path)\
+            """);
 
     Path unzippedFile = checkoutDirectory.resolve("unzipped/testfile.txt");
     assertThat(MoreFiles.asByteSource(unzippedFile).asCharSource(UTF_8).read())
@@ -84,9 +86,11 @@ public class CompressionModuleTest {
     var unused =
         starlark.eval(
             "zip_path",
-            "zip_path = testing.get_checkout(\"testfile.zip\")\n"
-                + "unzipped_path = testing.get_checkout(\"unzipped\")\n"
-                + "compression.unzip_path(zip_path, unzipped_path, filter=glob([\"*.asdf\"]))");
+            """
+            zip_path = testing.get_checkout("testfile.zip")
+            unzipped_path = testing.get_checkout("unzipped")
+            compression.unzip_path(zip_path, unzipped_path, filter=glob(["*.asdf"]))\
+            """);
 
     Path unzippedFile = checkoutDirectory.resolve("unzipped/testfile.txt");
     assertThat(Files.exists(unzippedFile)).isFalse();

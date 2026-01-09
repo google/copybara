@@ -75,12 +75,17 @@ public class GitOriginSubmodulesTest {
   }
 
   private GitOrigin origin(String url, String primary) throws ValidationException {
-    return skylark.eval("result",
-        String.format("result = git.origin(\n"
-            + "    url = '%s',\n"
-            + "    ref = '%s',\n"
-            + "    submodules = 'RECURSIVE',\n"
-            + ")", url, primary));
+    return skylark.eval(
+        "result",
+        String.format(
+            """
+            result = git.origin(
+                url = '%s',
+                ref = '%s',
+                submodules = 'RECURSIVE',
+            )\
+            """,
+            url, primary));
   }
 
   private GitOrigin origin(String url, String primary, String excludedSubmodulesExpr)
@@ -88,12 +93,14 @@ public class GitOriginSubmodulesTest {
     return skylark.eval(
         "result",
         String.format(
-            "result = git.origin(\n"
-                + "    url = '%s',\n"
-                + "    ref = '%s',\n"
-                + "    submodules = 'RECURSIVE',\n"
-                + "    excluded_submodules = %s,\n"
-                + ")",
+            """
+            result = git.origin(
+                url = '%s',
+                ref = '%s',
+                submodules = 'RECURSIVE',
+                excluded_submodules = %s,
+            )\
+            """,
             url, primary, excludedSubmodulesExpr));
   }
 
@@ -515,12 +522,14 @@ public class GitOriginSubmodulesTest {
         () ->
             skylark.eval(
                 "result",
-                "result = git.origin(\n"
-                    + "    url = '%s',\n"
-                    + "    ref = '%s',\n"
-                    + "    submodules = 'NO',\n"
-                    + "    excluded_submodules = [\"foo\"],\n"
-                    + ")"));
+                """
+                result = git.origin(
+                    url = '%s',
+                    ref = '%s',
+                    submodules = 'NO',
+                    excluded_submodules = ["foo"],
+                )\
+                """));
   }
 
   private void commitAdd(GitRepository repo, Map<String, String> files)

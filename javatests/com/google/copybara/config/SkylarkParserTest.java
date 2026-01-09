@@ -65,17 +65,20 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class SkylarkParserTest {
 
-  private static final String NON_IMPORTANT_WORKFLOW = "core.workflow(\n"
-      + "   name = \"not_used\",\n"
-      + "   origin = mock.origin(\n"
-      + "      url = 'not_used',\n"
-      + "      branch = \"not_used\",\n"
-      + "   ),\n"
-      + "   destination = mock.destination(\n"
-      + "      folder = \"not_used\"\n"
-      + "   ),\n"
-      + "   authoring = authoring.overwrite('Copybara <not_used@google.com>'),\n"
-      + ")\n";
+  private static final String NON_IMPORTANT_WORKFLOW =
+      """
+      core.workflow(
+         name = "not_used",
+         origin = mock.origin(
+            url = 'not_used',
+            branch = "not_used",
+         ),
+         destination = mock.destination(
+            folder = "not_used"
+         ),
+         authoring = authoring.overwrite('Copybara <not_used@google.com>'),
+      )
+      """;
 
   private SkylarkTestExecutor parser;
   private TestingConsole console;
@@ -231,12 +234,17 @@ public class SkylarkParserTest {
       fail();
     } catch (ValidationException e) {
       assertThat(e.getMessage()).contains("Cycle was detected");
-      console.assertThat().onceInLog(MessageType.ERROR,
-          "(?m)Cycle was detected in the configuration: \n"
-              + "\\* copy.bara.sky\n"
-              + "  foo.bara.sky\n"
-              + "  bar.bara.sky\n"
-              + "\\* copy.bara.sky\n");
+      console
+          .assertThat()
+          .onceInLog(
+              MessageType.ERROR,
+              """
+              (?m)Cycle was detected in the configuration:\s
+              \\* copy.bara.sky
+                foo.bara.sky
+                bar.bara.sky
+              \\* copy.bara.sky
+              """);
     }
   }
 

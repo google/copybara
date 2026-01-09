@@ -193,11 +193,15 @@ public class MetadataModuleTest {
     // The default is to use merges, since git.origin does --first-parent by default
     skylark.<MetadataSquashNotes>eval("s", "s = metadata.squash_notes()").transform(work);
 
-    assertThat(work.getMessage()).isEqualTo("Copybara import of the project:\n"
-        + "\n"
-        + "  - 3 merge by Foo Bar <foo@bar.com>\n"
-        + "  - 2 change2 by Foo Bar <foo@bar.com>\n"
-        + "  - 1 change1 by Foo Bar <foo@bar.com>\n");
+    assertThat(work.getMessage())
+        .isEqualTo(
+            """
+            Copybara import of the project:
+
+              - 3 merge by Foo Bar <foo@bar.com>
+              - 2 change2 by Foo Bar <foo@bar.com>
+              - 1 change1 by Foo Bar <foo@bar.com>
+            """);
 
     work = TransformWorks.of(workdir, "the message", testingConsole)
         .withChanges(changes);
@@ -205,10 +209,14 @@ public class MetadataModuleTest {
     skylark.<MetadataSquashNotes>eval("s", "s = metadata.squash_notes(use_merge = False)")
         .transform(work);
 
-    assertThat(work.getMessage()).isEqualTo("Copybara import of the project:\n"
-        + "\n"
-        + "  - 2 change2 by Foo Bar <foo@bar.com>\n"
-        + "  - 1 change1 by Foo Bar <foo@bar.com>\n");
+    assertThat(work.getMessage())
+        .isEqualTo(
+            """
+            Copybara import of the project:
+
+              - 2 change2 by Foo Bar <foo@bar.com>
+              - 1 change1 by Foo Bar <foo@bar.com>
+            """);
   }
 
   @Test
@@ -506,10 +514,13 @@ public class MetadataModuleTest {
 
   @Test
   public void testRemoveLabel() throws Exception {
-    String msg = "some message\n"
-        + "\n"
-        + "TEST=1\n"
-        + "TEST=2\n";
+    String msg =
+        """
+        some message
+
+        TEST=1
+        TEST=2
+        """;
 
     checkLabelChange(msg, "metadata.remove_label('TEST')", "some message\n");
     checkLabelChange(msg, "metadata.remove_label('TEST2')", msg);
@@ -546,13 +557,17 @@ public class MetadataModuleTest {
     Transformation t = skylark.eval("t", "t = "
         + "metadata.expose_label('LABEL', 'NEW_VALUE', all = True)");
     t.transform(tw);
-    assertThat(tw.getMessage()).isEqualTo("some message\n"
-        + "\n"
-        + "LABEL=aaa\n"
-        + "NEW_VALUE=aaa\n"
-        + "NEW_VALUE=bbb\n"
-        + "NEW_VALUE=ccc\n"
-        + "NEW_VALUE=ddd\n");
+    assertThat(tw.getMessage())
+        .isEqualTo(
+            """
+            some message
+
+            LABEL=aaa
+            NEW_VALUE=aaa
+            NEW_VALUE=bbb
+            NEW_VALUE=ccc
+            NEW_VALUE=ddd
+            """);
   }
 
   @Test
@@ -677,10 +692,16 @@ public class MetadataModuleTest {
   public void testRestoreAuthorOtherLabel() throws Exception {
     Workflow<?, ?> wf =
         createWorkflow(WorkflowMode.ITERATIVE, "metadata.restore_author('OTHER_LABEL')");
-    origin.setAuthor(new Author("remove me", "remove@me.com"))
-        .addSimpleChange(0, "A change\n\n"
-            + "OTHER_LABEL=restore me <restore@me.com>\n"
-            + "ORIGINAL_AUTHOR=no no <no@no.com>\n");
+    origin
+        .setAuthor(new Author("remove me", "remove@me.com"))
+        .addSimpleChange(
+            0,
+            """
+            A change
+
+            OTHER_LABEL=restore me <restore@me.com>
+            ORIGINAL_AUTHOR=no no <no@no.com>
+            """);
     wf.run(workdir, ImmutableList.of());
     ProcessedChange change = Iterables.getLast(destination.processed);
     assertThat(change.getChangesSummary()).doesNotContain("restore@me.com");
@@ -693,9 +714,15 @@ public class MetadataModuleTest {
   public void testRestoreAuthorOtherSeparator() throws Exception {
     Workflow<?, ?> wf =
         createWorkflow(WorkflowMode.ITERATIVE, "metadata.restore_author(separator=': ')");
-    origin.setAuthor(new Author("remove me", "remove@me.com"))
-        .addSimpleChange(0, "A change\n\n"
-            + "ORIGINAL_AUTHOR: restore me <restore@me.com>\n");
+    origin
+        .setAuthor(new Author("remove me", "remove@me.com"))
+        .addSimpleChange(
+            0,
+            """
+            A change
+
+            ORIGINAL_AUTHOR: restore me <restore@me.com>
+            """);
     wf.run(workdir, ImmutableList.of());
     ProcessedChange change = Iterables.getLast(destination.processed);
     assertThat(change.getChangesSummary()).doesNotContain("restore@me.com");
@@ -707,10 +734,16 @@ public class MetadataModuleTest {
   public void testRestoreAuthorOtherLabelAndSeparator() throws Exception {
     Workflow<?, ?> wf = createWorkflow(
         WorkflowMode.ITERATIVE, "metadata.restore_author('OTHER_LABEL', separator=': ')");
-    origin.setAuthor(new Author("remove me", "remove@me.com"))
-        .addSimpleChange(0, "A change\n\n"
-            + "OTHER_LABEL: restore me <restore@me.com>\n"
-            + "ORIGINAL_AUTHOR=no no <no@no.com>\n");
+    origin
+        .setAuthor(new Author("remove me", "remove@me.com"))
+        .addSimpleChange(
+            0,
+            """
+            A change
+
+            OTHER_LABEL: restore me <restore@me.com>
+            ORIGINAL_AUTHOR=no no <no@no.com>
+            """);
     wf.run(workdir, ImmutableList.of());
     ProcessedChange change = Iterables.getLast(destination.processed);
     assertThat(change.getChangesSummary()).doesNotContain("restore@me.com");
@@ -811,12 +844,15 @@ public class MetadataModuleTest {
         .run(workdir, ImmutableList.of());
 
     assertThat(Iterables.getLast(destination.processed).getChangesSummary())
-        .isEqualTo("Message: foo\n"
-            + "<foo\n"
-            + "\n"
-            + "bar\n"
-            + "baz\n"
-            + ">");
+        .isEqualTo(
+            """
+            Message: foo
+            <foo
+
+            bar
+            baz
+            >\
+            """);
   }
 
   @Test

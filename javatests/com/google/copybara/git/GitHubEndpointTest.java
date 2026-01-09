@@ -84,16 +84,21 @@ public class GitHubEndpointTest {
     options.testingOptions.feedbackTrigger = dummyTrigger;
     options.testingOptions.checker = new DummyChecker(ImmutableSet.of("badword"));
 
-    gitUtil.mockApi(eq("GET"), contains("master/status"),
-        mockResponse("{\n"
-            + "    \"state\": \"failure\",\n"
-            + "    \"total_count\": 2,\n"
-            + "    \"sha\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n"
-            + "    \"statuses\" : [\n"
-            + "       { \"state\": \"failure\", \"context\": \"some/context\"},\n"
-            + "       { \"state\": \"success\", \"context\": \"other/context\"}\n"
-            + "    ]\n"
-            + "}"));
+    gitUtil.mockApi(
+        eq("GET"),
+        contains("master/status"),
+        mockResponse(
+            """
+            {
+                "state": "failure",
+                "total_count": 2,
+                "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "statuses" : [
+                   { "state": "failure", "context": "some/context"},
+                   { "state": "success", "context": "other/context"}
+                ]
+            }\
+            """));
 
     gitUtil.mockApi(eq("GET"), contains("/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
         mockResponse("{\n"
@@ -108,13 +113,18 @@ public class GitHubEndpointTest {
             + "    \"author\": { \"login\" : \"github_author\"}\n"
             + "}"));
 
-    gitUtil.mockApi(eq("POST"), contains("/statuses/e59774"),
-        mockResponse("{\n"
-            + "    \"state\": \"success\",\n"
-            + "    \"target_url\": \"https://github.com/google/example\",\n"
-            + "    \"description\": \"Observed foo\",\n"
-            + "    \"context\": \"test\"\n"
-            + "}"));
+    gitUtil.mockApi(
+        eq("POST"),
+        contains("/statuses/e59774"),
+        mockResponse(
+            """
+            {
+                "state": "success",
+                "target_url": "https://github.com/google/example",
+                "description": "Observed foo",
+                "context": "test"
+            }\
+            """));
 
     gitUtil.mockApi(
         anyString(),
@@ -150,29 +160,30 @@ public class GitHubEndpointTest {
         eq("GET"),
         contains("commits/e597746de9c1704e648ddc3ffa0d2096b146d610/check-runs"),
         mockResponse(
-            "{\n"
-                + "  \"total_count\": 1,\n"
-                + "  \"check_runs\": [\n"
-                + "    {\n"
-                + "      \"id\": 4,\n"
-                + "      \"details_url\": \"https://example.com\",\n"
-                + "      \"status\": \"completed\",\n"
-                + "      \"conclusion\": \"neutral\",\n"
-                + "      \"name\": \"mighty_readme\",\n"
-                + "      \"output\": {\n"
-                + "        \"title\": \"Mighty Readme report\",\n"
-                + "        \"summary\": \"test_summary\",\n"
-                + "        \"text\": \"test_text\"\n"
-                + "      },\n"
-                + "      \"app\": {\n"
-                + "        \"id\": 1,\n"
-                + "        \"slug\": \"octoapp\",\n"
-                + "        \"name\": \"Octocat App\"\n"
-                + "      }\n"
-                + "    }\n"
-                + "  ]\n"
-                + "}"
-        ));
+            """
+            {
+              "total_count": 1,
+              "check_runs": [
+                {
+                  "id": 4,
+                  "details_url": "https://example.com",
+                  "status": "completed",
+                  "conclusion": "neutral",
+                  "name": "mighty_readme",
+                  "output": {
+                    "title": "Mighty Readme report",
+                    "summary": "test_summary",
+                    "text": "test_text"
+                  },
+                  "app": {
+                    "id": 1,
+                    "slug": "octoapp",
+                    "name": "Octocat App"
+                  }
+                }
+              ]
+            }\
+            """));
 
     Path credentialsFile = Files.createTempFile("credentials", "test");
     Files.write(credentialsFile, "https://user:SECRET@github.com".getBytes(UTF_8));
@@ -192,10 +203,12 @@ public class GitHubEndpointTest {
   public void testParsingWithChecker() throws Exception {
     skylark.eval(
         "e",
-        "e = git.github_api(\n"
-            + "url = 'https://github.com/google/example', \n"
-            + "checker = testing.dummy_checker(),\n"
-            + ")\n");
+        """
+        e = git.github_api(
+        url = 'https://github.com/google/example',\s
+        checker = testing.dummy_checker(),
+        )
+        """);
   }
 
   @Test
@@ -269,15 +282,21 @@ public class GitHubEndpointTest {
                 + "    return ctx.success()\n"
                 + "\n");
     Iterator<String> createValues = ImmutableList.of("Observed Foo", "Observed Bar").iterator();
-    gitUtil.mockApi(eq("POST"), contains("/status"),
-        mockResponseAndValidateRequest("{\n"
-            + "    \"state\" : \"success\",\n"
-            + "    \"target_url\" : \"https://github.com/google/example\",\n"
-            + "    \"description\" : \"Observed foo\",\n"
-            + "    \"context\" : \"test\"\n"
-            + "}",
-            new MockRequestAssertion(String.format(
-                "Requests were expected to cycle through the values of %s", createValues),
+    gitUtil.mockApi(
+        eq("POST"),
+        contains("/status"),
+        mockResponseAndValidateRequest(
+            """
+            {
+                "state" : "success",
+                "target_url" : "https://github.com/google/example",
+                "description" : "Observed foo",
+                "context" : "test"
+            }\
+            """,
+            new MockRequestAssertion(
+                String.format(
+                    "Requests were expected to cycle through the values of %s", createValues),
                 r -> r.contains(createValues.next()))));
 
     actionMigration.run(workdir, ImmutableList.of("e597746de9c1704e648ddc3ffa0d2096b146d600"));
@@ -301,12 +320,18 @@ public class GitHubEndpointTest {
 
   @Test
   public void testCreateStatusLimitReached() throws Exception {
-    gitUtil.mockApi(eq("POST"), contains("/statuses/c59774"),
-       mockResponseWithStatus(
-        "{\n"
-            + "\"message\" : \"This SHA and context has reached the maximum number of statuses\",\n"
-            + "\"documentation_url\" : \"https://developer.github.com/v3\"\n"
-            + "}", 422, ALWAYS_TRUE));
+    gitUtil.mockApi(
+        eq("POST"),
+        contains("/statuses/c59774"),
+        mockResponseWithStatus(
+            """
+            {
+            "message" : "This SHA and context has reached the maximum number of statuses",
+            "documentation_url" : "https://developer.github.com/v3"
+            }\
+            """,
+            422,
+            ALWAYS_TRUE));
     ValidationException expected =
         assertThrows(ValidationException.class, () -> runFeedback(ImmutableList.<String>builder()
         .add("ctx.destination.create_status("
