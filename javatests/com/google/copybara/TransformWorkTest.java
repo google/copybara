@@ -85,41 +85,109 @@ public class TransformWorkTest {
 
   @Test
   public void testAddLabel() throws Exception {
-    checkAddLabel("foo", "foo\n\nTEST=VALUE\n");
+    checkAddLabel(
+        "foo",
+        """
+        foo
+
+        TEST=VALUE
+        """);
   }
 
   @Test
   public void testAddLabelToGroup() throws Exception {
-    checkAddLabel("foo\n\nA=B\n\n", "foo\n\nA=B\nTEST=VALUE\n");
+    checkAddLabel(
+        """
+        foo
+
+        A=B
+
+        """,
+        """
+        foo
+
+        A=B
+        TEST=VALUE
+        """);
   }
 
   @Test
   public void testAddLabelNoEmptyLineBeforeGroup() throws Exception {
-    checkAddLabel("foo\nA=B\n\n", "foo\nA=B\n\nTEST=VALUE\n");
+    checkAddLabel(
+        """
+        foo
+        A=B
+
+        """,
+        """
+        foo
+        A=B
+
+        TEST=VALUE
+        """);
   }
 
   @Test
   public void testAddLabelNoGroupNoEndLine() throws Exception {
-    checkAddLabel("foo\nA=B", "foo\nA=B\n\nTEST=VALUE\n");
+    checkAddLabel(
+        """
+        foo
+        A=B\
+        """,
+        """
+        foo
+        A=B
+
+        TEST=VALUE
+        """);
   }
 
   @Test
   public void testAddOrReplaceExistingLabel() throws Exception {
-    checkLabelWithSkylark("Foo\n\nSOME=TEST\nother=other\n",
+    checkLabelWithSkylark(
+        """
+        Foo
+
+        SOME=TEST
+        other=other
+        """,
         "ctx.add_or_replace_label('SOME', 'REPLACED')",
-        "Foo\n\nSOME=REPLACED\nother=other\n");
+        """
+        Foo
+
+        SOME=REPLACED
+        other=other
+        """);
   }
 
   @Test
   public void testAddTextBeforeLabels() throws Exception {
-    checkLabelWithSkylark("Foo\n\nSOME=TEST\n",
+    checkLabelWithSkylark(
+        """
+        Foo
+
+        SOME=TEST
+        """,
         "ctx.add_text_before_labels('\\nFixes #1234')",
-        "Foo\n\nFixes #1234\n\nSOME=TEST\n");
+        """
+        Foo
+
+        Fixes #1234
+
+        SOME=TEST
+        """);
   }
 
   @Test
   public void testInvalidLabel() throws Exception {
-    TransformWork work = create("Foo\n\nSOME=TEST\nOTHER=FOO\n");
+    TransformWork work =
+        create(
+            """
+            Foo
+
+            SOME=TEST
+            OTHER=FOO
+            """);
 
     ValidationException e =
         assertThrows(
@@ -131,25 +199,51 @@ public class TransformWorkTest {
 
   @Test
   public void testAddHiddenLabel() throws Exception {
-    TransformWork work = create("Foo\n\nSOME=TEST\n");
-    ExplicitReversal t = skylark.eval("t", ""
-        + "def user_transform(ctx):\n"
-        + "    " + "ctx.add_label('FOO','BAR', hidden = True)" + "\n"
-        + "    " + "ctx.add_label('FOO','BAR', hidden = True)" + "\n"
-        + "t = core.transform([user_transform])");
+    TransformWork work =
+        create(
+            """
+            Foo
+
+            SOME=TEST
+            """);
+    ExplicitReversal t =
+        skylark.eval(
+            "t",
+            """
+            def user_transform(ctx):
+                ctx.add_label('FOO','BAR', hidden = True)
+                ctx.add_label('FOO','BAR', hidden = True)
+            t = core.transform([user_transform])
+            """);
     t.transform(work);
-    assertThat(work.getMessage()).isEqualTo("Foo\n\nSOME=TEST\n");
+    assertThat(work.getMessage())
+        .isEqualTo(
+            """
+            Foo
+
+            SOME=TEST
+            """);
     assertThat(work.getAllLabels("FOO").getImmutableList()).isEqualTo(ImmutableList.of("BAR"));
   }
 
   @Test
   public void testGetHiddenLabel() throws Exception {
-    TransformWork work = create("Foo\n\nSOME=TEST\n");
-    ExplicitReversal t = skylark.eval("t", ""
-        + "def user_transform(ctx):\n"
-        + "    " + "ctx.add_label('FOO','ONE', hidden = True)" + "\n"
-        + "    " + "ctx.add_label('FOO','TWO', hidden = True)" + "\n"
-        + "t = core.transform([user_transform])");
+    TransformWork work =
+        create(
+            """
+            Foo
+
+            SOME=TEST
+            """);
+    ExplicitReversal t =
+        skylark.eval(
+            "t",
+            """
+            def user_transform(ctx):
+                ctx.add_label('FOO','ONE', hidden = True)
+                ctx.add_label('FOO','TWO', hidden = True)
+            t = core.transform([user_transform])
+            """);
     t.transform(work);
     assertThat(work.getLabel("FOO")).isEqualTo("TWO");
     assertThat(work.getAllLabels("FOO").getImmutableList())
@@ -158,16 +252,26 @@ public class TransformWorkTest {
 
   @Test
   public void testAddTwoDifferentHiddenLabels() throws Exception {
-    TransformWork work = create("Foo\n\nSOME=TEST\n");
-    ExplicitReversal t = skylark.eval("t", ""
-        + "def user_transform(ctx):\n"
-        + "    " + "ctx.add_label('ONE','val2', hidden = True)" + "\n"
-        + "    " + "ctx.add_label('ONE','val2', hidden = True)" + "\n"
-        + "    " + "ctx.add_label('ONE','val1', hidden = True)" + "\n"
-        + "    " + "ctx.add_label('TWO','val2', hidden = True)" + "\n"
-        + "    " + "ctx.add_label('TWO','val2', hidden = True)" + "\n"
-        + "    " + "ctx.add_label('TWO','val1', hidden = True)" + "\n"
-        + "t = core.transform([user_transform])");
+    TransformWork work =
+        create(
+            """
+            Foo
+
+            SOME=TEST
+            """);
+    ExplicitReversal t =
+        skylark.eval(
+            "t",
+            """
+            def user_transform(ctx):
+                ctx.add_label('ONE','val2', hidden = True)
+                ctx.add_label('ONE','val2', hidden = True)
+                ctx.add_label('ONE','val1', hidden = True)
+                ctx.add_label('TWO','val2', hidden = True)
+                ctx.add_label('TWO','val2', hidden = True)
+                ctx.add_label('TWO','val1', hidden = True)
+            t = core.transform([user_transform])
+            """);
     t.transform(work);
     assertThat(work.getAllLabels("ONE").getImmutableList())
         .isEqualTo(ImmutableList.of("val2", "val1"));
@@ -177,126 +281,230 @@ public class TransformWorkTest {
 
   @Test
   public void testAddLabelWhitespaceInMsg() throws Exception {
-    checkAddLabel("    foo", "    foo\n\nTEST=VALUE\n");
+    checkAddLabel(
+        "    foo",
+        """
+            foo
+
+        TEST=VALUE
+        """);
   }
 
   @Test
   public void testAddLabelLastParagraphList() throws Exception {
-    checkLabelWithSkylark(""
-            + "Foo\n"
-            + "\n"
-            + "  - list\n"
-            + "  - other\n",
+    checkLabelWithSkylark(
+        """
+        Foo
+
+          - list
+          - other
+        """,
         "ctx.add_label('TEST', 'VALUE')",
-        ""
-            + "Foo\n"
-            + "\n"
-            + "  - list\n"
-            + "  - other\n"
-            + "\n"
-            + "TEST=VALUE\n");
+        """
+        Foo
+
+          - list
+          - other
+
+        TEST=VALUE
+        """);
   }
 
   @Test
   public void testAddLabelLastParagraphContainsLabel() throws Exception {
-    checkLabelWithSkylark(""
-            + "Foo\n"
-            + "\n"
-            + "  - list\n"
-            + "I_AM_A: Label\n"
-            + "  - other\n",
+    checkLabelWithSkylark(
+        """
+        Foo
+
+          - list
+        I_AM_A: Label
+          - other
+        """,
         "ctx.add_label('TEST', 'VALUE')",
-        ""
-            + "Foo\n"
-            + "\n"
-            + "  - list\n"
-            + "I_AM_A: Label\n"
-            + "  - other\n"
-            + "TEST=VALUE\n");
+        """
+        Foo
+
+          - list
+        I_AM_A: Label
+          - other
+        TEST=VALUE
+        """);
   }
 
   @Test
   public void testAddTextBeforeLabelsNoGroup() throws Exception {
-    checkLabelWithSkylark("Foo\n",
+    checkLabelWithSkylark(
+        """
+        Foo
+        """,
         "ctx.add_text_before_labels('\\nFixes #1234')",
-        "Foo\n\nFixes #1234\n");
+        """
+        Foo
+
+        Fixes #1234
+        """);
   }
 
   @Test
   public void testReplaceLabel() throws Exception {
-    checkLabelWithSkylark("Foo\n\nSOME=TEST\n",
+    checkLabelWithSkylark(
+        """
+        Foo
+
+        SOME=TEST
+        """,
         "ctx.replace_label('SOME', 'REPLACED')",
-        "Foo\n\nSOME=REPLACED\n");
+        """
+        Foo
+
+        SOME=REPLACED
+        """);
   }
 
   @Test
   public void testReplaceNonExistentLabel() throws Exception {
-    checkLabelWithSkylark("Foo\n\nFOO=TEST\n",
+    checkLabelWithSkylark(
+        """
+        Foo
+
+        FOO=TEST
+        """,
         "ctx.replace_label('SOME', 'REPLACED')",
-        "Foo\n\nFOO=TEST\n");
+        """
+        Foo
+
+        FOO=TEST
+        """);
   }
 
   @Test
   public void testReplaceNonExistentLabelNoGroup() throws Exception {
-    checkLabelWithSkylark("Foo\n",
+    checkLabelWithSkylark(
+        """
+        Foo
+        """,
         "ctx.replace_label('SOME', 'REPLACED')",
-        "Foo\n");
+        """
+        Foo
+        """);
   }
 
   @Test
   public void testsDeleteNotFound() throws Exception {
-    checkLabelWithSkylark("Foo\n",
+    checkLabelWithSkylark(
+        """
+        Foo
+        """,
         "ctx.remove_label('SOME', False)",
-        "Foo\n");
+        """
+        Foo
+        """);
   }
 
   @Test
   public void testsDeleteNotFound_whole() throws Exception {
-    checkLabelWithSkylark("Foo\n",
+    checkLabelWithSkylark(
+        """
+        Foo
+        """,
         "ctx.remove_label('SOME', True)",
-        "Foo\n");
+        """
+        Foo
+        """);
   }
 
   @Test
   public void testsDeleteLabel() throws Exception {
-    checkLabelWithSkylark("Foo\n\nSOME=TEST\n",
+    checkLabelWithSkylark(
+        """
+        Foo
+
+        SOME=TEST
+        """,
         "ctx.remove_label('SOME', False)",
-        "Foo\n");
+        """
+        Foo
+        """);
   }
 
   @Test
   public void testsDeleteLabel_whole() throws Exception {
-    checkLabelWithSkylark("Foo\n\nSOME=TEST\n",
+    checkLabelWithSkylark(
+        """
+        Foo
+
+        SOME=TEST
+        """,
         "ctx.remove_label('SOME', True)",
-        "Foo\n");
+        """
+        Foo
+        """);
   }
 
   @Test
   public void testsDeleteOnlyOneLabel() throws Exception {
-    checkLabelWithSkylark("Foo\n\nSOME=TEST\nOTHER=aaa\n",
+    checkLabelWithSkylark(
+        """
+        Foo
+
+        SOME=TEST
+        OTHER=aaa
+        """,
         "ctx.remove_label('SOME', False)",
-        "Foo\n\nOTHER=aaa\n");
+        """
+        Foo
+
+        OTHER=aaa
+        """);
   }
 
   @Test
   public void testsDeleteOnlyOneLabel_whole() throws Exception {
-    checkLabelWithSkylark("Foo\n\nSOME=TEST\nOTHER=aaa\n",
+    checkLabelWithSkylark(
+        """
+        Foo
+
+        SOME=TEST
+        OTHER=aaa
+        """,
         "ctx.remove_label('SOME', True)",
-        "Foo\n\nOTHER=aaa\n");
+        """
+        Foo
+
+        OTHER=aaa
+        """);
   }
 
   @Test
   public void testsDeleteNonExistentLabel() throws Exception {
-    checkLabelWithSkylark("Foo\n\nSOME=TEST\n",
+    checkLabelWithSkylark(
+        """
+        Foo
+
+        SOME=TEST
+        """,
         "ctx.remove_label('FOO', False)",
-        "Foo\n\nSOME=TEST\n");
+        """
+        Foo
+
+        SOME=TEST
+        """);
   }
 
   @Test
   public void testsDeleteNonExistentLabel_whole() throws Exception {
-    checkLabelWithSkylark("Foo\n\nSOME=TEST\n",
+    checkLabelWithSkylark(
+        """
+        Foo
+
+        SOME=TEST
+        """,
         "ctx.remove_label('FOO', True)",
-        "Foo\n\nSOME=TEST\n");
+        """
+        Foo
+
+        SOME=TEST
+        """);
   }
 
   private Change<DummyRevision> toChange(DummyRevision dummyRevision) {
@@ -323,7 +531,12 @@ public class TransformWorkTest {
   @Test
   public void testGetLabel() {
     TransformWork work =
-        create("Foo\n\nSOME=TEST\n")
+        create(
+                """
+                Foo
+
+                SOME=TEST
+                """)
             .withChanges(
                 new Changes(
                     ImmutableList.of(
@@ -362,28 +575,64 @@ public class TransformWorkTest {
 
   @Test
   public void testGetDateLabel_null() {
-    TransformWork workNullTime = create("Foo\n\nSOME=TEST\n")
-        .withCurrentRev(new DummyRevision("1").withTimestamp(null));
+    TransformWork workNullTime =
+        create(
+                """
+                Foo
+
+                SOME=TEST
+                """)
+            .withCurrentRev(new DummyRevision("1").withTimestamp(null));
     assertThat(workNullTime.getLabel("COPYBARA_CURRENT_REV_DATE_TIME")).isEqualTo(null);
   }
 
   @Test
   public void testGetDateLabel_value() {
-    TransformWork work = create("Foo\n\nSOME=TEST\n")
-        .withCurrentRev(new DummyRevision("1")
-            .withTimestamp(ZonedDateTime.ofInstant(
-                Instant.ofEpochSecond(1591743457), ZoneId.of("UTC"))));
+    TransformWork work =
+        create(
+                """
+                Foo
+
+                SOME=TEST
+                """)
+            .withCurrentRev(
+                new DummyRevision("1")
+                    .withTimestamp(
+                        ZonedDateTime.ofInstant(
+                            Instant.ofEpochSecond(1591743457), ZoneId.of("UTC"))));
     assertThat(work.getLabel("COPYBARA_CURRENT_REV_DATE_TIME")).isEqualTo("2020-06-09T22:57:37Z");
    }
 
   @Test
   public void testReversible() throws ValidationException {
-    TransformWork work = create("Foo\n\nSOME=TEST\nOTHER=FOO\n");
+    TransformWork work =
+        create(
+            """
+            Foo
+
+            SOME=TEST
+            OTHER=FOO
+            """);
     work.addOrReplaceLabel("EXAMPLE", "VALUE", "=");
     work.replaceLabel("EXAMPLE", "OTHER VALUE", "=", true);
-    assertThat(work.getMessage()).isEqualTo("Foo\n\nSOME=TEST\nOTHER=FOO\nEXAMPLE=OTHER VALUE\n");
+    assertThat(work.getMessage())
+        .isEqualTo(
+            """
+            Foo
+
+            SOME=TEST
+            OTHER=FOO
+            EXAMPLE=OTHER VALUE
+            """);
     work.removeLabel("EXAMPLE", /*wholeMessage=*/true);
-    assertThat(work.getMessage()).isEqualTo("Foo\n\nSOME=TEST\nOTHER=FOO\n");
+    assertThat(work.getMessage())
+        .isEqualTo(
+            """
+            Foo
+
+            SOME=TEST
+            OTHER=FOO
+            """);
   }
 
   @Test
@@ -408,11 +657,14 @@ public class TransformWorkTest {
     Files.createDirectories(workdir.resolve("folder"));
     origin.addChange(0, base, "message", /*matchesGlob=*/true);
 
-    runWorkflow("test", ""
-        + "def test(ctx):\n"
-        + "   ctx.console.progress('Progress message')\n"
-        + "   ctx.console.info('Informational message')\n"
-        + "   ctx.console.warn('Warning message')\n");
+    runWorkflow(
+        "test",
+        """
+        def test(ctx):
+           ctx.console.progress('Progress message')
+           ctx.console.info('Informational message')
+           ctx.console.warn('Warning message')
+        """);
 
     console.assertThat().onceInLog(MessageType.PROGRESS, "Progress message");
     console.assertThat().onceInLog(MessageType.INFO, "Informational message");
@@ -509,10 +761,11 @@ public class TransformWorkTest {
             () ->
                 runWorkflow(
                     "test",
-                    ""
-                        + "def test(ctx):\n"
-                        + "   ctx.console.error('Error message')\n"
-                        + "   ctx.console.error('Another error message')\n"));
+                    """
+                    def test(ctx):
+                       ctx.console.error('Error message')
+                       ctx.console.error('Another error message')
+                    """));
     assertThat(e).hasMessageThat().isEqualTo("2 error(s) while executing test");
     console
         .assertThat()
@@ -554,18 +807,24 @@ public class TransformWorkTest {
     Files.createDirectories(workdir.resolve("folder"));
     origin.addChange(0, base, "message", /*matchesGlob=*/true);
 
-    runWorkflow("test", ""
-        + "def test(ctx):\n"
-        + "    message = ''\n"
-        + "    for f in sorted(ctx." + method + "(glob(['**']))):\n"
-        + "        message += f.path +'\\n'\n"
-        + "    ctx.set_message(message)");
+    runWorkflow(
+        "test",
+        """
+        def test(ctx):
+            message = ''
+            for f in sorted(ctx.%s(glob(['**']))):
+                message += f.path +'\\n'
+            ctx.set_message(message)\
+        """
+            .formatted(method));
 
-    assertThat(destination.processed.get(0).getChangesSummary()).isEqualTo(""
-        + "folder/file.txt\n"
-        + "folder/subfolder/file.java\n"
-        + "folder/subfolder/file.txt\n"
-    );
+    assertThat(destination.processed.get(0).getChangesSummary())
+        .isEqualTo(
+            """
+            folder/file.txt
+            folder/subfolder/file.java
+            folder/subfolder/file.txt
+            """);
   }
 
   @Test
@@ -594,9 +853,12 @@ public class TransformWorkTest {
     Path[] workdir = new Path[]{null};
     destination.onWrite(transformResult -> workdir[0] = transformResult.getPath());
 
-    runWorkflow("test", ""
-            + "def test(ctx):\n"
-            + "    ctx.create_symlink(ctx.new_path('a'), ctx.new_path('b'))\n");
+    runWorkflow(
+        "test",
+        """
+        def test(ctx):
+            ctx.create_symlink(ctx.new_path('a'), ctx.new_path('b'))
+        """);
 
     assertThat(workdir[0] != null).isTrue();
 
@@ -619,10 +881,13 @@ public class TransformWorkTest {
     Path[] workdir = new Path[]{null};
     destination.onWrite(transformResult -> workdir[0] = transformResult.getPath());
 
-    runWorkflow("test", String.format(""
-            + "def test(ctx):\n"
-            + "    ctx.create_symlink(ctx.new_path('%s'), ctx.new_path('%s'))\n",
-        link, target));
+    runWorkflow(
+        "test",
+        """
+        def test(ctx):
+            ctx.create_symlink(ctx.new_path('%s'), ctx.new_path('%s'))
+        """
+            .formatted(link, target));
 
     assertThat(workdir[0] != null).isTrue();
 
@@ -643,11 +908,14 @@ public class TransformWorkTest {
     Files.createDirectories(workdir.resolve("folder"));
     origin.addChange(0, base, "message", /*matchesGlob=*/true);
 
-    runWorkflow("test", ""
-        + "def test(ctx):\n"
-        + "    message = ''\n"
-        + "    for f in ctx.run(glob(['**.txt'])):\n"
-        + "        ctx.run(core.move(f.path, 'other/folder/prefix_' + f.name))");
+    runWorkflow(
+        "test",
+        """
+        def test(ctx):
+            message = ''
+            for f in ctx.run(glob(['**.txt'])):
+                ctx.run(core.move(f.path, 'other/folder/prefix_' + f.name))\
+        """);
 
     assertThat(destination.processed.get(0).getWorkdir().keySet()).containsExactly(
         "other/folder/prefix_file1.txt",
@@ -667,11 +935,14 @@ public class TransformWorkTest {
     String now = DateTimeFormatter.ofPattern("yyyy-MM-dd")
         .format(ZonedDateTime.now(ZoneOffset.UTC));
 
-    runWorkflow("test", ""
-        + "def test(ctx):\n"
-        + "    path = ctx.new_path('folder/file.txt')\n"
-        + "    ctx.read_path(path)\n"
-        + "    ctx.write_path(path, ctx.read_path(path) + ctx.now_as_string())");
+    runWorkflow(
+        "test",
+        """
+        def test(ctx):
+            path = ctx.new_path('folder/file.txt')
+            ctx.read_path(path)
+            ctx.write_path(path, ctx.read_path(path) + ctx.now_as_string())\
+        """);
 
     assertThat(destination.processed.get(0).getWorkdir())
         .containsEntry("folder/file.txt", "foo" + now);
@@ -686,11 +957,14 @@ public class TransformWorkTest {
     Files.createDirectories(workdir.resolve("folder"));
     origin.addChange(0, base, "message", /*matchesGlob=*/true);
 
-    runWorkflow("test", ""
-        + "def test(ctx):\n"
-        + "    path = ctx.new_path('folder/file.txt')\n"
-        + "    contents = ctx.read_path(path)\n"
-        + "    ctx.write_path(ctx.new_path('other_folder/other_file.txt'), contents)");
+    runWorkflow(
+        "test",
+        """
+        def test(ctx):
+            path = ctx.new_path('folder/file.txt')
+            contents = ctx.read_path(path)
+            ctx.write_path(ctx.new_path('other_folder/other_file.txt'), contents)\
+        """);
 
     assertThat(destination.processed.get(0).getWorkdir())
         .containsEntry("other_folder/other_file.txt", "foo");
@@ -708,13 +982,15 @@ public class TransformWorkTest {
     Files.createDirectories(workdir.resolve("folder"));
     origin.addChange(0, base, "message", /*matchesGlob=*/true);
 
-    runWorkflow("test", ""
-        + "def test(ctx):\n"
-        + "    message = ''\n"
-        + "    for f in ctx.run(glob(['**.txt'])):\n"
-        + "        ctx.run(core.move(f.path, 'prefix_' + f.name))\n"
-        + "        ctx.run(core.replace("
-        + "before ='aaa', after = 'bbb', paths = glob(['prefix_' + f.name])))");
+    runWorkflow(
+        "test",
+        """
+        def test(ctx):
+            message = ''
+            for f in ctx.run(glob(['**.txt'])):
+                ctx.run(core.move(f.path, 'prefix_' + f.name))
+                ctx.run(core.replace(before ='aaa', after = 'bbb', paths = glob(['prefix_' + f.name])))\
+        """);
 
     assertThat(destination.processed.get(0).getWorkdir())
         .containsExactlyEntriesIn(ImmutableMap.of(
@@ -725,26 +1001,34 @@ public class TransformWorkTest {
 
   @Test
   public void testRunFileOps() throws IOException, ValidationException, RepoException {
-    checkPathOperations("folder/file.txt", ""
-        + "path: folder/file.txt\n"
-        + "name: file.txt\n"
-        + "file exists: True\n"
-        + "sibling path: folder/baz.txt\n"
-        + "parent path: folder\n"
-        + "parent parent path: \n"
-        + "parent parent parent: None\n", true);
+    checkPathOperations(
+        "folder/file.txt",
+        """
+        path: folder/file.txt
+        name: file.txt
+        file exists: True
+        sibling path: folder/baz.txt
+        parent path: folder
+        parent parent path:\s
+        parent parent parent: None
+        """,
+        true);
   }
 
   @Test
   public void testRunFileOpsSubSubFolder() throws IOException, ValidationException, RepoException {
-    checkPathOperations("folder/other/file.txt", ""
-        + "path: folder/other/file.txt\n"
-        + "name: file.txt\n"
-        + "file exists: False\n"
-        + "sibling path: folder/other/baz.txt\n"
-        + "parent path: folder/other\n"
-        + "parent parent path: folder\n"
-        + "parent parent parent: \n", false);
+    checkPathOperations(
+        "folder/other/file.txt",
+        """
+        path: folder/other/file.txt
+        name: file.txt
+        file exists: False
+        sibling path: folder/other/baz.txt
+        parent path: folder/other
+        parent parent path: folder
+        parent parent parent:\s
+        """,
+        false);
   }
 
   private void checkPathOperations(String filePath, String output, boolean createFile)
@@ -758,17 +1042,21 @@ public class TransformWorkTest {
     }
     origin.addChange(0, base, "message", /*matchesGlob=*/true);
 
-    runWorkflow("test", ""
-        + "def test(ctx):\n"
-        + "    f = ctx.new_path('" + filePath + "')\n"
-        + "    message = 'path: ' + f.path +'\\n'\n"
-        + "    message += 'name: ' + f.name +'\\n'\n"
-        + "    message += 'file exists: ' + str(f.exists()) +'\\n'\n"
-        + "    message += 'sibling path: ' + f.resolve_sibling('baz.txt').path + '\\n'\n"
-        + "    message += 'parent path: ' + f.parent.path + '\\n'\n"
-        + "    message += 'parent parent path: ' + f.parent.parent.path + '\\n'\n"
-        + "    message += 'parent parent parent: ' + str(f.parent.parent.parent) + '\\n'\n"
-        + "    ctx.set_message(message)");
+    runWorkflow(
+        "test",
+        """
+        def test(ctx):
+            f = ctx.new_path('%s')
+            message = 'path: ' + f.path +'\\n'
+            message += 'name: ' + f.name +'\\n'
+            message += 'file exists: ' + str(f.exists()) +'\\n'
+            message += 'sibling path: ' + f.resolve_sibling('baz.txt').path + '\\n'
+            message += 'parent path: ' + f.parent.path + '\\n'
+            message += 'parent parent path: ' + f.parent.parent.path + '\\n'
+            message += 'parent parent parent: ' + str(f.parent.parent.parent) + '\\n'
+            ctx.set_message(message)\
+        """
+            .formatted(filePath));
 
     assertThat(destination.processed.get(0).getChangesSummary()).isEqualTo(
         output);
@@ -783,9 +1071,13 @@ public class TransformWorkTest {
     Files.createDirectories(workdir.resolve("folder"));
     origin.addChange(0, base, "message", /*matchesGlob=*/true);
 
-    runWorkflow("test", "def test(ctx):\n"
-        + "    size = ctx.run(glob(['**.txt']))[0].attr.size\n"
-        + "    ctx.console.info('File size: ' + str(size))");
+    runWorkflow(
+        "test",
+        """
+        def test(ctx):
+            size = ctx.run(glob(['**.txt']))[0].attr.size
+            ctx.console.info('File size: ' + str(size))\
+        """);
 
     console.assertThat().onceInLog(MessageType.INFO, "File size: 10");
   }
@@ -869,17 +1161,18 @@ transformation = core.transform([test])
     Transformation transformation =
         skylark.eval(
             "transformation",
-            "def test(ctx):\n"
-                + "    for f in ctx.run(glob(['**'])):\n"
-                + "        ctx.console.info(f.path + ':' + str(f.attr.symlink))\n"
-                + "        if f.attr.symlink:\n"
-                + "            target = f.read_symlink()\n"
-                + "            ctx.console.info(f.path + ' -> ' + target.path)\n"
-                + "            ctx.console.info(f.path + ' content ' + ctx.read_path(f))\n"
-                + "            ctx.console.info(target.path + ' content ' +"
-                + " ctx.read_path(target))\n"
-                + "\n"
-                + "transformation = core.transform([test])");
+            """
+            def test(ctx):
+                for f in ctx.run(glob(['**'])):
+                    ctx.console.info(f.path + ':' + str(f.attr.symlink))
+                    if f.attr.symlink:
+                        target = f.read_symlink()
+                        ctx.console.info(f.path + ' -> ' + target.path)
+                        ctx.console.info(f.path + ' content ' + ctx.read_path(f))
+                        ctx.console.info(target.path + ' content ' + ctx.read_path(target))
+
+            transformation = core.transform([test])
+            """);
 
     transformation.transform(TransformWorks.of(workdir, "test", console));
     console.assertThat().onceInLog(MessageType.INFO, "foo/a/file.txt:False");
@@ -906,17 +1199,21 @@ transformation = core.transform([test])
         "THE CONTENT2".getBytes(UTF_8));
     Files.createSymbolicLink(base.resolve("c/file.txt"), Paths.get("folder/file.txt"));
 
-    Transformation transformation = skylark.eval("transformation", ""
-        + "def test(ctx):\n"
-        + "    for f in ctx.run(glob(['**'])):\n"
-        + "        ctx.console.info(f.path + ':' + str(f.attr.symlink))\n"
-        + "        if f.attr.symlink:\n"
-        + "            target = f.read_symlink()\n"
-        + "            ctx.console.info(f.path + ' -> ' + target.path)\n"
-        + "            ctx.console.info(f.path + ' content ' + ctx.read_path(f))\n"
-        + "            ctx.console.info(target.path + ' content ' + ctx.read_path(target))\n"
-        + "\n"
-        + "transformation = core.transform([test])");
+    Transformation transformation =
+        skylark.eval(
+            "transformation",
+            """
+            def test(ctx):
+                for f in ctx.run(glob(['**'])):
+                    ctx.console.info(f.path + ':' + str(f.attr.symlink))
+                    if f.attr.symlink:
+                        target = f.read_symlink()
+                        ctx.console.info(f.path + ' -> ' + target.path)
+                        ctx.console.info(f.path + ' content ' + ctx.read_path(f))
+                        ctx.console.info(target.path + ' content ' + ctx.read_path(target))
+
+            transformation = core.transform([test])
+            """);
 
     transformation.transform(TransformWorks.of(workdir, "test", console));
     console.assertThat().onceInLog(MessageType.INFO, "foo/a/file.txt:False");
@@ -940,11 +1237,15 @@ transformation = core.transform([test])
     Files.write(tempFile, "THE CONTENT".getBytes(UTF_8));
     Files.createSymbolicLink(base.resolve("symlink"), tempFile);
 
-    Transformation transformation = skylark.eval("transformation", ""
-        + "def test(ctx):\n"
-        + "    ctx.new_path('foo/symlink').read_symlink()\n"
-        + "\n"
-        + "transformation = core.transform([test])");
+    Transformation transformation =
+        skylark.eval(
+            "transformation",
+            """
+            def test(ctx):
+                ctx.new_path('foo/symlink').read_symlink()
+
+            transformation = core.transform([test])
+            """);
 
     ValidationException e =
         assertThrows(
@@ -957,13 +1258,17 @@ transformation = core.transform([test])
   public void testPathOperations_withCoreReplace() throws Exception {
     Files.write(workdir.resolve("file1.txt"), "contents of file 1; x".getBytes(UTF_8));
 
-    Transformation transformation = skylark.eval("transformation", ""
-        + "def test(ctx):\n"
-        + "    ctx.run(core.replace('x', 'y'))\n"
-        + "    ctx.write_path(ctx.new_path('file2.txt'), 'contents of file 2; y')\n"
-        + "    ctx.run(core.replace('y', 'z'))\n"
-        + "\n"
-        + "transformation = core.transform([test])");
+    Transformation transformation =
+        skylark.eval(
+            "transformation",
+            """
+            def test(ctx):
+                ctx.run(core.replace('x', 'y'))
+                ctx.write_path(ctx.new_path('file2.txt'), 'contents of file 2; y')
+                ctx.run(core.replace('y', 'z'))
+
+            transformation = core.transform([test])
+            """);
 
     TransformWork work = TransformWorks.of(workdir, "test", console);
     transformation.transform(work);
@@ -983,12 +1288,13 @@ transformation = core.transform([test])
     Transformation transformation =
         skylark.eval(
             "transformation",
-            ""
-                + "def test(ctx):\n"
-                + "    ctx.set_executable(ctx.new_path('file1.txt'), True)\n"
-                + "    ctx.set_executable(ctx.new_path('file2.txt'), False)\n"
-                + "\n"
-                + "transformation = core.transform([test])");
+            """
+            def test(ctx):
+                ctx.set_executable(ctx.new_path('file1.txt'), True)
+                ctx.set_executable(ctx.new_path('file2.txt'), False)
+
+            transformation = core.transform([test])
+            """);
 
     TransformWork work = TransformWorks.of(workdir, "test", console);
     transformation.transform(work);
@@ -1008,15 +1314,21 @@ transformation = core.transform([test])
 
   private void runWorkflow(String functionName, String function)
       throws RepoException, IOException, ValidationException {
-    skylark.loadConfig(""
-        + function + "\n"
-        + "core.workflow(\n"
-        + "    name = 'default',\n"
-        + "    origin = testing.origin(),\n"
-        + "    destination = testing.destination(),\n"
-        + "    transformations = [" + functionName + "],\n"
-        + "    authoring = authoring.pass_thru('foo <foo@foo.com>'),\n"
-        + ")\n").getMigration("default").run(workdir, ImmutableList.of());
+    skylark
+        .loadConfig(
+            """
+            %s
+            core.workflow(
+                name = 'default',
+                origin = testing.origin(),
+                destination = testing.destination(),
+                transformations = [%s],
+                authoring = authoring.pass_thru('foo <foo@foo.com>'),
+            )
+            """
+                .formatted(function, functionName))
+        .getMigration("default")
+        .run(workdir, ImmutableList.of());
   }
 
   private void runWorkflow(
@@ -1058,10 +1370,15 @@ transformation = core.transform([test])
       String expectedOutputMsg)
       throws Exception {
     TransformWork work = create(originalMsg);
-    ExplicitReversal t = skylark.eval("t", ""
-        + "def user_transform(ctx):\n"
-        + "    " + transform + "\n"
-        + "t = core.transform([user_transform])");
+    ExplicitReversal t =
+        skylark.eval(
+            "t",
+            """
+            def user_transform(ctx):
+                %s
+            t = core.transform([user_transform])
+            """
+                .formatted(transform));
     t.transform(work);
     assertThat(work.getMessage()).isEqualTo(expectedOutputMsg);
   }
