@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 package com.google.copybara.remotefile.extractutil;
-
+import java.nio.file.Path;
 import com.google.common.io.MoreFiles;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.Glob;
@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import javax.annotation.Nullable;
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveInputStream;
@@ -43,18 +44,26 @@ public final class ExtractUtil {
   public static void extractArchive(
       InputStream contents, Path targetPath, ExtractType type, @Nullable Glob fileFilter)
       throws IOException, ValidationException {
+    Path root = targetPath.toAbsolutePath().normalize();
+    PathMatcher rootedFilter = fileFilter != null ? fileFilter.relativeTo(root) : null;
+
     ArchiveEntry archiveEntry;
     try (ArchiveInputStream<?> inputStream = createArchiveInputStream(contents, type)) {
       while (((archiveEntry = inputStream.getNextEntry()) != null)) {
-        if ((fileFilter != null
-                && !fileFilter
-                    .relativeTo(targetPath.toAbsolutePath())
-                    .matches(targetPath.resolve(Path.of(archiveEntry.getName()))))
+        Path resolvedPath = root.resolve(archiveEntry.getName()).normalize();
+
+        // Security check: Prevent Zip Slip vulnerability
+        if (!resolvedPath.startsWith(root)) {
+          throw new IOException("Zip entry is outside of the target dir: " + archiveEntry.getName());
+        }
+
+        if ((rootedFilter != null && !rootedFilter.matches(resolvedPath))
             || archiveEntry.isDirectory()) {
           continue;
         }
-        Files.createDirectories(targetPath.resolve(archiveEntry.getName()).getParent());
-        MoreFiles.asByteSink(targetPath.resolve(archiveEntry.getName())).writeFrom(inputStream);
+
+        Files.createDirectories(resolvedPath.getParent());
+        MoreFiles.asByteSink(resolvedPath).writeFrom(inputStream);
       }
     }
   }
