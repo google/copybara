@@ -446,26 +446,48 @@ public enum WorkflowMode {
         baselineForMergeImport);
   }
 
+  private static <O extends Revision, D extends Revision> void recordNoopDestinationEffect(
+      O current, O lastRev, WorkflowRunHelper<O, D> runHelper)
+      throws ValidationException, RepoException {
+    runHelper
+        .getDefaultMigrator()
+        .finishedMigrate(
+            ImmutableList.of(
+                new DestinationEffect(
+                    Type.NOOP,
+                    String.format(
+                        "No changes to migrate %s",
+                        lastRev == null
+                            ? String.format("up to current revision '%s'.", current.asString())
+                            : String.format(
+                                "from '%s' to current revision '%s'",
+                                lastRev.asString(), current.asString())),
+                    /* originRefs= */ runHelper.getChanges(lastRev, current).getChanges(),
+                    /* destinationRef= */ null)));
+  }
+
   private static <O extends Revision, D extends Revision> void manageNoChangesDetectedForSquash(
       WorkflowRunHelper<O, D> runHelper, O current, O lastRev, EmptyReason emptyReason)
-      throws ValidationException {
+      throws ValidationException, RepoException {
     switch (emptyReason) {
-      case NO_CHANGES:
+      case NO_CHANGES -> {
         String noChangesMsg =
             String.format(
                 "No changes%s up to %s match any origin_files",
                 lastRev == null ? "" : " from " + lastRev.asString(), current.asString());
         if (!runHelper.isForce()) {
+          recordNoopDestinationEffect(current, lastRev, runHelper);
           throw new EmptyChangeException(
               String.format(
-                  "%s. Use %s if you really want to run the migration anyway.",
+                  "%s. Use %s if you really want to run the migration anyway (For example if the"
+                      + " copy.bara.sky file has changed).",
                   noChangesMsg, GeneralOptions.FORCE));
         }
         runHelper
             .getConsole()
             .warnFmt("%s. Migrating anyway because of %s", noChangesMsg, GeneralOptions.FORCE);
-        break;
-      case TO_IS_ANCESTOR:
+      }
+      case TO_IS_ANCESTOR -> {
         if (!runHelper.isForce()) {
           throw new EmptyChangeException(
               String.format(
@@ -478,8 +500,8 @@ public enum WorkflowMode {
             .warnFmt(
                 "'%s' has been already migrated. Migrating anyway" + " because of %s",
                 lastRev.asString(), GeneralOptions.FORCE);
-        break;
-      case UNRELATED_REVISIONS:
+      }
+      case UNRELATED_REVISIONS -> {
         checkCondition(
             runHelper.isForce(),
             String.format(
@@ -492,7 +514,7 @@ public enum WorkflowMode {
                 "Last imported revision '%s' is not an ancestor of the revision currently being"
                     + " migrated ('%s')",
                 lastRev, current.asString());
-        break;
+      }
     }
   }
 

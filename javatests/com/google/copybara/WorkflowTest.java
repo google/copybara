@@ -5143,11 +5143,32 @@ public class WorkflowTest {
         assertThrows(
             EmptyChangeException.class,
             () -> skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of("0")));
+
     assertThat(e)
         .hasMessageThat()
         .contains(
             "No changes up to 0 match any origin_files. "
-                + "Use --force if you really want to run the migration anyway.");
+                + "Use --force if you really want to run the migration anyway (For example if the"
+                + " copy.bara.sky file has changed).");
+    assertThat(eventMonitor.changeMigrationFinishedEvents).hasSize(1);
+    assertThat(eventMonitor.changeMigrationFinishedEvents.get(0).getDestinationEffects())
+        .hasSize(1);
+    assertThat(
+            eventMonitor
+                .changeMigrationFinishedEvents
+                .get(0)
+                .getDestinationEffects()
+                .get(0)
+                .getType())
+        .isEqualTo(Type.NOOP);
+    assertThat(
+            eventMonitor
+                .changeMigrationFinishedEvents
+                .get(0)
+                .getDestinationEffects()
+                .get(0)
+                .getSummary())
+        .isEqualTo("No changes to migrate up to current revision '0'.");
   }
 
   @Test
