@@ -55,11 +55,15 @@ public final class CoreReverseTest {
 
   @Test
   public void reverseTest() throws Exception {
-    List<Transformation> reverse = skylark.eval("foo", ""
-        + "foo = core.reverse([\n"
-        + "   mock.transform('foo'),\n"
-        + "   mock.transform('bar'),\n"
-        + "])");
+    List<Transformation> reverse =
+        skylark.eval(
+            "foo",
+            """
+            foo = core.reverse([
+               mock.transform('foo'),
+               mock.transform('bar'),
+            ])\
+            """);
     assertThat(reverse).containsExactly(
         new SimpleReplace("reverse bar", null),
         new SimpleReplace("reverse foo", null));
@@ -70,14 +74,15 @@ public final class CoreReverseTest {
     List<Transformation> reverse =
         skylark.eval(
             "foo",
-            ""
-                + "def test(ctx):\n"
-                + "    ctx.console.info('Foo')\n"
-                + "\n"
-                + "foo = core.reverse([\n"
-                + "    mock.transform('foo'),\n"
-                + "    core.transform([test]),\n"
-                + "])");
+            """
+            def test(ctx):
+                ctx.console.info('Foo')
+
+            foo = core.reverse([
+                mock.transform('foo'),
+                core.transform([test]),
+            ])\
+            """);
     assertThat(reverse.get(0)).isInstanceOf(ExplicitReversal.class);
     assertThat(reverse.get(1)).isEqualTo(new SimpleReplace("reverse foo", null));
   }

@@ -64,32 +64,38 @@ public final class CoreTransformTest {
 
   @Test
   public void errorForMissingReversalNonReversibleArgument() {
-    skylark.evalFails(""
-            + "core.transform([\n"
-            + "    core.replace(\n"
-            + "        before = 'foo${x}',\n"
-            + "        after = 'bar',\n"
-            + "        regex_groups = {\n"
-            + "            'x' : 'x+',\n"
-            + "        },\n"
-            + "  )\n"
-            + "])",
+    skylark.evalFails(
+        """
+        core.transform([
+            core.replace(
+                before = 'foo${x}',
+                after = 'bar',
+                regex_groups = {
+                    'x' : 'x+',
+                },
+          )
+        ])\
+        """,
         "transformations are not automatically reversible");
   }
 
   @Test
   public void autoReversibleCheck() throws Exception {
-    ExplicitReversal t = skylark.eval("x", "x="
-        + "core.transform([\n"
-        + "    core.replace(\n"
-        + "        before = 'foo',\n"
-        + "        after = 'bar',\n"
-        + "    ),\n"
-        + "    core.replace(\n"
-        + "        before = 'bar',\n"
-        + "        after = 'baz',\n"
-        + "    ),\n"
-        + "])");
+    ExplicitReversal t =
+        skylark.eval(
+            "x",
+            """
+            x=core.transform([
+                core.replace(
+                    before = 'foo',
+                    after = 'bar',
+                ),
+                core.replace(
+                    before = 'bar',
+                    after = 'baz',
+                ),
+            ])\
+            """);
 
     Files.write(checkoutDir.resolve("file.txt"), "foo".getBytes(UTF_8));
 
@@ -108,17 +114,21 @@ public final class CoreTransformTest {
 
   @Test
   public void testOneLayerTransformWithNoop() throws Exception {
-    ExplicitReversal t = skylark.eval("x", "x="
-                + "core.transform([\n"
-                + "    core.replace(\n"
-                + "        before = 'not found',\n"
-                + "        after = 'not important',\n"
-                + "    ),\n"
-                + "    core.replace(\n"
-                + "        before = 'foo',\n"
-                + "        after = 'bar',\n"
-                + "    ),\n"
-                + "], ignore_noop = True)");
+    ExplicitReversal t =
+        skylark.eval(
+            "x",
+            """
+            x=core.transform([
+                core.replace(
+                    before = 'not found',
+                    after = 'not important',
+                ),
+                core.replace(
+                    before = 'foo',
+                    after = 'bar',
+                ),
+            ], ignore_noop = True)
+            """);
 
     Files.write(checkoutDir.resolve("file.txt"), "foo".getBytes(UTF_8));
     t.transform(TransformWorks.of(checkoutDir, "msg", console));
@@ -130,17 +140,21 @@ public final class CoreTransformTest {
 
   @Test
   public void testOneLayerTransformWithNoNoop() throws ValidationException, IOException {
-    ExplicitReversal t = skylark.eval("x", "x="
-                + "core.transform([\n"
-                + "    core.replace(\n"
-                + "        before = 'not found',\n"
-                + "        after = 'not important',\n"
-                + "    ),\n"
-                + "    core.replace(\n"
-                + "        before = 'foo',\n"
-                + "        after = 'bar',\n"
-                + "    ),\n"
-                + "], ignore_noop = False)");
+    ExplicitReversal t =
+        skylark.eval(
+            "x",
+            """
+            x=core.transform([
+                core.replace(
+                    before = 'not found',
+                    after = 'not important',
+                ),
+                core.replace(
+                    before = 'foo',
+                    after = 'bar',
+                ),
+            ], ignore_noop = False)
+            """);
 
     Files.write(checkoutDir.resolve("file.txt"), "foo".getBytes(UTF_8));
 
@@ -157,13 +171,14 @@ public final class CoreTransformTest {
   @Test
   public void testSecondLayerWithInnerNoop() throws Exception {
     String secondLayerTransform =
-                "core.transform([\n"
-                + "    core.replace(\n"
-                + "        before = 'not found',\n"
-                + "        after = 'not important',\n"
-                + "    ),\n"
-                + "],"
-                + "ignore_noop=True),";
+        """
+        core.transform([
+            core.replace(
+                before = 'not found',
+                after = 'not important',
+            ),
+        ],ignore_noop=True),
+        """;
 
     ExplicitReversal t = skylark.eval("x", "x="
                 + "core.transform([\n"
@@ -188,14 +203,17 @@ public final class CoreTransformTest {
 
   @Test
   public void testIgnoreNoopWithVerboseFalse() throws Exception {
-    ExplicitReversal t = skylark.eval("x", "x="
-        + "core.transform([\n"
-            + "    core.replace(\n"
-            + "        before = 'not found',\n"
-            + "        after = 'not important',\n"
-            + "    ),\n"
-            + "],"
-            + "ignore_noop=True)");
+    ExplicitReversal t =
+        skylark.eval(
+            "x",
+            """
+            x=core.transform([
+                core.replace(
+                    before = 'not found',
+                    after = 'not important',
+                ),
+            ],ignore_noop=True)
+            """);
     console = new TestingConsole(false);
     options.setConsole(console);
     Files.write(checkoutDir.resolve("file.txt"), "foo".getBytes(UTF_8));
@@ -281,17 +299,18 @@ public final class CoreTransformTest {
     ExplicitReversal t =
         skylark.eval(
             "x",
-            "x="
-                + "core.transform([\n"
-                + "    core.replace(\n"
-                + "        before = 'not found',\n"
-                + "        after = 'not important',\n"
-                + "    ),\n"
-                + "    core.replace(\n"
-                + "        before = 'foo',\n"
-                + "        after = 'bar',\n"
-                + "    ),\n"
-                + "], noop_behavior = 'IGNORE_NOOP')");
+            """
+            x=core.transform([
+                core.replace(
+                    before = 'not found',
+                    after = 'not important',
+                ),
+                core.replace(
+                    before = 'foo',
+                    after = 'bar',
+                ),
+            ], noop_behavior = 'IGNORE_NOOP')\
+            """);
     Files.write(checkoutDir.resolve("file.txt"), "foo".getBytes(UTF_8));
 
     t.transform(TransformWorks.of(checkoutDir, "msg", console));
@@ -305,17 +324,18 @@ public final class CoreTransformTest {
     ExplicitReversal t =
         skylark.eval(
             "x",
-            "x="
-                + "core.transform([\n"
-                + "    core.replace(\n"
-                + "        before = 'not found',\n"
-                + "        after = 'not important',\n"
-                + "    ),\n"
-                + "    core.replace(\n"
-                + "        before = 'foo',\n"
-                + "        after = 'bar',\n"
-                + "    ),\n"
-                + "], noop_behavior = 'NOOP_IF_ALL_NOOP')");
+            """
+            x=core.transform([
+                core.replace(
+                    before = 'not found',
+                    after = 'not important',
+                ),
+                core.replace(
+                    before = 'foo',
+                    after = 'bar',
+                ),
+            ], noop_behavior = 'NOOP_IF_ALL_NOOP')\
+            """);
     Files.write(checkoutDir.resolve("file.txt"), "foo".getBytes(UTF_8));
 
     t.transform(TransformWorks.of(checkoutDir, "msg", console));
@@ -329,17 +349,18 @@ public final class CoreTransformTest {
     ExplicitReversal t =
         skylark.eval(
             "x",
-            "x="
-                + "core.transform([\n"
-                + "    core.replace(\n"
-                + "        before = 'not found',\n"
-                + "        after = 'not important',\n"
-                + "    ),\n"
-                + "    core.replace(\n"
-                + "        before = 'also not found',\n"
-                + "        after = 'also not important',\n"
-                + "    ),\n"
-                + "], noop_behavior = 'NOOP_IF_ALL_NOOP')");
+            """
+            x=core.transform([
+                core.replace(
+                    before = 'not found',
+                    after = 'not important',
+                ),
+                core.replace(
+                    before = 'also not found',
+                    after = 'also not important',
+                ),
+            ], noop_behavior = 'NOOP_IF_ALL_NOOP')\
+            """);
 
     Files.write(checkoutDir.resolve("file.txt"), "foo".getBytes(UTF_8));
 
@@ -361,11 +382,15 @@ public final class CoreTransformTest {
   public void runForward() throws Exception {
     Files.write(checkoutDir.resolve("file1"), new byte[0]);
     Files.write(checkoutDir.resolve("file2"), new byte[0]);
-    Transformation transform = skylark.eval("t", "t = "
-        + "core.transform("
-        + "    [core.move('file1', 'file1.a'), core.move('file2', 'file2.a')],"
-        + "    reversal = [core.move('foo', 'bar')],"
-        + ")");
+    Transformation transform =
+        skylark.eval(
+            "t",
+            """
+            t = core.transform(
+                [core.move('file1', 'file1.a'), core.move('file2', 'file2.a')],
+                reversal = [core.move('foo', 'bar')],
+            )\
+            """);
 
     transform(transform);
 
@@ -377,11 +402,15 @@ public final class CoreTransformTest {
   public void progressMessages() throws Exception {
     Files.write(checkoutDir.resolve("file1"), new byte[0]);
     Files.write(checkoutDir.resolve("file2"), new byte[0]);
-    Transformation transform = skylark.eval("t", "t = "
-        + "core.transform("
-        + "    [core.move('file1', 'file1.a'), core.move('file2', 'file2.a')],"
-        + "    reversal = [core.move('foo', 'bar')],"
-        + ")");
+    Transformation transform =
+        skylark.eval(
+            "t",
+            """
+            t = core.transform(
+                [core.move('file1', 'file1.a'), core.move('file2', 'file2.a')],
+                reversal = [core.move('foo', 'bar')],
+            )\
+            """);
 
     transform(transform);
 
@@ -394,11 +423,15 @@ public final class CoreTransformTest {
   public void runReversal() throws Exception {
     Files.write(checkoutDir.resolve("file1"), new byte[0]);
     Files.write(checkoutDir.resolve("file2"), new byte[0]);
-    Transformation transform = skylark.eval("t", "t = "
-        + "core.transform("
-        + "    [core.move('foo', 'bar')],"
-        + "    reversal = [core.move('file1', 'file1.a'), core.move('file2', 'file2.a')],"
-        + ")");
+    Transformation transform =
+        skylark.eval(
+            "t",
+            """
+            t = core.transform(
+                [core.move('foo', 'bar')],
+                reversal = [core.move('file1', 'file1.a'), core.move('file2', 'file2.a')],
+            )\
+            """);
 
     transform(transform.reverse());
 

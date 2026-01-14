@@ -90,14 +90,16 @@ public class InfoTest {
         ImmutableMap.of());
     configWithDeps = mock(ConfigWithDependencies.class);
     when(configWithDeps.getConfig()).thenAnswer(i -> config);
-    configInfo = ""
-        + "core.workflow("
-        + "    name = 'workflow',"
-        + "    origin = git.origin(url = 'https://example.com/orig', ref = 'master'),"
-        + "    destination = git.destination(url = 'https://example.com/dest'),"
-        + "    authoring = authoring.overwrite('Foo <foo@example.com>')"
-        + ")\n\n"
-        + "";
+    configInfo =
+        """
+        core.workflow(
+            name = 'workflow',
+            origin = git.origin(url = 'https://example.com/orig', ref = 'master'),
+            destination = git.destination(url = 'https://example.com/dest'),
+            authoring = authoring.overwrite('Foo <foo@example.com>')
+        )
+
+        """;
     info = new InfoCmd(
         (configPath, sourceRef) -> new ConfigLoader(
             skylark.createModuleSet(),
@@ -117,20 +119,23 @@ public class InfoTest {
 
   @Test
   public void testInfoAll() throws Exception {
-    configInfo = ""
-        + "core.workflow("
-        + "    name = 'workflow',"
-        + "    origin = git.origin(url = 'https://example.com/orig'),"
-        + "    destination = git.destination(url = 'https://example.com/dest'),"
-        + "    authoring = authoring.overwrite('Foo <foo@example.com>'),"
-        + ")\n\n"
-        + "git.mirror("
-        + "    name = 'example',"
-        + "    description = 'This is a description',"
-        + "    origin = 'https://example.com/mirror1',"
-        + "    destination = 'https://example.com/mirror2',"
-        + ")\n\n"
-        + "";
+    configInfo =
+        """
+        core.workflow(
+            name = 'workflow',
+            origin = git.origin(url = 'https://example.com/orig'),
+            destination = git.destination(url = 'https://example.com/dest'),
+            authoring = authoring.overwrite('Foo <foo@example.com>'),
+        )
+
+        git.mirror(
+            name = 'example',
+            description = 'This is a description',
+            origin = 'https://example.com/mirror1',
+            destination = 'https://example.com/mirror2',
+        )
+
+        """;
     CommandEnv commandEnv = prepAndGetCommandEnv(info, ImmutableList.of("copy.bara.sky"));
     ExitCode code = info.run(commandEnv);
 

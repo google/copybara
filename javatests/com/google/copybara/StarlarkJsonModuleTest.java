@@ -95,8 +95,10 @@ public class StarlarkJsonModuleTest {
 
   @Test
   public void testDecodeSimpleJsonArray() throws Exception {
-    String json = "x=json.decode('"
-        + "[{\"foo\": \"bar\"}, {\"baz\": \"foo\"}]')";
+    String json =
+        """
+        x=json.decode('[{\"foo\": \"bar\"}, {\"baz\": \"foo\"}]')\
+        """;
 
     List<Dict<String, String>> result = skylark.eval("x", json);
     assertThat(result).containsExactly(
@@ -106,8 +108,10 @@ public class StarlarkJsonModuleTest {
 
   @Test
   public void testDecodeJsonArrayWithObjectValues() throws Exception {
-    String json = "x=json.decode('"
-        + "[{\"foo\": [22, 23, 24]}, {\"baz\": {\"bar\": true}}]')";
+    String json =
+        """
+        x=json.decode('[{\"foo\": [22, 23, 24]}, {\"baz\": {\"bar\": true}}]')\
+        """;
 
     Dict<String, StarlarkList<StarlarkInt>> dict1 = Dict.immutableCopyOf(
         ImmutableMap.of("foo",

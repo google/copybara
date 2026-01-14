@@ -69,8 +69,10 @@ public final class StarlarkDateTimeModuleTest {
     assertThat(e)
         .hasMessageThat()
         .contains(
-            "An error was thrown creating StarlarkDateTime from zone id. Make sure your timezone is"
-                + " available in");
+            """
+            An error was thrown creating StarlarkDateTime from zone id. Make sure your timezone is\
+             available in\
+            """);
   }
 
   @Test

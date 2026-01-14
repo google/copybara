@@ -100,10 +100,13 @@ public class CommandRunnerTest {
 
   @Test
   public void testTimeout() throws Exception {
-    Command command = bashCommand(""
-        + "echo stdout msg\n"
-        + ">&2 echo stderr msg\n"
-        + "sleep 10\n");
+    Command command =
+        bashCommand(
+            """
+            echo stdout msg
+            >&2 echo stderr msg
+            sleep 10
+            """);
     CommandTimeoutException e =
         assertThrows(
             CommandTimeoutException.class,
@@ -132,10 +135,13 @@ public class CommandRunnerTest {
       public void stopObserving(Killable killable) {
       }
     };
-    Command command = bashCommand(""
-        + "echo stdout msg\n"
-        + ">&2 echo stderr msg\n"
-        + "sleep 10\n");
+    Command command =
+        bashCommand(
+            """
+            echo stdout msg
+            >&2 echo stderr msg
+            sleep 10
+            """);
     AbnormalTerminationException e =
         assertThrows(
             AbnormalTerminationException.class,
@@ -150,11 +156,14 @@ public class CommandRunnerTest {
 
   @Test
   public void testTimeoutCustomExitCode() throws Exception {
-    Command command = bashCommand(""
-        + "trap 'exit 42' SIGTERM SIGINT\n"
-        + "echo stdout msg\n"
-        + ">&2 echo stderr msg\n"
-        + "sleep 10\n");
+    Command command =
+        bashCommand(
+            """
+            trap 'exit 42' SIGTERM SIGINT
+            echo stdout msg
+            >&2 echo stderr msg
+            sleep 10
+            """);
     CommandTimeoutException e =
         assertThrows(
             CommandTimeoutException.class,
@@ -234,9 +243,12 @@ public class CommandRunnerTest {
 
   @Test
   public void testCommandWithExtraOutput() throws Exception {
-    Command command = bashCommand(""
-        + "echo hello\n"
-        + "echo >&2 world\n");
+    Command command =
+        bashCommand(
+            """
+            echo hello
+            echo >&2 world
+            """);
     ByteArrayOutputStream stdoutCollector = new ByteArrayOutputStream();
     ByteArrayOutputStream stderrCollector = new ByteArrayOutputStream();
 

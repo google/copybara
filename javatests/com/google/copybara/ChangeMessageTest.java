@@ -50,14 +50,19 @@ public class ChangeMessageTest {
 
   @Test
   public void testMessageParser() {
-    ChangeMessage msg = ChangeMessage.parseMessage(""
-        + "Test parse title message\n"
-        + "\n"
-        + "Fixes https://github.com/test");
-    assertThat(msg.toString()).isEqualTo(""
-        + "Test parse title message\n"
-        + "\n"
-        + "Fixes https://github.com/test\n");
+    ChangeMessage msg =
+        ChangeMessage.parseMessage(
+            """
+            Test parse title message
+
+            Fixes https://github.com/test""");
+    assertThat(msg.toString())
+        .isEqualTo(
+            """
+            Test parse title message
+
+            Fixes https://github.com/test
+            """);
     assertThat(msg.getLabels()).hasSize(1);
   }
 
@@ -89,11 +94,12 @@ public class ChangeMessageTest {
   public void testInvalidLabel() throws Exception {
     ChangeMessage msg =
         ChangeMessage.parseMessage(
-            ""
-                + "Test parse title message\n"
-                + "\n"
-                + "GitOrigin-RevId: 12345\n"
-                + "Other-label: AA");
+            """
+            Test parse title message
+
+            GitOrigin-RevId: 12345
+            Other-label: AA\
+            """);
 
     assertThat(msg.withRemovedLabelByName("GitOrigin-RevId").getLabels().get(0).getName())
         .isEqualTo("Other-label");
@@ -108,12 +114,13 @@ public class ChangeMessageTest {
   public void testWithLabelsFilteredBy() throws Exception {
     ChangeMessage msg =
         ChangeMessage.parseMessage(
-            ""
-                + "KEEP_THIS_LINE"
-                + "\n\n"
-                + "SKIP_THIS_LINE_1\n"
-                + "KEEP_THIS_LABEL_1: 12345\n"
-                + "DONT_KEEP_THIS_LABEL_2: AAA");
+            """
+            KEEP_THIS_LINE
+
+            SKIP_THIS_LINE_1
+            KEEP_THIS_LABEL_1: 12345
+            DONT_KEEP_THIS_LABEL_2: AAA\
+            """);
 
     Predicate<LabelFinder> predicate =
         label ->

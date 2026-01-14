@@ -87,17 +87,19 @@ public class ActionMigrationTest {
 
   @Test
   public void testDescription() throws Exception {
-    String config = ""
-        + "def test_action(ctx):\n"
-        + "    return ctx.success()\n"
-        + "\n"
-        + "core.feedback(\n"
-        + "    name = 'default',\n"
-        + "    description = 'Do foo with bar',\n"
-        + "    origin = testing.dummy_trigger(),\n"
-        + "    destination = testing.dummy_endpoint(),\n"
-        + "    actions = [test_action],\n"
-        + ")";
+    String config =
+        """
+        def test_action(ctx):
+            return ctx.success()
+
+        core.feedback(
+            name = 'default',
+            description = 'Do foo with bar',
+            origin = testing.dummy_trigger(),
+            destination = testing.dummy_endpoint(),
+            actions = [test_action],
+        )\
+        """;
     ActionMigration actionMigration = (ActionMigration) loadConfig(config).getMigration("default");
     assertThat(actionMigration.getDescription()).isEqualTo("Do foo with bar");
   }
@@ -105,32 +107,35 @@ public class ActionMigrationTest {
 
   @Test
   public void testDescribeActions() throws Exception {
-    ActionMigration actionMigration = feedback(
-        ""
-            + "def _action1(ctx):\n"
-            + "  return ctx.success()\n"
-            + "\n"
-            + "def _action2(ctx):\n"
-            + "  return ctx.success()\n"
-            + "\n"
-            + "def action1(param1):\n"
-            + "  return core.action(\n"
-            + "      impl = _action1,\n"
-            + "      params = {\n"
-            + "          'param1': param1,\n"
-            + "      },\n"
-            + "  )"
-            + "\n"
-            + "def action2(param1, param2):\n"
-            + "  return core.action(\n"
-            + "      impl = _action2,\n"
-            + "      params = {\n"
-            + "          'param1': param1,\n"
-            + "          'param2': param2,\n"
-            + "      },\n"
-            + "  )"
-            + "\n",
-        "action1(param1 = 'foo')", "action2(param1 = True, param2 = 'Bar')");
+    ActionMigration actionMigration =
+        feedback(
+            """
+            def _action1(ctx):
+              return ctx.success()
+
+            def _action2(ctx):
+              return ctx.success()
+
+            def action1(param1):
+              return core.action(
+                  impl = _action1,
+                  params = {
+                      'param1': param1,
+                  },
+              )
+
+            def action2(param1, param2):
+              return core.action(
+                  impl = _action2,
+                  params = {
+                      'param1': param1,
+                      'param2': param2,
+                  },
+              )
+
+            """,
+            "action1(param1 = 'foo')",
+            "action2(param1 = True, param2 = 'Bar')");
     assertThat(actionMigration.getActionsDescription())
         .isEqualTo(
             ImmutableSetMultimap.builder()
@@ -151,20 +156,20 @@ public class ActionMigrationTest {
   @Test
   public void testSingleAction() throws Exception {
     String config =
-        (""
-            + "def test_action(ctx):\n"
-            + "    for ref in ctx.refs:\n"
-            + "      ctx.console.info('Ref: ' + ref)\n"
-            + "    return ctx.success()\n"
-            + "\n")
-            + "\n"
-            + "core.feedback(\n"
-            + "    name = 'default',\n"
-            + "    origin = testing.dummy_trigger(),\n"
-            + "    destination = testing.dummy_endpoint(),\n"
-            + "    action = test_action,\n"
-            + ")\n"
-            + "\n";
+        """
+        def test_action(ctx):
+            for ref in ctx.refs:
+              ctx.console.info('Ref: ' + ref)
+            return ctx.success()
+
+        core.feedback(
+            name = 'default',
+            origin = testing.dummy_trigger(),
+            destination = testing.dummy_endpoint(),
+            action = test_action,
+        )
+
+        """;
     System.err.println(config);
     ActionMigration actionMigration = (ActionMigration) loadConfig(config).getMigration("default");
     actionMigration.run(workdir, ImmutableList.of("12345"));
@@ -199,11 +204,12 @@ public class ActionMigrationTest {
   public void testRefReturnsFirst() throws Exception {
     ActionMigration actionMigration =
         feedback(
-            ""
-                + "def test_action(ctx):\n"
-                + "    ctx.console.info('Ref: ' + str(ctx.refs[0]))\n"
-                + "    return ctx.success()\n"
-                + "\n",
+            """
+            def test_action(ctx):
+                ctx.console.info('Ref: ' + str(ctx.refs[0]))
+                return ctx.success()
+
+            """,
             "test_action");
     actionMigration.run(workdir, ImmutableList.of("12345", "67890"));
     console
@@ -218,12 +224,13 @@ public class ActionMigrationTest {
     options.general.setCliLabelsForTest(ImmutableMap.of("foo", "value"));
     ActionMigration actionMigration =
         feedback(
-            ""
-                + "def test_action(ctx):\n"
-                + "    foo = ctx.cli_labels['foo']\n"
-                + "    ctx.console.info('foo is: ' + foo)\n"
-                + "    return ctx.success()\n"
-                + "\n",
+            """
+            def test_action(ctx):
+                foo = ctx.cli_labels['foo']
+                ctx.console.info('foo is: ' + foo)
+                return ctx.success()
+
+            """,
             "test_action");
     actionMigration.run(workdir, ImmutableList.of());
     console
@@ -237,14 +244,15 @@ public class ActionMigrationTest {
   public void testRefReturnsNone() throws Exception {
     ActionMigration actionMigration =
         feedback(
-            ""
-                + "def test_action(ctx):\n"
-                + "    ref = None\n"
-                + "    if len(ctx.refs) > 0:\n"
-                + "      ref = ctx.refs[0]\n"
-                + "    ctx.console.info('Ref: '+ str(ref))\n"
-                + "    return ctx.success()\n"
-                + "\n",
+            """
+            def test_action(ctx):
+                ref = None
+                if len(ctx.refs) > 0:
+                  ref = ctx.refs[0]
+                ctx.console.info('Ref: '+ str(ref))
+                return ctx.success()
+
+            """,
             "test_action");
     actionMigration.run(workdir, ImmutableList.of());
     console
@@ -256,12 +264,14 @@ public class ActionMigrationTest {
 
   @Test
   public void testActionsMustReturnResult() throws Exception {
-    ActionMigration migration = feedback(
-        ""
-            + "def test_action(ctx):\n"
-            + "    ctx.console.info('Bad action')\n"
-            + "\n",
-        "test_action");
+    ActionMigration migration =
+        feedback(
+            """
+            def test_action(ctx):
+                ctx.console.info('Bad action')
+
+            """,
+            "test_action");
     ValidationException expected =
         assertThrows(ValidationException.class, () -> migration.run(workdir, ImmutableList.of()));
     assertThat(expected)
@@ -273,11 +283,13 @@ public class ActionMigrationTest {
 
   @Test
   public void testSuccessResult() throws Exception {
-    ActionMigration actionMigration = feedback(
-        ""
-            + "def test_action(ctx):\n"
-            + "    return ctx.success()\n",
-        "test_action");
+    ActionMigration actionMigration =
+        feedback(
+            """
+            def test_action(ctx):
+                return ctx.success()
+            """,
+            "test_action");
     actionMigration.run(workdir, ImmutableList.of());
     console.assertThat().equalsNext(MessageType.INFO, "Action 'test_action' returned success");
   }
@@ -292,15 +304,18 @@ public class ActionMigrationTest {
 
   @Test
   public void testNoopResultThrowsEmptyChangeException() throws Exception {
-    ActionMigration migration = feedback(
-        ""
-            + "def test_action_1(ctx):\n"
-            + "    return ctx.noop('No effect 1')\n"
-            + "\n"
-            + "def test_action_2(ctx):\n"
-            + "    return ctx.noop('No effect 2')\n"
-            + "\n",
-        "test_action_1", "test_action_2");
+    ActionMigration migration =
+        feedback(
+            """
+            def test_action_1(ctx):
+                return ctx.noop('No effect 1')
+
+            def test_action_2(ctx):
+                return ctx.noop('No effect 2')
+
+            """,
+            "test_action_1",
+            "test_action_2");
     EmptyChangeException expected =
         assertThrows(EmptyChangeException.class, () -> migration.run(workdir, ImmutableList.of()));
     assertThat(expected)
@@ -316,11 +331,13 @@ public class ActionMigrationTest {
 
   @Test
   public void testErrorResultThrowsValidationException() throws Exception {
-    ActionMigration migration = feedback(
-        ""
-            + "def test_action(ctx):\n"
-            + "    return ctx.error('This is an error')\n",
-        "test_action");
+    ActionMigration migration =
+        feedback(
+            """
+            def test_action(ctx):
+                return ctx.error('This is an error')
+            """,
+            "test_action");
     ValidationException expected =
         assertThrows(ValidationException.class, () -> migration.run(workdir, ImmutableList.of()));
     assertThat(expected)
@@ -335,14 +352,17 @@ public class ActionMigrationTest {
 
   @Test
   public void testErrorResultAbortsExecution() throws Exception {
-    ActionMigration migration = feedback(
-        ""
-            + "def test_action_1(ctx):\n"
-            + "    return ctx.error('This is an error')\n"
-            + "\n"
-            + "def test_action_2(ctx):\n"
-            + "    return ctx.success()\n"
-        , "test_action_1", "test_action_2");
+    ActionMigration migration =
+        feedback(
+            """
+            def test_action_1(ctx):
+                return ctx.error('This is an error')
+
+            def test_action_2(ctx):
+                return ctx.success()
+            """,
+            "test_action_1",
+            "test_action_2");
     ValidationException expected =
         assertThrows(ValidationException.class, () -> migration.run(workdir, ImmutableList.of()));
     assertThat(expected)
@@ -358,14 +378,18 @@ public class ActionMigrationTest {
 
   @Test
   public void testNoopSuccessReturnsSuccess() throws Exception {
-    ActionMigration actionMigration = feedback(
-        ""
-            + "def test_action_1(ctx):\n"
-            + "    return ctx.noop('No effect')\n"
-            + "\n"
-            + "def test_action_2(ctx):\n"
-            + "    return ctx.success()\n"
-            + "\n", "test_action_1", "test_action_2");
+    ActionMigration actionMigration =
+        feedback(
+            """
+            def test_action_1(ctx):
+                return ctx.noop('No effect')
+
+            def test_action_2(ctx):
+                return ctx.success()
+
+            """,
+            "test_action_1",
+            "test_action_2");
     actionMigration.run(workdir, ImmutableList.of());
     console
         .assertThat()
@@ -376,12 +400,14 @@ public class ActionMigrationTest {
 
   @Test
   public void testErrorResultEmptyMsg() throws Exception {
-    ActionMigration migration = feedback(
-        ""
-            + "def test_action(ctx):\n"
-            + "    result = ctx.error()\n"
-            + "\n",
-        "test_action");
+    ActionMigration migration =
+        feedback(
+            """
+            def test_action(ctx):
+                result = ctx.error()
+
+            """,
+            "test_action");
     ValidationException expected =
         assertThrows(ValidationException.class, () -> migration.run(workdir, ImmutableList.of()));
     assertThat(expected).hasMessageThat().contains("missing 1 required positional argument: msg");
@@ -389,12 +415,14 @@ public class ActionMigrationTest {
 
   @Test
   public void testEvalExceptionIncludesLocation() throws Exception {
-    ActionMigration migration = feedback(
-        ""
-            + "def test_action(ctx):\n"
-            + "    result = ctx.foo()\n"
-            + "\n",
-        "test_action");
+    ActionMigration migration =
+        feedback(
+            """
+            def test_action(ctx):
+                result = ctx.foo()
+
+            """,
+            "test_action");
     ValidationException ex =
         assertThrows(ValidationException.class, () -> migration.run(workdir, ImmutableList.of()));
     assertThat(ex)
@@ -410,53 +438,63 @@ public class ActionMigrationTest {
 
   @Test
   public void testDestinationEffects() throws Exception {
-    runAndVerifyDestinationEffects(""
-        + "def test_action(ctx):\n"
-        + "    ctx.record_effect("
-        + "      'Some effect',\n"
-        + "      [ctx.origin.new_origin_ref('foo')],\n"
-        + "      ctx.destination.new_destination_ref(ref = 'bar', type = 'some_type'))\n"
-        + "    return ctx.success()\n"
-        + "\n", ImmutableList.of());
+    runAndVerifyDestinationEffects(
+        """
+        def test_action(ctx):
+            ctx.record_effect(
+              'Some effect',
+              [ctx.origin.new_origin_ref('foo')],
+              ctx.destination.new_destination_ref(ref = 'bar', type = 'some_type'))
+            return ctx.success()
+
+        """,
+        ImmutableList.of());
   }
 
   @Test
   public void testAccessDestinationThruEndpoints() throws Exception {
-    runAndVerifyDestinationEffects(""
-        + "def test_action(ctx):\n"
-        + "    ctx.record_effect("
-        + "      'Some effect',\n"
-        + "      [ctx.origin.new_origin_ref('foo')],\n"
-        + "      ctx.endpoints.destination.new_destination_ref(ref = 'bar', type = 'some_type'))\n"
-        + "    return ctx.success()\n"
-        + "\n", ImmutableList.of());
+    runAndVerifyDestinationEffects(
+        """
+        def test_action(ctx):
+            ctx.record_effect(
+              'Some effect',
+              [ctx.origin.new_origin_ref('foo')],
+              ctx.endpoints.destination.new_destination_ref(ref = 'bar', type = 'some_type'))
+            return ctx.success()
+
+        """,
+        ImmutableList.of());
   }
 
   @Test
   public void testDestinationEffectsWithErrors() throws Exception {
     runAndVerifyDestinationEffects(
-        ""
-            + "def test_action(ctx):\n"
-            + "    ctx.record_effect("
-            + "      'Some effect',\n"
-            + "      [ctx.origin.new_origin_ref('foo')],\n"
-            + "      ctx.destination.new_destination_ref(ref = 'bar', type = 'some_type'), "
-            + "      ['error1', 'error2'])\n"
-            + "    return ctx.success()\n"
-            + "\n", ImmutableList.of("error1", "error2"));
+        """
+        def test_action(ctx):
+            ctx.record_effect(
+              'Some effect',
+              [ctx.origin.new_origin_ref('foo')],
+              ctx.destination.new_destination_ref(ref = 'bar', type = 'some_type'),
+              ['error1', 'error2'])
+            return ctx.success()
+
+        """,
+        ImmutableList.of("error1", "error2"));
   }
 
   @Test
   public void testDestinationEffectsWithUrl() throws Exception {
-    runAndVerifyDestinationEffects(""
-        + "def test_action(ctx):\n"
-        + "    ctx.record_effect("
-        + "      'Some other effect',\n"
-        + "      [ctx.origin.new_origin_ref('origin_ref')],\n"
-        + "      ctx.destination.new_destination_ref("
-            + "    'dest_ref', 'custom_type', 'https://foo.bar'))\n"
-        + "    return ctx.success()\n"
-        + "\n", ImmutableList.of(),
+    runAndVerifyDestinationEffects(
+        """
+        def test_action(ctx):
+            ctx.record_effect(
+              'Some other effect',
+              [ctx.origin.new_origin_ref('origin_ref')],
+              ctx.destination.new_destination_ref(    'dest_ref', 'custom_type', 'https://foo.bar'))
+            return ctx.success()
+
+        """,
+        ImmutableList.of(),
         "Some other effect",
         "origin_ref",
         "dest_ref",
@@ -511,14 +549,15 @@ public class ActionMigrationTest {
 
   private ActionMigration loggingFeedback() throws IOException, ValidationException {
     return feedback(
-        ""
-            + "def test_action(ctx):\n"
-            + "    for ref in ctx.refs:\n"
-            + "      ctx.console.info('Ref: ' + ref)\n"
-            + "      ctx.console.info('Feedback name: ' + ctx.feedback_name)\n"
-            + "      ctx.console.info('Action name: ' + ctx.action_name)\n"
-            + "    return ctx.success()\n"
-            + "\n",
+        """
+        def test_action(ctx):
+            for ref in ctx.refs:
+              ctx.console.info('Ref: ' + ref)
+              ctx.console.info('Feedback name: ' + ctx.feedback_name)
+              ctx.console.info('Action name: ' + ctx.action_name)
+            return ctx.success()
+
+        """,
         "test_action");
   }
 
@@ -547,36 +586,38 @@ public class ActionMigrationTest {
   @Test
   public void testInvalidMigrationName() {
     skylark.evalFails(
-        ""
-            + "core.feedback(\n"
-            + "    name = 'foo| bad;name',\n"
-            + "    origin = testing.dummy_trigger(),\n"
-            + "    destination = testing.dummy_endpoint(),\n"
-            + "    action = lambda ctx: ctx.console.info('Hello'),\n"
-            + ")\n",
+        """
+        core.feedback(
+            name = 'foo| bad;name',
+            origin = testing.dummy_trigger(),
+            destination = testing.dummy_endpoint(),
+            action = lambda ctx: ctx.console.info('Hello'),
+        )
+        """,
         ".*Migration name 'foo[|] bad;name' doesn't conform to expected pattern.*");
   }
 
   @Test
   public void testActionMigration_WithFileSystem() throws Exception {
-    String config = ""
-            + "def test_action(ctx):\n"
-            + "    p = ctx.fs.new_path('foo/bar')\n"
-            + "    ctx.fs.write_path(p, 'hello')\n"
-            + "    for f in ctx.fs.list(glob(['**'])):\n"
-            + "        ctx.console.info('FOUND: ' + f.path)\n"
-            + "    return ctx.success()\n"
-            + "\n"
-            + "core.action_migration(\n"
-            + "    name = 'default',\n"
-            + "    origin = testing.dummy_trigger(),\n"
-            + "    endpoints = struct(\n"
-            + "        destination = testing.dummy_endpoint()\n"
-            + "    ),"
-            + "    filesystem = True,\n"
-            + "    action = test_action,\n"
-            + ")\n"
-            + "\n";
+    String config =
+        """
+        def test_action(ctx):
+            p = ctx.fs.new_path('foo/bar')
+            ctx.fs.write_path(p, 'hello')
+            for f in ctx.fs.list(glob(['**'])):
+                ctx.console.info('FOUND: ' + f.path)
+            return ctx.success()
+
+        core.action_migration(
+            name = 'default',
+            origin = testing.dummy_trigger(),
+            endpoints = struct(
+                destination = testing.dummy_endpoint()
+            ),filesystem = True,
+            action = test_action,
+        )
+
+        """;
     Migration actionMigration = loadConfig(config).getMigration("default");
     actionMigration.run(workdir, ImmutableList.of("12345"));
     assertThatPath(workdir)
@@ -587,20 +628,22 @@ public class ActionMigrationTest {
 
   @Test
   public void testActionMigration_WithoutFileSystem() throws Exception {
-    String config = ""
-            + "def test_action(ctx):\n"
-            + "    p = ctx.fs.new_path('foo/bar')\n"
-            + "    return ctx.success()\n"
-            + "\n"
-            + "core.action_migration(\n"
-            + "    name = 'default',\n"
-            + "    origin = testing.dummy_trigger(),\n"
-            + "    endpoints = struct(\n"
-            + "        destination = testing.dummy_endpoint()\n"
-            + "    ),"
-            + "    action = test_action,\n"
-            + ")\n"
-            + "\n";
+    String config =
+        """
+        def test_action(ctx):
+            p = ctx.fs.new_path('foo/bar')
+            return ctx.success()
+
+        core.action_migration(
+            name = 'default',
+            origin = testing.dummy_trigger(),
+            endpoints = struct(
+                destination = testing.dummy_endpoint()
+            ),
+            action = test_action,
+        )
+
+        """;
     Migration actionMigration = loadConfig(config).getMigration("default");
     assertThat(assertThrows(ValidationException.class, () ->
         actionMigration.run(workdir, ImmutableList.of("12345"))))
@@ -609,21 +652,23 @@ public class ActionMigrationTest {
 
   @Test
   public void testActionMigration_UseDestination() throws Exception {
-    String config = ""
-            + "def test_action(ctx):\n"
-            + "    ctx.endpoints.destination.message('hello')\n"
-            + "    ctx.console.info('FOUND: ' + ctx.endpoints.destination.get_messages[0])\n"
-            + "    return ctx.success()\n"
-            + "\n"
-            + "core.action_migration(\n"
-            + "    name = 'default',\n"
-            + "    origin = testing.dummy_trigger(),\n"
-            + "    endpoints = struct(\n"
-            + "        destination = testing.dummy_endpoint()\n"
-            + "    ),"
-            + "    action = test_action,\n"
-            + ")\n"
-            + "\n";
+    String config =
+        """
+        def test_action(ctx):
+            ctx.endpoints.destination.message('hello')
+            ctx.console.info('FOUND: ' + ctx.endpoints.destination.get_messages[0])
+            return ctx.success()
+
+        core.action_migration(
+            name = 'default',
+            origin = testing.dummy_trigger(),
+            endpoints = struct(
+                destination = testing.dummy_endpoint()
+            ),
+            action = test_action,
+        )
+
+        """;
     Migration actionMigration = loadConfig(config).getMigration("default");
     actionMigration.run(workdir, ImmutableList.of("12345"));
     console.assertThat().onceInLog(MessageType.INFO, "FOUND: hello");
@@ -653,19 +698,20 @@ public class ActionMigrationTest {
   @Test
   public void testActionMigration_noopNullMsgDoesNotNPE() throws Exception {
     String config =
-        ""
-            + "def test_action(ctx):\n"
-            + "    return ctx.noop()\n" // no argument for ctx.noop() will return a null messsage
-            + "\n"
-            + "core.action_migration(\n"
-            + "    name = 'default',\n"
-            + "    origin = testing.dummy_trigger(),\n"
-            + "    endpoints = struct(\n"
-            + "        destination = testing.dummy_endpoint(),\n"
-            + "    ),"
-            + "    action = test_action,\n"
-            + ")\n"
-            + "\n";
+        """
+        def test_action(ctx):
+            return ctx.noop()
+
+        core.action_migration(
+            name = 'default',
+            origin = testing.dummy_trigger(),
+            endpoints = struct(
+                destination = testing.dummy_endpoint(),
+            ),
+            action = test_action,
+        )
+
+        """;
     Migration actionMigration = loadConfig(config).getMigration("default");
 
     // should be an empty change and not null pointer exception
