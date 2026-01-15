@@ -64,10 +64,10 @@ public class AuthoringTest {
 
   @Test
   public void allowedTest() throws Exception {
-    Authoring authoring = skylark.eval("result", ""
-        + "result = authoring.allowed(\n"
-        + "    default = 'foo bar <baz@bar.com>',\n"
-        + "    allowlist = ['foo', 'bar'])");
+    Authoring authoring = skylark.eval("result", """
+        result = authoring.allowed(
+            default = 'foo bar <baz@bar.com>',
+            allowlist = ['foo', 'bar'])""");
     assertThat(authoring)
         .isEqualTo(new Authoring(new Author("foo bar", "baz@bar.com"),
         AuthoringMappingMode.ALLOWED, ImmutableSet.of("foo", "bar")));
@@ -75,11 +75,11 @@ public class AuthoringTest {
 
   @Test
   public void testAllowlistMappingDuplicates() throws Exception {
-    skylark.evalFails(""
-            + "authoring.allowed(\n"
-            + "  default = 'Copybara <no-reply@google.com>',\n"
-            + "  allowlist = ['foo', 'foo']\n"
-            + ")\n",
+    skylark.evalFails("""
+            authoring.allowed(
+              default = 'Copybara <no-reply@google.com>',
+              allowlist = ['foo', 'foo']
+            )""",
         "Duplicated allowlist entry 'foo'");
   }
 
@@ -91,19 +91,19 @@ public class AuthoringTest {
 
   @Test
   public void testInvalidDefaultAuthor() throws Exception {
-    skylark.evalFails(""
-            + "authoring.overwrite(\n"
-            + "    default = 'invalid')\n",
+    skylark.evalFails("""
+            authoring.overwrite(
+                default = 'invalid')""",
         "Author 'invalid' doesn't match the expected format 'name <mail@example.com>");
   }
 
   @Test
   public void testAllowlistNotEmpty() throws Exception {
-    skylark.evalFails(""
-            + "authoring.allowed(\n"
-            + "  default = 'Copybara <no-reply@google.com>',\n"
-            + "  allowlist = []\n"
-            + ")\n",
+    skylark.evalFails("""
+            authoring.allowed(
+              default = 'Copybara <no-reply@google.com>',
+              allowlist = []
+            )""",
         "'allowed' function requires a non-empty 'allowlist' field. "
             + "For default mapping, use 'overwrite\\(...\\)' mode instead.");
   }

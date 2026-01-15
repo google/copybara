@@ -88,16 +88,16 @@ public class ArchiveModuleTest {
   @Test
   public void testExtract_zipType() throws Exception {
     TransformWork work = TransformWorks.of(workdir, "test", console);
-    Transformation t = skylark.eval("t", ""
-        + "def test(ctx):\n"
-        + "   zip = ctx.new_path(\"test.zip\")\n"
-        + "   destination = ctx.new_path(\"archive_result\")\n"
-        + "   archive.extract(\n"
-        + "       archive = zip,\n"
-        + "       type = \"ZIP\",\n"
-        + "       destination_folder = destination,\n"
-        + "   )\n"
-        + "t = core.dynamic_transform(test)");
+    Transformation t = skylark.eval("t", """
+        def test(ctx):
+           zip = ctx.new_path("test.zip")
+           destination = ctx.new_path("archive_result")
+           archive.extract(
+               archive = zip,
+               type = "ZIP",
+               destination_folder = destination,
+           )
+        t = core.dynamic_transform(test)""");
 
     t.transform(work);
     Path resultFile = workdir.resolve("archive_result/foo.txt");
@@ -121,15 +121,15 @@ public class ArchiveModuleTest {
     Transformation t =
         skylark.eval(
             "t",
-            ""
-                + "def test(ctx):\n"
-                + "   tarball = ctx.new_path(\"test.tar.gz\")\n"
-                + "   destination = ctx.new_path(\"archive_result\")\n"
-                + "   archive.extract(\n"
-                + "       archive = tarball,\n"
-                + "       destination_folder = destination,\n"
-                + "   )\n"
-                + "t = core.dynamic_transform(test)");
+            """
+                def test(ctx):
+                   tarball = ctx.new_path("test.tar.gz")
+                   destination = ctx.new_path("archive_result")
+                   archive.extract(
+                       archive = tarball,
+                       destination_folder = destination,
+                   )
+                t = core.dynamic_transform(test)""");
 
     t.transform(work);
     Path resulPath = workdir.resolve("archive_result");
@@ -139,15 +139,15 @@ public class ArchiveModuleTest {
   @Test
   public void testExtract_autoTypeZip() throws Exception {
     TransformWork work = TransformWorks.of(workdir, "test", console);
-    Transformation t = skylark.eval("t", ""
-        + "def test(ctx):\n"
-        + "   zip = ctx.new_path(\"test.zip\")\n"
-        + "   destination = ctx.new_path(\"archive_result\")\n"
-        + "   archive.extract(\n"
-        + "       archive = zip,\n"
-        + "       destination_folder = destination,\n"
-        + "   )\n"
-        + "t = core.dynamic_transform(test)");
+    Transformation t = skylark.eval("t", """
+        def test(ctx):
+           zip = ctx.new_path("test.zip")
+           destination = ctx.new_path("archive_result")
+           archive.extract(
+               archive = zip,
+               destination_folder = destination,
+           )
+        t = core.dynamic_transform(test)""");
 
     t.transform(work);
     Path resultFile = workdir.resolve("archive_result/foo.txt");
@@ -172,13 +172,13 @@ public class ArchiveModuleTest {
     Transformation t =
         skylark.eval(
             "t",
-            ""
-                + "def test(ctx):\n"
-                + "   archive.extract(\n"
-                + "       archive = ctx.new_path(\"test.tar.xz\"),\n"
-                + "       destination_folder = ctx.new_path(\"archive_result\"),\n"
-                + "   )\n"
-                + "t = core.dynamic_transform(test)");
+            """
+                def test(ctx):
+                   archive.extract(
+                       archive = ctx.new_path("test.tar.xz"),
+                       destination_folder = ctx.new_path("archive_result"),
+                   )
+                t = core.dynamic_transform(test)""");
 
     t.transform(work);
     Path resultPath = workdir.resolve("archive_result");
@@ -188,17 +188,17 @@ public class ArchiveModuleTest {
   @Test
   public void testExtractWithPathsGlob() throws Exception {
     TransformWork work = TransformWorks.of(workdir, "test", console);
-    Transformation t = skylark.eval("t", ""
-        + "def test(ctx):\n"
-        + "   zip = ctx.new_path(\"test.zip\")\n"
-        + "   destination = ctx.new_path(\"archive_result\")\n"
-        + "   archive.extract(\n"
-        + "       archive = zip,\n"
-        + "       type = \"ZIP\",\n"
-        + "       destination_folder = destination,\n"
-        + "       paths = glob([\"bar.txt\"])"
-        + "   )\n"
-        + "t = core.dynamic_transform(test)");
+    Transformation t = skylark.eval("t", """
+        def test(ctx):
+           zip = ctx.new_path("test.zip")
+           destination = ctx.new_path("archive_result")
+           archive.extract(
+               archive = zip,
+               type = "ZIP",
+               destination_folder = destination,
+               paths = glob(["bar.txt"])
+           )
+        t = core.dynamic_transform(test)""");
 
     t.transform(work);
     assertThat(Files.exists(workdir.resolve("archive_result/foo.txt"))).isFalse();
@@ -214,14 +214,14 @@ public class ArchiveModuleTest {
     Path archiveResult = workdir.resolve("archive_result");
     Files.createDirectories(archiveResult);
     Files.move(workdir.resolve("test.zip"), archiveResult.resolve("test.zip"));
-    Transformation t = skylark.eval("t", ""
-        + "def test(ctx):\n"
-        + "   zip = ctx.new_path(\"archive_result/test.zip\")\n"
-        + "   archive.extract(\n"
-        + "       archive = zip,\n"
-        + "       type = \"ZIP\",\n"
-        + "   )\n"
-        + "t = core.dynamic_transform(test)");
+    Transformation t = skylark.eval("t", """
+        def test(ctx):
+           zip = ctx.new_path("archive_result/test.zip")
+           archive.extract(
+               archive = zip,
+               type = "ZIP",
+           )
+        t = core.dynamic_transform(test)""");
 
     //This should extract the files to archive_result
     t.transform(work);
@@ -255,14 +255,12 @@ public class ArchiveModuleTest {
     Transformation t1 =
         skylark.eval(
             "t",
-            ""
-                + "def test(ctx):\n"
-                + "   archive.create(\n"
-                + "       archive = ctx.new_path(\""
-                + archiveName
-                + "\"),\n"
-                + "   )\n"
-                + "t = core.dynamic_transform(test)");
+            String.format("""
+                def test(ctx):
+                   archive.create(
+                       archive = ctx.new_path("%s"),
+                   )
+                t = core.dynamic_transform(test)""", archiveName));
 
     t1.transform(work1);
     assertThat(Files.exists(workdir.resolve(archiveName))).isTrue();
@@ -271,15 +269,13 @@ public class ArchiveModuleTest {
     Transformation t2 =
         skylark.eval(
             "t",
-            ""
-                + "def test(ctx):\n"
-                + "   archive.extract(\n"
-                + "       archive = ctx.new_path(\""
-                + archiveName
-                + "\"),\n"
-                + "       destination_folder = ctx.new_path(\"unarchive_result\"),\n"
-                + "   )\n"
-                + "t = core.dynamic_transform(test)");
+            String.format("""
+                def test(ctx):
+                   archive.extract(
+                       archive = ctx.new_path("%s"),
+                       destination_folder = ctx.new_path("unarchive_result"),
+                   )
+                t = core.dynamic_transform(test)""", archiveName));
 
     t2.transform(work2);
     Path resultPath = workdir.resolve("unarchive_result");
@@ -300,13 +296,13 @@ public class ArchiveModuleTest {
     Transformation t1 =
         skylark.eval(
             "t",
-            ""
-                + "def test(ctx):\n"
-                + "   archive.create(\n"
-                + "       archive = ctx.new_path(\"test.zip\"),\n"
-                + "       files = glob([\"bar.txt\", \"**file_in_subdir.txt\"]),\n"
-                + "   )\n"
-                + "t = core.dynamic_transform(test)");
+            """
+                def test(ctx):
+                   archive.create(
+                       archive = ctx.new_path("test.zip"),
+                       files = glob(["bar.txt", "**file_in_subdir.txt"]),
+                   )
+                t = core.dynamic_transform(test)""");
 
     t1.transform(work1);
     assertThat(Files.exists(workdir.resolve("test.zip"))).isTrue();
@@ -315,13 +311,13 @@ public class ArchiveModuleTest {
     Transformation t2 =
         skylark.eval(
             "t",
-            ""
-                + "def test(ctx):\n"
-                + "   archive.extract(\n"
-                + "       archive = ctx.new_path(\"test.zip\"),\n"
-                + "       destination_folder = ctx.new_path(\"unarchive_result\"),\n"
-                + "   )\n"
-                + "t = core.dynamic_transform(test)");
+            """
+                def test(ctx):
+                   archive.extract(
+                       archive = ctx.new_path("test.zip"),
+                       destination_folder = ctx.new_path("unarchive_result"),
+                   )
+                t = core.dynamic_transform(test)""");
 
     t2.transform(work2);
     Path resultPath = workdir.resolve("unarchive_result");
@@ -340,12 +336,12 @@ public class ArchiveModuleTest {
     Transformation t1 =
         skylark.eval(
             "t",
-            ""
-                + "def test(ctx):\n"
-                + "   archive.create(\n"
-                + "       archive = ctx.new_path(\"test.abc\"),\n"
-                + "   )\n"
-                + "t = core.dynamic_transform(test)");
+            """
+                def test(ctx):
+                   archive.create(
+                       archive = ctx.new_path("test.abc"),
+                   )
+                t = core.dynamic_transform(test)""");
 
     ValidationException thrown = assertThrows(ValidationException.class, () -> t1.transform(work1));
     assertThat(thrown)
@@ -368,12 +364,12 @@ public class ArchiveModuleTest {
     Transformation t1 =
         skylark.eval(
             "t",
-            ""
-                + "def test(ctx):\n"
-                + "   archive.create(\n"
-                + "       archive = ctx.new_path(\"test.tar\"),\n"
-                + "   )\n"
-                + "t = core.dynamic_transform(test)");
+            """
+                def test(ctx):
+                   archive.create(
+                       archive = ctx.new_path("test.tar"),
+                   )
+                t = core.dynamic_transform(test)""");
 
     ValidationException thrown = assertThrows(ValidationException.class, () -> t1.transform(work1));
     assertThat(thrown)
