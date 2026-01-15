@@ -506,7 +506,7 @@ public class GitTestUtil {
 
     @Override
     @Nullable
-    public String getPrimaryBranch(String url) throws RepoException {
+    public String getPrimaryBranch(String url) throws RepoException, ValidationException {
       return super.getPrimaryBranch(mapUrl(url));
     }
 

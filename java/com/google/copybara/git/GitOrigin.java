@@ -816,7 +816,7 @@ public class GitOrigin implements Origin<GitRevision> {
   }
 
   @Nullable
-  private String getConfigRef() throws RepoException {
+  private String getConfigRef() throws RepoException, ValidationException {
     if (resolvedRef != null) {
       return resolvedRef;
     }

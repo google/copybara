@@ -2997,13 +2997,16 @@ public class GitRepository {
 
   /** Returns the repo's primary branch, e.g. "main". */
   @Nullable
-  public String getPrimaryBranch(String uri) throws RepoException {
+  public String getPrimaryBranch(String uri) throws RepoException, ValidationException {
     Map<String, String> refs;
     try {
        refs = lsRemote(
            uri, ImmutableList.of("HEAD", "main", "master"),
            DEFAULT_MAX_LOG_LINES, ImmutableList.of("--symref"));
     } catch (ValidationException e) {
+      if (e instanceof AccessValidationException) {
+        throw e;
+      }
       throw new RepoException("Error parsing primary branch", e);
     }
     for (String key : refs.values()) {
