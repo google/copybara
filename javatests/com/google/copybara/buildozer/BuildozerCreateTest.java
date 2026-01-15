@@ -63,8 +63,9 @@ public final class BuildozerCreateTest {
   @Test
   public void requiresTarget() {
     try {
-      skylark.eval("c", ""
-          + "c = buildozer.create(rule_type = 'java_library', commands = ['set config :foo'])\n");
+      skylark.eval("c", """
+          c = buildozer.create(rule_type = 'java_library', commands = ['set config :foo'])
+          """);
       fail();
     } catch (ValidationException expected) {}
     console
@@ -75,8 +76,9 @@ public final class BuildozerCreateTest {
   @Test
   public void requiresColonInTarget() {
     try {
-      skylark.eval("c", ""
-          + "c = buildozer.create(target = 'foo/bar', rule_type = 'py_binary')\n");
+      skylark.eval("c", """
+          c = buildozer.create(target = 'foo/bar', rule_type = 'py_binary')
+          """);
       fail();
     } catch (ValidationException expected) {}
     console.error("asdf");
@@ -88,8 +90,9 @@ public final class BuildozerCreateTest {
   @Test
   public void errorForMultipleColonsInTarget() {
     try {
-      skylark.eval("c", ""
-          + "c = buildozer.create(target = 'foo:bar:baz', rule_type = 'py_binary')\n");
+      skylark.eval("c", """
+          c = buildozer.create(target = 'foo:bar:baz', rule_type = 'py_binary')
+          """);
       fail();
     } catch (ValidationException expected) {}
     console.error("asdf");
@@ -140,13 +143,13 @@ public final class BuildozerCreateTest {
   @Test
   public void errorForSpecifyingBeforeAndAfter() {
     try {
-      skylark.eval("c", "c = "
-          + "buildozer.create("
-          + "    target = 'foo/bar:baz',"
-          + "    rule_type = 'py_binary',"
-          + "    before = 'foo',"
-          + "    after = 'bar',"
-          + ")");
+      skylark.eval("c", """
+          c = buildozer.create(
+              target = 'foo/bar:baz',
+              rule_type = 'py_binary',
+              before = 'foo',
+              after = 'bar',
+          )""");
       fail();
     } catch (ValidationException expected) {}
     console.assertThat()
@@ -157,12 +160,12 @@ public final class BuildozerCreateTest {
   @Test
   public void errorForSpecifyingPackageInBeforeTarget() {
     try {
-      skylark.eval("c", "c = "
-          + "buildozer.create("
-          + "    target = 'foo/bar:baz',"
-          + "    rule_type = 'py_binary',"
-          + "    before = 'bar:foo',"
-          + ")");
+      skylark.eval("c", """
+          c = buildozer.create(
+              target = 'foo/bar:baz',
+              rule_type = 'py_binary',
+              before = 'bar:foo',
+          )""");
       fail();
     } catch (ValidationException expected) {}
     console.assertThat()
@@ -174,12 +177,12 @@ public final class BuildozerCreateTest {
   @Test
   public void errorForSpecifyingPackageInAfterTarget() {
     try {
-      skylark.eval("c", "c = "
-          + "buildozer.create("
-          + "    target = 'foo/bar:baz',"
-          + "    rule_type = 'py_binary',"
-          + "    after = 'foo:bar',"
-          + ")");
+      skylark.eval("c", """
+          c = buildozer.create(
+              target = 'foo/bar:baz',
+              rule_type = 'py_binary',
+              after = 'foo:bar',
+          )""");
       fail();
     } catch (ValidationException expected) {}
     console.assertThat()
@@ -190,28 +193,30 @@ public final class BuildozerCreateTest {
 
   @Test
   public void createNewWithoutAttributes() throws Exception {
-    BuildozerCreate create = skylark.eval("c", "c = "
-        + "buildozer.create("
-        + "    target = 'foo/bar:baz',"
-        + "    rule_type = 'proto_library',"
-        + ")");
+    BuildozerCreate create = skylark.eval("c", """
+          c = buildozer.create(
+              target = 'foo/bar:baz',
+              rule_type = 'proto_library',
+          )""");
 
     Files.createDirectories(checkoutDir.resolve("foo/bar"));
     Files.write(checkoutDir.resolve("foo/bar/BUILD"), "# initial comment".getBytes(UTF_8));
     transform(create);
     assertThatPath(checkoutDir)
-        .containsFile("foo/bar/BUILD", ""
-            + "# initial comment\n\n"
-            + "proto_library(name = \"baz\")\n");
+        .containsFile("foo/bar/BUILD", """
+            # initial comment
+
+            proto_library(name = "baz")
+            """);
   }
 
   @Test
   public void deleteByReversing() throws Exception {
-    BuildozerCreate create = skylark.eval("c", "c = "
-        + "buildozer.create("
-        + "    target = 'foo/bar:baz',"
-        + "    rule_type = 'proto_library',"
-        + ")");
+    BuildozerCreate create = skylark.eval("c", """
+          c = buildozer.create(
+              target = 'foo/bar:baz',
+              rule_type = 'proto_library',
+          )""");
 
     Files.createDirectories(checkoutDir.resolve("foo/bar"));
     String original = ""
@@ -226,17 +231,17 @@ public final class BuildozerCreateTest {
 
   @Test
   public void populateAttributesWithCommands() throws Exception {
-    BuildozerCreate create = skylark.eval("c", "c = "
-        + "buildozer.create("
-        + "    target = 'foo/bar:baz',"
-        + "    rule_type = 'proto_library',"
-        + "    commands = ["
-        + "        'set config \":android_proto_config\"',"
-        + "        buildozer.cmd('set header_outsNOT_AS_LIST tf_android_core_proto_headers()'),"
-        + "        'move header_outsNOT_AS_LIST header_outs *',"
-        + "        buildozer.cmd('set prefix_dir \"protos\"'),"
-        + "    ],"
-        + ")");
+    BuildozerCreate create = skylark.eval("c", """
+          c = buildozer.create(
+              target = 'foo/bar:baz',
+              rule_type = 'proto_library',
+              commands = [
+                  'set config ":android_proto_config"',
+                  buildozer.cmd('set header_outsNOT_AS_LIST tf_android_core_proto_headers()'),
+                  'move header_outsNOT_AS_LIST header_outs *',
+                  buildozer.cmd('set prefix_dir "protos"'),
+              ],
+          )""");
 
     Files.createDirectories(checkoutDir.resolve("foo/bar"));
     String original = "java_binary(name = 'blah')\n";
@@ -244,25 +249,26 @@ public final class BuildozerCreateTest {
 
     transform(create);
     assertThatPath(checkoutDir)
-        .containsFile("foo/bar/BUILD", ""
-            + "java_binary(name = \"blah\")\n"
-            + "\n"
-            + "proto_library(\n"
-            + "    name = \"baz\",\n"
-            + "    config = \":android_proto_config\",\n"
-            + "    header_outs = tf_android_core_proto_headers(),\n"
-            + "    prefix_dir = \"protos\",\n"
-            + ")\n");
+        .containsFile("foo/bar/BUILD", """
+            java_binary(name = "blah")
+
+            proto_library(
+                name = "baz",
+                config = ":android_proto_config",
+                header_outs = tf_android_core_proto_headers(),
+                prefix_dir = "protos",
+            )
+            """);
   }
 
   @Test
   public void canCreateBeforeSomeTarget() throws Exception {
-    BuildozerCreate create = skylark.eval("c", "c = "
-        + "buildozer.create("
-        + "    target = 'foo/bar:baz',"
-        + "    rule_type = 'proto_library',"
-        + "    before = 'target_knee',"
-        + ")");
+    BuildozerCreate create = skylark.eval("c", """
+          c = buildozer.create(
+              target = 'foo/bar:baz',
+              rule_type = 'proto_library',
+              before = 'target_knee',
+          )""");
 
     Files.createDirectories(checkoutDir.resolve("foo/bar"));
     String original = ""
@@ -274,24 +280,25 @@ public final class BuildozerCreateTest {
     transform(create);
 
     assertThatPath(checkoutDir)
-        .containsFile("foo/bar/BUILD", ""
-            + "java_binary(name = \"target_itchy\")\n"
-            + "\n"
-            + "proto_library(name = \"baz\")\n"
-            + "\n"
-            + "java_binary(name = \"target_knee\")\n"
-            + "\n"
-            + "java_binary(name = \"target_sun\")\n");
+        .containsFile("foo/bar/BUILD", """
+            java_binary(name = "target_itchy")
+
+            proto_library(name = "baz")
+
+            java_binary(name = "target_knee")
+
+            java_binary(name = "target_sun")
+            """);
   }
 
   @Test
   public void canCreateAfterSomeTarget() throws Exception {
-    BuildozerCreate create = skylark.eval("c", "c = "
-        + "buildozer.create("
-        + "    target = 'foo/bar:baz',"
-        + "    rule_type = 'proto_library',"
-        + "    after = 'target2',"
-        + ")");
+    BuildozerCreate create = skylark.eval("c", """
+          c = buildozer.create(
+              target = 'foo/bar:baz',
+              rule_type = 'proto_library',
+              after = 'target2',
+          )""");
 
     Files.createDirectories(checkoutDir.resolve("foo/bar"));
     String original = ""
@@ -303,25 +310,26 @@ public final class BuildozerCreateTest {
     transform(create);
 
     assertThatPath(checkoutDir)
-        .containsFile("foo/bar/BUILD", ""
-            + "java_binary(name = \"target1\")\n"
-            + "\n"
-            + "java_binary(name = \"target2\")\n"
-            + "\n"
-            + "proto_library(name = \"baz\")\n"
-            + "\n"
-            + "java_binary(name = \"target3\")\n");
+        .containsFile("foo/bar/BUILD", """
+            java_binary(name = "target1")
+
+            java_binary(name = "target2")
+
+            proto_library(name = "baz")
+
+            java_binary(name = "target3")
+            """);
   }
 
   @Test
   public void errorForInvalidCommandType() throws Exception {
     try {
-      skylark.eval("c", "c = "
-          + "buildozer.create("
-          + "    target = 'foo/bar:baz',"
-          + "    rule_type = 'py_binary',"
-          + "    commands = [42],"
-          + ")");
+      skylark.eval("c", """
+          c = buildozer.create(
+              target = 'foo/bar:baz',
+              rule_type = 'py_binary',
+              commands = [42],
+          )""");
       fail();
     } catch (ValidationException expected) {}
     console.assertThat()
@@ -331,22 +339,22 @@ public final class BuildozerCreateTest {
 
   @Test
   public void toStringHasRelativeTo() throws Exception {
-    BuildozerCreate create = skylark.eval("c", "c = "
-        + "buildozer.create("
-        + "    target = 'foo/bar:baz',"
-        + "    rule_type = 'py_binary',"
-        + "    commands = ['set foo bar'],"
-        + "    before = 'xyz',"
-        + ")");
+    BuildozerCreate create = skylark.eval("c", """
+          c = buildozer.create(
+              target = 'foo/bar:baz',
+              rule_type = 'py_binary',
+              commands = ['set foo bar'],
+              before = 'xyz',
+          )""");
     assertThat(create.toString()).contains("before xyz");
 
-    create = skylark.eval("c", "c = "
-        + "buildozer.create("
-        + "    target = 'foo/bar:baz',"
-        + "    rule_type = 'py_binary',"
-        + "    commands = ['set foo bar'],"
-        + "    after = 'abc',"
-        + ")");
+    create = skylark.eval("c", """
+          c = buildozer.create(
+              target = 'foo/bar:baz',
+              rule_type = 'py_binary',
+              commands = ['set foo bar'],
+              after = 'abc',
+          )""");
     assertThat(create.toString()).contains("after abc");
   }
 
@@ -355,50 +363,52 @@ public final class BuildozerCreateTest {
     // Make sure the package doesn't already exist, since that would invalidate the test.
     assertThatPath(checkoutDir).containsNoMoreFiles();
 
-    BuildozerCreate create = skylark.eval("c", "c = "
-        + "buildozer.create("
-        + "    target = 'jfjf/ieie:target_itchy',"
-        + "    rule_type = 'java_library',"
-        + "    commands = ['set config \"foo\"'],"
-        + ")");
+    BuildozerCreate create = skylark.eval("c", """
+          c = buildozer.create(
+              target = 'jfjf/ieie:target_itchy',
+              rule_type = 'java_library',
+              commands = ['set config "foo"'],
+          )""");
     transform(create);
     assertThatPath(checkoutDir)
-        .containsFile("jfjf/ieie/BUILD", ""
-            + "java_library(\n"
-            + "    name = \"target_itchy\",\n"
-            + "    config = \"foo\",\n"
-            + ")\n")
+        .containsFile("jfjf/ieie/BUILD", """
+            java_library(
+                name = "target_itchy",
+                config = "foo",
+            )
+            """)
         .containsNoMoreFiles();
   }
 
   @Test
   public void testCreateWithMissingCommand() throws Exception {
     assertThrows(ValidationException.class,
-        () -> skylark.eval("c", "c = "
-          + "buildozer.create("
-          + "    target = 'foo/bar:baz',"
-          + "    rule_type = 'proto_library',"
-          + "    commands = ['bar/foo:foobar'],"
-          + ")"));
+        () -> skylark.eval("c", """
+          c = buildozer.create(
+              target = 'foo/bar:baz',
+              rule_type = 'proto_library',
+              commands = ['bar/foo:foobar'],
+          )"""));
     console.assertThat()
         .onceInLog(MessageType.ERROR, ".*Expected an operation, but got 'bar/foo:foobar'..*");
   }
 
   @Test
   public void testPackageCanBeEmpty() throws Exception {
-    BuildozerCreate create = skylark.eval("c", "c = "
-        + "buildozer.create("
-        + "    target = ':see_no_pkg',"
-        + "    rule_type = 'java_library',"
-        + "    commands = ['set config \"foo\"'],"
-        + ")");
+    BuildozerCreate create = skylark.eval("c", """
+          c = buildozer.create(
+              target = ':see_no_pkg',
+              rule_type = 'java_library',
+              commands = ['set config "foo"'],
+          )""");
     transform(create);
     assertThatPath(checkoutDir)
-        .containsFile("BUILD", ""
-            + "java_library(\n"
-            + "    name = \"see_no_pkg\",\n"
-            + "    config = \"foo\",\n"
-            + ")\n")
+        .containsFile("BUILD", """
+            java_library(
+                name = "see_no_pkg",
+                config = "foo",
+            )
+            """)
         .containsNoMoreFiles();
     transform(create.reverse());
     assertThatPath(checkoutDir).containsFile("BUILD", "");

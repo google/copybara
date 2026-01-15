@@ -64,8 +64,11 @@ public final class BuildozerModifyTest {
   @Test
   public void errorForMissingTarget() {
     try {
-      skylark.eval("m", ""
-          + "m = buildozer.modify(commands = ['set config :foo'])\n");
+      skylark.eval(
+          "m",
+          """
+          m = buildozer.modify(commands = ['set config :foo'])
+          """);
       fail();
     } catch (ValidationException expected) {}
     console
@@ -99,16 +102,19 @@ public final class BuildozerModifyTest {
   @Test
   public void nonReversibleError() {
     try {
-      skylark.eval("m", "m = "
-          + "core.reverse([\n"
-          + "    buildozer.modify(\n"
-          + "        target = 'describe/IncludesTarget:Name',\n"
-          + "        commands = [\n"
-          + "            buildozer.cmd('set foo bar', reverse = 'set foo baz'),\n"
-          + "            buildozer.cmd('set tags [\"foo\"]'),\n"
-          + "        ],\n"
-          + "    ),\n"
-          + "])\n");
+      skylark.eval(
+          "m",
+          """
+          m = core.reverse([
+              buildozer.modify(
+                  target = 'describe/IncludesTarget:Name',
+                  commands = [
+                      buildozer.cmd('set foo bar', reverse = 'set foo baz'),
+                      buildozer.cmd('set tags ["foo"]'),
+                  ],
+              ),
+          ])
+          """);
       fail();
     } catch (ValidationException expected) {}
     console.assertThat()
@@ -119,11 +125,14 @@ public final class BuildozerModifyTest {
   @Test
   public void replaceWithMoreThan3Args_isError() {
     try {
-      skylark.eval("m", "m = "
-          + "buildozer.modify(\n"
-          + "    target = 'describe/IncludesTarget:Name',\n"
-          + "    commands = [buildozer.cmd('replace x y z a b c')],\n"
-          + ")\n");
+      skylark.eval(
+          "m",
+          """
+          m = buildozer.modify(
+              target = 'describe/IncludesTarget:Name',
+              commands = [buildozer.cmd('replace x y z a b c')],
+          )
+          """);
       fail();
     } catch (ValidationException expected) {}
     console.assertThat()
@@ -134,13 +143,15 @@ public final class BuildozerModifyTest {
   @Test
   public void replaceForwardWith2Args_isError() {
     try {
-      skylark.eval("m", "m = "
-          + "buildozer.modify(\n"
-          + "    target = 'describe/IncludesTarget:Name',\n"
-          + "    commands = ["
-          + "buildozer.cmd("
-          + "  forward = 'replace library :go_default_library')],\n"
-          + ")\n");
+      skylark.eval(
+          "m",
+          """
+          m = buildozer.modify(
+              target = 'describe/IncludesTarget:Name',
+              commands = [buildozer.cmd(
+                forward = 'replace library :go_default_library')],
+          )
+          """);
       fail();
     } catch (ValidationException expected) {}
     console.assertThat()
@@ -150,62 +161,85 @@ public final class BuildozerModifyTest {
 
   @Test
   public void runTwoCommands() throws Exception {
-    BuildozerModify modify = skylark.eval("m", "m = "
-        + "buildozer.modify(\n"
-        + "    target = 'foo/bar:baz',\n"
-        + "    commands = [\n"
-        + "        buildozer.cmd('set config \":foo\"'),\n"
-        + "        buildozer.cmd('replace deps old_dep new_dep'),\n"
-        + "    ],\n"
-        + ")");
+    BuildozerModify modify =
+        skylark.eval(
+            "m",
+            """
+            m = buildozer.modify(
+                target = 'foo/bar:baz',
+                commands = [
+                    buildozer.cmd('set config ":foo"'),
+                    buildozer.cmd('replace deps old_dep new_dep'),
+                ],
+            )\
+            """);
 
     Files.createDirectories(checkoutDir.resolve("foo/bar"));
-    String original = ""
-        + "# initial comment\n\n"
-        + "proto_library(name = 'baz', deps = ['old_dep'])\n";
+    String original =
+        """
+        # initial comment
+
+        proto_library(name = 'baz', deps = ['old_dep'])
+        """;
     Files.write(checkoutDir.resolve("foo/bar/BUILD"), original.getBytes(UTF_8));
     transform(modify);
     assertThatPath(checkoutDir)
-        .containsFile("foo/bar/BUILD", ""
-            + "# initial comment\n\n"
-            + "proto_library(\n"
-            + "    name = \"baz\",\n"
-            + "    config = \":foo\",\n"
-            + "    deps = [\"new_dep\"],\n"
-            + ")\n");
+        .containsFile(
+            "foo/bar/BUILD",
+            """
+            # initial comment
+
+            proto_library(
+                name = "baz",
+                config = ":foo",
+                deps = ["new_dep"],
+            )
+            """);
   }
 
   @Test
   public void runTwoCommandsOnTwoTargets() throws Exception {
-    BuildozerModify modify = skylark.eval("m", "m = "
-        + "buildozer.modify(\n"
-        + "    target = ['foo/bar:baz', 'foo/bar:foo'],\n"
-        + "    commands = [\n"
-        + "        buildozer.cmd('set config \":foo\"'),\n"
-        + "        buildozer.cmd('replace deps old_dep new_dep'),\n"
-        + "    ],\n"
-        + ")");
+    BuildozerModify modify =
+        skylark.eval(
+            "m",
+            """
+            m = buildozer.modify(
+                target = ['foo/bar:baz', 'foo/bar:foo'],
+                commands = [
+                    buildozer.cmd('set config ":foo"'),
+                    buildozer.cmd('replace deps old_dep new_dep'),
+                ],
+            )\
+            """);
 
     Files.createDirectories(checkoutDir.resolve("foo/bar"));
-    String original = ""
-        + "# initial comment\n\n"
-        + "proto_library(name = 'foo', deps = ['old_dep'])\n"
-        + "proto_library(name = 'baz', deps = ['old_dep'])\n";
+    String original =
+        """
+        # initial comment
+
+        proto_library(name = 'foo', deps = ['old_dep'])
+        proto_library(name = 'baz', deps = ['old_dep'])
+        """;
     Files.write(checkoutDir.resolve("foo/bar/BUILD"), original.getBytes(UTF_8));
     transform(modify);
     assertThatPath(checkoutDir)
-        .containsFile("foo/bar/BUILD", ""
-            + "# initial comment\n\n"
-            + "proto_library(\n"
-            + "    name = \"foo\",\n"
-            + "    config = \":foo\",\n"
-            + "    deps = [\"new_dep\"],\n"
-            + ")\n\n"
-            + "proto_library(\n"
-            + "    name = \"baz\",\n"
-            + "    config = \":foo\",\n"
-            + "    deps = [\"new_dep\"],\n"
-            + ")\n");
+        .containsFile(
+            "foo/bar/BUILD",
+            """
+            # initial comment
+
+            proto_library(
+                name = "foo",
+                config = ":foo",
+                deps = ["new_dep"],
+            )
+
+            proto_library(
+                name = "baz",
+                config = ":foo",
+                deps = ["new_dep"],
+            )
+            """);
   }
 
   /**
@@ -218,97 +252,130 @@ public final class BuildozerModifyTest {
     // Explicit just in case default changes
     options.workflowOptions.noTransformationJoin = false;
     options.workflowOptions.ignoreNoop = true;
-    ExplicitReversal modify = skylark.eval("m", "m = "
-        + "core.transform([\n"
-        + "     buildozer.modify(\n"
-        + "       target = ['foo/bar:idontexist'],\n"
-        + "       commands = [ buildozer.cmd('set config \"test\"')],\n"
-        + "     ),\n"
-        + "     buildozer.modify(\n"
-        + "       target = ['foo/bar:*'],\n"
-        + "       commands = [ buildozer.cmd('set other \"test\"')],\n"
-        + "     ),\n"
-        + "  ], reversal = [])");
+    ExplicitReversal modify =
+        skylark.eval(
+            "m",
+            """
+            m = core.transform([
+                 buildozer.modify(
+                   target = ['foo/bar:idontexist'],
+                   commands = [ buildozer.cmd('set config "test"')],
+                 ),
+                 buildozer.modify(
+                   target = ['foo/bar:*'],
+                   commands = [ buildozer.cmd('set other "test"')],
+                 ),
+              ], reversal = [])\
+            """);
 
     Files.createDirectories(checkoutDir.resolve("foo/bar"));
     String original = "proto_library(name = 'baz')\n";
     Files.write(checkoutDir.resolve("foo/bar/BUILD"), original.getBytes(UTF_8));
     transform(modify);
     assertThatPath(checkoutDir)
-        .containsFile("foo/bar/BUILD", ""
-            + "proto_library(\n"
-            + "    name = \"baz\",\n"
-            + "    other = \"test\",\n"
-            + ")\n");
+        .containsFile(
+            "foo/bar/BUILD",
+            """
+            proto_library(
+                name = "baz",
+                other = "test",
+            )
+            """);
   }
-
 
   @Test
   public void reverseWithMultipleCommands() throws Exception {
-    BuildozerModify modify = skylark.eval("m", "m = "
-        + "buildozer.modify(\n"
-        + "    target = 'foo/bar:baz',\n"
-        + "    commands = [\n"
-        + "        buildozer.cmd('replace deps old_old_dep old_dep'),\n"
-        + "        buildozer.cmd('replace deps old_dep new_dep'),\n"
-        + "    ],\n"
-        + ")");
+    BuildozerModify modify =
+        skylark.eval(
+            "m",
+            """
+            m = buildozer.modify(
+                target = 'foo/bar:baz',
+                commands = [
+                    buildozer.cmd('replace deps old_old_dep old_dep'),
+                    buildozer.cmd('replace deps old_dep new_dep'),
+                ],
+            )\
+            """);
 
     Files.createDirectories(checkoutDir.resolve("foo/bar"));
-    String original = ""
-        + "# initial comment\n\n"
-        + "proto_library(name = 'baz', deps = ['new_dep'])\n";
+    String original =
+        """
+        # initial comment
+
+        proto_library(name = 'baz', deps = ['new_dep'])
+        """;
     Files.write(checkoutDir.resolve("foo/bar/BUILD"), original.getBytes(UTF_8));
     transform(modify.reverse());
 
     assertThatPath(checkoutDir)
-        .containsFile("foo/bar/BUILD", ""
-            + "# initial comment\n\n"
-            + "proto_library(\n"
-            + "    name = \"baz\",\n"
-            + "    deps = [\"old_old_dep\"],\n"
-            + ")\n");
+        .containsFile(
+            "foo/bar/BUILD",
+            """
+            # initial comment
+
+            proto_library(
+                name = "baz",
+                deps = ["old_old_dep"],
+            )
+            """);
   }
 
   @Test
   public void reverseWithMultipleCommandsAndMultipleTargets() throws Exception {
-    BuildozerModify modify = skylark.eval("m", "m = "
-        + "buildozer.modify(\n"
-        + "    target = ['foo/bar:baz', 'foo/bar:fooz'],\n"
-        + "    commands = [\n"
-        + "        buildozer.cmd('replace deps old_old_dep old_dep'),\n"
-        + "        buildozer.cmd('replace deps old_dep new_dep'),\n"
-        + "    ],\n"
-        + ")");
+    BuildozerModify modify =
+        skylark.eval(
+            "m",
+            """
+            m = buildozer.modify(
+                target = ['foo/bar:baz', 'foo/bar:fooz'],
+                commands = [
+                    buildozer.cmd('replace deps old_old_dep old_dep'),
+                    buildozer.cmd('replace deps old_dep new_dep'),
+                ],
+            )\
+            """);
 
     Files.createDirectories(checkoutDir.resolve("foo/bar"));
-    String original = ""
-        + "# initial comment\n\n"
-        + "proto_library(name = 'baz', deps = ['new_dep'])\n"
-        + "proto_library(name = 'fooz', deps = ['new_dep'])\n";
+    String original =
+        """
+        # initial comment
+
+        proto_library(name = 'baz', deps = ['new_dep'])
+        proto_library(name = 'fooz', deps = ['new_dep'])
+        """;
     Files.write(checkoutDir.resolve("foo/bar/BUILD"), original.getBytes(UTF_8));
     transform(modify.reverse());
 
     assertThatPath(checkoutDir)
-        .containsFile("foo/bar/BUILD", ""
-            + "# initial comment\n\n"
-            + "proto_library(\n"
-            + "    name = \"baz\",\n"
-            + "    deps = [\"old_old_dep\"],\n"
-            + ")\n\n"
-            + "proto_library(\n"
-            + "    name = \"fooz\",\n"
-            + "    deps = [\"old_old_dep\"],\n"
-            + ")\n");
+        .containsFile(
+            "foo/bar/BUILD",
+            """
+            # initial comment
+
+            proto_library(
+                name = "baz",
+                deps = ["old_old_dep"],
+            )
+
+            proto_library(
+                name = "fooz",
+                deps = ["old_old_dep"],
+            )
+            """);
   }
 
   @Test
   public void testAddValue() throws Exception {
-    BuildozerModify modify = skylark.eval("m", "m = "
-        + "buildozer.modify(\n"
-        + "    target = 'foo:%proto_library',\n"
-        + "    commands = [buildozer.cmd('add deps new_one')],\n"
-        + ")");
+    BuildozerModify modify =
+        skylark.eval(
+            "m",
+            """
+            m = buildozer.modify(
+                target = 'foo:%proto_library',
+                commands = [buildozer.cmd('add deps new_one')],
+            )\
+            """);
 
     Files.createDirectories(checkoutDir.resolve("foo"));
     String original =
@@ -321,39 +388,49 @@ public final class BuildozerModifyTest {
     transform(modify);
 
     assertThatPath(checkoutDir)
-        .containsFile("foo/BUILD", ""
-            + "proto_library(\n"
-            + "    name = \"bar\",\n"
-            + "    deps = [\n"
-            + "        \"new_one\",\n"
-            + "        \"old_one\",\n"
-            + "    ],\n"
-            + ")\n"
-            + "\n"
-            + "proto_library(\n"
-            + "    name = \"baz\",\n"
-            + "    deps = [\"new_one\"],\n"
-            + ")\n");
+        .containsFile(
+            "foo/BUILD",
+            """
+            proto_library(
+                name = "bar",
+                deps = [
+                    "new_one",
+                    "old_one",
+                ],
+            )
+
+            proto_library(
+                name = "baz",
+                deps = ["new_one"],
+            )
+            """);
 
     transform(modify.reverse());
 
     assertThatPath(checkoutDir)
-        .containsFile("foo/BUILD", ""
-            + "proto_library(\n"
-            + "    name = \"bar\",\n"
-            + "    deps = [\"old_one\"],\n"
-            + ")\n"
-            + "\n"
-            + "proto_library(name = \"baz\")\n");
+        .containsFile(
+            "foo/BUILD",
+            """
+            proto_library(
+                name = "bar",
+                deps = ["old_one"],
+            )
+
+            proto_library(name = "baz")
+            """);
   }
 
   @Test
   public void testRemoveValue() throws Exception {
-    BuildozerModify modify = skylark.eval("m", "m = "
-        + "buildozer.modify(\n"
-        + "    target = 'foo:%proto_library',\n"
-        + "    commands = [buildozer.cmd('remove deps new_one')],\n"
-        + ")");
+    BuildozerModify modify =
+        skylark.eval(
+            "m",
+            """
+            m = buildozer.modify(
+                target = 'foo:%proto_library',
+                commands = [buildozer.cmd('remove deps new_one')],
+            )\
+            """);
 
     Files.createDirectories(checkoutDir.resolve("foo"));
     String original =
@@ -366,39 +443,49 @@ public final class BuildozerModifyTest {
     transform(modify);
 
     assertThatPath(checkoutDir)
-        .containsFile("foo/BUILD", ""
-            + "proto_library(\n"
-            + "    name = \"bar\",\n"
-            + "    deps = [\"old_one\"],\n"
-            + ")\n"
-            + "\n"
-            + "proto_library(name = \"baz\")\n");
+        .containsFile(
+            "foo/BUILD",
+            """
+            proto_library(
+                name = "bar",
+                deps = ["old_one"],
+            )
+
+            proto_library(name = "baz")
+            """);
 
     transform(modify.reverse());
 
     assertThatPath(checkoutDir)
-        .containsFile("foo/BUILD", ""
-            + "proto_library(\n"
-            + "    name = \"bar\",\n"
-            + "    deps = [\n"
-            + "        \"new_one\",\n"
-            + "        \"old_one\",\n"
-            + "    ],\n"
-            + ")\n"
-            + "\n"
-            + "proto_library(\n"
-            + "    name = \"baz\",\n"
-            + "    deps = [\"new_one\"],\n"
-            + ")\n");
+        .containsFile(
+            "foo/BUILD",
+            """
+            proto_library(
+                name = "bar",
+                deps = [
+                    "new_one",
+                    "old_one",
+                ],
+            )
+
+            proto_library(
+                name = "baz",
+                deps = ["new_one"],
+            )
+            """);
   }
 
   @Test
   public void testRemoveAll() throws Exception {
-    BuildozerModify modify = skylark.eval("m", "m = "
-        + "buildozer.modify("
-        + "    target = 'foo:%proto_library',"
-        + "    commands = [buildozer.cmd('remove deps')],"
-        + ")");
+    BuildozerModify modify =
+        skylark.eval(
+            "m",
+            """
+            m = buildozer.modify(
+                target = 'foo:%proto_library',
+                commands = [buildozer.cmd('remove deps')],
+            )\
+            """);
 
     Files.createDirectories(checkoutDir.resolve("foo"));
     String original = "proto_library(name = 'bar', deps = ['new_one','old_one'])\n";
@@ -407,20 +494,26 @@ public final class BuildozerModifyTest {
     transform(modify);
 
     assertThatPath(checkoutDir)
-        .containsFile("foo/BUILD", ""
-            + "proto_library(name = \"bar\")\n");
+        .containsFile(
+            "foo/BUILD",
+            """
+            proto_library(name = "bar")
+            """);
   }
 
   @Test
   public void testRemoveAllNotReversible() {
     try {
-      skylark.eval("m", "m = "
-          + "core.reverse([\n"
-          + "    buildozer.modify("
-          + "        target = 'foo:%proto_library',"
-          + "        commands = [buildozer.cmd('remove deps')],"
-          + "    ),"
-          + "])");
+      skylark.eval(
+          "m",
+          """
+          m = core.reverse([
+              buildozer.modify(
+                  target = 'foo:%proto_library',
+                  commands = [buildozer.cmd('remove deps')],
+              ),
+          ])\
+          """);
       fail();
     } catch (ValidationException expected) {}
     console.assertThat()
@@ -433,11 +526,12 @@ public final class BuildozerModifyTest {
     try {
       skylark.eval(
           "m",
-          "m = "
-              + "    buildozer.modify("
-              + "        target = 'foo:%proto_library',"
-              + "        commands = [buildozer.cmd(' ')],"
-              + "    )");
+          """
+          buildozer.modify(
+              target = 'foo:%proto_library',
+              commands = [buildozer.cmd(' ')],
+          )\
+          """);
       fail();
     } catch (ValidationException e) {
       assertThat(e).hasMessageThat().contains("Found empty command");
@@ -446,18 +540,26 @@ public final class BuildozerModifyTest {
 
   @Test
   public void testNoopIsWarningNonExistentBuild() throws Exception {
-    BuildozerModify modify = skylark.eval("m", "m = "
-        + "buildozer.modify("
-        + "    target = 'doesnt_exist:%proto_library',"
-        + "    commands = [buildozer.cmd('remove deps')],"
-        + ")");
+    BuildozerModify modify =
+        skylark.eval(
+            "m",
+            """
+            m = buildozer.modify(
+                target = 'doesnt_exist:%proto_library',
+                commands = [buildozer.cmd('remove deps')],
+            )\
+            """);
     options.workflowOptions.ignoreNoop = true;
     try {
       transform(modify);
       fail();
     } catch (ValidationException e) {
-      assertThat(e.getMessage()).contains("Failed to execute buildozer with args:\n"
-          + "  remove deps|doesnt_exist:%proto_library");
+      assertThat(e.getMessage())
+          .contains(
+              """
+              Failed to execute buildozer with args:
+                remove deps|doesnt_exist:%proto_library\
+              """);
       assertThat(e.getMessage())
           .contains("doesnt_exist/BUILD: file not found or not readable");
     }
@@ -465,11 +567,15 @@ public final class BuildozerModifyTest {
 
   @Test
   public void testNoopIsWarningTarget() throws Exception {
-    BuildozerModify modify = skylark.eval("m", "m = "
-        + "buildozer.modify(\n"
-        + "    target = 'foo:doesnt_exist',\n"
-        + "    commands = [buildozer.cmd('remove deps')],\n"
-        + ")");
+    BuildozerModify modify =
+        skylark.eval(
+            "m",
+            """
+            m = buildozer.modify(
+                target = 'foo:doesnt_exist',
+                commands = [buildozer.cmd('remove deps')],
+            )\
+            """);
     options.workflowOptions.ignoreNoop = true;
     Files.createDirectories(checkoutDir.resolve("foo"));
     Files.write(checkoutDir.resolve("foo/BUILD"), "".getBytes(UTF_8));
@@ -483,11 +589,15 @@ public final class BuildozerModifyTest {
 
   @Test
   public void testNoopIsWarningTargetWildcard() throws Exception {
-    BuildozerModify modify = skylark.eval("m", "m = "
-        + "buildozer.modify(\n"
-        + "    target = 'foo:%proto_library',\n"
-        + "    commands = [buildozer.cmd('remove deps')],\n"
-        + ")");
+    BuildozerModify modify =
+        skylark.eval(
+            "m",
+            """
+            m = buildozer.modify(
+                target = 'foo:%proto_library',
+                commands = [buildozer.cmd('remove deps')],
+            )\
+            """);
     options.workflowOptions.ignoreNoop = true;
     Files.createDirectories(checkoutDir.resolve("foo"));
     Files.write(checkoutDir.resolve("foo/BUILD"), "".getBytes(UTF_8));
@@ -499,11 +609,15 @@ public final class BuildozerModifyTest {
 
   @Test
   public void testReplaceIsAutomaticallyReversible() throws Exception {
-    BuildozerModify modify = skylark.eval("m", "m = "
-        + "buildozer.modify(\n"
-        + "    target = 'foo:%proto_library',\n"
-        + "    commands = [buildozer.cmd('replace deps ekusu x')],\n"
-        + ")");
+    BuildozerModify modify =
+        skylark.eval(
+            "m",
+            """
+            m = buildozer.modify(
+                target = 'foo:%proto_library',
+                commands = [buildozer.cmd('replace deps ekusu x')],
+            )\
+            """);
     Files.createDirectories(checkoutDir.resolve("foo"));
     String original = "proto_library(name = 'bar', deps = ['x', 'y'])";
     Files.write(checkoutDir.resolve("foo/BUILD"), original.getBytes(UTF_8));
@@ -511,26 +625,33 @@ public final class BuildozerModifyTest {
     transform(modify.reverse());
 
     assertThatPath(checkoutDir)
-        .containsFile("foo/BUILD", ""
-            + "proto_library(\n"
-            + "    name = \"bar\",\n"
-            + "    deps = [\n"
-            + "        \"ekusu\",\n"
-            + "        \"y\",\n"
-            + "    ],\n"
-            + ")\n");
+        .containsFile(
+            "foo/BUILD",
+            """
+            proto_library(
+                name = "bar",
+                deps = [
+                    "ekusu",
+                    "y",
+                ],
+            )
+            """);
   }
 
   @Test
   public void reversalOfManualReversalDoesOriginalReversal() throws Exception {
-    BuildozerModify modify = skylark.eval("m", "m = "
-        + "buildozer.modify(\n"
-        + "    target = 'foo/bar:baz',\n"
-        + "    commands = [\n"
-        + "        buildozer.cmd('replace deps before after',\n"
-        + "                      reverse = 'replace deps wrong1 wrong2'),\n"
-        + "    ],\n"
-        + ")");
+    BuildozerModify modify =
+        skylark.eval(
+            "m",
+            """
+            m = buildozer.modify(
+                target = 'foo/bar:baz',
+                commands = [
+                    buildozer.cmd('replace deps before after',
+                                  reverse = 'replace deps wrong1 wrong2'),
+                ],
+            )\
+            """);
 
     Files.createDirectories(checkoutDir.resolve("foo/bar"));
     String original = "proto_library(name = 'baz', deps = ['before'])\n";
@@ -538,42 +659,53 @@ public final class BuildozerModifyTest {
     transform(modify.reverse().reverse());
 
     assertThatPath(checkoutDir)
-        .containsFile("foo/bar/BUILD", ""
-            + "proto_library(\n"
-            + "    name = \"baz\",\n"
-            + "    deps = [\"after\"],\n"
-            + ")\n");
+        .containsFile(
+            "foo/bar/BUILD",
+            """
+            proto_library(
+                name = "baz",
+                deps = ["after"],
+            )
+            """);
   }
 
   @Test
   public void recursivePackageExpression() throws Exception {
-    BuildozerModify modify = skylark.eval("m", "m = "
-        + "buildozer.modify(\n"
-        + "    target = 'foo/...:%java_library',\n"
-        + "    commands = [buildozer.cmd('replace deps before after')],\n"
-        + ")");
+    BuildozerModify modify =
+        skylark.eval(
+            "m",
+            """
+            m = buildozer.modify(
+                target = 'foo/...:%java_library',
+                commands = [buildozer.cmd('replace deps before after')],
+            )\
+            """);
 
     Files.createDirectories(checkoutDir.resolve("foo/bar/baz"));
     Files.createDirectories(checkoutDir.resolve("foo/abc"));
 
-    String original = ""
-        + "java_library(name = 'foo', deps = ['before'])\n"
-        + "java_binary(name = 'unmatched', deps = ['before'])\n";
+    String original =
+        """
+        java_library(name = 'foo', deps = ['before'])
+        java_binary(name = 'unmatched', deps = ['before'])
+        """;
     Files.write(checkoutDir.resolve("foo/bar/baz/BUILD"), original.getBytes(UTF_8));
     Files.write(checkoutDir.resolve("foo/abc/BUILD"), original.getBytes(UTF_8));
 
     transform(modify);
 
-    String buildozed = ""
-        + "java_library(\n"
-        + "    name = \"foo\",\n"
-        + "    deps = [\"after\"],\n"
-        + ")\n"
-        + "\n"
-        + "java_binary(\n"
-        + "    name = \"unmatched\",\n"
-        + "    deps = [\"before\"],\n"
-        + ")\n";
+    String buildozed =
+        """
+        java_library(
+            name = "foo",
+            deps = ["after"],
+        )
+
+        java_binary(
+            name = "unmatched",
+            deps = ["before"],
+        )
+        """;
     assertThatPath(checkoutDir)
         .containsFile("foo/bar/baz/BUILD", buildozed)
         .containsFile("foo/abc/BUILD", buildozed);
@@ -585,19 +717,26 @@ public final class BuildozerModifyTest {
         "m = buildozer.modify('foo/bar:baz', ['replace deps old_dep new_dep'])");
 
     Files.createDirectories(checkoutDir.resolve("foo/bar"));
-    String original = ""
-        + "# initial comment\n\n"
-        + "proto_library(name = 'baz', deps = ['old_dep'])\n";
+    String original =
+        """
+        # initial comment
+
+        proto_library(name = 'baz', deps = ['old_dep'])
+        """;
     Files.write(checkoutDir.resolve("foo/bar/BUILD"), original.getBytes(UTF_8));
     transform(modify);
 
     assertThatPath(checkoutDir)
-        .containsFile("foo/bar/BUILD", ""
-            + "# initial comment\n\n"
-            + "proto_library(\n"
-            + "    name = \"baz\",\n"
-            + "    deps = [\"new_dep\"],\n"
-            + ")\n");
+        .containsFile(
+            "foo/bar/BUILD",
+            """
+            # initial comment
+
+            proto_library(
+                name = "baz",
+                deps = ["new_dep"],
+            )
+            """);
   }
 
   @Test
@@ -606,29 +745,39 @@ public final class BuildozerModifyTest {
         "m = buildozer.modify('foo/bar:baz', ['replace deps new_dep old_dep'])");
 
     Files.createDirectories(checkoutDir.resolve("foo/bar"));
-    String original = ""
-        + "# initial comment\n\n"
-        + "proto_library(name = 'baz', deps = ['old_dep'])\n";
+    String original =
+        """
+        # initial comment
+
+        proto_library(name = 'baz', deps = ['old_dep'])
+        """;
     Files.write(checkoutDir.resolve("foo/bar/BUILD"), original.getBytes(UTF_8));
     transform(modify.reverse());
 
     assertThatPath(checkoutDir)
-        .containsFile("foo/bar/BUILD", ""
-            + "# initial comment\n\n"
-            + "proto_library(\n"
-            + "    name = \"baz\",\n"
-            + "    deps = [\"new_dep\"],\n"
-            + ")\n");
+        .containsFile(
+            "foo/bar/BUILD",
+            """
+            # initial comment
+
+            proto_library(
+                name = "baz",
+                deps = ["new_dep"],
+            )
+            """);
   }
 
   @Test
   public void errorForInvalidCommandType() {
     try {
-      skylark.eval("m", "m = "
-          + "buildozer.modify("
-          + "    target = 'foo/bar:baz',"
-          + "    commands = [42],"
-          + ")");
+      skylark.eval(
+          "m",
+          """
+          m = buildozer.modify(
+              target = 'foo/bar:baz',
+              commands = [42],
+          )\
+          """);
       fail();
     } catch (ValidationException expected) {}
     console.assertThat()
@@ -638,11 +787,15 @@ public final class BuildozerModifyTest {
 
   @Test
   public void setMultipleValues() throws Exception {
-    BuildozerModify modify = skylark.eval("m", "m = "
-        + "buildozer.modify("
-        + "    target = 'foo/bar:baz',"
-        + "    commands = ['set deps first second'],"
-        + ")");
+    BuildozerModify modify =
+        skylark.eval(
+            "m",
+            """
+            m = buildozer.modify(
+                target = 'foo/bar:baz',
+                commands = ['set deps first second'],
+            )\
+            """);
 
     Files.createDirectories(checkoutDir.resolve("foo/bar"));
     String original = ""
@@ -652,25 +805,33 @@ public final class BuildozerModifyTest {
     transform(modify);
 
     assertThatPath(checkoutDir)
-        .containsFile("foo/bar/BUILD", ""
-            + "# initial comment\n\n"
-            + "proto_library(\n"
-            + "    name = \"baz\",\n"
-            + "    srcs = [\"x\"],\n"
-            + "    deps = [\n"
-            + "        \"first\",\n"
-            + "        \"second\",\n"
-            + "    ],\n"
-            + ")\n");
+        .containsFile(
+            "foo/bar/BUILD",
+            """
+            # initial comment
+
+            proto_library(
+                name = "baz",
+                srcs = ["x"],
+                deps = [
+                    "first",
+                    "second",
+                ],
+            )
+            """);
   }
 
   @Test
   public void setEmptyList() throws Exception {
-    BuildozerModify modify = skylark.eval("m", "m = "
-        + "buildozer.modify("
-        + "    target = 'foo/bar:baz',"
-        + "    commands = ['set deps'],"
-        + ")");
+    BuildozerModify modify =
+        skylark.eval(
+            "m",
+            """
+            m = buildozer.modify(
+                target = 'foo/bar:baz',
+                commands = ['set deps'],
+            )\
+            """);
 
     Files.createDirectories(checkoutDir.resolve("foo/bar"));
     String original = ""
@@ -680,43 +841,56 @@ public final class BuildozerModifyTest {
     transform(modify);
 
     assertThatPath(checkoutDir)
-        .containsFile("foo/bar/BUILD", ""
-            + "# initial comment\n\n"
-            + "proto_library(\n"
-            + "    name = \"baz\",\n"
-            + "    srcs = [\"x\"],\n"
-            + "    deps = [],\n"
-            + ")\n");
-  }
+        .containsFile(
+            "foo/bar/BUILD",
+            """
+            # initial comment
 
+            proto_library(
+                name = "baz",
+                srcs = ["x"],
+                deps = [],
+            )
+            """);
+  }
 
   /**
    * A specific test for the target '...:*'.
    */
   @Test
   public void modifyMultipleFiles() throws Exception {
-    BuildozerModify modify = skylark.eval("m", "m = "
-        + "buildozer.modify("
-        + "    target = '...:*',"
-        + "    commands = ['set deps first'],"
-        + ")");
+    BuildozerModify modify =
+        skylark.eval(
+            "m",
+            """
+            m = buildozer.modify(
+                target = '...:*',
+                commands = ['set deps first'],
+            )\
+            """);
 
-    String originalContents = ""
-        + "# initial comment\n\n"
-        + "proto_library(name = 'baz', srcs = ['x'])\n";
+    String originalContents =
+        """
+        # initial comment
+
+        proto_library(name = 'baz', srcs = ['x'])
+        """;
     createBuildFile("", originalContents);
     createBuildFile("foo", originalContents);
     createBuildFile("foo/bar", originalContents);
 
     transform(modify);
 
-    String expectedContents = ""
-        + "# initial comment\n\n"
-        + "proto_library(\n"
-        + "    name = \"baz\",\n"
-        + "    srcs = [\"x\"],\n"
-        + "    deps = [\"first\"],\n"
-        + ")\n";
+    String expectedContents =
+        """
+        # initial comment
+
+        proto_library(
+            name = "baz",
+            srcs = ["x"],
+            deps = ["first"],
+        )
+        """;
     assertThatPath(checkoutDir)
         .containsFile("BUILD", expectedContents)
         .containsFile("foo/BUILD", expectedContents)
@@ -728,28 +902,38 @@ public final class BuildozerModifyTest {
    */
   @Test
   public void modifyMultipleFilesPrefix() throws Exception {
-    BuildozerModify modify = skylark.eval("m", "m = "
-        + "buildozer.modify("
-        + "    target = 'foo/...:*',"
-        + "    commands = ['set deps first'],"
-        + ")");
+    BuildozerModify modify =
+        skylark.eval(
+            "m",
+            """
+            m = buildozer.modify(
+                target = 'foo/...:*',
+                commands = ['set deps first'],
+            )\
+            """);
 
-    String originalContents = ""
-        + "# initial comment\n\n"
-        + "proto_library(name = 'baz', srcs = ['x'])\n";
+    String originalContents =
+        """
+        # initial comment
+
+        proto_library(name = 'baz', srcs = ['x'])
+        """;
     createBuildFile("", originalContents);
     createBuildFile("foo", originalContents);
     createBuildFile("foo/bar", originalContents);
 
     transform(modify);
 
-    String expectedContents = ""
-        + "# initial comment\n\n"
-        + "proto_library(\n"
-        + "    name = \"baz\",\n"
-        + "    srcs = [\"x\"],\n"
-        + "    deps = [\"first\"],\n"
-        + ")\n";
+    String expectedContents =
+        """
+        # initial comment
+
+        proto_library(
+            name = "baz",
+            srcs = ["x"],
+            deps = ["first"],
+        )
+        """;
     assertThatPath(checkoutDir)
         .containsFile("BUILD", originalContents)
         .containsFile("foo/BUILD", expectedContents)
@@ -761,28 +945,39 @@ public final class BuildozerModifyTest {
    */
   @Test
   public void modifyMultipleFilesPackage() throws Exception {
-    BuildozerModify modify = skylark.eval("m", "m = "
-        + "buildozer.modify("
-        + "    target = '...:__pkg__',"
-        + "    commands = ['set visibility //visibility:public'],"
-        + ")");
+    BuildozerModify modify =
+        skylark.eval(
+            "m",
+            """
+            m = buildozer.modify(
+                target = '...:__pkg__',
+                commands = ['set visibility //visibility:public'],
+            )\
+            """);
 
-    String originalContents = ""
-        + "# initial comment\n\n"
-        + "proto_library(name = 'baz', srcs = ['x'])\n";
+    String originalContents =
+        """
+        # initial comment
+
+        proto_library(name = 'baz', srcs = ['x'])
+        """;
     createBuildFile("", originalContents);
     createBuildFile("foo", originalContents);
     createBuildFile("foo/bar", originalContents);
 
     transform(modify);
 
-    String expectedContents = ""
-        + "# initial comment\n\n"
-        + "package(visibility = [\"//visibility:public\"])\n\n"
-        + "proto_library(\n"
-        + "    name = \"baz\",\n"
-        + "    srcs = [\"x\"],\n"
-        + ")\n";
+    String expectedContents =
+        """
+        # initial comment
+
+        package(visibility = ["//visibility:public"])
+
+        proto_library(
+            name = "baz",
+            srcs = ["x"],
+        )
+        """;
     assertThatPath(checkoutDir)
         .containsFile("BUILD", expectedContents)
         .containsFile("foo/BUILD", expectedContents)
@@ -794,28 +989,39 @@ public final class BuildozerModifyTest {
    */
   @Test
   public void modifyMultipleFilesPackagePrefix() throws Exception {
-    BuildozerModify modify = skylark.eval("m", "m = "
-        + "buildozer.modify("
-        + "    target = 'foo/...:__pkg__',"
-        + "    commands = ['set visibility //visibility:public'],"
-        + ")");
+    BuildozerModify modify =
+        skylark.eval(
+            "m",
+            """
+            m = buildozer.modify(
+                target = 'foo/...:__pkg__',
+                commands = ['set visibility //visibility:public'],
+            )\
+            """);
 
-    String originalContents = ""
-        + "# initial comment\n\n"
-        + "proto_library(name = 'baz', srcs = ['x'])\n";
+    String originalContents =
+        """
+        # initial comment
+
+        proto_library(name = 'baz', srcs = ['x'])
+        """;
     createBuildFile("", originalContents);
     createBuildFile("foo", originalContents);
     createBuildFile("foo/bar", originalContents);
 
     transform(modify);
 
-    String expectedContents = ""
-        + "# initial comment\n\n"
-        + "package(visibility = [\"//visibility:public\"])\n\n"
-        + "proto_library(\n"
-        + "    name = \"baz\",\n"
-        + "    srcs = [\"x\"],\n"
-        + ")\n";
+    String expectedContents =
+        """
+        # initial comment
+
+        package(visibility = ["//visibility:public"])
+
+        proto_library(
+            name = "baz",
+            srcs = ["x"],
+        )
+        """;
     assertThatPath(checkoutDir)
         .containsFile("BUILD", originalContents)
         .containsFile("foo/BUILD", expectedContents)

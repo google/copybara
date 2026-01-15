@@ -65,16 +65,16 @@ public class BuildozerBatchTest {
 
   @Test
   public void testCanBatch() throws Exception {
-    BuildozerCreate create1 = skylark.eval("c", "c = "
-        + "buildozer.create("
-        + "    target = 'copy/bar:baz',"
-        + "    rule_type = 'proto_library'"
-        + ")");
-    BuildozerCreate create2 = skylark.eval("c", "c = "
-        + "buildozer.create("
-        + "    target = 'bara/bar:baz',"
-        + "    rule_type = 'proto_library'"
-        + ")");
+    BuildozerCreate create1 = skylark.eval("c", """
+        c = buildozer.create(
+            target = 'copy/bar:baz',
+            rule_type = 'proto_library'
+        )""");
+    BuildozerCreate create2 = skylark.eval("c", """
+        c = buildozer.create(
+            target = 'bara/bar:baz',
+            rule_type = 'proto_library'
+        )""");
 
     transform(create1.join(create2));
     assertThatPath(checkoutDir).containsFiles("bara/bar/BUILD", "copy/bar/BUILD");
@@ -82,16 +82,16 @@ public class BuildozerBatchTest {
 
   @Test
   public void testBatchTargetNotFoundIsError() throws Exception {
-    BuildozerCreate create1 = skylark.eval("c", "c = "
-        + "buildozer.create("
-        + "    target = 'copy/bar:baz',"
-        + "    rule_type = 'proto_library'"
-        + ")");
-    BuildozerModify notFound = skylark.eval("c", "c = "
-            + "     buildozer.modify(\n"
-            + "       target = ['foo/bar:idontexist'],\n"
-            + "       commands = [ buildozer.cmd('set config \"test\"')],\n"
-            + "     )");
+    BuildozerCreate create1 = skylark.eval("c", """
+        c = buildozer.create(
+            target = 'copy/bar:baz',
+            rule_type = 'proto_library'
+        )""");
+    BuildozerModify notFound = skylark.eval("c", """
+        c =      buildozer.modify(
+               target = ['foo/bar:idontexist'],
+               commands = [ buildozer.cmd('set config "test"')],
+             )""");
     Files.createDirectories(checkoutDir.resolve("foo/bar"));
     Files.write(checkoutDir.resolve("foo/bar/BUILD"), "".getBytes(UTF_8));
     TransformationStatus status = transform(create1.join(notFound));
@@ -108,11 +108,11 @@ public class BuildozerBatchTest {
         + "    target = 'copy/bar:baz',"
         + "    rule_type = 'proto_library'"
         + ")");
-    BuildozerModify notFound = skylark.eval("c", "c = "
-        + "     buildozer.modify(\n"
-        + "       target = ['foo/bar:idontexist'],\n"
-        + "       commands = [ buildozer.cmd('set config \"test\"')],\n"
-        + "     )");
+    BuildozerModify notFound = skylark.eval("c", """
+        c =      buildozer.modify(
+               target = ['foo/bar:idontexist'],
+               commands = [ buildozer.cmd('set config "test"')],
+             )""");
     Files.createDirectories(checkoutDir.resolve("foo/bar"));
     Files.write(checkoutDir.resolve("foo/bar/BUILD"), "".getBytes(UTF_8));
     transform(create.join(notFound));
@@ -127,11 +127,11 @@ public class BuildozerBatchTest {
         + "    target = 'copy/bar:baz',"
         + "    rule_type = 'proto_library'"
         + ")");
-    BuildozerModify notFound = skylark.eval("c", "c = "
-        + "     buildozer.modify(\n"
-        + "       target = ['foo/bar:idontexist'],\n"
-        + "       commands = [ buildozer.cmd('set config \"test\"')],\n"
-        + "     )");
+    BuildozerModify notFound = skylark.eval("c", """
+        c =      buildozer.modify(
+               target = ['foo/bar:idontexist'],
+               commands = [ buildozer.cmd('set config "test"')],
+             )""");
     ValidationException thrown =
         assertThrows(ValidationException.class, () -> transform(create.join(notFound)));
     assertThat(thrown).hasMessageThat().contains("foo/bar:idontexist");
@@ -145,16 +145,16 @@ public class BuildozerBatchTest {
         + "    target = 'copy/bar:baz',"
         + "    rule_type = 'proto_library'"
         + ")");
-    BuildozerModify targetNotFoundButIgnored = skylark.eval("c", "c = "
-        + "     buildozer.modify(\n"
-        + "       target = ['foo/bar:idontexist'],\n"
-        + "       commands = [ buildozer.cmd('set config \"test\"')],\n"
-        + "     )");
-    BuildozerModify fileNotFound = skylark.eval("c", "c = "
-        + "     buildozer.modify(\n"
-        + "       target = ['nosuch:file'],\n"
-        + "       commands = [ buildozer.cmd('set config \"test\"')],\n"
-        + "     )");
+    BuildozerModify targetNotFoundButIgnored = skylark.eval("c", """
+        c =      buildozer.modify(
+               target = ['foo/bar:idontexist'],
+               commands = [ buildozer.cmd('set config "test"')],
+             )""");
+    BuildozerModify fileNotFound = skylark.eval("c", """
+        c =      buildozer.modify(
+               target = ['nosuch:file'],
+               commands = [ buildozer.cmd('set config "test"')],
+             )""");
     Files.createDirectories(checkoutDir.resolve("foo/bar"));
     Files.write(checkoutDir.resolve("foo/bar/BUILD"), "".getBytes(UTF_8));
     // this is fine

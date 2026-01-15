@@ -75,13 +75,14 @@ public class BuildozerPrintExecutorTest {
     Transformation t =
         skylark.eval(
             "t",
-            "def _print(ctx):\n"
-                + "  outfile = ctx.new_path(\"outfile\")\n"
-                + "  ctx.write_path(outfile, buildozer.print(ctx, \"srcs\","
-                + " \"foo/bar:bar_library\"))\n"
-                + "\n"
-                + "\n"
-                + "t = core.dynamic_transform(impl = _print)");
+            """
+            def _print(ctx):
+              outfile = ctx.new_path("outfile")
+              ctx.write_path(outfile, buildozer.print(ctx, "srcs", "foo/bar:bar_library"))
+
+
+            t = core.dynamic_transform(impl = _print)\
+            """);
     transform(t);
     assertThat(Files.readString(checkoutDir.resolve("outfile")).trim()).isEqualTo("[foo.cc]");
   }
@@ -91,13 +92,13 @@ public class BuildozerPrintExecutorTest {
     Transformation t =
         skylark.eval(
             "t",
-            "def _print(ctx):\n"
-                + "  outfile = ctx.new_path(\"outfile\")\n"
-                + "  ctx.write_path(outfile, buildozer.print(ctx, \"rule\","
-                + " \"foo/bar:bar_library\"))\n"
-                + "\n"
-                + "\n"
-                + "t = core.dynamic_transform(impl = _print)");
+            """
+            def _print(ctx):
+              outfile = ctx.new_path("outfile")
+              ctx.write_path(outfile, buildozer.print(ctx, "rule", "foo/bar:bar_library"))
+
+            t = core.dynamic_transform(impl = _print)\
+            """);
     transform(t);
     assertThat(Files.readString(checkoutDir.resolve("outfile")).trim())
         .isEqualTo(
@@ -119,19 +120,21 @@ public class BuildozerPrintExecutorTest {
     Transformation t =
         skylark.eval(
             "t",
-            "def _print(ctx):\n"
-                + "  outfile = ctx.new_path(\"outfile\")\n"
-                + "  ctx.write_path(outfile, buildozer.print(ctx, \"rule\","
-                + " \"does/not/exist:bar_library\"))\n"
-                + "\n"
-                + "\n"
-                + "t = core.dynamic_transform(impl = _print)");
+            """
+            def _print(ctx):
+              outfile = ctx.new_path("outfile")
+              ctx.write_path(outfile, buildozer.print(ctx, "rule", "does/not/exist:bar_library"))
+
+            t = core.dynamic_transform(impl = _print)\
+            """);
     ValidationException e = assertThrows(ValidationException.class, () -> transform(t));
     assertThat(e)
         .hasMessageThat()
         .contains(
-            "Error in print: Failed to execute buildozer with args:\n"
-                + "  print rule|does/not/exist:bar_library");
+            """
+            Error in print: Failed to execute buildozer with args:
+              print rule|does/not/exist:bar_library\
+            """);
   }
 
   private void transform(Transformation transformation) throws Exception {

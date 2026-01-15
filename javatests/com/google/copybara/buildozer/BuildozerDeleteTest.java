@@ -60,11 +60,11 @@ public final class BuildozerDeleteTest {
 
   @Test
   public void describeReversiblyDelete() throws Exception {
-    BuildozerDelete delete = skylark.eval("d", "d = "
-        + "buildozer.delete("
-        + "    target = 'foo/bar:baz',"
-        + "    rule_type = 'java_library',"
-        + ")");
+    BuildozerDelete delete = skylark.eval("d", """
+        d = buildozer.delete(
+            target = 'foo/bar:baz',
+            rule_type = 'java_library',
+        )""");
     assertThat(delete.describe()).contains("buildozer.delete");
   }
 
@@ -73,9 +73,10 @@ public final class BuildozerDeleteTest {
     BuildozerDelete delete = skylark.eval("d",
         "d = buildozer.delete('foo/bar:delete_me')");
     Files.createDirectories(checkoutDir.resolve("foo/bar"));
-    String original = ""
-        + "java_binary(name = 'keep')\n"
-        + "py_library(name = 'delete_me')\n";
+    String original = """
+        java_binary(name = 'keep')
+        py_library(name = 'delete_me')
+        """;
     Files.write(checkoutDir.resolve("foo/bar/BUILD"), original.getBytes(UTF_8));
     transform(delete);
     assertThatPath(checkoutDir)
@@ -84,31 +85,31 @@ public final class BuildozerDeleteTest {
 
   @Test
   public void errorForCommandsWithoutRuleType() {
-    skylark.evalFails(""
-        + "buildozer.delete("
-        + "    target = 'foo/bar:delete_me',"
-        + "    recreate_commands = ['set foo bar'],"
-        + ")",
+    skylark.evalFails("""
+        buildozer.delete(
+            target = 'foo/bar:delete_me',
+            recreate_commands = ['set foo bar'],
+        )""",
         "'recreate_commands' is only used for reversible buildozer[.]delete");
   }
 
   @Test
   public void errorForBeforeWithoutRuleType() {
-    skylark.evalFails(""
-        + "buildozer.delete("
-        + "    target = 'foo/bar:delete_me',"
-        + "    before = 'bar',"
-        + ")",
+    skylark.evalFails("""
+        buildozer.delete(
+            target = 'foo/bar:delete_me',
+            before = 'bar',
+        )""",
         "'before' is only used for reversible buildozer[.]delete");
   }
 
   @Test
   public void errorForAfterWithoutRuleType() {
-    skylark.evalFails(""
-        + "buildozer.delete("
-        + "    target = 'foo/bar:delete_me',"
-        + "    after = 'bar',"
-        + ")",
+    skylark.evalFails("""
+        buildozer.delete(
+            target = 'foo/bar:delete_me',
+            after = 'bar',
+        )""",
         "'after' is only used for reversible buildozer[.]delete");
   }
 
@@ -127,23 +128,23 @@ public final class BuildozerDeleteTest {
 
   @Test
   public void errorForSpecifyingBeforeAndAfterInRecreateArgs() {
-    skylark.evalFails(""
-        + "buildozer.delete("
-        + "    target = 'foo/bar:baz',"
-        + "    rule_type = 'py_binary',"
-        + "    before = 'foo',"
-        + "    after = 'bar',"
-        + ")",
+    skylark.evalFails("""
+        buildozer.delete(
+            target = 'foo/bar:baz',
+            rule_type = 'py_binary',
+            before = 'foo',
+            after = 'bar',
+        )""",
         "cannot specify both 'before' and 'after' in the target create arguments");
   }
 
   @Test
   public void createByReversing() throws Exception {
-    BuildozerDelete delete = skylark.eval("d", "d = "
-        + "buildozer.delete("
-        + "    target = 'foo/bar:baz',"
-        + "    rule_type = 'proto_library',"
-        + ")");
+    BuildozerDelete delete = skylark.eval("d", """
+        d = buildozer.delete(
+            target = 'foo/bar:baz',
+            rule_type = 'proto_library',
+        )""");
 
     Files.createDirectories(checkoutDir.resolve("foo/bar"));
     Files.write(checkoutDir.resolve("foo/bar/BUILD"),
@@ -151,19 +152,21 @@ public final class BuildozerDeleteTest {
 
     transform(delete.reverse());
     assertThatPath(checkoutDir)
-        .containsFile("foo/bar/BUILD", ""
-            + "java_binary(name = \"blah\")\n"
-            + "\n"
-            + "proto_library(name = \"baz\")\n");
+        .containsFile("foo/bar/BUILD", """
+            java_binary(name = "blah")
+
+            proto_library(name = "baz")
+            """);
   }
 
   private void checkCanDeleteTarget(String extraArgs) throws Exception {
     BuildozerDelete delete = skylark.eval("d", "d = "
         + "buildozer.delete(target = 'foo/bar:baz'," + extraArgs + ")");
     Files.createDirectories(checkoutDir.resolve("foo/bar"));
-    String original = ""
-        + "proto_library(name = 'baz', foo_attr = 42)\n"
-        + "java_binary(name = 'blah')\n";
+    String original = """
+        proto_library(name = 'baz', foo_attr = 42)
+        java_binary(name = 'blah')
+        """;
     Files.write(checkoutDir.resolve("foo/bar/BUILD"), original.getBytes(UTF_8));
 
     transform(delete);
@@ -185,9 +188,10 @@ public final class BuildozerDeleteTest {
   public void deleteRootPkgTarget() throws Exception {
     BuildozerDelete delete = skylark.eval("d", "d = "
         + "buildozer.delete(target = ':baz'," + "rule_type = 'proto_library'," + ")");
-    String original = ""
-        + "proto_library(name = 'baz', foo_attr = 42)\n"
-        + "java_binary(name = 'blah')\n";
+    String original = """
+        proto_library(name = 'baz', foo_attr = 42)
+        java_binary(name = 'blah')
+        """;
     Files.write(checkoutDir.resolve("BUILD"), original.getBytes(UTF_8));
 
     transform(delete);
@@ -196,17 +200,17 @@ public final class BuildozerDeleteTest {
 
   @Test
   public void reverseToPopulateAttributesWithCommands() throws Exception {
-    BuildozerCreate create = skylark.eval("c", "c = "
-        + "core.reverse([buildozer.delete("
-        + "    target = 'foo/bar:baz',"
-        + "    rule_type = 'proto_library',"
-        + "    recreate_commands = ["
-        + "        'set config \":android_proto_config\"',"
-        + "        buildozer.cmd('set header_outsNOT_AS_LIST tf_android_core_proto_headers()'),"
-        + "        'move header_outsNOT_AS_LIST header_outs *',"
-        + "        buildozer.cmd('set prefix_dir \"protos\"'),"
-        + "    ],"
-        + ")])[0]");
+    BuildozerCreate create = skylark.eval("c", """
+        c = core.reverse([buildozer.delete(
+            target = 'foo/bar:baz',
+            rule_type = 'proto_library',
+            recreate_commands = [
+                'set config ":android_proto_config"',
+                buildozer.cmd('set header_outsNOT_AS_LIST tf_android_core_proto_headers()'),
+                'move header_outsNOT_AS_LIST header_outs *',
+                buildozer.cmd('set prefix_dir "protos"'),
+            ],
+        )])[0]""");
 
     Files.createDirectories(checkoutDir.resolve("foo/bar"));
     String original = "java_binary(name = 'blah')\n";
@@ -214,44 +218,47 @@ public final class BuildozerDeleteTest {
 
     transform(create);
     assertThatPath(checkoutDir)
-        .containsFile("foo/bar/BUILD", ""
-            + "java_binary(name = \"blah\")\n"
-            + "\n"
-            + "proto_library(\n"
-            + "    name = \"baz\",\n"
-            + "    config = \":android_proto_config\",\n"
-            + "    header_outs = tf_android_core_proto_headers(),\n"
-            + "    prefix_dir = \"protos\",\n"
-            + ")\n");
+        .containsFile("foo/bar/BUILD", """
+            java_binary(name = "blah")
+
+            proto_library(
+                name = "baz",
+                config = ":android_proto_config",
+                header_outs = tf_android_core_proto_headers(),
+                prefix_dir = "protos",
+            )
+            """);
   }
 
   @Test
   public void canReverseToCreateBeforeSomeTarget() throws Exception {
-    BuildozerCreate create = skylark.eval("c", "c = "
-        + "core.reverse([buildozer.delete("
-        + "    target = 'foo/bar:baz',"
-        + "    rule_type = 'proto_library',"
-        + "    before = 'target_knee',"
-        + ")])[0]");
+    BuildozerCreate create = skylark.eval("c", """
+        c = core.reverse([buildozer.delete(
+            target = 'foo/bar:baz',
+            rule_type = 'proto_library',
+            before = 'target_knee',
+        )])[0]""");
 
     Files.createDirectories(checkoutDir.resolve("foo/bar"));
-    String original = ""
-        + "java_binary(name = 'target_itchy')\n"
-        + "java_binary(name = 'target_knee')\n"
-        + "java_binary(name = 'target_sun')\n";
+    String original = """
+        java_binary(name = 'target_itchy')
+        java_binary(name = 'target_knee')
+        java_binary(name = 'target_sun')
+        """;
     Files.write(checkoutDir.resolve("foo/bar/BUILD"), original.getBytes(UTF_8));
 
     transform(create);
 
     assertThatPath(checkoutDir)
-        .containsFile("foo/bar/BUILD", ""
-            + "java_binary(name = \"target_itchy\")\n"
-            + "\n"
-            + "proto_library(name = \"baz\")\n"
-            + "\n"
-            + "java_binary(name = \"target_knee\")\n"
-            + "\n"
-            + "java_binary(name = \"target_sun\")\n");
+        .containsFile("foo/bar/BUILD", """
+            java_binary(name = "target_itchy")
+
+            proto_library(name = "baz")
+
+            java_binary(name = "target_knee")
+
+            java_binary(name = "target_sun")
+            """);
   }
 
   @Test
@@ -261,15 +268,15 @@ public final class BuildozerDeleteTest {
     options.workflowOptions.ignoreNoop = false;
     BuildozerTesting.enable(options);
 
-    BuildozerDelete del = skylark.eval("c", "c = "
-        + "buildozer.delete("
-        + "    target = 'foo/bar:baz',"
-        + "    rule_type = 'proto_library',"
-        + "    recreate_commands = ['set config :baz',"
-        + "        'add header_outs //google/protobuf:any.proto',"
-        + "        'set header_outsNOT_AS_LIST tf_android_core_proto_headers(CORE_PROTO_SRCS)',"
-        + "        'move header_outsNOT_AS_LIST header_outs *'],"
-        + ")");
+    BuildozerDelete del = skylark.eval("c", """
+        c = buildozer.delete(
+            target = 'foo/bar:baz',
+            rule_type = 'proto_library',
+            recreate_commands = ['set config :baz',
+                'add header_outs //google/protobuf:any.proto',
+                'set header_outsNOT_AS_LIST tf_android_core_proto_headers(CORE_PROTO_SRCS)',
+                'move header_outsNOT_AS_LIST header_outs *'],
+        )""");
     Files.createDirectories(checkoutDir.resolve("foo/bar"));
     Files.write(checkoutDir.resolve("foo/bar/BUILD"),
         "proto_library(name='baz')".getBytes(UTF_8));
@@ -283,30 +290,32 @@ public final class BuildozerDeleteTest {
 
   @Test
   public void canReverseToCreateAfterSomeTarget() throws Exception {
-    BuildozerCreate create = skylark.eval("c", "c = "
-        + "core.reverse([buildozer.delete("
-        + "    target = 'foo/bar:baz',"
-        + "    rule_type = 'proto_library',"
-        + "    after = 'target2',"
-        + ")])[0]");
+    BuildozerCreate create = skylark.eval("c", """
+        c = core.reverse([buildozer.delete(
+            target = 'foo/bar:baz',
+            rule_type = 'proto_library',
+            after = 'target2',
+        )])[0]""");
 
     Files.createDirectories(checkoutDir.resolve("foo/bar"));
-    String original = ""
-        + "java_binary(name = 'target1')\n"
-        + "java_binary(name = 'target2')\n"
-        + "java_binary(name = 'target3')\n";
+    String original = """
+        java_binary(name = 'target1')
+        java_binary(name = 'target2')
+        java_binary(name = 'target3')
+        """;
     Files.write(checkoutDir.resolve("foo/bar/BUILD"), original.getBytes(UTF_8));
 
     transform(create);
 
     assertThatPath(checkoutDir)
-        .containsFile("foo/bar/BUILD", ""
-            + "java_binary(name = \"target1\")\n"
-            + "\n"
-            + "java_binary(name = \"target2\")\n"
-            + "\n"
-            + "proto_library(name = \"baz\")\n"
-            + "\n"
-            + "java_binary(name = \"target3\")\n");
+        .containsFile("foo/bar/BUILD", """
+            java_binary(name = "target1")
+
+            java_binary(name = "target2")
+
+            proto_library(name = "baz")
+
+            java_binary(name = "target3")
+            """);
   }
 }
