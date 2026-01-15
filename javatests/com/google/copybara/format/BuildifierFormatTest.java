@@ -42,14 +42,15 @@ public class BuildifierFormatTest {
 
   private static final String NOT_FORMATTED =
       "java_library(" + "name=\"tests\",srcs = [\"Foo.java\", \"Bar.java\"])\n";
-  private static final String FORMATTED = ""
-      + "java_library(\n"
-      + "    name = \"tests\",\n"
-      + "    srcs = [\n"
-      + "        \"Bar.java\",\n"
-      + "        \"Foo.java\",\n"
-      + "    ],\n"
-      + ")\n";
+  private static final String FORMATTED = """
+java_library(
+    name = "tests",
+    srcs = [
+        "Bar.java",
+        "Foo.java",
+    ],
+)
+""";
 
   private OptionsBuilder options;
   private Path checkoutDir;
@@ -109,15 +110,14 @@ public class BuildifierFormatTest {
     BuildifierFormat b = skylark.eval("c",
         "c = format.buildifier(lint = 'FIX', lint_warnings = ['all'])\n");
 
-    Files.write(
+    Files.writeString(
         checkoutDir.resolve("BUILD"),
-        (""
-                + "load(\"//something/some:file.bzl\", \"some_func\")\n"
-                + "load(\"//third_party/bazel_rules/rules_java/java:defs.bzl\", \"java_library\")\n"
-                + "\n"
-                + "java_library("
-                + "name=\"tests\",srcs = [\"Foo.java\", \"Bar.java\"])\n")
-            .getBytes(UTF_8));
+"""
+load("//something/some:file.bzl", "some_func")
+load("//third_party/bazel_rules/rules_java/java:defs.bzl", "java_library")
+
+java_library(name="tests",srcs = ["Foo.java", "Bar.java"])
+""");
 
     b.transform(TransformWorks.of(checkoutDir, "foo", console));
 
@@ -125,16 +125,17 @@ public class BuildifierFormatTest {
     assertThatPath(checkoutDir)
         .containsFile(
             "BUILD",
-            ""
-                + "load(\"//third_party/bazel_rules/rules_java/java:defs.bzl\", \"java_library\")\n"
-                + "\n"
-                + "java_library(\n"
-                + "    name = \"tests\",\n"
-                + "    srcs = [\n"
-                + "        \"Bar.java\",\n"
-                + "        \"Foo.java\",\n"
-                + "    ],\n"
-                + ")\n")
+            """
+load("//third_party/bazel_rules/rules_java/java:defs.bzl", "java_library")
+
+java_library(
+    name = "tests",
+    srcs = [
+        "Bar.java",
+        "Foo.java",
+    ],
+)
+""")
         .containsNoMoreFiles();
   }
 

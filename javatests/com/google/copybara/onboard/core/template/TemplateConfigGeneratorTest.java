@@ -40,44 +40,52 @@ public class TemplateConfigGeneratorTest {
 
   @Test
   public void testSimple() throws CannotProvideException, InterruptedException {
-    TemplateConfigGenerator generator = new TemplateConfigGenerator(""
-        + "foo = \"::foo::\",\n"
-        + "bar = ::foo::,\n"
-        + "other = ::bar::,\n"
-        + "::keyword_params::\n"
-        + "") {
+    TemplateConfigGenerator generator =
+        new TemplateConfigGenerator(
+            """
+            foo = "::foo::",
+            bar = ::foo::,
+            other = ::bar::,
+            ::keyword_params::
+            """) {
 
-      @Override
-      public String name() {
-        return "test";
-      }
+          @Override
+          public String name() {
+            return "test";
+          }
 
-      @Override
-      public ImmutableSet<Input<?>> consumes() {
-        return ImmutableSet.of();
-      }
+          @Override
+          public ImmutableSet<Input<?>> consumes() {
+            return ImmutableSet.of();
+          }
 
-      @Override
-      public boolean isGenerator(InputProviderResolver resolver) {
-        return true;
-      }
+          @Override
+          public boolean isGenerator(InputProviderResolver resolver) {
+            return true;
+          }
 
-      @Override
-      protected ImmutableMap<Field, Object> resolve(InputProviderResolver resolver) {
-        return ImmutableMap.of(
-            Field.required("foo"), "hello",
-            Field.required("bar"), 32,
-            Field.optional("other"), true,
-            Field.requiredKeyword("required_keyword"), keywordStringLiteral("something")
-        );
-      }
-    };
-    assertThat(generator.generate(RESOLVER)).isEqualTo(""
-        + "foo = \"hello\",\n"
-        + "bar = hello,\n"
-        + "other = 32,\n"
-        + "other = true,\n"
-        + "required_keyword = \"something\",\n");
+          @Override
+          protected ImmutableMap<Field, Object> resolve(InputProviderResolver resolver) {
+            return ImmutableMap.of(
+                Field.required("foo"),
+                "hello",
+                Field.required("bar"),
+                32,
+                Field.optional("other"),
+                true,
+                Field.requiredKeyword("required_keyword"),
+                keywordStringLiteral("something"));
+          }
+        };
+    assertThat(generator.generate(RESOLVER))
+        .isEqualTo(
+            """
+            foo = \"hello\",
+            bar = hello,
+            other = 32,
+            other = true,
+            required_keyword = \"something\",
+            """);
   }
 
   @Test
@@ -108,7 +116,11 @@ public class TemplateConfigGeneratorTest {
           }
         };
     assertThat(generator.generate(RESOLVER))
-        .isEqualTo("" + "foo = \"::i_am_a_provided_value::\",\n" + "bar = hello,\n");
+        .isEqualTo(
+"""
+foo = "::i_am_a_provided_value::",
+bar = hello,
+""");
   }
 
   @Test
@@ -156,39 +168,46 @@ public class TemplateConfigGeneratorTest {
 
   @Test
   public void testKeywordPadding() throws CannotProvideException, InterruptedException {
-    TemplateConfigGenerator generator = new TemplateConfigGenerator(""
-        + "foo = \"::foo::\",\n"
-        + "  \t    ::keyword_params::\n"
-        + "") {
+    TemplateConfigGenerator generator =
+        new TemplateConfigGenerator(
+            """
+            foo = "::foo::",
+              	    ::keyword_params::
+            """) {
 
-      @Override
-      public String name() {
-        return "test";
-      }
+          @Override
+          public String name() {
+            return "test";
+          }
 
-      @Override
-      public ImmutableSet<Input<?>> consumes() {
-        return ImmutableSet.of();
-      }
+          @Override
+          public ImmutableSet<Input<?>> consumes() {
+            return ImmutableSet.of();
+          }
 
-      @Override
-      public boolean isGenerator(InputProviderResolver resolver) throws InterruptedException {
-        return true;
-      }
+          @Override
+          public boolean isGenerator(InputProviderResolver resolver) throws InterruptedException {
+            return true;
+          }
 
-      @Override
-      protected ImmutableMap<Field, Object> resolve(InputProviderResolver resolver) {
-        return ImmutableMap.of(
-            Field.required("foo"), "hello",
-            Field.optional("other"), true,
-            Field.requiredKeyword("required_keyword"), keywordStringLiteral("something")
-        );
-      }
-    };
-    assertThat(generator.generate(RESOLVER)).isEqualTo(""
-        + "foo = \"hello\",\n"
-        + "  \t    other = true,\n"
-        + "  \t    required_keyword = \"something\",\n");
+          @Override
+          protected ImmutableMap<Field, Object> resolve(InputProviderResolver resolver) {
+            return ImmutableMap.of(
+                Field.required("foo"),
+                "hello",
+                Field.optional("other"),
+                true,
+                Field.requiredKeyword("required_keyword"),
+                keywordStringLiteral("something"));
+          }
+        };
+    assertThat(generator.generate(RESOLVER))
+        .isEqualTo(
+            """
+            foo = "hello",
+              \t    other = true,
+              \t    required_keyword = "something",
+            """);
   }
 }
 

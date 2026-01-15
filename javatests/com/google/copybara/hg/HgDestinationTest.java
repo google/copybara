@@ -117,10 +117,10 @@ public class HgDestinationTest {
 
     ImmutableList<HgLogEntry> commits = remoteRepo.log().run();
     assertThat(commits).hasSize(2);
-    assertThat(commits.get(0).getDescription()).isEqualTo(""
-        + "test summary\n"
-        + "\n"
-        + "DummyOrigin-RevId: origin_ref");
+    assertThat(commits.get(0).getDescription()).isEqualTo("""
+        test summary
+
+        DummyOrigin-RevId: origin_ref""");
     assertThat(commits).hasSize(2);
     assertThat(commits.get(0).getZonedDate()).isEqualTo(zonedDateTime);
     assertThat(commits.get(0).getFiles()).hasSize(1);

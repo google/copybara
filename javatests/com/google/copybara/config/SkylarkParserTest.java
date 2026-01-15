@@ -97,41 +97,45 @@ public class SkylarkParserTest {
   private String setUpInclusionTest() {
     parser.addConfigFile(
         "foo/authoring.bara.sky",
-        ""
-            + "load('bar', 'bar')\n"
-            + "load('bar/foo', 'foobar')\n"
-            + "baz=bar\n"
-            + "def copy_author():\n"
-            + "  return authoring.overwrite('Copybara <no-reply@google.com>')");
+        """
+        load('bar', 'bar')
+        load('bar/foo', 'foobar')
+        baz=bar
+        def copy_author():
+          return authoring.overwrite('Copybara <no-reply@google.com>')\
+        """);
     parser.addConfigFile(
         "foo/bar.bara.sky",
-        ""
-            + "load('bar/foo', 'foobar')\n"
-            + "bar=42\n"
-            + "def copy_author():\n"
-            + "  return authoring.overwrite('Copybara <no-reply@google.com>')");
+        """
+        load('bar/foo', 'foobar')
+        bar=42
+        def copy_author():
+          return authoring.overwrite('Copybara <no-reply@google.com>')\
+        """);
     parser.addConfigFile("foo/bar/foo.bara.sky", "foobar=42\n");
-    return ""
-        + "load('//foo/authoring','copy_author', 'baz')\n"
-        + "some_url=\"https://so.me/random/url\"\n"
-        + "\n"
-        + "core.workflow(\n"
-        + "   name = \"foo\" + str(baz),\n"
-        + "   origin = mock.origin(\n"
-        + "      url = some_url,\n"
-        + "      branch = \"master\",\n"
-        + "   ),\n"
-        + "   destination = mock.destination(\n"
-        + "      folder = \"some folder\"\n"
-        + "   ),\n"
-        + "   authoring = copy_author(),\n"
-        + "   transformations = [\n"
-        + "      mock.transform(field1 = \"foo\", field2 = \"bar\"),\n"
-        + "      mock.transform(field1 = \"baz\", field2 = \"bee\"),\n"
-        + "   ],\n"
-        + "   origin_files = glob(include = ['**'], exclude = ['**/*.java']),\n"
-        + "   destination_files = glob(['foo/BUILD']),\n"
-        + ")\n";
+    return
+"""
+load('//foo/authoring','copy_author', 'baz')
+some_url="https://so.me/random/url"
+
+core.workflow(
+    name = "foo" + str(baz),
+    origin = mock.origin(
+        url = some_url,
+        branch = "master",
+    ),
+    destination = mock.destination(
+        folder = "some folder"
+    ),
+    authoring = copy_author(),
+    transformations = [
+        mock.transform(field1 = "foo", field2 = "bar"),
+        mock.transform(field1 = "baz", field2 = "bee"),
+    ],
+    origin_files = glob(include = ['**'], exclude = ['**/*.java']),
+    destination_files = glob(['foo/BUILD']),
+)
+""";
   }
 
   /**
@@ -251,18 +255,19 @@ public class SkylarkParserTest {
   @Test
   public void testTransformsAreOptional()
       throws IOException, ValidationException {
-    String configContent = ""
-        + "core.workflow(\n"
-        + "   name = 'foo',\n"
-        + "   origin = mock.origin(\n"
-        + "      url = 'some_url',\n"
-        + "      branch = 'master',\n"
-        + "   ),\n"
-        + "   destination = mock.destination(\n"
-        + "      folder = 'some folder'\n"
-        + "   ),\n"
-        + "   authoring = authoring.overwrite('Copybara <no-reply@google.com>'),\n"
-        + ")\n";
+    String configContent = """
+core.workflow(
+    name = 'foo',
+    origin = mock.origin(
+        url = 'some_url',
+        branch = 'master',
+    ),
+    destination = mock.destination(
+        folder = 'some folder'
+    ),
+    authoring = authoring.overwrite('Copybara <no-reply@google.com>'),
+)
+""";
 
     Config config = parser.loadConfig(configContent);
 
@@ -276,26 +281,27 @@ public class SkylarkParserTest {
   @Test
   public void testGenericOfSimpleTypes()
       throws IOException, ValidationException {
-    String configContent = ""
-        + "baz=42\n"
-        + "some_url=\"https://so.me/random/url\"\n"
-        + "\n"
-        + "core.workflow(\n"
-        + "   name = \"default\",\n"
-        + "   origin = mock.origin(\n"
-        + "      url = some_url,\n"
-        + "      branch = \"master\",\n"
-        + "   ),\n"
-        + "   destination = mock.destination(\n"
-        + "      folder = \"some folder\"\n"
-        + "   ),\n"
-        + "   authoring = authoring.overwrite('Copybara <no-reply@google.com>'),\n"
-        + "   transformations = [\n"
-        + "      mock.transform(\n"
-        + "         list = [\"some text\", True],"
-        + "      ),\n"
-        + "   ],\n"
-        + ")\n";
+    String configContent = """
+baz=42
+some_url="https://so.me/random/url"
+
+core.workflow(
+    name = "default",
+    origin = mock.origin(
+        url = some_url,
+        branch = "master",
+    ),
+    destination = mock.destination(
+        folder = "some folder"
+    ),
+    authoring = authoring.overwrite('Copybara <no-reply@google.com>'),
+    transformations = [
+        mock.transform(
+           list = ["some text", True],
+        ),
+    ],
+)
+""";
 
     assertThrows(ValidationException.class, () -> parser.loadConfig(configContent));
     console
@@ -307,20 +313,21 @@ public class SkylarkParserTest {
     parser.addConfigFile("foo", "stuff_in_foo");
     parser.addConfigFile("bar", "stuff_in_bar");
 
-    return ""
-        + "mock_labels_aware_module.read_foo()\n"
-        + "\n"
-        + "core.workflow(\n"
-        + "   name = \"default\",\n"
-        + "   origin = mock.origin(\n"
-        + "      url = 'some_url',\n"
-        + "      branch = \"master\",\n"
-        + "   ),\n"
-        + "   destination = mock.destination(\n"
-        + "      folder = \"some folder\"\n"
-        + "   ),\n"
-        + "   authoring = authoring.overwrite('Copybara <no-reply@google.com>'),\n"
-        + ")\n";
+    return """
+mock_labels_aware_module.read_foo()
+
+core.workflow(
+    name = "default",
+    origin = mock.origin(
+        url = 'some_url',
+        branch = "master",
+    ),
+    destination = mock.destination(
+        folder = "some folder"
+    ),
+    authoring = authoring.overwrite('Copybara <no-reply@google.com>'),
+)
+""";
   }
 
   @Test
@@ -347,11 +354,11 @@ public class SkylarkParserTest {
     parser.addConfigFile("subfolder/foo", "subfolder_foo");
     parser.addConfigFile("foo", "main_foo");
 
-    String content = ""
-        + "load('subfolder/foo', 'subfolder_val')\n"
-        + "val = mock_labels_aware_module.read_foo()\n"
-        + "\n"
-        + NON_IMPORTANT_WORKFLOW;
+    String content = """
+load('subfolder/foo', 'subfolder_val')
+val = mock_labels_aware_module.read_foo()
+
+""" + NON_IMPORTANT_WORKFLOW;
     String val = parser.eval("val", content);
     // Note: subfolder_val should be a local variable of its file,
     // and therefore not in Module.getGlobals.
@@ -370,11 +377,12 @@ public class SkylarkParserTest {
             + "one = 1\n"
             + "two = 2\n");
 
-    String content = ""
-        + "load('foo', 'one')\n"
-        + "load('foo', 'two')\n"
-        + "val = one + two\n"
-        + "\n";
+    String content = """
+load('foo', 'one')
+load('foo', 'two')
+val = one + two
+
+""";
     assertThat(parser.<StarlarkInt>eval("val", content)).isEqualTo(StarlarkInt.of(3));
   }
 
@@ -382,12 +390,12 @@ public class SkylarkParserTest {
   public void testParentEnvInmutable() throws Exception {
     parser.addConfigFile("foo.bara.sky", "my_list = [1, 2, 3]\n");
 
-    String content = ""
-        + "load('foo', 'my_list')\n"
-        + "other = my_list\n"
-        + "other += [4, 5]\n"
-        + "\n"
-        + NON_IMPORTANT_WORKFLOW
+    String content = """
+load('foo', 'my_list')
+other = my_list
+other += [4, 5]
+
+""" + NON_IMPORTANT_WORKFLOW
         + "";
     // The += operation is statically OK because of FileOptions.allowToplevelRebinding,
     // but it fails during execution because the value is frozen.

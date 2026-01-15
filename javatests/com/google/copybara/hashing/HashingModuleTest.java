@@ -59,8 +59,9 @@ public class HashingModuleTest {
     String hash =
         starlark.eval(
             "hash",
-            "checkout_path = testing.get_checkout(\"testfile.txt\")\n"
-                + "hash = hashing.path_md5_sum(checkout_path)");
+            """
+            checkout_path = testing.get_checkout("testfile.txt")
+            hash = hashing.path_md5_sum(checkout_path)""");
     assertThat(hash).isEqualTo(expectedHash);
   }
 
@@ -76,8 +77,9 @@ public class HashingModuleTest {
     String hash =
         starlark.eval(
             "hash",
-            "checkout_path = testing.get_checkout(\"testfile.txt\")\n"
-                + "hash = hashing.path_sha256_sum(checkout_path)");
+            """
+            checkout_path = testing.get_checkout("testfile.txt")
+            hash = hashing.path_sha256_sum(checkout_path)""");
     assertThat(hash).isEqualTo(expectedHash);
   }
 

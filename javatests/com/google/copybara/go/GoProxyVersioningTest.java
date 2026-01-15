@@ -155,9 +155,10 @@ public class GoProxyVersioningTest {
             "https://proxy.golang.org/github.com/google/example/@latest",
             "",
             "https://proxy.golang.org/github.com/google/example/@v/main.info",
-            "{\"Version\":\"v0.5.9\",\"Time\":\"2022-10-02T22:41:56Z\",\"Origin\":{\"VCS\":\"git\""
-                + ",\"URL\":\"https://github.com/google/example\",\"Ref\":\"refs/tags/v0.5.9\","
-                + "\"Hash\":\"a97318bf6562f1ed2632c5f985db51b1ac5bdcd0\"}}"));
+            """
+            {"Version":"v0.5.9","Time":"2022-10-02T22:41:56Z","Origin":{"VCS":"git",
+            "URL":"https://github.com/google/example","Ref":"refs/tags/v0.5.9",
+            "Hash":"a97318bf6562f1ed2632c5f985db51b1ac5bdcd0"}}"""));
     VersionList versionList =
         skylark.eval(
             "version_list",
@@ -175,9 +176,10 @@ public class GoProxyVersioningTest {
             "https://proxy.golang.org/github.com/google/example/@latest",
             "",
             "https://proxy.golang.org/github.com/google/example/@v/legacy_branch.info",
-            "{\"Version\":\"v0.5.9\",\"Time\":\"2022-10-02T22:41:56Z\",\"Origin\":{\"VCS\":\"git\""
-                + ",\"URL\":\"https://github.com/google/example\",\"Ref\":\"refs/tags/v0.5.9\","
-                + "\"Hash\":\"a97318bf6562f1ed2632c5f985db51b1ac5bdcd0\"}}"));
+            """
+            {"Version":"v0.5.9","Time":"2022-10-02T22:41:56Z","Origin":{"VCS":"git",
+            "URL":"https://github.com/google/example","Ref":"refs/tags/v0.5.9",
+            "Hash":"a97318bf6562f1ed2632c5f985db51b1ac5bdcd0"}}"""));
     VersionResolver versionResolver =
         skylark.eval(
             "version_resolver",
@@ -202,9 +204,10 @@ public class GoProxyVersioningTest {
             "https://proxy.golang.org/github.com/google/example/@latest",
             "",
             "https://proxy.golang.org/github.com/google/example/@v/main.info",
-            "{\"Version\":\"v0.5.9\",\"Time\":\"2022-10-02T22:41:56Z\",\"Origin\":{\"VCS\":\"git\""
-                + ",\"URL\":\"https://github.com/google/example\",\"Ref\":\"refs/tags/v0.5.9\","
-                + "\"Hash\":\"a97318bf6562f1ed2632c5f985db51b1ac5bdcd0\"}}"));
+            """
+            {"Version":"v0.5.9","Time":"2022-10-02T22:41:56Z","Origin":{"VCS":"git",
+            "URL":"https://github.com/google/example","Ref":"refs/tags/v0.5.9",
+            "Hash":"a97318bf6562f1ed2632c5f985db51b1ac5bdcd0"}}"""));
     GoVersionObject versionObj =
         skylark.eval(
             "version_object",
@@ -224,9 +227,10 @@ public class GoProxyVersioningTest {
     setUpMockTransportForSkylarkExecutor(
         ImmutableMap.of(
             "https://proxy.golang.org/github.com/google/example/@latest",
-            "{\"Version\":\"v0.5.9\",\"Time\":\"2022-10-02T22:41:56Z\",\"Origin\":{\"VCS\":\"git\""
-                + ",\"URL\":\"https://github.com/google/example\",\"Ref\":\"refs/tags/v0.5.9\","
-                + "\"Hash\":\"a97318bf6562f1ed2632c5f985db51b1ac5bdcd0\"}}"));
+            """
+            {"Version":"v0.5.9","Time":"2022-10-02T22:41:56Z","Origin":{"VCS":"git",
+            "URL":"https://github.com/google/example","Ref":"refs/tags/v0.5.9",
+            "Hash":"a97318bf6562f1ed2632c5f985db51b1ac5bdcd0"}}"""));
     // Since we don't have a ref defined, we query latest.
     GoVersionObject versionObject =
         skylark.eval(
@@ -247,9 +251,10 @@ public class GoProxyVersioningTest {
     setUpMockTransportForSkylarkExecutor(
         ImmutableMap.of(
             "https://proxy.golang.org/github.com/google/example/@v/v0.5.9.info",
-            "{\"Version\":\"v0.5.9\",\"Time\":\"2022-10-02T22:41:56Z\",\"Origin\":{\"VCS\":\"git\""
-                + ",\"URL\":\"https://github.com/google/example\",\"Ref\":\"refs/tags/v0.5.9\","
-                + "\"Hash\":\"a97318bf6562f1ed2632c5f985db51b1ac5bdcd0\"}}"));
+            """
+            {"Version":"v0.5.9","Time":"2022-10-02T22:41:56Z","Origin":{"VCS":"git",
+            "URL":"https://github.com/google/example","Ref":"refs/tags/v0.5.9",
+            "Hash":"a97318bf6562f1ed2632c5f985db51b1ac5bdcd0"}}"""));
     // We query using the ref passed into get_info.
     GoVersionObject versionObject =
         skylark.eval(
