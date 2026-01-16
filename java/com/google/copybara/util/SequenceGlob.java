@@ -16,10 +16,10 @@
 
 package com.google.copybara.util;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
+
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.copybara.util.GlobAtom.AtomType;
-import java.nio.file.FileSystem;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import net.starlark.java.eval.EvalException;
@@ -38,38 +38,11 @@ public class SequenceGlob extends Glob {
   }
 
   @Override
-  public PathMatcher relativeTo(Path root) {
-    ImmutableSet.Builder<Path> paths = ImmutableSet.builder();
-    for (GlobAtom atom : include) {
-      paths.add(resolvePath(root, atom.pattern()));
-    }
-    final ImmutableSet<Path> matchPaths = paths.build();
+  public PathMatcher relativeTo(Path path) {
     return new ReadablePathMatcher(
-        new PathMatcher() {
-          @Override
-          public boolean matches(Path path) {
-            return matchPaths.contains(path.normalize());
-          }
-
-          @Override
-          public String toString() {
-            return SequenceGlob.this.toString();
-          }
-        },
+        FileUtil.anyPathMatcher(
+            include.stream().map(g -> g.matcher(path)).collect(toImmutableList())),
         this.toString());
-  }
-
-  private Path resolvePath(Path root, String pattern) {
-    // Logic from GlobAtom.SINGLE_FILE.matcher
-    FileSystem fs = root.getFileSystem();
-    String rootStr = root.normalize().toString();
-    String separator = fs.getSeparator();
-
-    if (!rootStr.endsWith(separator)) {
-      rootStr += separator;
-    }
-
-    return fs.getPath(rootStr + pattern);
   }
 
   public static SequenceGlob ofStarlarkList(StarlarkList<?> patterns) throws EvalException {
