@@ -857,9 +857,12 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     checkSubmoduleConfig(submodules, excludedSubmoduleList);
 
     if (!Strings.isNullOrEmpty(refField)) {
-      getGeneralConsole().warn(
-          "'ref' field detected in configuration. git.gerrit_origin"
-              + " is deprecating its usage for submitted changes. Use git.origin instead.");
+      getGeneralConsole()
+          .warn(
+              "'ref' field detected in configuration with value '"
+                  + refField
+                  + "'. git.gerrit_origin"
+                  + " is deprecating its usage for submitted changes. Use git.origin instead.");
       return GitOrigin.newGitOrigin(
           options,
           url,
