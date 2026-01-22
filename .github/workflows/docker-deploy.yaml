@@ -1,0 +1,30 @@
+name: Push docker image to Google Artifact Registry
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  setup-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - id: 'auth'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          workload_identity_provider: 'projects/{{ secrets.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
+          service_account: '{{ secrets.SERVICE_ACCOUNT }}'
+
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: 'Build and Push'
+        run: |-
+            docker build -t us-east4-docker.pkg.dev/cloudci-copybara/copybara/copybara-cli:latest .
+            docker push us-east4-docker.pkg.dev/cloudci-copybara/copybara/copybara-cli:latest
