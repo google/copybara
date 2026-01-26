@@ -1,5 +1,6 @@
 name: Push docker image to Google Artifact Registry
 on:
+  workflow_dispatch:
   push:
     tags:
       - 'v*'
