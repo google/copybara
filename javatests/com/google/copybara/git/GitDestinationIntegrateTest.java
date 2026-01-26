@@ -28,6 +28,7 @@ import static org.junit.Assert.assertThrows;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.copybara.Destination.DestinationStatus;
@@ -655,6 +656,35 @@ public class GitDestinationIntegrateTest {
     migrateOriginChange(destination, "Test change\n"
         + "\n"
         + GitModule.DEFAULT_INTEGRATE_LABEL + "=file:///non_existent_repository\n", "some content");
+  }
+
+  @Test
+  public void integrate_fetchingError_throwsWhenTemporaryFeatureEnabled() throws Exception {
+    Path repoPath = Files.createTempDirectory("test");
+    GitRepository repo = repo().withWorkTree(repoPath);
+    options.general.setTemporaryFeaturesForTest(
+        ImmutableMap.of("GIT_INTEGRATE_FAIL_IF_COMMON_BASELINE_NOT_FOUND", "true"));
+    gitUtil.mockRemoteRepo("github.com/example/test_repo").withWorkTree(repoPath);
+
+    GitRevision unused =
+        singleChange(repoPath, repo, "base_change.txt", "not important", "Base change\n");
+    GitDestination destination = destinationWithDefaultIntegrates();
+    migrateOriginChange(destination, "Base change\n", "test.txt", "not important", "test");
+
+    // SHA-1 is 40 hex characters.
+    String invalidSha = "0000000000000000000000000000000000000001";
+    String invalidLabel =
+        GitModule.DEFAULT_INTEGRATE_LABEL
+            + "=https://github.com/example/test_repo/pull/0 from "
+            + invalidSha;
+
+    assertThrows(
+        CannotIntegrateException.class,
+        () -> migrateOriginChange(destination, "Test change\n\n" + invalidLabel + "\n", "content"));
+    console
+        .assertThat()
+        .onceInLog(
+            MessageType.WARNING, "failIfIntegrateCommitNotFound is true, re-throwing exception");
   }
 
   private GitDestination destination(String... args) throws ValidationException {

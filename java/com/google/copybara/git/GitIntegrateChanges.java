@@ -145,8 +145,16 @@ public class GitIntegrateChanges implements StarlarkValue {
           }
         }
 
-        strategy.integrate(repository, integrateLabel, externalFiles, label,
-            messageInfo, generalOptions.console(), generalOptions.getDirFactory());
+        strategy.integrate(
+            repository,
+            integrateLabel,
+            externalFiles,
+            label,
+            messageInfo,
+            generalOptions.console(),
+            generalOptions.getDirFactory(),
+            generalOptions.isTemporaryFeature(
+                "GIT_INTEGRATE_FAIL_IF_COMMON_BASELINE_NOT_FOUND", false));
         optionalIntegrateLabel = Optional.of(integrateLabel);
       } catch (ValidationException e) {
         throw new CannotIntegrateException("Error resolving " + label.getValue(), e);
@@ -164,13 +172,21 @@ public class GitIntegrateChanges implements StarlarkValue {
      */
     FAKE_MERGE {
       @Override
-      void integrate(GitRepository repository, IntegrateLabel integrateLabel,
-          Predicate<String> externalFiles, LabelFinder rawLabelValue,
-          MessageInfo messageInfo, Console console, DirFactory dirFactory)
+      void integrate(
+          GitRepository repository,
+          IntegrateLabel integrateLabel,
+          Predicate<String> externalFiles,
+          LabelFinder rawLabelValue,
+          MessageInfo messageInfo,
+          Console console,
+          DirFactory dirFactory,
+          boolean failIfIntegrateCommitNotFound)
           throws ValidationException, RepoException {
         GitLogEntry head = getHeadCommit(repository);
 
-        if (!findCommonBaseline(repository, integrateLabel, head).isPresent()) {
+        if (!findCommonBaseline(
+                repository, integrateLabel, head, failIfIntegrateCommitNotFound, console)
+            .isPresent()) {
           console.warnFmt("Skipping creation of merge for '%s' as Copybara cannot find a common"
               + " parent. This normally means that the integrate label reference is for an"
               + " unrelated repository", integrateLabel);
@@ -195,17 +211,36 @@ public class GitIntegrateChanges implements StarlarkValue {
      */
     FAKE_MERGE_AND_INCLUDE_FILES {
       @Override
-      void integrate(GitRepository repository, IntegrateLabel gitRevision,
+      void integrate(
+          GitRepository repository,
+          IntegrateLabel gitRevision,
           Predicate<String> externalFiles,
-          LabelFinder rawLabelValue, MessageInfo messageInfo, Console console,
-          DirFactory dirFactory)
+          LabelFinder rawLabelValue,
+          MessageInfo messageInfo,
+          Console console,
+          DirFactory dirFactory,
+          boolean failIfIntegrateCommitNotFound)
           throws ValidationException, RepoException {
         // Fake merge first so that we have a commit and then amend that commit wit the external
         // files
-        FAKE_MERGE.integrate(repository, gitRevision, externalFiles, rawLabelValue, messageInfo,
-            console, dirFactory);
-        INCLUDE_FILES.integrate(repository, gitRevision, externalFiles, rawLabelValue, messageInfo,
-            console, dirFactory);
+        FAKE_MERGE.integrate(
+            repository,
+            gitRevision,
+            externalFiles,
+            rawLabelValue,
+            messageInfo,
+            console,
+            dirFactory,
+            failIfIntegrateCommitNotFound);
+        INCLUDE_FILES.integrate(
+            repository,
+            gitRevision,
+            externalFiles,
+            rawLabelValue,
+            messageInfo,
+            console,
+            dirFactory,
+            failIfIntegrateCommitNotFound);
       }
     },
     /**
@@ -213,16 +248,29 @@ public class GitIntegrateChanges implements StarlarkValue {
      */
     INCLUDE_FILES {
       @Override
-      void integrate(GitRepository repository, IntegrateLabel integrateLabel,
-          Predicate<String> externalFiles, LabelFinder rawLabelValue, MessageInfo messageInfo,
-          Console console, DirFactory dirFactory)
+      void integrate(
+          GitRepository repository,
+          IntegrateLabel integrateLabel,
+          Predicate<String> externalFiles,
+          LabelFinder rawLabelValue,
+          MessageInfo messageInfo,
+          Console console,
+          DirFactory dirFactory,
+          boolean failIfIntegrateCommitNotFound)
           throws ValidationException, RepoException {
         // Save HEAD commit before starting messing with the repo
         GitLogEntry head = getHeadCommit(repository);
         byte[] diff;
         // TODO(b/188914756): This doesn't support binaries well. We should fix it.
-        diff = computeExternalDiff(repository, integrateLabel, externalFiles, head)
-            .getBytes(StandardCharsets.UTF_8);
+        diff =
+            computeExternalDiff(
+                    repository,
+                    integrateLabel,
+                    externalFiles,
+                    head,
+                    failIfIntegrateCommitNotFound,
+                    console)
+                .getBytes(StandardCharsets.UTF_8);
         if (diff.length == 0) {
           return;
         }
@@ -270,13 +318,20 @@ public class GitIntegrateChanges implements StarlarkValue {
         repository.forceClean();
       }
 
-      private String computeExternalDiff(GitRepository repository, IntegrateLabel integrateLabel,
-          Predicate<String> externalFiles, GitLogEntry head)
+      private String computeExternalDiff(
+          GitRepository repository,
+          IntegrateLabel integrateLabel,
+          Predicate<String> externalFiles,
+          GitLogEntry head,
+          boolean failIfIntegrateCommitNotFound,
+          Console console)
           throws ValidationException, RepoException {
-        String commonBaseline = findCommonBaseline(repository, integrateLabel, head)
-            // If common parent cannot be found, it is fine, since this is not using the commit
-            //history but just the content for diffing.
-            .orElse(head.commit().getSha1());
+        String commonBaseline =
+            findCommonBaseline(
+                    repository, integrateLabel, head, failIfIntegrateCommitNotFound, console)
+                // If common parent cannot be found, it is fine, since this is not using the commit
+                // history but just the content for diffing.
+                .orElse(head.commit().getSha1());
         // Create a patch of the changes from common baseline..feature head.
         byte[] diffs = repository.simpleCommandNoRedirectOutput("diff",
             commonBaseline + ".." + integrateLabel.getRevision().getSha1())
@@ -295,14 +350,19 @@ public class GitIntegrateChanges implements StarlarkValue {
     };
 
     /**
-     * Tries to find the common commit between HEAD and the integrate label commit. If the
-     * integrate sha cannot be found it defaults to HEAD.
+     * Tries to find the common commit between HEAD and the integrate label commit. If the integrate
+     * sha cannot be found it defaults to HEAD.
      *
-     * If the sha can be found but a common parent cannot be found, it returns none. This
+     * <p>If the sha can be found but a common parent cannot be found, it returns none. This
      * normally means that the commit is from an unrelated repository.
      */
-    private static Optional<String> findCommonBaseline(GitRepository repository,
-        IntegrateLabel integrateLabel, GitLogEntry head) throws ValidationException {
+    private static Optional<String> findCommonBaseline(
+        GitRepository repository,
+        IntegrateLabel integrateLabel,
+        GitLogEntry head,
+        boolean failIfIntegrateCommitNotFound,
+        Console console)
+        throws ValidationException, RepoException {
       GitRevision previousHead = Iterables.getFirst(head.parents(), null);
       if (previousHead == null) {
         return Optional.of(head.commit().getSha1());
@@ -310,7 +370,7 @@ public class GitIntegrateChanges implements StarlarkValue {
       String sha1;
       try {
         sha1 = integrateLabel.getRevision().getSha1();
-      } catch (RepoException e) {
+      } catch (RepoException | ValidationException e) {
         // There is a weird git submodule issue where the first time we fetch a reference but
         // the local state (git-tree and workdir) doesn't have a reference to the submodule it
         // fails trying to get the resolve the submodule. But the main fetch success, so a
@@ -318,6 +378,13 @@ public class GitIntegrateChanges implements StarlarkValue {
         if (!e.getMessage().contains("Could not access submodule")) {
           logger.atWarning().withCause(e).log(
               "Cannot fetch/find integrate commit: %s.", integrateLabel);
+          if (failIfIntegrateCommitNotFound) {
+            logger.atWarning().withCause(e).log(
+                "failIfIntegrateCommitNotFound is true, re-throwing exception.");
+            console.warnFmt(
+                "failIfIntegrateCommitNotFound is true, re-throwing exception: %s", e.getMessage());
+            throw e;
+          }
           return Optional.of(head.commit().getSha1());
         }
         try {
@@ -325,6 +392,14 @@ public class GitIntegrateChanges implements StarlarkValue {
         } catch (RepoException retryException) {
           logger.atWarning().withCause(retryException).log(
               "Cannot fetch/find integrate commit (2nd attempt): %s.", integrateLabel);
+          if (failIfIntegrateCommitNotFound) {
+            logger.atWarning().withCause(retryException).log(
+                "failIfIntegrateCommitNotFound is true, re-throwing retry exception.");
+            console.warnFmt(
+                "failIfIntegrateCommitNotFound is true, re-throwing retry exception: %s",
+                retryException.getMessage());
+            throw retryException;
+          }
           return Optional.of(head.commit().getSha1());
         }
       }
@@ -342,9 +417,15 @@ public class GitIntegrateChanges implements StarlarkValue {
       return Iterables.getOnlyElement(repository.log("HEAD").withLimit(1).run());
     }
 
-    void integrate(GitRepository repository, IntegrateLabel gitRevision,
-        Predicate<String> externalFiles, LabelFinder rawLabelValue, MessageInfo messageInfo,
-        Console console, DirFactory dirFactory)
+    void integrate(
+        GitRepository repository,
+        IntegrateLabel gitRevision,
+        Predicate<String> externalFiles,
+        LabelFinder rawLabelValue,
+        MessageInfo messageInfo,
+        Console console,
+        DirFactory dirFactory,
+        boolean failIfIntegrateCommitNotFound)
         throws ValidationException, RepoException {
       throw new CannotIntegrateException(this + " integrate mode is still not supported");
     }

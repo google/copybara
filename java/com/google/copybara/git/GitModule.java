@@ -184,13 +184,16 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
 
   public GitModule(Options options) {
     this.options = Preconditions.checkNotNull(options);
+    boolean failIfCommonBaselineNotFound =
+        options
+            .get(GeneralOptions.class)
+            .isTemporaryFeature("GIT_INTEGRATE_FAIL_IF_COMMON_BASELINE_NOT_FOUND", false);
+    boolean ignoreErrors = !failIfCommonBaselineNotFound;
     this.defaultGitIntegrate =
         StarlarkList.of(
-            /*mutability=*/ null,
+            /* mutability= */ null,
             new GitIntegrateChanges(
-                DEFAULT_INTEGRATE_LABEL,
-                Strategy.FAKE_MERGE_AND_INCLUDE_FILES,
-                /*ignoreErrors=*/ true));
+                DEFAULT_INTEGRATE_LABEL, Strategy.FAKE_MERGE_AND_INCLUDE_FILES, ignoreErrors));
   }
 
   @SuppressWarnings("unused")
