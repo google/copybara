@@ -21,6 +21,7 @@ jobs:
         with:
           workload_identity_provider: 'projects/{{ secrets.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
           service_account: '{{ secrets.SERVICE_ACCOUNT }}'
+          project_id: '{{ secrets.GCP_PROJECT_ID }}'
 
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v2'
