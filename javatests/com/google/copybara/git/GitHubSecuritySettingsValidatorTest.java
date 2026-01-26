@@ -72,8 +72,9 @@ public final class GitHubSecuritySettingsValidatorTest {
   }
 
   private GitHubSecuritySettingsValidator getUnitUnderTest(GitHubOptions options) {
+    GitHubHost githubHost = new GitHubHost("github.com");
     return new GitHubSecuritySettingsValidator(
-        options.newGitHubApiSupplier(PROJECT_URL, null, null, GitHubHost.GITHUB_COM),
+        options.newGitHubApiSupplier(PROJECT_URL, null, null, githubHost),
         ImmutableList.copyOf(options.allStarAppIds),
         console);
   }

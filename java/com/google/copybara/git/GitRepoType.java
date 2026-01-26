@@ -183,8 +183,8 @@ public enum GitRepoType {
   protected static GitRevision maybeFetchGithubPullRequest(GitRepository repository,
       String repoUrl, String ref, boolean describeVersion, boolean partialFetch)
       throws RepoException, ValidationException {
-    // TODO(malcon): This only supports github.com PRs, not enterprise.
-    Optional<GitHubPrUrl> githubPrUrl = GitHubHost.GITHUB_COM.maybeParseGithubPrUrl(ref);
+    GitHubHost gitHubHost = new GitHubHost("github.com");
+    Optional<GitHubPrUrl> githubPrUrl = gitHubHost.maybeParseGithubPrUrl(ref);
     if (githubPrUrl.isPresent()) {
       // TODO(malcon): Support merge ref too once we have github pr origin.
       String stableRef = GitHubUtil.asHeadRef(githubPrUrl.get().getPrNumber());

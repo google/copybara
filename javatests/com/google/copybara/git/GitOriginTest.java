@@ -385,7 +385,7 @@ public class GitOriginTest {
                     """));
     console
         .assertThat()
-        .onceInLog(MessageType.ERROR, ".*Invalid Github URL: https://foo.com/copybara.*");
+        .onceInLog(MessageType.ERROR, ".*Invalid GitHub URL: https://foo.com/copybara.*");
   }
 
   @Test
@@ -404,7 +404,7 @@ public class GitOriginTest {
                     """));
     console
         .assertThat()
-        .onceInLog(MessageType.ERROR, ".*Invalid Github URL: https://foo.com/github.com.*");
+        .onceInLog(MessageType.ERROR, ".*Invalid GitHub URL: https://foo.com/github.com.*");
   }
 
   @Test
@@ -1306,7 +1306,7 @@ public class GitOriginTest {
                             + "    github_host_name = 'gitrepo.gitcentral.git.com'"
                             + ")",
                         url)));
-    assertThat(e).hasMessageThat().contains("Invalid Github URL");
+    assertThat(e).hasMessageThat().contains("Invalid GitHub URL");
   }
 
   @SuppressWarnings("unchecked")

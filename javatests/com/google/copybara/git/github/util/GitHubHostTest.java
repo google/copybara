@@ -17,10 +17,10 @@
 package com.google.copybara.git.github.util;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.copybara.git.github.util.GitHubHost.GITHUB_COM;
 import static org.junit.Assert.assertThrows;
 
 import com.google.copybara.exception.ValidationException;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -28,36 +28,43 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class GitHubHostTest {
 
+  private GitHubHost githubHost;
+
+  @Before
+  public void setup() throws Exception {
+    githubHost = new GitHubHost("github.com");
+  }
+
   @Test
   public void testGetProjectNameFromUrl() throws Exception {
-    assertThat(GITHUB_COM.getProjectNameFromUrl("https://github.com/foo")).isEqualTo("foo");
-    assertThat(GITHUB_COM.getProjectNameFromUrl("http://github.com/foo")).isEqualTo("foo");
-    assertThat(GITHUB_COM.getProjectNameFromUrl("https://github.com/foo/bar")).isEqualTo("foo/bar");
-    assertThat(GITHUB_COM.getProjectNameFromUrl("http://github.com/foo/bar")).isEqualTo("foo/bar");
-    assertThat(GITHUB_COM.getProjectNameFromUrl("http://github.com/foo/bar/foobar"))
+    assertThat(githubHost.getProjectNameFromUrl("https://github.com/foo")).isEqualTo("foo");
+    assertThat(githubHost.getProjectNameFromUrl("http://github.com/foo")).isEqualTo("foo");
+    assertThat(githubHost.getProjectNameFromUrl("https://github.com/foo/bar")).isEqualTo("foo/bar");
+    assertThat(githubHost.getProjectNameFromUrl("http://github.com/foo/bar")).isEqualTo("foo/bar");
+    assertThat(githubHost.getProjectNameFromUrl("http://github.com/foo/bar/foobar"))
         .isEqualTo("foo/bar");
-    assertThat(GITHUB_COM.getProjectNameFromUrl("ssh://git@github.com/foo/bar.git"))
+    assertThat(githubHost.getProjectNameFromUrl("ssh://git@github.com/foo/bar.git"))
         .isEqualTo("foo/bar");
-    assertThat(GITHUB_COM.getProjectNameFromUrl("git@github.com/foo/bar.git")).isEqualTo("foo/bar");
-    assertThat(GITHUB_COM.getProjectNameFromUrl("git@github.com:foo/bar.git")).isEqualTo("foo/bar");
+    assertThat(githubHost.getProjectNameFromUrl("git@github.com/foo/bar.git")).isEqualTo("foo/bar");
+    assertThat(githubHost.getProjectNameFromUrl("git@github.com:foo/bar.git")).isEqualTo("foo/bar");
     ValidationException noProject =
         assertThrows(
-            ValidationException.class, () -> GITHUB_COM.getProjectNameFromUrl("foo@bar:baz"));
+            ValidationException.class, () -> githubHost.getProjectNameFromUrl("foo@bar:baz"));
     assertThat(noProject).hasMessageThat().contains("Cannot find project name");
     ValidationException notGitHub =
         assertThrows(
             ValidationException.class,
-            () -> GITHUB_COM.getProjectNameFromUrl("file://some/local/dir"));
+            () -> githubHost.getProjectNameFromUrl("file://some/local/dir"));
     assertThat(notGitHub).hasMessageThat().contains("Not a github url");
     ValidationException noUrl =
-        assertThrows(ValidationException.class, () -> GITHUB_COM.getProjectNameFromUrl(""));
+        assertThrows(ValidationException.class, () -> githubHost.getProjectNameFromUrl(""));
     assertThat(noUrl).hasMessageThat().contains("Empty url");
 
     // While www.github.com is a valid host, we prefer the non-www version for consistency.
     assertThat(
             assertThrows(
                 ValidationException.class,
-                () -> GITHUB_COM.getProjectNameFromUrl("https://www.github.com/foo")))
+                () -> githubHost.getProjectNameFromUrl("https://www.github.com/foo")))
         .hasMessageThat()
         .contains("Expected host: github.com");
   }
@@ -81,14 +88,13 @@ public class GitHubHostTest {
 
   @Test
   public void testGetUserNameFromUrl() throws Exception {
-    GitHubHost githubCom = GITHUB_COM;
-    assertThat(githubCom.getUserNameFromUrl("https://github.com/foo")).isEqualTo("foo");
-    assertThat(githubCom.getUserNameFromUrl("https://github.com/foo/bar")).isEqualTo("foo");
-    assertThat(githubCom.getUserNameFromUrl("ssh://git@github.com/foo/bar.git")).isEqualTo("foo");
-    assertThat(githubCom.getUserNameFromUrl("git@github.com/foo/bar.git")).isEqualTo("foo");
-    assertThat(githubCom.getUserNameFromUrl("git@github.com:foo/bar.git")).isEqualTo("foo");
+    assertThat(githubHost.getUserNameFromUrl("https://github.com/foo")).isEqualTo("foo");
+    assertThat(githubHost.getUserNameFromUrl("https://github.com/foo/bar")).isEqualTo("foo");
+    assertThat(githubHost.getUserNameFromUrl("ssh://git@github.com/foo/bar.git")).isEqualTo("foo");
+    assertThat(githubHost.getUserNameFromUrl("git@github.com/foo/bar.git")).isEqualTo("foo");
+    assertThat(githubHost.getUserNameFromUrl("git@github.com:foo/bar.git")).isEqualTo("foo");
     ValidationException e =
-        assertThrows(ValidationException.class, () -> githubCom.getUserNameFromUrl("foo@bar:baz"));
+        assertThrows(ValidationException.class, () -> githubHost.getUserNameFromUrl("foo@bar:baz"));
     assertThat(e).hasMessageThat().contains("Cannot find project name");
   }
 

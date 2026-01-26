@@ -52,7 +52,8 @@ public final class GitHubRepositoryHook implements GitRepositoryHook {
     if (!shouldRun(gitRepositoryData)) {
       return;
     }
-    String projectId = GitHubHost.GITHUB_COM.getProjectNameFromUrl(gitRepositoryData.url());
+    GitHubHost gitHubHost = new GitHubHost("github.com");
+    String projectId = gitHubHost.getProjectNameFromUrl(gitRepositoryData.url());
     GitHubApi api = gitHubOptions.newGitHubRestApi(projectId, creds);
     long actualId = api.getRepository(projectId).getId();
     if (!Objects.equals(String.valueOf(actualId), getGitRepositoryData().id())) {

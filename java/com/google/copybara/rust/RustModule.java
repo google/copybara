@@ -158,7 +158,7 @@ public class RustModule implements StarlarkValue {
       name = "create_version_requirement",
       doc =
           "Represents a Cargo version requirement. You can compare version strings against this"
-              + "object to determine if they meet this requirement or not. ",
+              + " object to determine if they meet this requirement or not. ",
       parameters = {
         @Param(name = "requirement", named = true, doc = "The Cargo version requirement"),
         @Param(
@@ -461,8 +461,9 @@ public class RustModule implements StarlarkValue {
   }
 
   private static String normalizeUrl(String url) throws ValidationException {
-    if (GitHubHost.GITHUB_COM.isGitHubUrl(url)) {
-      url = GitHubHost.GITHUB_COM.normalizeUrl(url);
+    GitHubHost gitHubHost = new GitHubHost("github.com");
+    if (gitHubHost.isGitHubUrl(url)) {
+      url = gitHubHost.normalizeUrl(url);
     }
     return url;
   }
