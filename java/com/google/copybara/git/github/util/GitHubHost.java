@@ -30,9 +30,6 @@ import java.util.Optional;
 /** An object that parses GitHub urls in their components (project, name, etc.) */
 public class GitHubHost {
 
-  /** Host for http://github.com (Non-Enterprise) */
-  public static final GitHubHost GITHUB_COM = new GitHubHost("github.com");
-
   private final Pattern gitHubPrUrlPattern;
   private final String host;
 
