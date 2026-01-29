@@ -16,9 +16,8 @@
 
 package com.google.copybara.util;
 
-import static com.google.common.collect.ImmutableList.toImmutableList;
-
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.copybara.util.GlobAtom.AtomType;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
@@ -38,10 +37,24 @@ public class SequenceGlob extends Glob {
   }
 
   @Override
-  public PathMatcher relativeTo(Path path) {
+  public PathMatcher relativeTo(Path root) {
+    ImmutableSet.Builder<Path> paths = ImmutableSet.builder();
+    for (GlobAtom atom : include) {
+      paths.add(GlobAtom.getRelativePath(root, atom.pattern()));
+    }
+    final ImmutableSet<Path> matchPaths = paths.build();
     return new ReadablePathMatcher(
-        FileUtil.anyPathMatcher(
-            include.stream().map(g -> g.matcher(path)).collect(toImmutableList())),
+        new PathMatcher() {
+          @Override
+          public boolean matches(Path path) {
+            return matchPaths.contains(path.normalize());
+          }
+
+          @Override
+          public String toString() {
+            return SequenceGlob.this.toString();
+          }
+        },
         this.toString());
   }
 

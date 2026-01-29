@@ -79,6 +79,25 @@ public final class GlobAtom {
     return this.type;
   }
 
+  /**
+   * Resolves the {@code filePath} against the {@code root} path.
+   *
+   * @param root the root path to resolve against
+   * @param filePath the relative file path string to resolve
+   * @return the resolved {@link Path}
+   */
+  public static Path getRelativePath(Path root, String filePath) {
+    FileSystem fs = root.getFileSystem();
+    String rootStr = root.normalize().toString();
+    String separator = fs.getSeparator();
+
+    if (!rootStr.endsWith(separator)) {
+      rootStr += separator;
+    }
+
+    return fs.getPath(rootStr + filePath);
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -142,18 +161,6 @@ public final class GlobAtom {
           @Override
           public boolean matches(Path path) {
             return path.normalize().equals(relativePath);
-          }
-
-          private Path getRelativePath(Path root, String filePath) {
-            FileSystem fs = root.getFileSystem();
-            String rootStr = root.normalize().toString();
-            String separator = fs.getSeparator();
-
-            if (!rootStr.endsWith(separator)) {
-              rootStr += separator;
-            }
-
-            return fs.getPath(rootStr + filePath);
           }
         };
       }
