@@ -1,3 +1,5 @@
+load("@rules_java//java:defs.bzl", "java_library", "java_plugin")
+
 licenses(["notice"])  # Apache 2.0
 
 package_group(
@@ -5,6 +7,7 @@ package_group(
     packages = [
         "//java/com/google/copybara/...",
         "//javatests/com/google/copybara/...",
+        "//third_party/bazel/...",
     ],
 )
 
@@ -77,7 +80,7 @@ java_library(
 java_library(
     name = "jcommander",
     exports = [
-        "@maven//:org_jcommander_jcommander",
+        "@copybara_maven//:org_jcommander_jcommander",
     ],
 )
 
@@ -114,7 +117,7 @@ java_library(
 java_library(
     name = "shell",
     exports = [
-        "//third_party/bazel:shell",
+        "//third_party/bazel/main/java/com/google/copybara/shell",
     ],
 )
 
@@ -176,10 +179,10 @@ java_library(
 java_library(
     name = "starlark",
     exports = [
-        "@io_bazel//src/main/java/net/starlark/java/annot",
-        "@io_bazel//src/main/java/net/starlark/java/eval",
-        "@io_bazel//src/main/java/net/starlark/java/lib/json",
-        "@io_bazel//src/main/java/net/starlark/java/syntax",
+        "//third_party/bazel/main/java/net/starlark/java/annot",
+        "//third_party/bazel/main/java/net/starlark/java/eval",
+        "//third_party/bazel/main/java/net/starlark/java/lib/json",
+        "//third_party/bazel/main/java/net/starlark/java/syntax",
     ],
 )
 
@@ -187,6 +190,7 @@ java_library(
     name = "flogger",
     exports = [
         "@copybara_maven//:com_google_flogger_flogger",
+        "@copybara_maven//:com_google_flogger_google_extensions",
     ],
     runtime_deps = [
         "@copybara_maven//:com_google_flogger_flogger_system_backend",
@@ -196,7 +200,8 @@ java_library(
 java_library(
     name = "error_prone",
     exports = [
-        "@io_bazel//third_party:error_prone_annotations",
+        "@copybara_maven//:com_google_errorprone_error_prone_annotation",
+        "@copybara_maven//:com_google_errorprone_error_prone_annotations",
     ],
 )
 
