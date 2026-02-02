@@ -93,14 +93,16 @@ public class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
     return new LabelTemplate(url)
         .resolve(
             label -> {
-              if (!label.equals("VERSION")) {
-                throw new IllegalArgumentException(
-                    String.format(
-                        "Archive source templates only support '${VERSION}' labels, but found"
-                            + " '%s'",
-                        label));
+              if (label.equals("VERSION")
+                  || label.equals("CONTEXT_REFERENCE")
+                  || label.equals("COPYBARA_CONTEXT_REFERENCE")) {
+                return version;
               }
-              return version;
+              throw new IllegalArgumentException(
+                  String.format(
+                      "Archive source templates only support '${VERSION}', '${CONTEXT_REFERENCE}'"
+                          + " or '${COPYBARA_CONTEXT_REFERENCE}' labels, but found '%s'",
+                      label));
             });
   }
 
@@ -135,7 +137,19 @@ public class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
 
     // It's a versionless import.
     if (versionList == null || versionSelector == null) {
-      return new RemoteArchiveRevision(new RemoteArchiveVersion(archiveSourceUrl, versionRef));
+      String url = archiveSourceUrl;
+      if (!Strings.isNullOrEmpty(versionRef)) {
+        try {
+          url = resolveURLTemplate(archiveSourceUrl, versionRef);
+        } catch (LabelNotFoundException | IllegalArgumentException e) {
+          throw new ValidationException(
+              String.format(
+                  "Could not resolve archive URL template %s with error '%s' and the cause (if any)"
+                      + " was '%s'",
+                  archiveSourceUrl, e.getMessage(), e.getCause()));
+        }
+      }
+      return new RemoteArchiveRevision(new RemoteArchiveVersion(url, versionRef));
     }
 
     try {

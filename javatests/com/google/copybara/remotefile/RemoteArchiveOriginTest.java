@@ -773,4 +773,47 @@ public final class RemoteArchiveOriginTest {
         "Basic %s",
         BaseEncoding.base64().encode(String.format("%s:%s", username, password).getBytes(UTF_8)));
   }
+
+  @Test
+  public void resolve_contextReferenceSubstitution_worksInVersionlessMode() throws Exception {
+    when(versionSelector.select(any(), any(), any())).thenReturn(Optional.of(""));
+    when(versionList.list()).thenReturn(ImmutableSet.of());
+
+    String archiveSourceUrl = "https://example.com/${CONTEXT_REFERENCE}/file.zip";
+    RemoteArchiveOrigin underTest =
+        getRemoteArchiveOriginUnderTest(
+            archiveSourceUrl,
+            /* versionList= */ null,
+            /* versionSelector= */ null,
+            /* versionResolver= */ null,
+            RemoteFileType.ZIP,
+            /* auth= */ null);
+
+    RemoteArchiveRevision revision = underTest.resolve("v1.0");
+
+    assertThat(revision.getUrl()).isEqualTo("https://example.com/v1.0/file.zip");
+    assertThat(revision.contextReference()).isEqualTo("v1.0");
+  }
+
+  @Test
+  public void resolve_copybaraContextReferenceSubstitution_worksInVersionlessMode()
+      throws Exception {
+    when(versionSelector.select(any(), any(), any())).thenReturn(Optional.of(""));
+    when(versionList.list()).thenReturn(ImmutableSet.of());
+
+    String archiveSourceUrl = "https://example.com/${COPYBARA_CONTEXT_REFERENCE}/file.zip";
+    RemoteArchiveOrigin underTest =
+        getRemoteArchiveOriginUnderTest(
+            archiveSourceUrl,
+            /* versionList= */ null,
+            /* versionSelector= */ null,
+            /* versionResolver= */ null,
+            RemoteFileType.ZIP,
+            /* auth= */ null);
+
+    RemoteArchiveRevision revision = underTest.resolve("v1.0");
+
+    assertThat(revision.getUrl()).isEqualTo("https://example.com/v1.0/file.zip");
+    assertThat(revision.contextReference()).isEqualTo("v1.0");
+  }
 }
