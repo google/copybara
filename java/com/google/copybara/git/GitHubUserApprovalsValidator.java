@@ -17,9 +17,11 @@
 package com.google.copybara.git;
 
 import static com.google.common.collect.ImmutableList.toImmutableList;
+import static com.google.common.collect.ImmutableSet.toImmutableSet;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.approval.ChangeWithApprovals;
@@ -41,6 +43,7 @@ import javax.annotation.Nullable;
 
 /** Utility class for performing validation for GitHub pull request approvals. */
 public class GitHubUserApprovalsValidator {
+  private static final int GET_COMMIT_HISTORY_MAX_RETRIES = 3;
   private final LazyResourceLoader<GitHubApi> restApiLoader;
   private final LazyResourceLoader<GitHubGraphQLApi> graphQlApiLoader;
   private final Console console;
@@ -94,14 +97,25 @@ public class GitHubUserApprovalsValidator {
     String repository = projectName.substring(projectName.lastIndexOf("/") + 1);
     ImmutableList.Builder<ChangeWithApprovals> builder = ImmutableList.builder();
 
-    CommitHistoryResponse response =
-        graphQlApiLoader
-            .load(console)
-            .getCommitHistory(
-                organization,
-                repository,
-                !Strings.isNullOrEmpty(branch) ? branch : getDefaultBranch(projectName),
-                params);
+    CommitHistoryResponse response = null;
+    for (int i = 0; i < GET_COMMIT_HISTORY_MAX_RETRIES; i++) {
+      response =
+          graphQlApiLoader
+              .load(console)
+              .getCommitHistory(
+                  organization,
+                  repository,
+                  !Strings.isNullOrEmpty(branch) ? branch : getDefaultBranch(projectName),
+                  this.params.getCopyWithCommits(this.params.getCommits() * (i + 1)));
+      if (allCommitsFound(changes, response)) {
+        break;
+      }
+      console.warnFmt(
+          "Commit history response did not contain all commits, retrying with"
+              + " larger commit window. Current window: %d",
+          this.params.getCommits() * (i + 1));
+    }
+
     for (ChangeWithApprovals change : changes) {
       String sha = ((GitRevision) change.getChange().getRevision()).getSha1();
 
@@ -145,6 +159,28 @@ public class GitHubUserApprovalsValidator {
       builder.add(changeInProgress);
     }
     return builder.build();
+  }
+
+  private boolean allCommitsFound(
+      ImmutableList<ChangeWithApprovals> changes, CommitHistoryResponse response) {
+    List<HistoryNode> historyNodes =
+        Optional.ofNullable(response)
+            .map(CommitHistoryResponse::getData)
+            .map(CommitHistoryResponse.Data::getRepository)
+            .map(CommitHistoryResponse.Repository::getRef)
+            .map(CommitHistoryResponse.Ref::getTarget)
+            .map(CommitHistoryResponse.Target::getHistoryNodes)
+            .map(CommitHistoryResponse.HistoryNodes::getNodes)
+            .orElse(ImmutableList.of());
+    ImmutableSet<String> responseOids =
+        historyNodes.stream().map(HistoryNode::getOid).collect(toImmutableSet());
+    for (ChangeWithApprovals change : changes) {
+      String sha = ((GitRevision) change.getChange().getRevision()).getSha1();
+      if (!responseOids.contains(sha)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**

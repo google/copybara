@@ -96,6 +96,10 @@ public class GitHubGraphQLApi {
     public int getReviews() {
       return reviews;
     }
+
+    public GetCommitHistoryParams getCopyWithCommits(int commits) {
+      return new GetCommitHistoryParams(commits, this.pullRequests, this.reviews);
+    }
   }
 
   public CommitHistoryResponse getCommitHistory(

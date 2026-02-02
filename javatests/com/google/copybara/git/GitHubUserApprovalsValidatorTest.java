@@ -245,6 +245,131 @@ public final class GitHubUserApprovalsValidatorTest {
   }
 
   @Test
+  public void testGitHubUserApprovalsValidator_withNoApprovalsAndRetry() throws Exception {
+    var mockResponseWithMatchingOid =
+        GitTestUtil.mockResponse(
+            """
+            {
+              "data": {
+                "repository": {
+                  "ref": {
+                    "target": {
+                      "id": "C_notreadatall",
+                      "history": {
+                        "nodes": [
+                          {
+                            "id": "C_notreadatall",
+                            "oid": "3071d674373ab56d8a7f264d308b39b7773b9e44",
+                            "associatedPullRequests": {
+                              "edges": [
+                                {
+                                  "node": {
+                                    "title": "title place holder",
+                                    "author": {
+                                      "login": "copybaraauthor"
+                                    },
+                                    "reviewDecision": "CHANGES_REQUESTED",
+                                    "latestOpinionatedReviews": {
+                                      "edges": [
+                                        {
+                                          "node": {
+                                            "author": {
+                                              "login": "copybarareviewer"
+                                            },
+                                            "state": "CHANGES_REQUESTED"
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """);
+    var mockResponseWithoutMatchingOid =
+        GitTestUtil.mockResponse(
+            """
+            {
+              "data": {
+                "repository": {
+                  "ref": {
+                    "target": {
+                      "id": "C_notreadatall",
+                      "history": {
+                        "nodes": [
+                          {
+                            "id": "C_notreadatall",
+                            "oid": "3071d674373ab56d8a7f264d308b39b7773b9exx",
+                            "associatedPullRequests": {
+                              "edges": [
+                                {
+                                  "node": {
+                                    "title": "title place holder",
+                                    "author": {
+                                      "login": "copybaraauthor"
+                                    },
+                                    "reviewDecision": "CHANGES_REQUESTED",
+                                    "latestOpinionatedReviews": {
+                                      "edges": [
+                                        {
+                                          "node": {
+                                            "author": {
+                                              "login": "copybarareviewer"
+                                            },
+                                            "state": "CHANGES_REQUESTED"
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """);
+    gitTestUtil.mockApi(
+        eq("POST"),
+        eq("https://api.github.com/graphql"),
+        mockResponseWithoutMatchingOid,
+        mockResponseWithoutMatchingOid,
+        mockResponseWithMatchingOid);
+    GitHubUserApprovalsValidator validator = getUnitUnderTest();
+    ImmutableList<ChangeWithApprovals> changes =
+        generateChangeList(
+            gitRepository,
+            PROJECT_ID,
+            ImmutableListMultimap.of(),
+            "3071d674373ab56d8a7f264d308b39b7773b9e44");
+    ImmutableList<ChangeWithApprovals> approvals =
+        validator.mapApprovalsForUserPredicates(changes, BRANCH);
+    assertThat(approvals).hasSize(changes.size());
+    assertThat(Iterables.getOnlyElement(approvals).getPredicates()).containsNoDuplicates();
+    assertThat(Iterables.getOnlyElement(approvals).getPredicates())
+        .containsExactly(
+            new UserPredicate(
+                "copybaraauthor",
+                UserPredicate.UserPredicateType.OWNER,
+                Iterables.getLast(changes).getChange().getRevision().getUrl(),
+                "GitHub user 'copybaraauthor' authored change with sha"
+                    + " '3071d674373ab56d8a7f264d308b39b7773b9e44'."));
+  }
+
+  @Test
   public void testGitHubUserApprovalsValidator_withOnlyApprovals() throws Exception {
     gitTestUtil.mockApi(
         eq("POST"),
@@ -295,6 +420,138 @@ public final class GitHubUserApprovalsValidatorTest {
           +       "}"
           +     "}"
     ));
+    GitHubUserApprovalsValidator validator = getUnitUnderTest();
+    GetCommitHistoryParams params = new GetCommitHistoryParams(5, 5, 5);
+    ImmutableList<ChangeWithApprovals> changes =
+        generateChangeList(
+            gitRepository,
+            PROJECT_ID,
+            ImmutableListMultimap.of(),
+            "3071d674373ab56d8a7f264d308b39b7773b9e44");
+    ImmutableList<ChangeWithApprovals> approvals =
+        validator.mapApprovalsForUserPredicates(changes, BRANCH);
+    assertThat(approvals).hasSize(changes.size());
+    assertThat(Iterables.getOnlyElement(approvals).getPredicates()).containsNoDuplicates();
+    assertThat(Iterables.getOnlyElement(approvals).getPredicates())
+        .containsExactly(
+            new UserPredicate(
+                "copybaraauthor",
+                UserPredicate.UserPredicateType.OWNER,
+                Iterables.getLast(changes).getChange().getRevision().getUrl(),
+                "GitHub user 'copybaraauthor' authored change with sha"
+                    + " '3071d674373ab56d8a7f264d308b39b7773b9e44'."),
+            new UserPredicate(
+                "copybarareviewer",
+                UserPredicate.UserPredicateType.LGTM,
+                Iterables.getLast(changes).getChange().getRevision().getUrl(),
+                "GitHub user 'copybarareviewer' approved change with sha"
+                    + " '3071d674373ab56d8a7f264d308b39b7773b9e44'."));
+  }
+
+  @Test
+  public void testGitHubUserApprovalsValidator_withOnlyApprovalsAndRetry() throws Exception {
+    var mockResponseWithMatchingOid =
+        GitTestUtil.mockResponse(
+            """
+            {
+              "data": {
+                "repository": {
+                  "ref": {
+                    "target": {
+                      "id": "C_notreadatall",
+                      "history": {
+                        "nodes": [
+                          {
+                            "id": "C_notreadatall",
+                            "oid": "3071d674373ab56d8a7f264d308b39b7773b9e44",
+                            "associatedPullRequests": {
+                              "edges": [
+                                {
+                                  "node": {
+                                    "title": "title place holder",
+                                    "author": {
+                                      "login": "copybaraauthor"
+                                    },
+                                    "reviewDecision": "APPROVED",
+                                    "latestOpinionatedReviews": {
+                                      "edges": [
+                                        {
+                                          "node": {
+                                            "author": {
+                                              "login": "copybarareviewer"
+                                            },
+                                            "state": "APPROVED"
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """);
+    var mockResponseWithoutMatchingOid =
+        GitTestUtil.mockResponse(
+            """
+            {
+              "data": {
+                "repository": {
+                  "ref": {
+                    "target": {
+                      "id": "C_notreadatall",
+                      "history": {
+                        "nodes": [
+                          {
+                            "id": "C_notreadatall",
+                            "oid": "3071d674373ab56d8a7f264d308b39b7773b9exx",
+                            "associatedPullRequests": {
+                              "edges": [
+                                {
+                                  "node": {
+                                    "title": "title place holder",
+                                    "author": {
+                                      "login": "copybaraauthor"
+                                    },
+                                    "reviewDecision": "APPROVED",
+                                    "latestOpinionatedReviews": {
+                                      "edges": [
+                                        {
+                                          "node": {
+                                            "author": {
+                                              "login": "copybarareviewer"
+                                            },
+                                            "state": "APPROVED"
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """);
+    gitTestUtil.mockApi(
+        eq("POST"),
+        eq("https://api.github.com/graphql"),
+        mockResponseWithoutMatchingOid,
+        mockResponseWithoutMatchingOid,
+        mockResponseWithMatchingOid);
     GitHubUserApprovalsValidator validator = getUnitUnderTest();
     GetCommitHistoryParams params = new GetCommitHistoryParams(5, 5, 5);
     ImmutableList<ChangeWithApprovals> changes =

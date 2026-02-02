@@ -494,4 +494,422 @@ public final class GitHubPostSubmitApprovalsProviderTest {
                 "GitHub user 'copybarareviewer' approved change with sha"
                     + " '3368ee55bcad7df67a18b588144e0888d6fa93ac'."));
   }
+
+  @Test
+  public void testGitHubPostSubmitApprovalsProvider_withFullyCompliantChangeList_withRetry()
+      throws Exception {
+    gitTestUtil.mockApi(
+        eq("GET"),
+        eq("https://api.github.com/orgs/google/installations?per_page=100"),
+        GitTestUtil.mockResponse("{\"installations\":[{\"app_id\": 119816}]}"));
+    gitTestUtil.mockApi(
+        eq("GET"),
+        eq("https://api.github.com/orgs/google"),
+        GitTestUtil.mockResponse("{\"two_factor_requirement_enabled\":true}"));
+    gitTestUtil.mockApi(
+        eq("POST"),
+        eq("https://api.github.com/graphql"),
+        GitTestUtil.mockResponse(
+            """
+            {
+              "data": {
+                "repository": {
+                    "ref": {
+                      "target": {
+                        "id": "C_notreadatall",
+                        "history": {
+                        "nodes": [
+                          {
+                            "id": "C_notreadatall",
+                            "oid": "3368ee55bcad7df67a18b588144e0888d6fa93aa",
+                            "associatedPullRequests": {
+                              "edges": [
+                                {
+                                  "node": {
+                                    "title": "title place holder",
+                                    "author": {
+                                      "login": "copybaraauthor"
+                                    },
+                                    "reviewDecision": "APPROVED",
+                                    "latestOpinionatedReviews": {
+                                      "edges": [
+                                        {
+                                          "node": {
+                                            "author": {
+                                              "login": "copybarareviewer"
+                                            },
+                                            "state": "APPROVED"
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "id": "C_notreadatall",
+                            "oid": "3368ee55bcad7df67a18b588144e0888d6fa93ab",
+                            "associatedPullRequests": {
+                              "edges": [
+                                {
+                                  "node": {
+                                    "title": "title place holder",
+                                    "author": {
+                                      "login": "copybaraauthor"
+                                    },
+                                    "reviewDecision": "APPROVED",
+                                    "latestOpinionatedReviews": {
+                                      "edges": [
+                                        {
+                                          "node": {
+                                            "author": {
+                                              "login": "copybarareviewer"
+                                            },
+                                            "state": "APPROVED"
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "id": "C_notreadatall",
+                            "oid": "3368ee55bcad7df67a18b588144e0888d6fa93ac",
+                            "associatedPullRequests": {
+                              "edges": [
+                                {
+                                  "node": {
+                                    "title": "title place holder",
+                                    "author": {
+                                      "login": "copybaraauthor"
+                                    },
+                                    "reviewDecision": "APPROVED",
+                                    "latestOpinionatedReviews": {
+                                      "edges": [
+                                        {
+                                          "node": {
+                                            "author": {
+                                              "login": "copybarareviewer"
+                                            },
+                                            "state": "APPROVED"
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "id": "C_notreadatall",
+                            "oid": "3368ee55bcad7df67a18b588144e0888d6fa93ad",
+                            "associatedPullRequests": {
+                              "edges": [
+                                {
+                                  "node": {
+                                    "title": "title place holder",
+                                    "author": {
+                                      "login": "copybaraauthor"
+                                    },
+                                    "reviewDecision": "APPROVED",
+                                    "latestOpinionatedReviews": {
+                                      "edges": [
+                                        {
+                                          "node": {
+                                            "author": {
+                                              "login": "copybarareviewer"
+                                            },
+                                            "state": "APPROVED"
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "id": "C_notreadatall",
+                            "oid": "3368ee55bcad7df67a18b588144e0888d6fa93ae",
+                            "associatedPullRequests": {
+                              "edges": [
+                                {
+                                  "node": {
+                                    "title": "title place holder",
+                                    "author": {
+                                      "login": "copybaraauthor"
+                                    },
+                                    "reviewDecision": "APPROVED",
+                                    "latestOpinionatedReviews": {
+                                      "edges": [
+                                        {
+                                          "node": {
+                                            "author": {
+                                              "login": "copybarareviewer"
+                                            },
+                                            "state": "APPROVED"
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """),
+        GitTestUtil.mockResponse(
+            """
+            {
+              "data": {
+                "repository": {
+                    "ref": {
+                      "target": {
+                        "id": "C_notreadatall",
+                        "history": {
+                        "nodes": [
+                          {
+                            "id": "C_notreadatall",
+                            "oid": "3368ee55bcad7df67a18b588144e0888d6fa93aa",
+                            "associatedPullRequests": {
+                              "edges": [
+                                {
+                                  "node": {
+                                    "title": "title place holder",
+                                    "author": {
+                                      "login": "copybaraauthor"
+                                    },
+                                    "reviewDecision": "APPROVED",
+                                    "latestOpinionatedReviews": {
+                                      "edges": [
+                                        {
+                                          "node": {
+                                            "author": {
+                                              "login": "copybarareviewer"
+                                            },
+                                            "state": "APPROVED"
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "id": "C_notreadatall",
+                            "oid": "3368ee55bcad7df67a18b588144e0888d6fa93ab",
+                            "associatedPullRequests": {
+                              "edges": [
+                                {
+                                  "node": {
+                                    "title": "title place holder",
+                                    "author": {
+                                      "login": "copybaraauthor"
+                                    },
+                                    "reviewDecision": "APPROVED",
+                                    "latestOpinionatedReviews": {
+                                      "edges": [
+                                        {
+                                          "node": {
+                                            "author": {
+                                              "login": "copybarareviewer"
+                                            },
+                                            "state": "APPROVED"
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "id": "C_notreadatall",
+                            "oid": "3368ee55bcad7df67a18b588144e0888d6fa93ac",
+                            "associatedPullRequests": {
+                              "edges": [
+                                {
+                                  "node": {
+                                    "title": "title place holder",
+                                    "author": {
+                                      "login": "copybaraauthor"
+                                    },
+                                    "reviewDecision": "APPROVED",
+                                    "latestOpinionatedReviews": {
+                                      "edges": [
+                                        {
+                                          "node": {
+                                            "author": {
+                                              "login": "copybarareviewer"
+                                            },
+                                            "state": "APPROVED"
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "id": "C_notreadatall",
+                            "oid": "3368ee55bcad7df67a18b588144e0888d6fa93ad",
+                            "associatedPullRequests": {
+                              "edges": [
+                                {
+                                  "node": {
+                                    "title": "title place holder",
+                                    "author": {
+                                      "login": "copybaraauthor"
+                                    },
+                                    "reviewDecision": "APPROVED",
+                                    "latestOpinionatedReviews": {
+                                      "edges": [
+                                        {
+                                          "node": {
+                                            "author": {
+                                              "login": "copybarareviewer"
+                                            },
+                                            "state": "APPROVED"
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "id": "C_notreadatall",
+                            "oid": "3368ee55bcad7df67a18b588144e0888d6fa93ae",
+                            "associatedPullRequests": {
+                              "edges": [
+                                {
+                                  "node": {
+                                    "title": "title place holder",
+                                    "author": {
+                                      "login": "copybaraauthor"
+                                    },
+                                    "reviewDecision": "APPROVED",
+                                    "latestOpinionatedReviews": {
+                                      "edges": [
+                                        {
+                                          "node": {
+                                            "author": {
+                                              "login": "copybarareviewer"
+                                            },
+                                            "state": "APPROVED"
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "id": "C_notreadatall",
+                            "oid": "3368ee55bcad7df67a18b588144e0888d6fa93af",
+                            "associatedPullRequests": {
+                              "edges": [
+                                {
+                                  "node": {
+                                    "title": "title place holder",
+                                    "author": {
+                                      "login": "copybaraauthor"
+                                    },
+                                    "reviewDecision": "APPROVED",
+                                    "latestOpinionatedReviews": {
+                                      "edges": [
+                                        {
+                                          "node": {
+                                            "author": {
+                                              "login": "copybarareviewer"
+                                            },
+                                            "state": "APPROVED"
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """));
+    ApprovalsProvider underTest = getApprovalProviderUnderTest(builder.github);
+    ImmutableList<ChangeWithApprovals> changes =
+        generateChangeList(
+            gitRepository,
+            "google/copybara",
+            "3368ee55bcad7df67a18b588144e0888d6fa93aa",
+            "3368ee55bcad7df67a18b588144e0888d6fa93ab",
+            "3368ee55bcad7df67a18b588144e0888d6fa93ac",
+            "3368ee55bcad7df67a18b588144e0888d6fa93ad",
+            "3368ee55bcad7df67a18b588144e0888d6fa93ae",
+            "3368ee55bcad7df67a18b588144e0888d6fa93af");
+    ApprovalsResult approvalsResult = underTest.computeApprovals(changes, null, console);
+    assertThat(approvalsResult.getChanges()).hasSize(changes.size());
+    for (ChangeWithApprovals change : changes) {
+      ChangeWithApprovals resultChange =
+          approvalsResult.getChanges().stream()
+              .filter(c -> c.getChange().getRevision().equals(change.getChange().getRevision()))
+              .findFirst()
+              .orElse(null);
+      assertThat(resultChange).isNotNull();
+
+      String sha = change.getChange().getRevision().fixedReference();
+      assertThat(resultChange.getPredicates())
+          .containsExactly(
+              new StatementPredicate(
+                  GitHubSecuritySettingsValidator.TWO_FACTOR_PREDICATE_TYPE,
+                  "Whether the organization that the change originated from has two factor"
+                      + " authentication requirement enabled.",
+                  change.getChange().getRevision().getUrl()),
+              new StatementPredicate(
+                  GitHubSecuritySettingsValidator.ALL_STAR_PREDICATE_TYPE,
+                  "Whether the organization that the change originated from has allstar"
+                      + " installed",
+                  change.getChange().getRevision().getUrl()),
+              new UserPredicate(
+                  "copybaraauthor",
+                  UserPredicate.UserPredicateType.OWNER,
+                  change.getChange().getRevision().getUrl(),
+                  String.format(
+                      "GitHub user 'copybaraauthor' authored change with sha '%s'.", sha)),
+              new UserPredicate(
+                  "copybarareviewer",
+                  UserPredicate.UserPredicateType.LGTM,
+                  change.getChange().getRevision().getUrl(),
+                  String.format(
+                      "GitHub user 'copybarareviewer' approved change with sha '%s'.", sha)));
+    }
+  }
 }
