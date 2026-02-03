@@ -24,5 +24,7 @@ steps:
 options:
   machine_type: N1_HIGHCPU_32
 substitutions:
-  _BAZEL_SHA256: fedbeb377c97000d1ba27cfdcc22e1025303b4b0abffcd940a94250147fe0fcf
+   # https://pantheon.corp.google.com/artifacts/docker/bazel-public/us/gcr.io/bazel
+   # 9.0.0
+  _BAZEL_SHA256: f8a62228137c2decd2a72d609d6e5fbb8074287ce9b6630dc665a94246abc51a
 timeout: 30m
