@@ -870,47 +870,50 @@ public class RegenerateCmdTest {
   }
 
   private String getImportAutopatchesConfigString() {
-    return "core.workflow(\n"
-        + "    name = 'default',\n"
-        + "    origin = testing.origin(),\n"
-        + "    origin_files = glob(['**']),\n"
-        + "    destination = testing.destination(),\n"
-        + "    mode = 'SQUASH',\n"
-        + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
-        + "    merge_import = core.merge_import_config(\n"
-        + "      package_path = \"\"\n,"
-        + "    ),\n"
-        + "    autopatch_config = core.autopatch_config(\n"
-        + "      header = '# header',\n"
-        + "      directory_prefix = ''\n,"
-        + "      directory = 'AUTOPATCH',\n"
-        + "      suffix = '.patch'\n"
-        + "    ),\n"
-        + ")";
+    return """
+    core.workflow(
+        name = 'default',
+        origin = testing.origin(),
+        origin_files = glob(['**']),
+        destination = testing.destination(),
+        mode = 'SQUASH',
+        authoring = authoring.pass_thru('example <example@example.com>'),
+        merge_import = core.merge_import_config(
+          package_path = ""
+        ),
+        autopatch_config = core.autopatch_config(
+          header = '# header',
+          directory_prefix = '',
+          directory = 'AUTOPATCH',
+          suffix = '.patch'
+        ),
+    )\
+    """;
   }
 
   private String getConsistencyFileConfigString() {
-    return "core.workflow(\n"
-        + "    name = 'default',\n"
-        + "    origin = testing.origin(),\n"
-        + "    origin_files = glob(['**']),\n"
-        + "    destination = testing.destination(),\n"
-        + "    mode = 'SQUASH',\n"
-        + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
-        + "    merge_import = core.merge_import_config(\n"
-        + "      package_path = \"\"\n,"
-        + "      use_consistency_file = True\n,"
-        + "    ),\n"
-        + "    consistency_file_path = \""
-        + CONSISTENCY_FILE_PATH
-        + "\",\n"
-        + "    autopatch_config = core.autopatch_config(\n"
-        + "      header = '# header',\n"
-        + "      directory_prefix = ''\n,"
-        + "      directory = 'AUTOPATCH',\n"
-        + "      suffix = '.patch'\n"
-        + "    ),\n"
-        + ")";
+    return """
+    core.workflow(
+        name = 'default',
+        origin = testing.origin(),
+        origin_files = glob(['**']),
+        destination = testing.destination(),
+        mode = 'SQUASH',
+        authoring = authoring.pass_thru('example <example@example.com>'),
+        merge_import = core.merge_import_config(
+          package_path = "",
+          use_consistency_file = True
+        ),
+        consistency_file_path = "%s",
+        autopatch_config = core.autopatch_config(
+          header = '# header',
+          directory_prefix = '',
+          directory = 'AUTOPATCH',
+          suffix = '.patch'
+        ),
+    )\
+    """
+        .formatted(CONSISTENCY_FILE_PATH);
   }
 
   private void clearDir(Path dir) throws IOException {

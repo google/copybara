@@ -35,9 +35,17 @@ public class LabelTemplateTest {
 
   @Test
   public void testWithVars() throws LabelNotFoundException {
-    assertThat(new LabelTemplate("Foo${LABEL}\n${LABEL}\n\nAnd ${OTHER}")
+    assertThat(new LabelTemplate("""
+        Foo${LABEL}
+        ${LABEL}
+
+        And ${OTHER}""")
         .resolve(e -> e.equals("LABEL") ? "VAL" : e.equals("OTHER") ? "VAL2" : null))
-        .isEqualTo("FooVAL\nVAL\n\nAnd VAL2");
+        .isEqualTo("""
+            FooVAL
+            VAL
+
+            And VAL2""");
   }
 
   @Test

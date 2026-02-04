@@ -60,11 +60,12 @@ public class SkylarkTransformationTest {
     Transformation t =
         skylark.eval(
             "t",
-            ""
-                + "def foo(ctx):\n"
-                + "  return ctx.success()\n"
-                + "\n"
-                + "t = core.dynamic_transform(foo)");
+            """
+            def foo(ctx):
+              return ctx.success()
+
+            t = core.dynamic_transform(foo)
+            """);
 
     TransformationStatus status = t.transform(transformWork);
 
@@ -76,11 +77,12 @@ public class SkylarkTransformationTest {
     Transformation t =
         skylark.eval(
             "t",
-            ""
-                + "def foo(ctx):\n"
-                + "  return ctx.noop('Reason for noop.')\n"
-                + "\n"
-                + "t = core.dynamic_transform(foo)");
+            """
+            def foo(ctx):
+              return ctx.noop('Reason for noop.')
+
+            t = core.dynamic_transform(foo)
+            """);
 
     TransformationStatus status = t.transform(transformWork);
 
@@ -93,12 +95,13 @@ public class SkylarkTransformationTest {
     Transformation t =
         skylark.eval(
             "t",
-            ""
-                + "def foo(ctx):\n"
-                + "  # Do nothing \n"
-                + "  pass\n"
-                + "\n"
-                + "t = core.dynamic_transform(foo)");
+            """
+            def foo(ctx):
+              # Do nothing
+              pass
+
+            t = core.dynamic_transform(foo)
+            """);
 
     TransformationStatus status = t.transform(transformWork);
 
@@ -110,21 +113,22 @@ public class SkylarkTransformationTest {
     Transformation t =
         skylark.eval(
             "t",
-            ""
-                + "def foo(ctx):\n"
-                + "  return ctx.success()\n"
-                + "\n"
-                + "s = core.dynamic_transform(foo)"
-                + "\n"
-                + "def bar(ctx):\n"
-                + "  status = ctx.run(s)\n"
-                + "  if not status.is_success:\n"
-                + "    core.fail_with_noop()\n"
-                + "  if status.is_noop:\n"
-                + "    core.fail_with_noop()\n"
-                + "  return status"
-                + "\n"
-                + "t = core.dynamic_transform(foo)");
+            """
+            def foo(ctx):
+              return ctx.success()
+
+            s = core.dynamic_transform(foo)
+
+            def bar(ctx):
+              status = ctx.run(s)
+              if not status.is_success:
+                core.fail_with_noop()
+              if status.is_noop:
+                core.fail_with_noop()
+              return status
+
+            t = core.dynamic_transform(foo)
+            """);
 
     TransformationStatus status = t.transform(transformWork);
 
@@ -136,11 +140,12 @@ public class SkylarkTransformationTest {
     Transformation t =
         skylark.eval(
             "t",
-            ""
-                + "def _foo_impl(ctx):\n"
-                + "  pass\n"
-                + "\n"
-                + "t = core.dynamic_transform(_foo_impl, {'a': 1})");
+            """
+            def _foo_impl(ctx):
+              pass
+
+            t = core.dynamic_transform(_foo_impl, {'a': 1})
+            """);
 
     assertThat(t.describe()).isEqualTo("_foo_impl");
     assertThat(t.toString()).isEqualTo("Foo{a=1}");

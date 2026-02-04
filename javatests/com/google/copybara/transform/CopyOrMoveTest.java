@@ -631,11 +631,12 @@ public class CopyOrMoveTest {
 
   @Test
   public void testMoveWithGlob() throws Exception {
-    ExplicitReversal t = skylark.eval("m", "m = "
-        + "core.transform([\n"
-        + "  core.move('foo','' , paths = glob(['**.txt'])),\n"
-        + "  core.move('foo/bar', 'bar'),\n"
-        + "])\n");
+    ExplicitReversal t = skylark.eval("m", """
+        m = core.transform([
+          core.move('foo','' , paths = glob(['**.txt'])),
+          core.move('foo/bar', 'bar'),
+        ])
+        """);
     touch("foo/baz");
     touch("foo/foo.txt");
     touch("foo/bar");
@@ -654,11 +655,12 @@ public class CopyOrMoveTest {
 
   @Test
   public void testCanMoveWithPathGlobsSpecificFile() throws Exception {
-    ExplicitReversal t = skylark.eval("m", "m = "
-        + "core.transform([\n"
-        + "  core.move('foo','' , paths = glob(['foo.txt'])),\n"
-        + "  core.move('foo/bar', 'bar'),\n"
-        + "])\n");
+    ExplicitReversal t = skylark.eval("m", """
+        m = core.transform([
+          core.move('foo','' , paths = glob(['foo.txt'])),
+          core.move('foo/bar', 'bar'),
+        ])
+        """);
     touch("foo/baz");
     touch("foo/foo.txt");
     touch("foo/bar");

@@ -104,11 +104,12 @@ public class TomlTest {
 
   @Test
   public void testTomlRegularTableKey() throws ValidationException {
-    String content = "\"\"\""
-        + "[table]\n"
-        + "key = \"value\"\n"
-        + "other_key = [ 1, [\"foo\"] ]\n"
-        + "\"\"\"\n";
+    String content = """
+        \"""[table]
+        key = "value"
+        other_key = [ 1, ["foo"] ]
+        \"""
+        """;
 
     String result1 = parseToml(String.class, String.format("%s", content), "table.key");
     assertThat(result1).isEqualTo("value");
@@ -119,11 +120,12 @@ public class TomlTest {
 
   @Test
   public void testTomlTableReturnValue() throws ValidationException {
-    String content = "\"\"\""
-        + "[table]\n"
-        + "key = \"value\"\n"
-        + "other_key = [ 1, [\"foo\"] ]\n"
-        + "\"\"\"\n";
+    String content = """
+        \"""[table]
+        key = "value"
+        other_key = [ 1, ["foo"] ]
+        \"""
+        """;
 
     Iterable<?> result = parseToml(Iterable.class, String.format("%s", content), "table");
     assertThat(result).containsExactlyElementsIn(

@@ -72,7 +72,10 @@ public class RustModuleTest {
   public void testDownloadCrateFuzzers_noCargoVcsJsonFile() throws Exception {
     Path cratePath = workdir.resolve("foo_crate_v1");
     Files.createDirectories(cratePath);
-    String cargoToml = "[package]\n" + "repository = \"http://copy/bara\"";
+    String cargoToml = """
+        [package]
+        repository = "http://copy/bara"
+        """;
     Files.writeString(cratePath.resolve("Cargo.toml"), cargoToml);
 
     runTransformation(
@@ -120,7 +123,10 @@ public class RustModuleTest {
   public void testDownloadCrateFuzzers_missingGitFieldInVcsJson() throws Exception {
     Path cratePath = workdir.resolve("foo_crate_v1");
     Files.createDirectories(cratePath);
-    String cargoToml = "[package]\n" + "repository = \"http://copy/bara\"";
+    String cargoToml = """
+        [package]
+        repository = "http://copy/bara"
+        """;
     Files.writeString(cratePath.resolve("Cargo.toml"), cargoToml);
     String cargoVcsJson =
         """
@@ -146,7 +152,10 @@ public class RustModuleTest {
   public void testDownloadCrateFuzzers_missingSha1Field() throws Exception {
     Path cratePath = workdir.resolve("foo_crate_v1");
     Files.createDirectories(cratePath);
-    String cargoToml = "[package]\nrepository = \"http://foo\"";
+    String cargoToml = """
+        [package]
+        repository = "http://foo"
+        """;
     Files.writeString(cratePath.resolve("Cargo.toml"), cargoToml);
     String cargoVcsJson =
         """
@@ -186,7 +195,10 @@ public class RustModuleTest {
   public void testDownloadCrateFuzzers_missingSha1() throws Exception {
     Path cratePath = workdir.resolve("foo_crate_v1");
     Files.createDirectories(cratePath);
-    String cargoToml = "[package]\nrepository = \"http://foo/bar\"";
+    String cargoToml = """
+        [package]
+        repository = "http://foo/bar"
+        """;
     Files.writeString(cratePath.resolve("Cargo.toml"), cargoToml);
     String cargoVcsJson = "{}";
     Files.writeString(cratePath.resolve(".cargo_vcs_info.json"), cargoVcsJson);
@@ -273,7 +285,10 @@ public class RustModuleTest {
 
     // Set up cargo.toml with Git repo info
     Files.createDirectories(cratePath);
-    String cargoToml = String.format("[package]\n" + "repository = \"%s\"", url);
+    String cargoToml = String.format("""
+        [package]
+        repository = "%s"
+        """, url);
     String cargoVcsJson =
         String.format(
             """
@@ -288,14 +303,14 @@ public class RustModuleTest {
     Files.writeString(cratePath.resolve("Cargo.toml"), cargoToml);
     Files.writeString(cratePath.resolve(".cargo_vcs_info.json"), cargoVcsJson);
 
-    // Run download_fuzzers in a transform
     runTransformation(
-        "def test_download_fuzz(ctx):\n"
-            + "   fuzz_path = rust.download_fuzzers(ctx = ctx, crate_path ="
-            + " \"foo_crate_v1\", fuzz_excludes = None, crate_name = \"foo-crate-v1\")\n"
-            + "   ctx.console.info(\"fuzz_path: \" + fuzz_path.path if fuzz_path else"
-            + " \"None\")\n"
-            + "t = core.dynamic_transform(lambda ctx: test_download_fuzz(ctx))");
+        """
+        def test_download_fuzz(ctx):
+           fuzz_path = rust.download_fuzzers(ctx = ctx, crate_path = \
+             "foo_crate_v1", fuzz_excludes = None, crate_name = "foo-crate-v1")
+           ctx.console.info("fuzz_path: " + fuzz_path.path if fuzz_path else "None")
+        t = core.dynamic_transform(lambda ctx: test_download_fuzz(ctx))
+        """);
     console
         .assertThat()
         .onceInLog(
@@ -355,7 +370,10 @@ public class RustModuleTest {
 
     // Bad URL in the manifest
     Files.createDirectories(cratePath);
-    String cargoToml = "[package]\n" + "repository = \"https://do/not/use\"";
+    String cargoToml = """
+        [package]
+        repository = "https://do/not/use"
+        """;
     String cargoVcsJson =
         String.format(
             """
@@ -374,10 +392,12 @@ public class RustModuleTest {
     // This should not throw.
     runTransformation(
         String.format(
-            "def test_download_fuzz(ctx):\n"
-                + "   fuzz_path = rust.download_fuzzers(ctx = ctx, crate_path ="
-                + " \"foo_crate_v1\", repo_url = \"%s\", crate_name = \"foo-crate-v1\")\n"
-                + "t = core.dynamic_transform(lambda ctx: test_download_fuzz(ctx))",
+            """
+            def test_download_fuzz(ctx):
+               fuzz_path = rust.download_fuzzers(ctx = ctx, crate_path = \
+                 "foo_crate_v1", repo_url = "%s", crate_name = "foo-crate-v1")
+            t = core.dynamic_transform(lambda ctx: test_download_fuzz(ctx))
+            """,
             url));
   }
 
@@ -407,7 +427,10 @@ public class RustModuleTest {
     String fuzzCargoToml = "[package.metadata]\ncargo-fuzz = true\n";
     if (defineParentDep) {
       fuzzCargoToml +=
-          String.format("[dependencies.foo-crate-v1]\npath = \"%s\"\n", parentLocation);
+          String.format("""
+              [dependencies.foo-crate-v1]
+              path = "%s"
+              """, parentLocation);
     }
     GitTestUtil.writeFile(remote, String.format("%s/Cargo.toml", fuzzersDir), fuzzCargoToml);
 
@@ -417,7 +440,10 @@ public class RustModuleTest {
 
     // Set up cargo.toml with Git repo info
     Files.createDirectories(cratePath);
-    String cargoToml = String.format("[package]\n" + "repository = \"%s\"", url);
+    String cargoToml = String.format("""
+        [package]
+        repository = "%s"
+        """, url);
     String cargoVcsJson =
         String.format(
             """
@@ -435,12 +461,13 @@ public class RustModuleTest {
     // Run download_fuzzers in a transform
     runTransformation(
         String.format(
-            "def test_download_fuzz(ctx):\n"
-                + "   fuzz_path = rust.download_fuzzers(ctx = ctx, crate_path ="
-                + " \"foo_crate_v1\", fuzz_excludes = %s, crate_name = \"foo-crate-v1\")\n"
-                + "   ctx.console.info(\"fuzz_path: \" + fuzz_path.path if fuzz_path else"
-                + " \"None\")\n"
-                + "t = core.dynamic_transform(lambda ctx: test_download_fuzz(ctx))",
+            """
+            def test_download_fuzz(ctx):
+               fuzz_path = rust.download_fuzzers(ctx = ctx, crate_path = \
+                 "foo_crate_v1", fuzz_excludes = %s, crate_name = "foo-crate-v1")
+               ctx.console.info("fuzz_path: " + fuzz_path.path if fuzz_path else "None")
+            t = core.dynamic_transform(lambda ctx: test_download_fuzz(ctx))
+            """,
             excludes));
   }
 }

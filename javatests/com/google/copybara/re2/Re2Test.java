@@ -51,147 +51,152 @@ public class Re2Test {
   }
   @Test
   public void matcherMatches() throws ValidationException {
-    assertThat(skylark.<Boolean>eval("x", ""
-        + "re = re2.compile('a.*b')\n"
-        + "x = re.matcher('axxxxxb').matches()\n")).isTrue();
+    assertThat(skylark.<Boolean>eval("x", """
+        re = re2.compile('a.*b')
+        x = re.matcher('axxxxxb').matches()
+        """)).isTrue();
   }
   @Test
   public void find() throws ValidationException, IOException {
-    assertThat(skylark.<Boolean>eval("x", ""
-        + "re = re2.compile('a.*b')\n"
-        + "x = re.matcher('axxxxxb').find()\n")).isTrue();
+    assertThat(skylark.<Boolean>eval("x", """
+        re = re2.compile('a.*b')
+        x = re.matcher('axxxxxb').find()
+        """)).isTrue();
   }
   @Test
   public void findCount() throws ValidationException {
-    assertThat(skylark.<Boolean>eval("x", ""
-        + "re = re2.compile('a.*b')\n"
-        + "x = re.matcher('axxxxxb').find(1)\n")).isFalse();
+    assertThat(skylark.<Boolean>eval("x", """
+        re = re2.compile('a.*b')
+        x = re.matcher('axxxxxb').find(1)
+        """)).isFalse();
   }
 
   @Test
   public void group() throws ValidationException, IOException {
-    assertThat(skylark.<String>eval("x", ""
-        + "re = re2.compile('a(.*)b')\n"
-        + "m = re.matcher('axxxxxb')\n"
-        + "m.matches()\n"
-        + "x = m.group(1)")).isEqualTo("xxxxx");
+    assertThat(skylark.<String>eval("x", """
+        re = re2.compile('a(.*)b')
+        m = re.matcher('axxxxxb')
+        m.matches()
+        x = m.group(1)""")).isEqualTo("xxxxx");
   }
 
   @Test
   public void group_name() throws ValidationException {
-    assertThat(skylark.<String>eval("x", ""
-        + "re = re2.compile('a(?P<name>.*)b')\n"
-        + "m = re.matcher('axxxxxb')\n"
-        + "m.matches()\n"
-        + "x = m.group('name')")).isEqualTo("xxxxx");
+    assertThat(skylark.<String>eval("x", """
+        re = re2.compile('a(?P<name>.*)b')
+        m = re.matcher('axxxxxb')
+        m.matches()
+        x = m.group('name')""")).isEqualTo("xxxxx");
   }
 
   @Test
   public void groupCount() throws ValidationException, EvalException {
-    assertThat(skylark.<StarlarkInt>eval("x", ""
-        + "re = re2.compile('a(x*)(y*)b')\n"
-        + "m = re.matcher('axxxxxb')\n"
-        + "m.matches()\n"
-        + "x = m.group_count()").toInt("x")).isEqualTo(2);
+    assertThat(skylark.<StarlarkInt>eval("x", """
+        re = re2.compile('a(x*)(y*)b')
+        m = re.matcher('axxxxxb')
+        m.matches()
+        x = m.group_count()""").toInt("x")).isEqualTo(2);
   }
 
   @Test
   public void groupError() {
     assertThat(assertThrows(ValidationException.class, () ->
-        skylark.<Boolean>eval("x", ""
-            + "re = re2.compile('a(.*)b')\n"
-            + "m = re.matcher('axxxxxb')\n"
-            + "x = m.group(1)"))).hasMessageThat().contains("Call to group() is not allowed");
+        skylark.<Boolean>eval("x", """
+            re = re2.compile('a(.*)b')
+            m = re.matcher('axxxxxb')
+            x = m.group(1)"""))).hasMessageThat().contains("Call to group() is not allowed");
   }
 
   @Test
   public void end() throws ValidationException, IOException, EvalException {
-    assertThat(skylark.<StarlarkInt>eval("x", ""
-        + "re = re2.compile('a(.*)b')\n"
-        + "m = re.matcher('axxxxxb')\n"
-        + "m.matches()\n"
-        + "x = m.end(1)").toInt("x")).isEqualTo(6);
+    assertThat(skylark.<StarlarkInt>eval("x", """
+        re = re2.compile('a(.*)b')
+        m = re.matcher('axxxxxb')
+        m.matches()
+        x = m.end(1)""").toInt("x")).isEqualTo(6);
   }
 
   @Test
   public void end_name() throws ValidationException, EvalException {
-    assertThat(skylark.<StarlarkInt>eval("x", ""
-        + "re = re2.compile('a(?P<name>.*)b')\n"
-        + "m = re.matcher('axxxxxb')\n"
-        + "m.matches()\n"
-        + "x = m.end('name')").toInt("x")).isEqualTo(6);
+    assertThat(skylark.<StarlarkInt>eval("x", """
+        re = re2.compile('a(?P<name>.*)b')
+        m = re.matcher('axxxxxb')
+        m.matches()
+        x = m.end('name')""").toInt("x")).isEqualTo(6);
   }
 
   @Test
   public void endError() {
     assertThat(assertThrows(ValidationException.class, () ->
-        skylark.<Boolean>eval("x", ""
-            + "re = re2.compile('a(.*)b')\n"
-            + "m = re.matcher('axxxxxb')\n"
-            + "x = m.end(1)"))).hasMessageThat().contains("Call to end() is not allowed");
+        skylark.<Boolean>eval("x", """
+            re = re2.compile('a(.*)b')
+            m = re.matcher('axxxxxb')
+            x = m.end(1)"""))).hasMessageThat().contains("Call to end() is not allowed");
   }
 
   @Test
   public void start() throws ValidationException, IOException, EvalException {
-    assertThat(skylark.<StarlarkInt>eval("x", ""
-        + "re = re2.compile('a(.*)b')\n"
-        + "m = re.matcher('axxxxxb')\n"
-        + "m.matches()\n"
-        + "x = m.start(1)").toInt("x")).isEqualTo(1);
+    assertThat(skylark.<StarlarkInt>eval("x", """
+        re = re2.compile('a(.*)b')
+        m = re.matcher('axxxxxb')
+        m.matches()
+        x = m.start(1)""").toInt("x")).isEqualTo(1);
   }
 
   @Test
   public void start_name() throws ValidationException, EvalException {
-    assertThat(skylark.<StarlarkInt>eval("x", ""
-        + "re = re2.compile('a(?P<name>.*)b')\n"
-        + "m = re.matcher('axxxxxb')\n"
-        + "m.matches()\n"
-        + "x = m.start('name')").toInt("x")).isEqualTo(1);
+    assertThat(skylark.<StarlarkInt>eval("x", """
+        re = re2.compile('a(?P<name>.*)b')
+        m = re.matcher('axxxxxb')
+        m.matches()
+        x = m.start('name')""").toInt("x")).isEqualTo(1);
   }
 
   @Test
   public void startError() {
     assertThat(assertThrows(ValidationException.class, () ->
-        skylark.<Boolean>eval("x", ""
-            + "re = re2.compile('a(.*)b')\n"
-            + "m = re.matcher('axxxxxb')\n"
-            + "x = m.start(1)"))).hasMessageThat().contains("Call to start() is not allowed");
+        skylark.<Boolean>eval("x", """
+            re = re2.compile('a(.*)b')
+            m = re.matcher('axxxxxb')
+            x = m.start(1)"""))).hasMessageThat().contains("Call to start() is not allowed");
   }
 
   @Test
   public void replaceAll() throws ValidationException, IOException {
-    assertThat(skylark.<String>eval("x", ""
-        + "re = re2.compile('a(b*)c')\n"
-        + "m = re.matcher('abbcabbbc')\n"
-        + "m.matches()\n"
-        + "x = m.replace_all('HELLO')")).isEqualTo("HELLOHELLO");
+    assertThat(skylark.<String>eval("x", """
+        re = re2.compile('a(b*)c')
+        m = re.matcher('abbcabbbc')
+        m.matches()
+        x = m.replace_all('HELLO')""")).isEqualTo("HELLOHELLO");
   }
 
   @Test
   public void replaceFirst() throws ValidationException {
-    assertThat(skylark.<String>eval("x", ""
-        + "re = re2.compile('a(b*)c')\n"
-        + "m = re.matcher('abbcabbbc')\n"
-        + "m.matches()\n"
-        + "x = m.replace_first('HELLO')")).isEqualTo("HELLOabbbc");
+    assertThat(skylark.<String>eval("x", """
+        re = re2.compile('a(b*)c')
+        m = re.matcher('abbcabbbc')
+        m.matches()
+        x = m.replace_first('HELLO')""")).isEqualTo("HELLOabbbc");
   }
 
   @Test
   public void replaceAllParam() throws ValidationException {
-    assertThat(skylark.<String>eval("x", ""
-        + "re = re2.compile('a(b*)c')\n"
-        + "m = re.matcher('abbcabbbc')\n"
-        + "m.matches()\n"
-        + "x = m.replace_all('HELLO$1')")).isEqualTo("HELLObbHELLObbb");
+    assertThat(skylark.<String>eval("x", """
+        re = re2.compile('a(b*)c')
+        m = re.matcher('abbcabbbc')
+        m.matches()
+        x = m.replace_all('HELLO$1')""")).isEqualTo("HELLObbHELLObbb");
   }
 
   @Test
   public void quoteQuotes() throws ValidationException {
-    assertThat(skylark.<Boolean>eval("x", ""
-        + "re = re2.compile('a%s' % (re2.quote('.*')))\n"
-        + "x = re.matcher('axxxxxb').matches()\n")).isFalse();
-    assertThat(skylark.<Boolean>eval("x", ""
-        + "re = re2.compile('a%s' % (re2.quote('.*')))\n"
-        + "x = re.matcher('a.*').matches()\n")).isTrue();
+    assertThat(skylark.<Boolean>eval("x", """
+        re = re2.compile('a%s' % (re2.quote('.*')))
+        x = re.matcher('axxxxxb').matches()
+        """)).isFalse();
+    assertThat(skylark.<Boolean>eval("x", """
+        re = re2.compile('a%s' % (re2.quote('.*')))
+        x = re.matcher('a.*').matches()
+        """)).isTrue();
   }
 }

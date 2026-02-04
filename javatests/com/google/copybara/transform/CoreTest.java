@@ -76,10 +76,11 @@ public class CoreTest {
             skylark
                 .<StarlarkAction>eval(
                     "some",
-                    ""
-                        + "def create_f(n):\n"
-                        + "    return core.action(impl = lambda x: x*n)\n"
-                        + "some = create_f(3)")
+                    """
+                    def create_f(n):
+                        return core.action(impl = lambda x: x*n)
+                    some = create_f(3)
+                    """)
                 .getName())
         .isEqualTo("create_f");
   }
@@ -90,7 +91,11 @@ public class CoreTest {
             skylark
                 .<StarlarkCallable>eval(
                     "some",
-                    "" + "def create_f(n):\n" + "    return lambda x: x*n\n" + "some = create_f(3)")
+                    """
+                    def create_f(n):
+                        return lambda x: x*n
+                    some = create_f(3)
+                    """)
                 .getName())
         .isEqualTo("lambda");
   }
@@ -113,7 +118,10 @@ public class CoreTest {
             ValidationException.class,
             () ->
                 skylark.eval(
-                    "f", "core.transform([], name='foo')\ncore.transform([], name='foo')\n"));
+                    "f", """
+                    core.transform([], name='foo')
+                    core.transform([], name='foo')
+                    """));
     assertThat(expected).hasMessageThat().contains("Name `foo` already used.");
   }
 

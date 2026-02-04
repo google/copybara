@@ -123,22 +123,24 @@ public final class ReplaceTest {
   @Test
   public void testAppendFile() throws Exception {
     Transformation transformation =
-        eval("core.transform([\n"
-            + "    core.replace(\n"
-            + "       before = '${end}',\n"
-            + "       after  = 'some append',\n"
-            + "       multiline = True,\n"
-            + "       regex_groups = { 'end' : r'\\z'},\n"
-            + "    )\n"
-            + "],\n"
-            + "reversal = [\n"
-            + "    core.replace(\n"
-            + "       before = 'some append${end}',\n"
-            + "       after = '',\n"
-            + "       multiline = True,\n"
-            + "       regex_groups = { 'end' : r'\\z'},\n"
-            + "    )"
-            + "])");
+        eval("""
+            core.transform([
+                core.replace(
+                   before = '${end}',
+                   after  = 'some append',
+                   multiline = True,
+                   regex_groups = { 'end' : r'\\z'},
+                )
+            ],
+            reversal = [
+                core.replace(
+                   before = 'some append${end}',
+                   after = '',
+                   multiline = True,
+                   regex_groups = { 'end' : r'\\z'},
+                )
+            ])
+            """);
 
     Path file1 = checkoutDir.resolve("file1.txt");
     writeFile(file1, "foo\nbar\nbaz\n");
@@ -151,13 +153,15 @@ public final class ReplaceTest {
 
   @Test
   public void testWithGroups() throws Exception {
-    Replace transformation = eval("core.replace(\n"
-        + "  before = 'foo${middle}bar',\n"
-        + "  after = 'bar${middle}foo',\n"
-        + "  regex_groups = {\n"
-        + "       'middle' : '.*',"
-        + "  },\n"
-        + ")");
+    Replace transformation = eval("""
+        core.replace(
+          before = 'foo${middle}bar',
+          after = 'bar${middle}foo',
+          regex_groups = {
+               'middle' : '.*',
+          },
+        )
+        """);
 
     Path file1 = checkoutDir.resolve("file1.txt");
     writeFile(file1, "fooBAZbar");
@@ -169,17 +173,19 @@ public final class ReplaceTest {
 
   @Test
   public void testWithGroupsAndIgnores() throws Exception {
-    Replace transformation = eval("core.replace(\n"
-        + "  before = '<foo${middle}bar>',\n"
-        + "  after = '<bar${middle}foo>',\n"
-        + "  regex_groups = {\n"
-        + "       'middle' : '.*',"
-        + "  },\n"
-        + "  ignore = [\n"
-        + "       '^#include.*',\n"
-        + "       '.*// IGNORE',\n"
-        + "  ],\n"
-        + ")");
+    Replace transformation = eval("""
+        core.replace(
+          before = '<foo${middle}bar>',
+          after = '<bar${middle}foo>',
+          regex_groups = {
+               'middle' : '.*',
+          },
+          ignore = [
+               '^#include.*',
+               '.*// IGNORE',
+          ],
+        )
+        """);
 
     Path file1 = checkoutDir.resolve("file1.txt");
     writeFile(
@@ -315,16 +321,18 @@ public final class ReplaceTest {
             )\
             """);
 
-    writeFile(checkoutDir.resolve("before_and_after"), ""
-        + "not a match: beforeB\n"
-        + "is a match: befaaaaaoreB # trailing content\n");
+    writeFile(checkoutDir.resolve("before_and_after"), """
+        not a match: beforeB
+        is a match: befaaaaaoreB # trailing content
+        """);
 
     transform(transformation);
 
     assertThatPath(checkoutDir)
-        .containsFile("before_and_after", ""
-                + "not a match: beforeB\n"
-                + "is a match: afBteraaaaa # trailing content\n");
+        .containsFile("before_and_after", """
+                not a match: beforeB
+                is a match: afBteraaaaa # trailing content
+                """);
   }
 
   @Test
@@ -342,18 +350,20 @@ public final class ReplaceTest {
             )\
             """);
 
-    writeFile(checkoutDir.resolve("before_and_after"), ""
-        + "foo/bar/bar\n"
-        + "foo/bar/baz\n"
-        + "foo/baz/baz\n");
+    writeFile(checkoutDir.resolve("before_and_after"), """
+        foo/bar/bar
+        foo/bar/baz
+        foo/baz/baz
+        """);
 
     transform(transformation);
 
     assertThatPath(checkoutDir)
-        .containsFile("before_and_after", ""
-            + "bar\n"
-            + "foo/bar/baz\n"
-            + "baz\n");
+        .containsFile("before_and_after", """
+            bar
+            foo/bar/baz
+            baz
+            """);
   }
 
   @Test
@@ -426,15 +436,15 @@ public final class ReplaceTest {
   @Test
   public void afterDoesNotUseADeclaredGroup() throws Exception {
 
-    String transform = ""
-        + "core.replace(\n"
-        + "  before = 'foo${baz}${bar}',\n"
-        + "  after = 'foo${baz}',\n"
-        + "  regex_groups = {\n"
-        + "       'baz' : '[0-9]+',\n"
-        + "       'bar' : '[a-z]+',\n"
-        + "  },\n"
-        + ")";
+    String transform = """
+        core.replace(
+          before = 'foo${baz}${bar}',
+          after = 'foo${baz}',
+          regex_groups = {
+               'baz' : '[0-9]+',
+               'bar' : '[a-z]+',
+          },
+        )""";
 
     // Not using all the groups in after is OK if we don't reverse the replace in the config
     Replace replace = skylark.eval("r", "r = " + transform);
@@ -445,8 +455,9 @@ public final class ReplaceTest {
 
     // But it fails if we ask for the reverse
     skylark.evalFails("core.reverse([" + transform + "])",
-        "The transformation is not automatically reversible. Add an explicit reversal field with "
-            + "core.transform");
+        """
+        The transformation is not automatically reversible. Add an explicit reversal field with core.transform\
+        """);
   }
 
   @Test
@@ -463,18 +474,18 @@ public final class ReplaceTest {
             )\
             """);
 
-    writeFile(checkoutDir.resolve("before_and_after"), ""
-        + "obviously match: befASDFore/\n"
-        + "should not match: bef\n"
-        + "ore");
+    writeFile(checkoutDir.resolve("before_and_after"), """
+        obviously match: befASDFore/
+        should not match: bef
+        ore""");
 
     transform(transformation);
 
     assertThatPath(checkoutDir)
-        .containsFile("before_and_after", ""
-            + "obviously match: aftASDFer/\n"
-            + "should not match: bef\n"
-            + "ore");
+        .containsFile("before_and_after", """
+            obviously match: aftASDFer/
+            should not match: bef
+            ore""");
   }
 
   @Test
@@ -517,11 +528,12 @@ public final class ReplaceTest {
 
   @Test
   public void showOriginalGlobInToString() throws ValidationException {
-    Replace transformation = eval("core.replace(\n"
-        + "  before = 'before',\n"
-        + "  after = 'after',\n"
-        + "  paths = glob(['foo/**/bar.htm'])"
-        + ")");
+    Replace transformation = eval("""
+        core.replace(
+          before = 'before',
+          after = 'after',
+          paths = glob(['foo/**/bar.htm'])
+        )""");
 
     String string = transformation.toString();
     assertThat(string).contains("glob(include = [\"foo/**/bar.htm\"])");
@@ -746,13 +758,15 @@ public final class ReplaceTest {
 
   @Test
   public void multilinePythonLike() throws Exception {
-    Replace replace = eval("core.replace(\n"
-        + "  before = \"\"\"foo\n"
-        + "bar\"\"\",\n"
-        + "  after = \"\"\"bar\n"
-        + "foo\"\"\",\n"
-        + "  multiline = True,\n"
-        + ")");
+    Replace replace = eval("""
+        core.replace(
+          before = \"\"\"foo
+        bar\"\"\",
+          after = \"\"\"bar
+        foo\"\"\",
+          multiline = True,
+        )
+        """);
 
     writeFile(checkoutDir.resolve("file"), "aaa foo\nbar bbb foo\nbar ccc");
     transform(replace);
@@ -776,120 +790,131 @@ public final class ReplaceTest {
             )\
             """);
 
-    writeFile(checkoutDir.resolve("file"), ""
-        + "a foo\n"
-        + "b foo\n"
-        + "c foo d\n");
+    writeFile(checkoutDir.resolve("file"), """
+        a foo
+        b foo
+        c foo d
+        """);
     transform(replace);
 
     assertThatPath(checkoutDir)
-        .containsFile("file", ""
-            + "a bar\n"
-            + "b bar\n"
-            + "c foo d\n");
+        .containsFile("file", """
+            a bar
+            b bar
+            c foo d
+            """);
   }
 
   @Test
   public void firstOnlyLineByLine() throws Exception {
-    Replace replace = eval(""
-        + "core.replace("
-        + "  before = 'foo',"
-        + "  after = 'bar',"
-        + "  first_only = True,"
-        + ")");
+    Replace replace = eval("""
+        core.replace(
+          before = 'foo',
+          after = 'bar',
+          first_only = True,
+        )
+        """);
 
-    writeFile(checkoutDir.resolve("file"), ""
-        + "foo x y foo\n"
-        + "foo\n");
+    writeFile(checkoutDir.resolve("file"), """
+        foo x y foo
+        foo
+        """);
     transform(replace);
 
     assertThatPath(checkoutDir)
-        .containsFile("file", ""
-            + "bar x y foo\n"
-            + "bar\n");
+        .containsFile("file", """
+            bar x y foo
+            bar
+            """);
   }
 
   @Test
   public void repeatGroupInBeforeTemplate() throws Exception {
-    skylark.evalFails(""
-        + "core.replace("
-        + "  before = '${a}x${b}${a}',"
-        + "  after = '${a}y${b}',"
-        + "  regex_groups = {"
-        + "       'a' : '[0-9]',"
-        + "       'b' : '[LMNOP]',"
-        + "  },\n"
-        + ")",
+    skylark.evalFails("""
+        core.replace(
+          before = '${a}x${b}${a}',
+          after = '${a}y${b}',
+          regex_groups = {
+               'a' : '[0-9]',
+               'b' : '[LMNOP]',
+          },
+        )""",
         "Regex group is used in template multiple times");
   }
 
   @Test
   public void nestedGroups() throws Exception {
-    Replace replace = skylark.eval("r", "r = "
-        + "core.replace("
-        + "  before = 'a${x}b${y}',"
-        + "  after = '${x}${y}',"
-        + "  regex_groups = {'x': 'f(oo)+(d)?', 'y': 'y+'},"
-        + ")");
-    writeFile(checkoutDir.resolve("file"), ""
-        + "afoooodbyyy # matches\n"
-        + "afooodbyyy # no match (odd number of o)\n");
+    Replace replace = skylark.eval("r", """
+        r = core.replace(
+          before = 'a${x}b${y}',
+          after = '${x}${y}',
+          regex_groups = {'x': 'f(oo)+(d)?', 'y': 'y+'},
+        )
+        """);
+    writeFile(checkoutDir.resolve("file"), """
+        afoooodbyyy # matches
+        afooodbyyy # no match (odd number of o)
+        """);
     transform(replace);
 
     assertThatPath(checkoutDir)
-        .containsFile("file", ""
-            + "foooodyyy # matches\n"
-            + "afooodbyyy # no match (odd number of o)\n");
+        .containsFile("file", """
+            foooodyyy # matches
+            afooodbyyy # no match (odd number of o)
+            """);
   }
 
   @Test
   public void firstOnlyMultiline() throws Exception {
-    Replace replace = eval(""
-        + "core.replace("
-        + "  before = 'foo',"
-        + "  after = 'bar',"
-        + "  first_only = True,"
-        + "  multiline = True,"
-        + ")");
+    Replace replace = eval("""
+        core.replace(
+          before = 'foo',
+          after = 'bar',
+          first_only = True,
+          multiline = True,
+        )
+        """);
 
-    writeFile(checkoutDir.resolve("file"), ""
-        + "foo x y foo\n"
-        + "foo\n");
+    writeFile(checkoutDir.resolve("file"), """
+        foo x y foo
+        foo
+        """);
     transform(replace);
 
     assertThatPath(checkoutDir)
-        .containsFile("file", ""
-            + "bar x y foo\n"
-            + "foo\n");
+        .containsFile("file", """
+            bar x y foo
+            foo
+            """);
   }
 
   @Test
   public void emptyInterpolatedName() throws ValidationException {
-    skylark.evalFails(""
-        + "core.replace("
-        + "  before = 'foo${}bar',"
-        + "  after = 'ok',"
-        + ")",
+    skylark.evalFails("""
+        core.replace(
+          before = 'foo${}bar',
+          after = 'ok',
+        )""",
         "Expect non-empty interpolated value name");
   }
 
   @Test
   public void unterminatedInterpolation() throws ValidationException {
-    skylark.evalFails(""
-        + "core.replace("
-        + "  before = 'foo${bar',"
-        + "  after = 'ok',"
-        + ")",
+    skylark.evalFails("""
+        core.replace(
+          before = 'foo${bar',
+          after = 'ok',
+        )""",
         "Unterminated '[$][{]'");
   }
 
   @Test
   public void badCharacterFollowingDollar() throws ValidationException {
-    skylark.evalFails(""
-        + "core.replace("
-        + "  before = 'foo$bar',"
-        + "  after = 'ok',"
-        + ")",
+    skylark.evalFails("""
+        core.replace(
+          before = 'foo$bar',
+          after = 'ok',
+        )""",
         "Expect [$] or [{] after every [$]");
   }
 
@@ -916,30 +941,32 @@ public final class ReplaceTest {
         + "  regex_groups = {'x': '(?m)^.*BEGIN SCRUB[\\\\w\\\\W]*?END SCRUB.*$\\n'},"
         + ")");
 
-    writeFile(checkoutDir.resolve("file"), ""
-        + "foo x y foo\n"
-        + "BEGIN SCRUB\n"
-        + "foo super secret++++\n"
-        + "asldkfjlskdfj\n"
-        + "END SCRUB\n"
-        + "foo\n");
+    writeFile(checkoutDir.resolve("file"), """
+        foo x y foo
+        BEGIN SCRUB
+        foo super secret++++
+        asldkfjlskdfj
+        END SCRUB
+        foo
+        """);
     transform(replace);
 
     assertThatPath(checkoutDir)
-        .containsFile("file", ""
-            + "foo x y foo\n"
-            + "foo\n");
+        .containsFile("file", """
+            foo x y foo
+            foo
+            """);
   }
 
   @Test
   public void doNotProcessSymlinks() throws Exception {
     options.workflowOptions.ignoreNoop = true;
-    Replace replace = eval(""
-        + "core.replace("
-        + "  before = 'a',"
-        + "  after = 'b',"
-        + "  paths = glob(['*'], exclude = ['i-exist']),"
-        + ")");
+    Replace replace = eval("""
+        core.replace(
+          before = 'a',
+          after = 'b',
+          paths = glob(['*'], exclude = ['i-exist']),
+        )""");
     // Invalid symlinks should not cause an exception.
     Files.createSymbolicLink(checkoutDir.resolve("invalid_symlink"), fs.getPath("i-dont-exist"));
 

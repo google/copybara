@@ -93,25 +93,28 @@ public final class TodoReplaceTest {
   @Test
   public void testMapping() throws Exception {
     TodoReplace replace = todoReplace("mapping = { 'aaa': 'foo', 'bbb' : 'bar'}");
-    write("one", ""
-        + "aaa\n"
-        + "// TODO( aaa, bbb,other): Example\n");
+    write("one", """
+        aaa
+        // TODO( aaa, bbb,other): Example
+        """);
     write("two", "// TODO(aaa): Other Example\n");
     run(replace);
 
     assertThatPath(checkoutDir)
-        .containsFile("one", ""
-            + "aaa\n"
-            + "// TODO( foo, bar,other): Example\n")
+        .containsFile("one", """
+            aaa
+            // TODO( foo, bar,other): Example
+            """)
         .containsFile("two", "// TODO(foo): Other Example\n")
         .containsNoMoreFiles();
 
     run(replace.reverse());
 
     assertThatPath(checkoutDir)
-        .containsFile("one", ""
-            + "aaa\n"
-            + "// TODO( aaa, bbb,other): Example\n")
+        .containsFile("one", """
+            aaa
+            // TODO( aaa, bbb,other): Example
+            """)
         .containsFile("two", "// TODO(aaa): Other Example\n")
         .containsNoMoreFiles();
   }
@@ -252,30 +255,34 @@ public final class TodoReplaceTest {
   public void testTags() throws Exception {
     TodoReplace replace = todoReplace("mapping = { 'aaa': 'foo'}");
 
-    write("one.txt", ""
-        + "// TODO(aaa): Example\n"
-        + "// NOTE(aaa): Example\n");
+    write("one.txt", """
+        // TODO(aaa): Example
+        // NOTE(aaa): Example
+        """);
     run(replace);
 
     assertThatPath(checkoutDir)
-        .containsFile("one.txt", ""
-            + "// TODO(foo): Example\n"
-            + "// NOTE(foo): Example\n")
+        .containsFile("one.txt", """
+            // TODO(foo): Example
+            // NOTE(foo): Example
+            """)
         .containsNoMoreFiles();
 
     replace = todoReplace(
         "mapping = { 'aaa': 'foo'}",
         "tags = ['NOTE']");
 
-    write("one.txt", ""
-        + "// TODO(aaa): Example\n"
-        + "// NOTE(aaa): Example\n");
+    write("one.txt", """
+        // TODO(aaa): Example
+        // NOTE(aaa): Example
+        """);
     run(replace);
 
     assertThatPath(checkoutDir)
-        .containsFile("one.txt", ""
-            + "// TODO(aaa): Example\n"
-            + "// NOTE(foo): Example\n")
+        .containsFile("one.txt", """
+            // TODO(aaa): Example
+            // NOTE(foo): Example
+            """)
         .containsNoMoreFiles();
   }
 
@@ -283,15 +290,17 @@ public final class TodoReplaceTest {
   public void testReplaceWithDollar() throws Exception {
     TodoReplace replace = todoReplace("mapping = { 'aaa': '${hello}'}");
 
-    write("one.txt", ""
-        + "// TODO(aaa): test\n"
-        + "aaaaa\n");
+    write("one.txt", """
+        // TODO(aaa): test
+        aaaaa
+        """);
     run(replace);
 
     assertThatPath(checkoutDir)
-        .containsFile("one.txt", ""
-            + "// TODO(${hello}): test\n"
-            + "aaaaa\n")
+        .containsFile("one.txt", """
+            // TODO(${hello}): test
+            aaaaa
+            """)
         .containsNoMoreFiles();
   }
 

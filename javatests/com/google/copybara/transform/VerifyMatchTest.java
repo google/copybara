@@ -62,9 +62,12 @@ public final class VerifyMatchTest {
 
   @Test
   public void invalidRegex() throws ValidationException {
-    skylark.evalFails("core.verify_match(\n"
-            + "  regex = '(open parenthesis',"
-            + ")",
+    skylark.evalFails(
+        """
+        core.verify_match(
+          regex = '(open parenthesis',
+        )\
+        """,
         "Regex '[(]open parenthesis' is invalid.");
   }
 
@@ -89,11 +92,14 @@ public final class VerifyMatchTest {
    */
   @Test
   public void testInvalidUTF8() throws Exception {
-    VerifyMatch transformation = eval(""
-        + "core.verify_match(\n"
-        + "  regex = 'foo',\n"
-        + "  verify_no_match = True,\n"
-        + ")");
+    VerifyMatch transformation =
+        eval(
+            """
+            core.verify_match(
+              regex = 'foo',
+              verify_no_match = True,
+            )\
+            """);
 
     Path f = checkoutDir.resolve("file1.txt");
     Files.write(f, new byte[]{(byte) 0xe2, 0x28, (byte) 0xa1});
@@ -102,10 +108,13 @@ public final class VerifyMatchTest {
 
   @Test
   public void testInvalidUTF8_still_matchs() throws Exception {
-    VerifyMatch transformation = eval(""
-        + "core.verify_match(\n"
-        + "  regex = 'foo',\n"
-        + ")");
+    VerifyMatch transformation =
+        eval(
+            """
+            core.verify_match(
+              regex = 'foo',
+            )\
+            """);
 
     Path f = checkoutDir.resolve("file1.txt");
     Files.write(f, new byte[]{(byte) 0xe2, 0x28, (byte) 0xa1, 'f', 'o', 'o'});
@@ -279,12 +288,16 @@ public final class VerifyMatchTest {
             """);
 
     Path file1 = checkoutDir.resolve("file1.txt");
-    writeFile(file1, "/*\n"
-        + " * Copyright (C) 2016" + " Google Inc.\n"
-        + " *\n"
-        + " * Licensed under the Apache License, Version 2.0 (the \"License\");\n"
-        + " * you may not use this file except in compliance with the License.\n"
-        + " * You may obtain a copy of the License at");
+    writeFile(
+        file1,
+        """
+        /*
+         * Copyright (C) 2016 Google Inc.
+         *
+         * Licensed under the Apache License, Version 2.0 (the "License");
+         * you may not use this file except in compliance with the License.
+         * You may obtain a copy of the License at
+        """);
     transform(transformation);
   }
 
@@ -301,11 +314,13 @@ public final class VerifyMatchTest {
   public void doNotProcessSymlinks() throws Exception {
     VerifyMatch transformation =
         eval(
-            "      core.verify_match("
-                + "  regex='abc',"
-                + "  paths = glob(['**'], exclude = ['i-exist']),"
-                + "  verify_no_match=True"
-                + ")");
+            """
+            core.verify_match(
+              regex='abc',
+              paths = glob(['**'], exclude = ['i-exist']),
+              verify_no_match=True
+            )\
+            """);
     writeFile(checkoutDir.resolve("i-exist"), "abc");
     // Invalid symlinks should not cause an exception
     Files.createSymbolicLink(

@@ -63,12 +63,12 @@ public class FilterReplaceTest {
 
   @Test
   public void testSimple() throws Exception {
-    String original = ""
-        + "afoo\n"
-        + "aaaaaa\n"
-        + "bbbbbb\n"
-        + "abaz\n"
-        + "";
+    String original = """
+        afoo
+        aaaaaa
+        bbbbbb
+        abaz
+        """;
     write("file1.txt", original);
     write("file2.txt", "other\n");
 
@@ -76,11 +76,12 @@ public class FilterReplaceTest {
     transform(transformation);
 
     assertThatPath(checkoutDir)
-        .containsFile("file1.txt", ""
-            + "abar\n"
-            + "aaaaaa\n"
-            + "bbbbbb\n"
-            + "abam\n")
+        .containsFile("file1.txt", """
+            abar
+            aaaaaa
+            bbbbbb
+            abam
+            """)
         .containsFile("file2.txt", "other\n")
         .containsNoMoreFiles();
 
@@ -94,26 +95,29 @@ public class FilterReplaceTest {
 
   @Test
   public void testWithVariablesInContent() throws Exception {
-    String original = ""
-        + "afoo\n"
-        + "a${foo}\\${bar}\n"
-        + "$\n";
+    String original = """
+        afoo
+        a${foo}\\${bar}
+        $
+        """;
     write("file1.txt", original);
 
-    Transformation transformation = eval(""
-        + "core.filter_replace(\n"
-        + "    regex = 'a.*',\n"
-        + "    mapping = {\n"
-        + "        'afoo': 'abar',\n"
-        + "    }\n"
-        + ")\n");
+    Transformation transformation = eval("""
+        core.filter_replace(
+            regex = 'a.*',
+            mapping = {
+                'afoo': 'abar',
+            }
+        )
+        """);
     transform(transformation);
 
     assertThatPath(checkoutDir)
-        .containsFile("file1.txt", ""
-            + "abar\n"
-            + "a${foo}\\${bar}\n"
-            + "$\n")
+        .containsFile("file1.txt", """
+            abar
+            a${foo}\\${bar}
+            $
+            """)
         .containsNoMoreFiles();
   }
 
@@ -146,11 +150,11 @@ public class FilterReplaceTest {
   @Test
   public void testGroup() throws Exception {
 
-    write("file1.txt", ""
-        + "#import <foo>\n"
-        + "#import <aaaa>\n"
-        + "#import <baz>\n"
-        + "");
+    write("file1.txt", """
+        #import <foo>
+        #import <aaaa>
+        #import <baz>
+        """);
     write("file2.txt", "#import<other>\n");
 
     transform(filterReplace(""
@@ -163,10 +167,11 @@ public class FilterReplaceTest {
     ));
 
     assertThatPath(checkoutDir)
-        .containsFile("file1.txt", ""
-            + "#import <bar>\n"
-            + "#import <aaaa>\n"
-            + "#import <bam>\n")
+        .containsFile("file1.txt", """
+            #import <bar>
+            #import <aaaa>
+            #import <bam>
+            """)
         .containsFile("file2.txt", "#import<other>\n")
         .containsNoMoreFiles();
   }
@@ -174,10 +179,10 @@ public class FilterReplaceTest {
   @Test
   public void testGroupOptional() throws Exception {
 
-    write("file1.txt", ""
-        + "#import <foo>\n"
-        + "#import <aaaa>copybara\n"
-        + "");
+    write("file1.txt", """
+        #import <foo>
+        #import <aaaa>copybara
+        """);
     write("file2.txt", "#import<other>\n");
 
     transform(filterReplace(""
@@ -188,20 +193,21 @@ public class FilterReplaceTest {
         + "group = 2,"
     ));
     assertThatPath(checkoutDir)
-        .containsFile("file1.txt", ""
-            + "#import <foo>\n"
-            + "#import <aaaa>baracopy\n")
+        .containsFile("file1.txt", """
+            #import <foo>
+            #import <aaaa>baracopy
+            """)
         .containsFile("file2.txt", "#import<other>\n")
         .containsNoMoreFiles();
   }
 
   @Test
   public void testCustomReverse() throws Exception {
-    String original = ""
-        + "#import <foo1>\n"
-        + "#import <foo2>\n"
-        + "#import <bar1>\n"
-        + "";
+    String original = """
+        #import <foo1>
+        #import <foo2>
+        #import <bar1>
+        """;
     write("file.txt", original);
 
     Transformation t = filterReplace(""
@@ -215,10 +221,11 @@ public class FilterReplaceTest {
     transform(t);
 
     assertThatPath(checkoutDir)
-        .containsFile("file.txt",""
-            + "#import <bar1> // by Copybara\n"
-            + "#import <bar2> // by Copybara\n"
-            + "#import <bar1>\n")
+        .containsFile("file.txt","""
+            #import <bar1> // by Copybara
+            #import <bar2> // by Copybara
+            #import <bar1>
+            """)
         .containsNoMoreFiles();
 
     transform(t.reverse());
@@ -231,10 +238,11 @@ public class FilterReplaceTest {
   @Test
   public void testCoreReplace() throws Exception {
 
-    String original = ""
-        + "import foo.bar.last.Class;\n"
-        + "import other.bar.last.Class;\n"
-        + "import bar.foo.last.Class;\n";
+    String original = """
+        import foo.bar.last.Class;
+        import other.bar.last.Class;
+        import bar.foo.last.Class;
+        """;
     write("file.txt", original);
 
     Transformation t = filterReplace(""
@@ -258,10 +266,11 @@ public class FilterReplaceTest {
     transform(t);
 
     assertThatPath(checkoutDir)
-        .containsFile("file.txt", ""
-            + "import prefix.foo.bar.last.last.Class;\n"
-            + "import other.bar.last.Class;\n"
-            + "import prefix.bar.foo.last.last.Class;\n")
+        .containsFile("file.txt", """
+            import prefix.foo.bar.last.last.Class;
+            import other.bar.last.Class;
+            import prefix.bar.foo.last.last.Class;
+            """)
         .containsNoMoreFiles();
 
     transform(t.reverse());
@@ -274,21 +283,22 @@ public class FilterReplaceTest {
   @Test
   public void testNestedFilterReplace() throws Exception {
 
-    String original = ""
-        + "before\n"
-        + "// BEGIN SCRUBBER\n"
-        + "// some comment\n"
-        + "// some other comment\n"
-        + "//   with indentation\n"
-        + "// END SCRUBBER\n"
-        + "// other comment\n"
-        + "some code"
-        + "// BEGIN SCRUBBER\n"
-        + "// some comment\n"
-        + "// some other comment\n"
-        + "//   with indentation\n"
-        + "// END SCRUBBER\n"
-        + "after\n";
+    String original = """
+        before
+        // BEGIN SCRUBBER
+        // some comment
+        // some other comment
+        //   with indentation
+        // END SCRUBBER
+        // other comment
+        some code
+        // BEGIN SCRUBBER
+        // some comment
+        // some other comment
+        //   with indentation
+        // END SCRUBBER
+        after
+        """;
     write("file.txt", original);
 
     Transformation t = filterReplace(""
@@ -310,17 +320,18 @@ public class FilterReplaceTest {
     transform(t);
 
     assertThatPath(checkoutDir)
-        .containsFile("file.txt", ""
-            + "before\n"
-            + "some comment\n"
-            + "some other comment\n"
-            + "  with indentation\n"
-            + "// other comment\n"
-            + "some code"
-            + "some comment\n"
-            + "some other comment\n"
-            + "  with indentation\n"
-            + "after\n")
+        .containsFile("file.txt", """
+            before
+            some comment
+            some other comment
+              with indentation
+            // other comment
+            some code
+            some comment
+            some other comment
+              with indentation
+            after
+            """)
         .containsNoMoreFiles();
   }
 
@@ -329,9 +340,10 @@ public class FilterReplaceTest {
    */
   @Test
   public void testCoreReplaceAll() throws Exception {
-    write("file.txt", ""
-        + "Some text // TODO(foo, bar, baz)\n"
-        + "more text\n");
+    write("file.txt", """
+        Some text // TODO(foo, bar, baz)
+        more text
+        """);
 
     Transformation t = eval(CoreModule.TODO_FILTER_REPLACE_EXAMPLE);
 
