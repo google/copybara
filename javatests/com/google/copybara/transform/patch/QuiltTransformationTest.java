@@ -169,6 +169,26 @@ public final class QuiltTransformationTest {
         .containsNoMoreFiles();
   }
 
+  /** Running quilt twice is currently not possible, but should have a readable error message. */
+  @Test
+  public void transformationUpdatePatchTest_twiceThrowsException() throws Exception {
+    Files.write(checkoutDir.resolve("file1.txt"), "new line\n\nline1\nfoo\nline3".getBytes(UTF_8));
+    Files.write(checkoutDir.resolve("file2.txt"), "bar\n".getBytes(UTF_8));
+    QuiltTransformation transform =
+        new QuiltTransformation(
+            Optional.of(seriesFile),
+            ImmutableList.of(patchFile),
+            patchingOptions,
+            /* reverse= */ false,
+            Location.BUILTIN);
+    transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () -> transform.transform(TransformWorks.of(checkoutDir, "testmsg", console)));
+    assertThat(e).hasMessageThat().contains("Destination already has a 'patches' directory");
+  }
+
   @Test
   public void transformationUpdateDoesNotApplyError_validationException() throws Exception {
     String diff =

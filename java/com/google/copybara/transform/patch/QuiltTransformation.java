@@ -151,7 +151,7 @@ public final class QuiltTransformation implements Transformation {
   }
 
   private ImmutableMap<String, String> initializeQuilt(Path checkoutDir, Map<String, String> env)
-      throws IOException {
+      throws ValidationException, IOException {
     // Creates quiltrc file and sets up QUILTRC environment variable.
     ImmutableMap<String, String> quiltOptions = ImmutableMap.of(
       "QUILT_NO_DIFF_TIMESTAMPS", "1",
@@ -184,11 +184,29 @@ public final class QuiltTransformation implements Transformation {
     // Creates and checks for necessary directories.
     Path patchesDir = checkoutDir.resolve("patches");
     // Fails if "patches" already exists.
-    Files.createDirectory(patchesDir);
-    Files.createFile(patchesDir.resolve("series"));
+    try {
+      Files.createDirectory(patchesDir);
+    } catch (FileAlreadyExistsException e) {
+      throw new ValidationException(
+          String.format(
+              "Destination already has a 'patches' directory - was the transform run twice?: %s",
+              e.getMessage()));
+    }
+    try {
+      Files.createFile(patchesDir.resolve("series"));
+    } catch (FileAlreadyExistsException e) {
+      throw new ValidationException(
+          String.format("Destination already has a 'patches/series' file: %s", e.getMessage()));
+    }
     Path pcDir = checkoutDir.resolve(".pc");
     if (Files.exists(pcDir)) {
-      throw new FileAlreadyExistsException(pcDir.toRealPath().toString());
+      try {
+        throw new ValidationException(
+            ".pc aready exists at " + pcDir.toAbsolutePath().toRealPath());
+      } catch (IOException e) {
+        throw new ValidationException(
+            String.format("Destination already has a '.pc' directory: %s", e.getMessage()));
+      }
     }
     return envBuilder.buildOrThrow();
   }
