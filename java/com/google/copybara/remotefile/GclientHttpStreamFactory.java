@@ -22,6 +22,7 @@ import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.copybara.credentials.CredentialIssuingException;
 import com.google.copybara.credentials.CredentialRetrievalException;
 import com.google.copybara.http.auth.AuthInterceptor;
@@ -50,7 +51,8 @@ public class GclientHttpStreamFactory implements HttpStreamFactory {
   }
 
   @Override
-  public InputStream open(URL url, @Nullable AuthInterceptor auth)
+  public InputStream open(
+      URL url, @Nullable AuthInterceptor auth, ImmutableMultimap<String, String> headers)
       throws IOException, CredentialRetrievalException, CredentialIssuingException {
     HttpRequest req =
         javaNet
@@ -59,6 +61,7 @@ public class GclientHttpStreamFactory implements HttpStreamFactory {
             .setReadTimeout((int) timeout.toMillis())
             .setConnectTimeout((int) timeout.toMillis())
             .setUseRawRedirectUrls(true);
+    headers.forEach((k, v) -> req.getHeaders().set(k, v));
     if (auth != null) {
       req.setInterceptor(auth.interceptor());
     }
