@@ -8,7 +8,7 @@ filegroup(
         "BUILD",
         "//third_party/bazel/main/java/net/starlark/java/annot:srcs",
         "//third_party/bazel/main/java/net/starlark/java/eval:srcs",
-        "//third_party/bazel/main/java/net/starlark/java/lib/json:srcs",
+        "//third_party/bazel/main/java/net/starlark/java/lib:srcs",
         "//third_party/bazel/main/java/net/starlark/java/spelling:srcs",
         "//third_party/bazel/main/java/net/starlark/java/syntax:srcs",
     ],

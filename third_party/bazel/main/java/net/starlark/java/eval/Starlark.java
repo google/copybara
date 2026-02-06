@@ -83,7 +83,7 @@ public final class Starlark {
     }
 
     @Override
-    public void repr(Printer printer) {
+    public void repr(Printer printer, StarlarkSemantics semantics) {
       printer.append("<unbound>");
     }
   }
@@ -334,7 +334,7 @@ public final class Starlark {
       case StarlarkValue x -> {
         @Nullable StarlarkType type = x.getStarlarkType();
         if (type == null) {
-          // TODO: #28325 - For types with StarlarkClassDescriptors, return the type stored in the
+          // TODO: #28325 - For types with ClassDescriptors, return the type stored in the
           // descriptor.
           type = Types.ANY;
         }
@@ -551,19 +551,9 @@ public final class Starlark {
     return new Printer().str(x, semantics).toString();
   }
 
-  /**
-   * A dummy version of {@link #repr(Object)} that accepts an unused {@link StarlarkSemantics}
-   * argument, existing purely for source interop purposes. DO NOT USE in Bazel. For now, this
-   * method exists only for API migration of non-Bazel users of the Starlark interpreter; see
-   * b/478302712.
-   */
-  public static String repr(Object x, StarlarkSemantics unused) {
-    return repr(x);
-  }
-
   /** Returns the string form of a value as if by the Starlark expression {@code repr(x)}. */
-  public static String repr(Object x) {
-    return new Printer().repr(x).toString();
+  public static String repr(Object x, StarlarkSemantics semantics) {
+    return new Printer().repr(x, semantics).toString();
   }
 
   /** Returns a string formatted as if by the Starlark expression {@code pattern % arguments}. */
@@ -938,7 +928,7 @@ public final class Starlark {
       if (desc == null) {
         throw errorf("'%s' object is not callable", type(fn));
       }
-      callable = new BuiltinFunction(fn, desc.getName(), desc);
+      callable = BuiltinFunction.of(fn, desc, thread.getSemantics());
     }
     return callable;
   }
@@ -1023,7 +1013,7 @@ public final class Starlark {
       if (method.isStructField()) {
         return method.callField(x, semantics, mu);
       } else {
-        return new BuiltinFunction(x, name, method);
+        return BuiltinFunction.of(x, method, semantics);
       }
     }
 
@@ -1066,7 +1056,7 @@ public final class Starlark {
     return StarlarkList.copyOf(mu, fields);
   }
 
-  // --- methods related to StarlarkMethod-annotated classes ---
+  // --- methods related to StarlarkBuiltin-annotated classes ---
 
   /**
    * Returns a map of Java methods and corresponding StarlarkMethod annotations for each annotated
@@ -1124,7 +1114,7 @@ public final class Starlark {
             String.format("addMethods(%s): method %s has structField=true", cls.getName(), name));
       }
 
-      env.put(name, new BuiltinFunction(v, name, e.getValue()));
+      env.put(name, BuiltinFunction.of(v, e.getValue(), semantics));
     }
   }
 

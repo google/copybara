@@ -7,19 +7,19 @@ package(
 
 filegroup(
     name = "srcs",
-    srcs = glob(["**"]),
+    srcs = glob(["*"]) + [
+        "//third_party/bazel/main/java/net/starlark/java/lib/json:srcs",
+    ],
     visibility = ["//third_party/bazel:__subpackages__"],
 )
 
-# Starlark json module
 java_library(
-    name = "json",
-    srcs = ["Json.java"],
+    name = "lib",
+    srcs = glob(["*.java"]),
     visibility = ["//third_party/bazel/main/java/net/starlark/java:clients"],
     deps = [
         "//third_party:guava",
-        "//third_party/bazel/main/java/net/starlark/java/annot",
+        "//third_party:jsr305",
         "//third_party/bazel/main/java/net/starlark/java/eval",
-        "//third_party/bazel/main/java/net/starlark/java/lib",
     ],
 )

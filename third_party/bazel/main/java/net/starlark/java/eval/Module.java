@@ -26,7 +26,6 @@ import java.util.Set;
 import javax.annotation.Nullable;
 import net.starlark.java.syntax.Resolver;
 import net.starlark.java.syntax.TypeConstructor;
-import net.starlark.java.syntax.Types;
 
 /**
  * A {@link Module} represents a Starlark module, a container of global variables populated by
@@ -255,13 +254,6 @@ public final class Module implements Resolver.Module {
   @Override
   @Nullable
   public TypeConstructor getTypeConstructor(String name) throws Undefined {
-    // TODO: #27728 - Hack until StarlarkType is correctly represented by Starlark runtime symbols:
-    // Hardcoded check for the universal type symbols before looking at the module.
-    TypeConstructor constructor = Types.TYPE_UNIVERSE.get(name);
-    if (constructor != null) {
-      return constructor;
-    }
-
     Resolver.Scope scope = resolve(name);
     Object value;
     switch (scope) {
