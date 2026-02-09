@@ -49,25 +49,27 @@ import org.junit.runners.JUnit4;
 public final class QuiltTransformationTest {
 
   private static final String OLDDIFF =
-      ""
-          + "--- a/file1.txt\n"
-          + "+++ b/file1.txt\n"
-          + "@@ -1,3 +1,3 @@\n"
-          + " line1\n"
-          + "-foo\n"
-          + "+bar\n"
-          + " line3\n"
-          + "\\ No newline at end of file\n"
-          + "--- a/file2.txt\n"
-          + "+++ b/file2.txt\n"
-          + "@@ -1 +1 @@\n"
-          + "-bar\n"
-          + "+new bar\n";
+      """
+      --- a/file1.txt
+      +++ b/file1.txt
+      @@ -1,3 +1,3 @@
+       line1
+      -foo
+      +bar
+       line3
+      \\ No newline at end of file
+      --- a/file2.txt
+      +++ b/file2.txt
+      @@ -1 +1 @@
+      -bar
+      +new bar
+      """;
 
   private static final String SERIES =
-      ""
-          + "# Comment line\n"
-          + "diff.patch";
+      """
+      # Comment line
+      diff.patch
+      """;
 
   private OptionsBuilder options;
   private PatchingOptions patchingOptions;
@@ -139,22 +141,23 @@ public final class QuiltTransformationTest {
   @Test
   public void transformationUpdatePatchTest() throws Exception {
     String expectedNewDiff =
-        ""
-            + "--- a/file1.txt\n"
-            + "+++ b/file1.txt\n"
-            + "@@ -1,5 +1,5 @@\n"
-            + " new line\n"
-            + " \n"
-            + " line1\n"
-            + "-foo\n"
-            + "+bar\n"
-            + " line3\n"
-            + "\\ No newline at end of file\n"
-            + "--- a/file2.txt\n"
-            + "+++ b/file2.txt\n"
-            + "@@ -1 +1 @@\n"
-            + "-bar\n"
-            + "+new bar\n";
+        """
+        --- a/file1.txt
+        +++ b/file1.txt
+        @@ -1,5 +1,5 @@
+         new line
+        \s
+         line1
+        -foo
+        +bar
+         line3
+        \\ No newline at end of file
+        --- a/file2.txt
+        +++ b/file2.txt
+        @@ -1 +1 @@
+        -bar
+        +new bar
+        """;
     Files.write(checkoutDir.resolve("file1.txt"), "new line\n\nline1\nfoo\nline3".getBytes(UTF_8));
     Files.write(checkoutDir.resolve("file2.txt"), "bar\n".getBytes(UTF_8));
     QuiltTransformation transform =
@@ -192,7 +195,13 @@ public final class QuiltTransformationTest {
   @Test
   public void transformationUpdateDoesNotApplyError_validationException() throws Exception {
     String diff =
-        "" + "--- a/file.txt\n" + "+++ b/file.txt\n" + "@@ -1 +1 @@\n" + "-foo\n" + "+new foo\n";
+        """
+        --- a/file.txt
+        +++ b/file.txt
+        @@ -1 +1 @@
+        -foo
+        +new foo
+        """;
     Files.write(checkoutDir.resolve("file.txt"), "bar\n".getBytes(UTF_8));
     ImmutableMap<String, byte[]> configFiles =
         ImmutableMap.of(

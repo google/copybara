@@ -79,15 +79,16 @@ public class TransformDebugTest {
     mockAnswer("Replace foo1", "d", "c");
     runWorkflow();
     // One diff is shown when stopped, then one is shown when d is pressed
-    verify(console, times(2)).info(eq(""
-        + "\n"
-        + "diff --git a/before/test1.txt b/after/test1.txt\n"
-        + "index 1715acd..05c4fe6 100644\n"
-        + "--- a/before/test1.txt\n"
-        + "+++ b/after/test1.txt\n"
-        + "@@ -1 +1 @@\n"
-        + "-foo1\n"
-        + "+bar1\n"));
+    verify(console, times(2)).info(eq("""
+
+        diff --git a/before/test1.txt b/after/test1.txt
+        index 1715acd..05c4fe6 100644
+        --- a/before/test1.txt
+        +++ b/after/test1.txt
+        @@ -1 +1 @@
+        -foo1
+        +bar1
+        """));
   }
 
   @Test

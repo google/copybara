@@ -125,11 +125,13 @@ public class MetadataModuleTest {
         + ")");
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
     assertThat(change.getChangesSummary())
-        .isEqualTo(""
-            + "Importing foo project:\n"
-            + "\n"
-            + "  - 1 second commit by Foo Bar <foo@bar.com>\n"
-            + "  - 2 third commit by Foo Baz <foo@baz.com>\n");
+        .isEqualTo(
+            """
+            Importing foo project:
+
+              - 1 second commit by Foo Bar <foo@bar.com>
+              - 2 third commit by Foo Baz <foo@baz.com>
+            """);
     assertThat(change.getAuthor()).isEqualTo(DEFAULT_AUTHOR);
   }
 
@@ -145,12 +147,13 @@ public class MetadataModuleTest {
         + ")");
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
     assertThat(change.getChangesSummary())
-        .isEqualTo(""
-            + "Importing foo version 2:\n"
-            + "\n"
-            + "  - 2 third commit by Foo Baz <foo@baz.com>\n"
-            + "  - 1 second commit by Foo Bar <foo@bar.com>\n"
-            + "");
+        .isEqualTo(
+            """
+            Importing foo version 2:
+
+              - 2 third commit by Foo Baz <foo@baz.com>
+              - 1 second commit by Foo Bar <foo@bar.com>
+            """);
     assertThat(change.getAuthor()).isEqualTo(DEFAULT_AUTHOR);
   }
 
@@ -269,11 +272,13 @@ public class MetadataModuleTest {
         + ")");
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
     assertThat(change.getChangesSummary())
-        .isEqualTo(""
-            + "Importing foo project:\n"
-            + "\n"
-            + "  - 1 second commit by Public Foo Bar <public@foobar.com>\n"
-            + "  - 2 third commit by Public Foo Baz <public@foobaz.com>\n");
+        .isEqualTo(
+            """
+            Importing foo project:
+
+              - 1 second commit by Public Foo Bar <public@foobar.com>
+              - 2 third commit by Public Foo Baz <public@foobaz.com>
+            """);
     assertThat(change.getAuthor()).isEqualTo(DEFAULT_AUTHOR);
   }
 
@@ -288,11 +293,13 @@ public class MetadataModuleTest {
         + ")");
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
     assertThat(change.getChangesSummary())
-        .isEqualTo(""
-            + "Importing foo project:\n"
-            + "\n"
-            + "  - second commit\n"
-            + "  - third commit\n");
+        .isEqualTo(
+            """
+            Importing foo project:
+
+              - second commit
+              - third commit
+            """);
     assertThat(change.getAuthor()).isEqualTo(DEFAULT_AUTHOR);
   }
 
@@ -304,11 +311,13 @@ public class MetadataModuleTest {
         + ")");
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
     assertThat(change.getChangesSummary())
-        .isEqualTo(""
-            + "Importing foo project:\n"
-            + "\n"
-            + "  - 2 third commit by Foo Baz <foo@baz.com>\n"
-            + "  - 1 second commit by Foo Bar <foo@bar.com>\n");
+        .isEqualTo(
+            """
+            Importing foo project:
+
+              - 2 third commit by Foo Baz <foo@baz.com>
+              - 1 second commit by Foo Bar <foo@bar.com>
+            """);
     assertThat(change.getAuthor()).isEqualTo(DEFAULT_AUTHOR);
   }
 
@@ -321,11 +330,13 @@ public class MetadataModuleTest {
         + ")");
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
     assertThat(change.getChangesSummary())
-        .isEqualTo(""
-            + "Importing foo project:\n"
-            + "\n"
-            + "  - 2 by Foo Baz <foo@baz.com>\n"
-            + "  - 1 by Foo Bar <foo@bar.com>\n");
+        .isEqualTo(
+            """
+            Importing foo project:
+
+              - 2 by Foo Baz <foo@baz.com>
+              - 1 by Foo Bar <foo@bar.com>
+            """);
     assertThat(change.getAuthor()).isEqualTo(DEFAULT_AUTHOR);
   }
 
@@ -338,20 +349,22 @@ public class MetadataModuleTest {
         + ")");
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
     assertThat(change.getChangesSummary())
-        .isEqualTo(""
-            + "Importing foo project:\n"
-            + "--\n"
-            + "2 by Foo Baz <foo@baz.com>:\n"
-            + "\n"
-            + "third commit\n"
-            + "\n"
-            + "Extended text\n"
-            + "--\n"
-            + "1 by Foo Bar <foo@bar.com>:\n"
-            + "\n"
-            + "second commit\n"
-            + "\n"
-            + "Extended text\n");
+        .isEqualTo(
+            """
+            Importing foo project:
+            --
+            2 by Foo Baz <foo@baz.com>:
+
+            third commit
+
+            Extended text
+            --
+            1 by Foo Bar <foo@bar.com>:
+
+            second commit
+
+            Extended text
+            """);
     assertThat(change.getAuthor()).isEqualTo(DEFAULT_AUTHOR);
   }
 
@@ -365,12 +378,14 @@ public class MetadataModuleTest {
         + ")");
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
     assertThat(change.getChangesSummary())
-        .isEqualTo(""
-            + "Importing foo project:\n"
-            + "--\n"
-            + "2 by Foo Baz <foo@baz.com>\n"
-            + "--\n"
-            + "1 by Foo Bar <foo@bar.com>\n");
+        .isEqualTo(
+            """
+            Importing foo project:
+            --
+            2 by Foo Baz <foo@baz.com>
+            --
+            1 by Foo Bar <foo@bar.com>
+            """);
     assertThat(change.getAuthor()).isEqualTo(DEFAULT_AUTHOR);
   }
 
@@ -380,10 +395,12 @@ public class MetadataModuleTest {
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
 
     assertThat(change.getChangesSummary())
-        .isEqualTo(""
-            + "third commit\n"
-            + "\n"
-            + "Extended text");
+        .isEqualTo(
+            """
+            third commit
+
+            Extended text\
+            """);
     assertThat(change.getAuthor()).isEqualTo(FOO_BAZ);
   }
 
@@ -416,10 +433,13 @@ public class MetadataModuleTest {
     runWorkflow(WorkflowMode.SQUASH, "metadata.use_last_change(author=False)");
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
 
-    assertThat(change.getChangesSummary()).isEqualTo(""
-        + "third commit\n"
-        + "\n"
-        + "Extended text");
+    assertThat(change.getChangesSummary())
+        .isEqualTo(
+            """
+            third commit
+
+            Extended text\
+            """);
     assertThat(change.getAuthor()).isEqualTo(DEFAULT_AUTHOR);
   }
 
@@ -433,10 +453,13 @@ public class MetadataModuleTest {
         + "metadata.use_last_change()");
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
 
-    assertThat(change.getChangesSummary()).isEqualTo(""
-        + "third commit\n"
-        + "\n"
-        + "Extended text");
+    assertThat(change.getChangesSummary())
+        .isEqualTo(
+            """
+            third commit
+
+            Extended text\
+            """);
     assertThat(change.getAuthor()).isEqualTo(new Author("Public Foo Baz", "public@foobaz.com"));
   }
 
@@ -759,20 +782,26 @@ public class MetadataModuleTest {
     Workflow<?, ?> wf = createWorkflow(WorkflowMode.ITERATIVE,
         "metadata.add_header('[HEADER with ${LABEL}]')");
 
-    origin.addSimpleChange(0, ""
-        + "A change\n"
-        + "\n"
-        + "LABEL=some label\n");
+    origin.addSimpleChange(
+        0,
+        """
+        A change
+
+        LABEL=some label
+        """);
 
     wf.run(workdir, ImmutableList.of());
 
     ProcessedChange change = Iterables.getLast(destination.processed);
 
-    assertThat(change.getChangesSummary()).isEqualTo(""
-        + "[HEADER with some label]\n"
-        + "A change\n"
-        + "\n"
-        + "LABEL=some label\n");
+    assertThat(change.getChangesSummary())
+        .isEqualTo(
+            """
+            [HEADER with some label]
+            A change
+
+            LABEL=some label
+            """);
   }
 
   @Test
@@ -782,10 +811,13 @@ public class MetadataModuleTest {
     Workflow<?, ?> wf = createWorkflow(WorkflowMode.ITERATIVE,
         "metadata.replace_message('[HEADER with ${LABEL}]\\n')");
 
-    origin.addSimpleChange(0, ""
-        + "A change\n"
-        + "\n"
-        + "LABEL=some label\n");
+    origin.addSimpleChange(
+        0,
+        """
+        A change
+
+        LABEL=some label
+        """);
 
     wf.run(workdir, ImmutableList.of());
 
@@ -904,19 +936,25 @@ public class MetadataModuleTest {
     Workflow<?, ?> wf = createWorkflow(WorkflowMode.ITERATIVE,
         "metadata.add_header('[HEADER with ${LABEL}]: ', new_line = False)");
 
-    origin.addSimpleChange(0, ""
-        + "A change\n"
-        + "\n"
-        + "LABEL=some label\n");
+    origin.addSimpleChange(
+        0,
+        """
+        A change
+
+        LABEL=some label
+        """);
 
     wf.run(workdir, ImmutableList.of());
 
     ProcessedChange change = Iterables.getLast(destination.processed);
 
-    assertThat(change.getChangesSummary()).isEqualTo(""
-        + "[HEADER with some label]: A change\n"
-        + "\n"
-        + "LABEL=some label\n");
+    assertThat(change.getChangesSummary())
+        .isEqualTo(
+            """
+            [HEADER with some label]: A change
+
+            LABEL=some label
+            """);
   }
 
   @Test
@@ -1009,12 +1047,12 @@ public class MetadataModuleTest {
             () ->
                 checkScrubber(
                     "Automated g4 rollback of changelist",
-                    "metadata.scrubber(\n"
+                    "metadata.scrubber("
                         + "    '^Automated g4 rollback of changelist*$',\n"
                         + "    replacement =\n"
-                        + "        'BEGIN_PUBLIC\\n"
+                        + "        \"\"\"BEGIN_PUBLIC\\n"
                         + "Automated rollback of changelist $1\\n"
-                        + "END_PUBLIC',\n"
+                        + "END_PUBLIC\"\"\",\n"
                         + ")",
                     "not important"));
     assertThat(e)
@@ -1027,11 +1065,20 @@ public class MetadataModuleTest {
   @Test
   public void testScrubberForTags() throws Exception {
     checkScrubber(
-        "this\nis\nvery confidential<public>but this is public\nvery public\n</public>"
-            + "\nand this is a secret too\n",
+        """
+        this
+        is
+        very confidential<public>but this is public
+        very public
+        </public>
+        and this is a secret too
+        """,
         "metadata.scrubber('^(?:\\n|.)*<public>((?:\\n|.)*)</public>(?:\\n|.)*$', "
             + "replacement = '$1')",
-        "but this is public\nvery public\n");
+        """
+        but this is public
+        very public
+        """);
   }
 
   @Test
@@ -1093,8 +1140,13 @@ public class MetadataModuleTest {
   @Test
   public void testScrubberForLabel() throws Exception {
     checkScrubber(
-        "this is public\nvery public\nCONFIDENTIAL:"
-            + "\nand this\nis a secret\n",
+        """
+        this is public
+        very public
+        CONFIDENTIAL:
+        and this
+        is a secret
+        """,
         "metadata.scrubber('(^|\\n)CONFIDENTIAL:(.|\\n)*')",
         "this is public\nvery public");
   }
@@ -1146,12 +1198,16 @@ public class MetadataModuleTest {
   @Test
   public void testMapAuthor_failIfNotFound() throws Exception {
     options.setLastRevision(origin.resolve("HEAD").asString());
-    Workflow<?, ?> wf = createWorkflow(WorkflowMode.ITERATIVE, ""
-        + "metadata.map_author({\n"
-        + "    'a' : 'x <x@example.com>',\n"
-        + "    'b@example.com' : 'y <y@example.com>',\n"
-        + "    'c <c@example.com>' : 'z <z@example.com>',\n"
-        + "}, fail_if_not_found = True)");
+    Workflow<?, ?> wf =
+        createWorkflow(
+            WorkflowMode.ITERATIVE,
+            """
+            metadata.map_author({
+                'a' : 'x <x@example.com>',
+                'b@example.com' : 'y <y@example.com>',
+                'c <c@example.com>' : 'z <z@example.com>',
+            }, fail_if_not_found = True)\
+            """);
 
     origin.setAuthor(new Author("a", "a@example.com"))
         .addSimpleChange(0, "change 0");
@@ -1178,11 +1234,15 @@ public class MetadataModuleTest {
 
   @Test
   public void testMapAuthor_reversible() throws Exception {
-    Transformation m = skylark.eval("m", "m = "
-        + "metadata.map_author({\n"
-        + "    'a <a@example.com>' : 'b <b@example.com>',\n"
-        + "},"
-        + "reversible = True)");
+    Transformation m =
+        skylark.eval(
+            "m",
+            """
+            m = metadata.map_author({
+                'a <a@example.com>' : 'b <b@example.com>',
+            },
+            reversible = True)\
+            """);
 
     TransformWork work = TransformWorks.of(workdir, "test", testingConsole);
     work.setAuthor(new Author("a", "a@example.com"));
@@ -1197,21 +1257,29 @@ public class MetadataModuleTest {
 
   @Test
   public void testMapAuthor_nonReversible() throws Exception {
-    Transformation m = skylark.eval("m", "m = "
-        + "metadata.map_author({\n"
-        + "    'a' : 'b <b@example.com>',\n"
-        + "},"
-        + "reversible = True)");
+    Transformation m =
+        skylark.eval(
+            "m",
+            """
+            m = metadata.map_author({
+                'a' : 'b <b@example.com>',
+            },
+            reversible = True)\
+            """);
     assertThrows(NonReversibleValidationException.class, () -> m.reverse());
   }
 
   @Test
   public void testMapAuthor_noop_reversal() throws Exception {
-    Transformation m = skylark.eval("m", "m = "
-        + "metadata.map_author({\n"
-        + "    'a' : 'b <b@example.com>',\n"
-        + "},"
-        + "noop_reverse = True)");
+    Transformation m =
+        skylark.eval(
+            "m",
+            """
+            m = metadata.map_author({
+                'a' : 'b <b@example.com>',
+            },
+            noop_reverse = True)\
+            """);
     TransformWork work = TransformWorks.of(workdir, "test", testingConsole);
     work.setAuthor(new Author("a", "foo@foo"));
     m.transform(work);
@@ -1222,11 +1290,15 @@ public class MetadataModuleTest {
 
   @Test
   public void testMapAuthor_reverseFaiIfNotFound() throws Exception {
-    Transformation m = skylark.eval("m", "m = "
-        + "metadata.map_author({\n"
-        + "    'a <a@example.com>' : 'b <b@example.com>',\n"
-        + "},"
-        + "reversible = True, reverse_fail_if_not_found = True)");
+    Transformation m =
+        skylark.eval(
+            "m",
+            """
+            m = metadata.map_author({
+                'a <a@example.com>' : 'b <b@example.com>',
+            },
+            reversible = True, reverse_fail_if_not_found = True)\
+            """);
 
     TransformWork work = TransformWorks.of(workdir, "test", testingConsole);
     work.setAuthor(new Author("x", "x@example.com"));
@@ -1259,15 +1331,19 @@ public class MetadataModuleTest {
       throws IOException, ValidationException {
     passThruAuthoring();
 
-    Config config = loadConfig(""
-        + "core.workflow(\n"
-        + "    name = 'default',\n"
-        + "    origin =  testing.origin(),\n"
-        + "    authoring = " + authoring + "\n,"
-        + "    destination = testing.destination(),\n"
-        + "    mode = '" + mode + "',\n"
-        + "    transformations = [" + Joiner.on(", ").join(transforms) + "]\n"
-        + ")\n");
+    Config config =
+        loadConfig(
+            """
+            core.workflow(
+                name = 'default',
+                origin =  testing.origin(),
+                authoring = %s,
+                destination = testing.destination(),
+                mode = '%s',
+                transformations = [%s]
+            )
+            """
+                .formatted(authoring, mode, Joiner.on(", ").join(transforms)));
     return (Workflow) config.getMigration("default");
   }
 }

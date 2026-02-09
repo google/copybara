@@ -95,18 +95,22 @@ public class PatchingOptionsTest {
 
   private void checkPatchAlreadyApplied(String forwardError, String reverseError)
       throws IOException, InsideGitDirException, ValidationException {
-    String before = ""
-        + "foo\n"
-        + "more foo\n"
-        + "for foo == foo\n"
-        + "   fooooo\n";
+    String before =
+        """
+        foo
+        more foo
+        for foo == foo
+           fooooo
+        """;
 
-    String after = ""
-        + "foo\n"
-        + "some edit\n"
-        + "more foo\n"
-        + "if foo == foo\n"
-        + "   fooooo\n";
+    String after =
+        """
+        foo
+        some edit
+        more foo
+        if foo == foo
+           fooooo
+        """;
 
     writeFile(left, "file.txt", before);
     writeFile(right, "file.txt", after);
@@ -462,14 +466,15 @@ public class PatchingOptionsTest {
     writeFile(
         destination,
         "file.txt",
-        "" // Does not have the first line as left and right. Patch won't match the file entirely.
-            + "zzzzzzzzz\n"
-            + "zzzzzzzzzzzzzz\n"
-            + "zzzzzzzzzzzzzzzzzzzz\n"
-            + "bar\n"
-            + "foo\n"
-            + "bar");
-
+        // Does not have the first line as left and right. Patch won't match the file entirely.
+        """
+        zzzzzzzzz
+        zzzzzzzzzzzzzz
+        zzzzzzzzzzzzzzzzzzzz
+        bar
+        foo
+        bar\
+        """);
     byte[] diffContents = DiffUtil.diff(left, right, VERBOSE, System.getenv());
 
     runPatch(destination, diffContents, /*reverse=*/ false, STRIP_SLASHES, NO_EXCLUDED);

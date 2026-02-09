@@ -47,23 +47,23 @@ import org.junit.runners.JUnit4;
 public class PatchTransformationTest {
 
   private static final String DIFF =
-      ""
-          + "diff --git a/test.txt b/test.txt\n"
-          + "index 257cc56..5716ca5 100644\n"
-          + "--- a/test.txt\n"
-          + "+++ b/test.txt\n"
-          + "@@ -1 +1 @@\n"
-          + "-foo\n"
-          + "+bar\n"
-          + "diff --git a/excluded/file2.txt b/excluded/file2.txt\n"
-          + "index ba0e162..9c08216 100644\n"
-          + "--- a/excluded/file2.txt\n"
-          + "+++ b/excluded/file2.txt\n"
-          + "@@ -1 +1 @@\n"
-          + "-bar\n"
-          + "\\ No newline at end of file\n"
-          + "+new bar\n"
-          + "\\ No newline at end of file";
+      """
+      diff --git a/test.txt b/test.txt
+      index 257cc56..5716ca5 100644
+      --- a/test.txt
+      +++ b/test.txt
+      @@ -1 +1 @@
+      -foo
+      +bar
+      diff --git a/excluded/file2.txt b/excluded/file2.txt
+      index ba0e162..9c08216 100644
+      --- a/excluded/file2.txt
+      +++ b/excluded/file2.txt
+      @@ -1 +1 @@
+      -bar
+      \\ No newline at end of file
+      +new bar
+      \\ No newline at end of file""";
 
   private OptionsBuilder options;
   private PatchingOptions patchingOptions;
@@ -174,14 +174,15 @@ public class PatchTransformationTest {
   public void testPathStrip() throws Exception {
     patchingOptions.skipVersionCheck = true;
     Files.write(checkoutDir.resolve("test.txt"), "foo\n".getBytes(UTF_8));
-    skylark.addConfigFile("diff.patch",       ""
-        + "diff --git test.txt test.txt\n"
-        + "index 257cc56..5716ca5 100644\n"
-        + "--- test.txt\n"
-        + "+++ test.txt\n"
-        + "@@ -1 +1 @@\n"
-        + "-foo\n"
-        + "+bar\n");
+    skylark.addConfigFile("diff.patch",       """
+        diff --git test.txt test.txt
+        index 257cc56..5716ca5 100644
+        --- test.txt
+        +++ test.txt
+        @@ -1 +1 @@
+        -foo
+        +bar
+        """);
     PatchTransformation transformation =
         skylark.eval(
             "r",
@@ -204,14 +205,15 @@ public class PatchTransformationTest {
     Files.write(subdir.resolve("test.txt"), "foo\n".getBytes(UTF_8));
     skylark.addConfigFile(
         "diff.patch",
-        ""
-            + "diff --git dir/test.txt dir/test.txt\n"
-            + "index 257cc56..5716ca5 100644\n"
-            + "--- dir/test.txt\n"
-            + "+++ dir/test.txt\n"
-            + "@@ -1 +1 @@\n"
-            + "-foo\n"
-            + "+bar\n");
+        """
+            diff --git dir/test.txt dir/test.txt
+            index 257cc56..5716ca5 100644
+            --- dir/test.txt
+            +++ dir/test.txt
+            @@ -1 +1 @@
+            -foo
+            +bar
+            """);
     PatchTransformation transformation =
         skylark.eval(
             "r",
