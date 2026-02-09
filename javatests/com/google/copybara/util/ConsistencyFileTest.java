@@ -115,14 +115,15 @@ public class ConsistencyFileTest {
 
     assertThat(new String(consistencyFile.getDiffContent(), UTF_8))
         .isEqualTo(
-            ""
-                + "diff --git a/baseline/test/foo b/destination/test/foo\n"
-                + "index 180b47c..ce01362 100644\n"
-                + "--- a/baseline/test/foo\n"
-                + "+++ b/destination/test/foo\n"
-                + "@@ -1 +1 @@\n"
-                + "-baseline\n"
-                + "+hello\n");
+            """
+            diff --git a/baseline/test/foo b/destination/test/foo
+            index 180b47c..ce01362 100644
+            --- a/baseline/test/foo
+            +++ b/destination/test/foo
+            @@ -1 +1 @@
+            -baseline
+            +hello
+            """);
   }
 
   @Test
@@ -155,21 +156,22 @@ public class ConsistencyFileTest {
 
     assertThat(new String(consistencyFile.getDiffContent(), UTF_8))
         .isEqualTo(
-            ""
-                + "diff --git a/baseline/test/bar b/destination/test/bar\n"
-                + "index 55208f4..8630a48 100644\n"
-                + "--- a/baseline/test/bar\n"
-                + "+++ b/destination/test/bar\n"
-                + "@@ -1 +1 @@\n"
-                + "-baseline test 2\n"
-                + "+destination test 2\n"
-                + "diff --git a/baseline/test/foo b/destination/test/foo\n"
-                + "index fd50d5b..06c9033 100644\n"
-                + "--- a/baseline/test/foo\n"
-                + "+++ b/destination/test/foo\n"
-                + "@@ -1 +1 @@\n"
-                + "-baseline test\n"
-                + "+destination test\n");
+            """
+            diff --git a/baseline/test/bar b/destination/test/bar
+            index 55208f4..8630a48 100644
+            --- a/baseline/test/bar
+            +++ b/destination/test/bar
+            @@ -1 +1 @@
+            -baseline test 2
+            +destination test 2
+            diff --git a/baseline/test/foo b/destination/test/foo
+            index fd50d5b..06c9033 100644
+            --- a/baseline/test/foo
+            +++ b/destination/test/foo
+            @@ -1 +1 @@
+            -baseline test
+            +destination test
+            """);
   }
 
   @Test

@@ -57,9 +57,10 @@ public final class ConsolesTest {
 
   @Test
   public void logLines_oneLine() {
-    Consoles.logLines(console, "fooprefix-", ""
-        + "hello\n"
-        + "goodbye\n");
+    Consoles.logLines(console, "fooprefix-", """
+        hello
+        goodbye
+        """);
     console.assertThat()
         .equalsNext(MessageType.INFO, "fooprefix-hello")
         .equalsNext(MessageType.INFO, "fooprefix-goodbye")
@@ -68,9 +69,10 @@ public final class ConsolesTest {
 
   @Test
   public void verboseLogLines_oneLine() {
-    Consoles.verboseLogLines(console, "fooprefix-", ""
-        + "hello\n"
-        + "goodbye\n");
+    Consoles.verboseLogLines(console, "fooprefix-", """
+        hello
+        goodbye
+        """);
     console.assertThat()
         .equalsNext(MessageType.VERBOSE, "fooprefix-hello")
         .equalsNext(MessageType.VERBOSE, "fooprefix-goodbye")
@@ -87,10 +89,11 @@ public final class ConsolesTest {
 
   @Test
   public void logLines_oneEmptyLineSurroundedByNonEmpty() {
-    Consoles.logLines(console, "fooprefix-", ""
-        + "x\n"
-        + "\n"
-        + "y\n");
+    Consoles.logLines(console, "fooprefix-", """
+        x
+
+        y
+        """);
     console.assertThat()
         .equalsNext(MessageType.INFO, "fooprefix-x")
         .equalsNext(MessageType.INFO, "fooprefix-")

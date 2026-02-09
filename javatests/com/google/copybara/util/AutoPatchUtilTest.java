@@ -44,15 +44,38 @@ public class AutoPatchUtilTest {
   private Path root;
 
   String fileFormat =
-      "public static %s() {\n"
-          + "  System.out.println(\"%s\");\n"
-          + "}\n\n\n\n\n\n\n\n\n\n\n\n\n"
-          + "public static common() {"
-          + "  System.out.println(\"common\");\n"
-          + "}\n\n\n\n\n\n\n\n\n\n\n\n\n"
-          + "public static %sAgain() {\n"
-          + "  System.out.println(\"%s again\");"
-          + "}";
+      """
+      public static %s() {
+        System.out.println(\"%s\");
+      }
+
+
+
+
+
+
+
+
+
+
+
+
+      public static common() {  System.out.println(\"common\");
+      }
+
+
+
+
+
+
+
+
+
+
+
+
+      public static %sAgain() {
+        System.out.println(\"%s again\");}""";
 
   public Map<String, String> testEnv;
 

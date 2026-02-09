@@ -304,11 +304,11 @@ public class GlobTest {
   @Test
   public void testWithDirs()
       throws IOException, ValidationException, RepoException {
-    PathMatcher pathMatcher = createPathMatcher(""
-        + "glob(\n"
-        + "  include = ['**/*.java'], \n"
-        + "  exclude = ['**/Generated*.java']\n"
-        + ")");
+    PathMatcher pathMatcher = createPathMatcher("""
+        glob(
+          include = ['**/*.java'],
+          exclude = ['**/Generated*.java']
+        )""");
     assertThat(pathMatcher.matches(workdir.resolve("foo/Some.java"))).isTrue();
     assertThat(pathMatcher.matches(workdir.resolve("foo/GeneratedSome.java"))).isFalse();
     // Doesn't match because '**/' matches when there is already one directory segment.

@@ -210,21 +210,20 @@ public final class MergeImportToolTest {
             String.format("Merge error for path %s", originWorkdir.resolve(fileName)));
     assertThat(Files.readString(originWorkdir.resolve(fileName)))
         .isEqualTo(
-                "<<<<<<<"
-                    + " origin/foo.txt\n"
-                    + "d\n"
-                    + "e\n"
-                    + "f\n"
-                    + "|||||||"
-                    + " baseline/foo.txt\n"
-                    + "a\n"
-                    + "b\n"
-                    + "c\n"
-                    + "=======\n"
-                    + "g\n"
-                    + "h\n"
-                    + "i>>>>>>>"
-                    + " destination/foo.txt\n");
+            """
+            <<<<<<< origin/foo.txt
+            d
+            e
+            f
+            ||||||| baseline/foo.txt
+            a
+            b
+            c
+            =======
+            g
+            h
+            i>>>>>>> destination/foo.txt
+            """);
   }
 
   @Test

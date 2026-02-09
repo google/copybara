@@ -71,11 +71,23 @@ public class ApplyDestinationPatchTest {
   @Test
   public void simpleMergeSuccessTest() throws Exception {
     String filename = testName.getMethodName() + ".txt";
-    writeFile(baseline, filename, "" + "baseline\n" + "baseline\n");
-    writeFile(left, filename, "" + "baseline\n" + "baseline\n");
-    writeFile(right, filename, "" + "internal\n" + "internal\n");
+    writeFile(baseline, filename, """
+        baseline
+        baseline
+        """);
+    writeFile(left, filename, """
+        baseline
+        baseline
+        """);
+    writeFile(right, filename, """
+        internal
+        internal
+        """);
 
-    String expected = "" + "internal\n" + "internal\n";
+    String expected = """
+        internal
+        internal
+        """;
 
     MergeResult output =
         getUnderTest()
@@ -91,11 +103,29 @@ public class ApplyDestinationPatchTest {
   @Test
   public void externalChangePropagated() throws Exception {
     String filename = testName.getMethodName() + ".txt";
-    writeFile(baseline, filename, "" + "baseline\n" + "baseline\n" + "baseline\n");
-    writeFile(left, filename, "" + "extra line\n" + "baseline\n" + "baseline\n" + "baseline\n");
-    writeFile(right, filename, "" + "baseline\n" + "baseline\n" + "baseline\n");
+    writeFile(baseline, filename, """
+        baseline
+        baseline
+        baseline
+        """);
+    writeFile(left, filename, """
+        extra line
+        baseline
+        baseline
+        baseline
+        """);
+    writeFile(right, filename, """
+        baseline
+        baseline
+        baseline
+        """);
 
-    String expected = "" + "extra line\n" + "baseline\n" + "baseline\n" + "baseline\n";
+    String expected = """
+        extra line
+        baseline
+        baseline
+        baseline
+        """;
 
     MergeResult output =
         getUnderTest()
@@ -111,12 +141,26 @@ public class ApplyDestinationPatchTest {
   @Test
   public void internalPatchPreserved() throws Exception {
     String filename = testName.getMethodName() + ".txt";
-    writeFile(baseline, filename, "" + "baseline\n" + "baseline\n" + "baseline\n");
+    writeFile(baseline, filename, """
+        baseline
+        baseline
+        baseline
+        """);
     writeFile(left, filename, "" + "baseline\n" + "baseline\n" + "baseline\n");
     writeFile(
-        right, filename, "" + "internal patch\n" + "baseline\n" + "baseline\n" + "baseline\n");
+        right, filename, """
+        internal patch
+        baseline
+        baseline
+        baseline
+        """);
 
-    String expected = "" + "internal patch\n" + "baseline\n" + "baseline\n" + "baseline\n";
+    String expected = """
+        internal patch
+        baseline
+        baseline
+        baseline
+        """;
 
     MergeResult output =
         getUnderTest()
@@ -155,7 +199,14 @@ public class ApplyDestinationPatchTest {
         right
         """);
 
-    String expected = "" + "a\n" + "<<<<<<<\n" + "left\n" + "=======\n" + "right\n" + ">>>>>>>\n";
+    String expected = """
+        a
+        <<<<<<<
+        left
+        =======
+        right
+        >>>>>>>
+        """;
 
     MergeResult output =
         getUnderTest()
