@@ -138,18 +138,18 @@ public class HttpEndpointTest {
         (method, url, req, resp) -> assertThat(req.getHeaders().get("authorization")).isNotEmpty());
       starlark.eval(
           "resp",
-          String.format(""
-              + "endpoint = testing.get_endpoint(\n"
-              + "  http.endpoint(hosts = ["
-              + "    http.host(host='foo.com',"
-              + "      auth=credentials.username_password("
-              + "        credentials.static_value('%s'),"
-              + "        credentials.static_secret('password', '%s')))])\n"
-              + ")\n"
-              + "resp = endpoint.post(\n"
-              + "  url = \"http://foo.com\",\n"
-              + "  auth = True"
-              + ")", username, password));
+          String.format("""
+              endpoint = testing.get_endpoint(
+                http.endpoint(hosts = [
+                  http.host(host='foo.com',
+                    auth=credentials.username_password(
+                      credentials.static_value('%s'),
+                      credentials.static_secret('password', '%s')))])
+              )
+              resp = endpoint.post(
+                url = "http://foo.com",
+                auth = True
+              )""", username, password));
     }
 
   @Test
@@ -161,14 +161,15 @@ public class HttpEndpointTest {
         (method, url, req, resp) -> assertThat(req.getHeaders().get("authorization")).isNotEmpty());
     HttpEndpoint endpoint = starlark.eval(
         "endpoint",
-        String.format(""
-            + "endpoint = testing.get_endpoint(\n"
-            + "  http.endpoint(hosts = ["
-            + "    http.host(host='foo.com',"
-            + "      auth=credentials.username_password("
-            + "        credentials.static_value('%s'),"
-            + "        credentials.static_secret('password', '%s')))])\n"
-            + ")\n", username, password));
+        String.format("""
+endpoint = testing.get_endpoint(
+  http.endpoint(hosts = [
+    http.host(host='foo.com',
+      auth=credentials.username_password(
+        credentials.static_value('%s'),
+        credentials.static_secret('password', '%s')))])
+)
+""", username, password));
     ImmutableList<ImmutableSetMultimap<String, String>> creds = endpoint.describeCredentials();
     assertThat(creds).hasSize(2);
     assertThat(creds.get(0)).containsExactly(
@@ -192,13 +193,15 @@ public class HttpEndpointTest {
         starlark.eval(
             "endpoint",
             String.format(
-                "endpoint = testing.get_endpoint(\n"
-                    + "  http.endpoint("
-                    + "    hosts = ['foo.com'],"
-                    + "    issuers = {"
-                    + "      'TEST_CREDS': credentials.static_secret('password', '%s'),"
-                    + "    }),"
-                    + ")\n",
+                """
+endpoint = testing.get_endpoint(
+  http.endpoint(
+    hosts = ['foo.com'],
+    issuers = {
+      'TEST_CREDS': credentials.static_secret('password', '%s'),
+    }),
+)
+""",
                 password));
     ImmutableList<ImmutableSetMultimap<String, String>> creds = endpoint.describeCredentials();
     assertThat(creds).hasSize(1);
@@ -220,18 +223,18 @@ public class HttpEndpointTest {
     HttpEndpointResponse fooRes =
         starlark.eval(
             "fooRes",
-            "endpoint = testing.get_endpoint(http.endpoint(hosts = [\"foo.com\","
-                + " \"bar.com\"]))\n"
-                + "fooRes = endpoint.get(url = \"http://foo.com\")\n"
-                + "barRes = endpoint.get(url = \"http://bar.com\")\n");
+            """
+            endpoint = testing.get_endpoint(http.endpoint(hosts = ["foo.com", "bar.com"]))
+            fooRes = endpoint.get(url = "http://foo.com")
+            """);
     assertThat(fooRes.getStatusCode()).isEqualTo(204);
     HttpEndpointResponse barRes =
         starlark.eval(
             "barRes",
-            "endpoint = testing.get_endpoint(http.endpoint(hosts = [\"foo.com\","
-                + " \"bar.com\"]))\n"
-                + "fooRes = endpoint.get(url = \"http://foo.com\")\n"
-                + "barRes = endpoint.get(url = \"http://bar.com\")\n");
+            """
+            endpoint = testing.get_endpoint(http.endpoint(hosts = ["foo.com", "bar.com"]))
+            barRes = endpoint.get(url = "http://bar.com")
+            """);
     assertThat(barRes.getStatusCode()).isEqualTo(204);
   }
 
@@ -283,23 +286,24 @@ public class HttpEndpointTest {
         });
 
     String config =
-        ""
-            + "def test_action(ctx):\n"
-            + "    resp = ctx.destination.get(url = \"http://foo.com\")\n"
-            + "    p = ctx.fs.new_path('foo')\n"
-            + "    resp.download(p)\n"
-            + "    return ctx.success()\n"
-            + "\n"
-            + "core.action_migration(\n"
-            + "    name = 'default',\n"
-            + "    origin = testing.dummy_trigger(),\n"
-            + "    endpoints = struct(\n"
-            + "        destination = http.endpoint(host = \"foo.com\")\n"
-            + "    ),"
-            + "    filesystem = True,\n"
-            + "    action = test_action,\n"
-            + ")\n"
-            + "\n";
+        """
+            def test_action(ctx):
+                resp = ctx.destination.get(url = "http://foo.com")
+                p = ctx.fs.new_path('foo')
+                resp.download(p)
+                return ctx.success()
+
+            core.action_migration(
+                name = 'default',
+                origin = testing.dummy_trigger(),
+                endpoints = struct(
+                    destination = http.endpoint(host = "foo.com")
+                ),
+                filesystem = True,
+                action = test_action,
+            )
+
+            """;
 
     Migration actionMigration = loadConfig(config).getMigration("default");
     actionMigration.run(workdir, ImmutableList.of("12345"));
@@ -328,16 +332,18 @@ public class HttpEndpointTest {
     HttpEndpointResponse resp =
         starlark.eval(
             "resp",
-            "endpoint = testing.get_endpoint(\n"
-                + "  http.endpoint(host = \"foo.com\")\n"
-                + ")\n"
-                + "resp = endpoint.get(\n"
-                + "  url = \"http://foo.com\",\n"
-                + "  headers = {\n"
-                + "    \"Content-Type\": \"application/json\",\n"
-                + "    \"Authorization\": \"Basic asdf\",\n"
-                + "  }"
-                + ")\n");
+            """
+            endpoint = testing.get_endpoint(
+              http.endpoint(host = "foo.com")
+            )
+            resp = endpoint.get(
+              url = "http://foo.com",
+              headers = {
+                "Content-Type": "application/json",
+                "Authorization": "Basic asdf",
+              }
+            )
+            """);
     assertThat(resp.getStatusCode()).isEqualTo(204);
   }
 
@@ -397,13 +403,14 @@ public class HttpEndpointTest {
             () ->
                 starlark.eval(
                     "resp",
-                    "endpoint = testing.get_endpoint(\n"
-                        + "  http.endpoint(hosts = [\"foohost.com\", \"foohost2.com\","
-                        + " \"foohost3.com\"])\n"
-                        + ")\n"
-                        + "resp = endpoint.get(\n"
-                        + "  url = \"http://notfoohost.com\",\n"
-                        + ")\n"));
+                    """
+                    endpoint = testing.get_endpoint(
+                      http.endpoint(hosts = ["foohost.com", "foohost2.com", "foohost3.com"])
+                    )
+                    resp = endpoint.get(
+                      url = "http://notfoohost.com",
+                    )
+                    """));
     assertThat(e).hasMessageThat().contains("Illegal host");
   }
 
@@ -432,10 +439,11 @@ public class HttpEndpointTest {
     HttpEndpoint endpoint =
         starlark.eval(
             "endpoint",
-            "endpoint = testing.get_endpoint(\n"
-                + "  http.endpoint(host = \"badword.com\", checker ="
-                + " testing.dummy_checker())\n"
-                + ")\n");
+            """
+            endpoint = testing.get_endpoint(
+              http.endpoint(host = "badword.com", checker = testing.dummy_checker())
+            )
+            """);
     assertThrows(
         CheckerException.class, () -> endpoint.get("http://badword.com", Dict.of(null), false));
   }
@@ -506,10 +514,11 @@ public class HttpEndpointTest {
     HttpEndpoint endpoint =
         starlark.eval(
             "endpoint",
-            "endpoint = testing.get_endpoint(\n"
-                + "  http.endpoint(host = \"foo.com\", checker ="
-                + " testing.dummy_checker())\n"
-                + ")\n");
+            """
+            endpoint = testing.get_endpoint(
+              http.endpoint(host = "foo.com", checker = testing.dummy_checker())
+            )
+            """);
     assertThrows(
         CheckerException.class,
         () -> endpoint.post("http://foo.com", Dict.of(null), new TestContent(), false));

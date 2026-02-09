@@ -82,18 +82,18 @@ public class AuthTest {
     starlark.eval(
         "resp",
         String.format(
-            ""
-                + "endpoint = testing.get_endpoint(\n"
-                + "  http.endpoint(hosts = ["
-                + "    http.host(host='foo.com',"
-                + "      auth=credentials.username_password("
-                + "        credentials.static_value('%s'),"
-                + "        credentials.static_secret('password', '%s')))])\n"
-                + ")\n"
-                + "resp = endpoint.post(\n"
-                + "  url = \"http://foo.com\",\n"
-                + "  auth = True"
-                + ")",
+            """
+                endpoint = testing.get_endpoint(
+                  http.endpoint(hosts = [
+                    http.host(host='foo.com',
+                      auth=credentials.username_password(
+                        credentials.static_value('%s'),
+                        credentials.static_secret('password', '%s')))])
+                )
+                resp = endpoint.post(
+                  url = "http://foo.com",
+                  auth = True
+                )""",
             username, password));
   }
 
@@ -108,18 +108,18 @@ public class AuthTest {
     starlark.eval(
         "resp",
         String.format(
-            ""
-                + "endpoint = testing.get_endpoint(\n"
-                + "  http.endpoint(hosts = ["
-                + "    http.host(host='foo.com',"
-                + "      auth=http.bearer_auth("
-                + "        creds=credentials.static_value('%s')"
-                + "      ))])\n"
-                + ")\n"
-                + "resp = endpoint.post(\n"
-                + "  url = \"http://foo.com\",\n"
-                + "  auth = True"
-                + ")",
+            """
+                endpoint = testing.get_endpoint(
+                  http.endpoint(hosts = [
+                    http.host(host='foo.com',
+                      auth=http.bearer_auth(
+                        creds=credentials.static_value('%s')
+                      ))])
+                )
+                resp = endpoint.post(
+                  url = "http://foo.com",
+                  auth = True
+                )""",
             token));
   }
 
@@ -146,19 +146,19 @@ public class AuthTest {
     starlark.eval(
         "resp",
         String.format(
-            ""
-                + "endpoint = testing.get_endpoint(\n"
-                + "  http.endpoint(hosts = ["
-                + "    http.host(host='foo.com',"
-                + "      auth=credentials.username_password("
-                + "        credentials.toml_key_source('%s'),"
-                + "        credentials.static_secret('password', '%s'),"
-                + "        ))])\n"
-                + ")\n"
-                + "resp = endpoint.post(\n"
-                + "  url = \"http://foo.com\",\n"
-                + "  auth = True"
-                + ")",
+            """
+                endpoint = testing.get_endpoint(
+                  http.endpoint(hosts = [
+                    http.host(host='foo.com',
+                      auth=credentials.username_password(
+                        credentials.toml_key_source('%s'),
+                        credentials.static_secret('password', '%s'),
+                        ))])
+                )
+                resp = endpoint.post(
+                  url = "http://foo.com",
+                  auth = True
+                )""",
             tomlKeyPath, password));
   }
 }

@@ -199,10 +199,11 @@ public class HttpEndpointMultipartContentTest {
     HttpEndpoint endpoint =
         starlark.eval(
             "endpoint",
-            "endpoint = testing.get_endpoint(\n"
-                + "  http.endpoint(host = \"foo.com\", checker ="
-                + " testing.dummy_checker())\n"
-                + ")\n");
+            """
+            endpoint = testing.get_endpoint(
+              http.endpoint(host = "foo.com", checker = testing.dummy_checker())
+            )
+            """);
     var unused =
         endpoint.post(
             "http://foo.com",
@@ -217,10 +218,11 @@ public class HttpEndpointMultipartContentTest {
     HttpEndpoint endpoint =
         starlark.eval(
             "endpoint",
-            "endpoint = testing.get_endpoint(\n"
-                + "  http.endpoint(host = \"foo.com\", checker ="
-                + " testing.dummy_checker())\n"
-                + ")\n");
+            """
+            endpoint = testing.get_endpoint(
+              http.endpoint(host = "foo.com", checker = testing.dummy_checker())
+            )
+            """);
     assertThrows(
         CheckerException.class,
         () ->
@@ -237,10 +239,11 @@ public class HttpEndpointMultipartContentTest {
     HttpEndpoint endpoint =
         starlark.eval(
             "endpoint",
-            "endpoint = testing.get_endpoint(\n"
-                + "  http.endpoint(host = \"foo.com\", checker ="
-                + " testing.dummy_checker())\n"
-                + ")\n");
+            """
+            endpoint = testing.get_endpoint(
+              http.endpoint(host = "foo.com", checker = testing.dummy_checker())
+            )
+            """);
 
     // create a file in the checkout directory
     Path testPath = tempFolder.getRoot().toPath().resolve("testfile.txt");

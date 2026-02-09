@@ -49,20 +49,23 @@ public class GitToGitGeneratorTest {
                 },
                 Mode.AUTO,
                 console));
-    assertThat(config).isEqualTo(""
-        + "core.workflow(\n"
-        + "    name = 'my_name',\n"
-        + "    origin = git.origin(\n"
-        + "        url = \"http://example.com/origin\",\n"
-        + "    ), \n"
-        + "    destination = git.destination(\n"
-        + "        url = \"http://example.com/destination\",\n"
-        + "    ),\n"
-        + "    authoring = authoring.pass_thru(\"author <author@example.com>\"),\n"
-        + "\n"
-        + "    transformations = [\n"
-        + "        # TODO: Insert your transformations here\n"
-        + "    ],\n"
-        + ")\n");
+    assertThat(config)
+        .isEqualTo(
+"""
+core.workflow(
+    name = 'my_name',
+    origin = git.origin(
+        url = "http://example.com/origin",
+    ),\s
+    destination = git.destination(
+        url = "http://example.com/destination",
+    ),
+    authoring = authoring.pass_thru("author <author@example.com>"),
+
+    transformations = [
+        # TODO: Insert your transformations here
+    ],
+)
+""");
   }
 }
