@@ -189,8 +189,9 @@ public final class QuiltTransformation implements Transformation {
     } catch (FileAlreadyExistsException e) {
       throw new ValidationException(
           String.format(
-              "Destination already has a 'patches' directory - was the transform run twice?: %s",
-              e.getMessage()));
+              "Destination already has a 'patches' directory - was the quilt transform %s run"
+                  + " twice?: %s",
+              location(), e.getMessage()));
     }
     try {
       Files.createFile(patchesDir.resolve("series"));
