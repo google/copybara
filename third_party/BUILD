@@ -247,10 +247,3 @@ java_library(
         "@copybara_maven//:org_tukaani_xz",
     ],
 )
-
-# Required temporarily until @io_bazel//src/main/java/com/google/devtools/build/lib/syntax/...
-# is fixed
-exports_files([
-    "bazel.patch",
-    "rules_jvm_external_6.5.patch",
-])
