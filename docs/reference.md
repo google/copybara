@@ -6061,7 +6061,7 @@ Parameter | Description
 <a id="list.index" aria-hidden="true"></a>
 ### list.index
 
-Returns the index in the list of the first item whose value is x. It is an error if there is no such item.
+Returns the index in the list of the first item whose value is x. It is an error if there is no such item. If <code>start</code> and <code>end</code> are given, they restrict the range searched in the same manner as slicing.
 
 <code><a href="#int">int</a></code> <code>list.index(<a href=#list.index.x>x</a>, <a href=#list.index.start>start</a>=unbound, <a href=#list.index.end>end</a>=unbound)</code>
 
@@ -6086,7 +6086,7 @@ Inserts an item at a given position.
 
 Parameter | Description
 --------- | -----------
-<span id=list.insert.index href=#list.insert.index>index</span> | <code><a href="#int">int</a></code><br><p>The index of the given position.</p>
+<span id=list.insert.index href=#list.insert.index>index</span> | <code><a href="#int">int</a></code><br><p>The index the item will be at after insertion. If the index is out of range, it's transformed into an effective index in the range from 0 to the list's previous length, inclusive, in the same manner as for the start index of a slice operator.</p>
 <span id=list.insert.item href=#list.insert.item>item</span> | <code>?</code><br><p>The item.</p>
 
 <a id="list.pop" aria-hidden="true"></a>
