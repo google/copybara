@@ -6883,6 +6883,7 @@ Name | Type | Description
 ---- | ---- | -----------
 <span style="white-space: nowrap;">`--patch-skip-version-check`</span> | *boolean* | Skip checking the version of patch and assume it is fine
 <span style="white-space: nowrap;">`--patch-use-git-apply`</span> | *boolean* | Don't use GNU Patch and instead use 'git apply'
+<span style="white-space: nowrap;">`--patch-validate-on-load`</span> | *boolean* | Enable or disable extended patch series validation
 <span style="white-space: nowrap;">`--quilt-bin`</span> | *string* | Path to quilt command
 
 <a id="patch.quilt_apply" aria-hidden="true"></a>
@@ -6934,6 +6935,7 @@ Name | Type | Description
 ---- | ---- | -----------
 <span style="white-space: nowrap;">`--patch-skip-version-check`</span> | *boolean* | Skip checking the version of patch and assume it is fine
 <span style="white-space: nowrap;">`--patch-use-git-apply`</span> | *boolean* | Don't use GNU Patch and instead use 'git apply'
+<span style="white-space: nowrap;">`--patch-validate-on-load`</span> | *boolean* | Enable or disable extended patch series validation
 <span style="white-space: nowrap;">`--quilt-bin`</span> | *string* | Path to quilt command
 
 

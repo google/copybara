@@ -57,9 +57,10 @@ public class PatchingOptions implements Option {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
   }
 
-  @Parameter(names = "--patch-validate-on-load", hidden = true,
+  @Parameter(
+      names = "--patch-validate-on-load",
       arity = 1,
-      description = "Path for GNU Patch command")
+      description = "Enable or disable extended patch series validation")
   public boolean validateOnLoad = true;
 
   @Parameter(names = SKIP_VERSION_CHECK_FLAG, description =
