@@ -114,6 +114,14 @@ public class GitRepository {
   private static final Pattern DEFAULT_BRANCH_PATTERN =
       Pattern.compile("(?s)ref: (refs/heads/(\\w+)).*");
 
+  // Pattern for matching SCP-like URLs, such as [user@]host:path.
+  private static final Pattern SCP_URI_PATTERN =
+      Pattern.compile("^(?:([a-z][a-z0-9+-]+)@)?([a-zA-Z0-9_.-]+):([^/].*|/|/[^/].*)$");
+
+  // Pattern for matching URLs with a scheme, such as http:// or rpc://.
+  private static final Pattern URL_WITH_SCHEME_PATTERN =
+      Pattern.compile("^([a-z][a-z0-9+-]+://)(.*)$");
+
   private static final Pattern FAILED_REBASE =
       Pattern.compile("(Failed to merge in the changes|Could not apply.*)");
   private static final ImmutableList<Pattern> REF_NOT_FOUND_ERRORS =
@@ -1610,10 +1618,8 @@ public class GitRepository {
       }
       FileUtil.checkNormalizedRelative(path);
       // If the url is relative, construct a url using the parent module remote url.
-      if (url.startsWith("../")) {
-        url = siblingUrl(currentRemoteUrl, submoduleName, url.substring(3));
-      } else if (url.startsWith("./")) {
-        url = siblingUrl(currentRemoteUrl, submoduleName, url.substring(2));
+      if (url.startsWith("../") || url.startsWith("./")) {
+        url = resolveRelativeUrl(currentRemoteUrl, submoduleName, url);
       }
       try {
         result.add(new Submodule(validateUrl(url), submoduleName, branch, path));
@@ -1664,15 +1670,100 @@ public class GitRepository {
     return result.build();
   }
 
-  private String siblingUrl(String currentRemoteUrl, String submoduleName, String relativeUrl)
-      throws RepoException {
-    int idx = currentRemoteUrl.lastIndexOf('/');
-    if (idx == -1) {
-      throw new RepoException(String.format(
-          "Cannot find the parent url for '%s'. But git submodule '%s' is"
-              + " configured with url '%s'", currentRemoteUrl, submoduleName, relativeUrl));
+  /**
+   * Resolves a relative URL for a submodule based on the current remote URL of the parent
+   * repository. This method handles both standard URL schemes (http, rpc, sso) and SCP-like URLs.
+   *
+   * @param currentRemoteUrl The URL of the parent repository.
+   * @param submoduleName The name of the submodule for error reporting.
+   * @param relativeUrl The relative URL of the submodule (e.g., "../myrepo").
+   * @return The resolved absolute URL for the submodule.
+   * @throws RepoException If the relative URL cannot be resolved (e.g., navigating above root).
+   */
+  private String resolveRelativeUrl(
+      String currentRemoteUrl, String submoduleName, String relativeUrl) throws RepoException {
+    // Check if the remote URL is an SCP-like URL (e.g., git@github.com:foo/bar.git).
+    Matcher scpMatcher = SCP_URI_PATTERN.matcher(currentRemoteUrl);
+    if (scpMatcher.matches()) {
+      return resolveRelativeScpUrl(
+          /* user= */ scpMatcher.group(1), // can be null
+          /* host= */ scpMatcher.group(2),
+          /* path= */ scpMatcher.group(3),
+          submoduleName,
+          relativeUrl);
+    } else {
+      return resolveRelativeStandardUrl(currentRemoteUrl, submoduleName, relativeUrl);
     }
-    return currentRemoteUrl.substring(0, idx) + "/" + relativeUrl;
+  }
+
+  // Resolves a relative URL for standard URL schemes (http, rpc, sso).
+  private String resolveRelativeStandardUrl(
+      String currentRemoteUrl, String submoduleName, String relativeUrl) throws RepoException {
+    Matcher matcher = URL_WITH_SCHEME_PATTERN.matcher(currentRemoteUrl);
+    if (!matcher.matches()) {
+      throw new RepoException("Cannot resolve relative URL for: " + currentRemoteUrl);
+    }
+    String scheme = matcher.group(1);
+    String path = matcher.group(2);
+
+    List<String> traversable = Splitter.on('/').omitEmptyStrings().splitToList(path);
+
+    String resolved = resolveRelativeSegments(traversable, relativeUrl, submoduleName);
+
+    // Preserve leading slash if the path started with one (e.g. file:///foo)
+    return scheme + (path.startsWith("/") ? "/" : "") + resolved;
+  }
+
+  // Resolves a relative URL for an SCP-like URL (e.g., git@github.com:foo/bar.git).
+  private String resolveRelativeScpUrl(
+      @Nullable String user, String host, String path, String submoduleName, String relativeUrl)
+      throws RepoException {
+    List<String> traversable = Splitter.on('/').omitEmptyStrings().splitToList(path);
+
+    String resolved = resolveRelativeSegments(traversable, relativeUrl, submoduleName);
+
+    // Preserve leading slash if the path was absolute (e.g. git@github.com:/foo/bar.git)
+    return (user != null ? user + "@" : "")
+        + host
+        + ":"
+        + (path.startsWith("/") ? "/" : "")
+        + resolved;
+  }
+
+  /**
+   * Resolves relative path segments ('.' and '..') against a base list of segments.
+   *
+   * @param baseSegments The base segments to apply relative changes to.
+   * @param relativeUrl The relative URL containing segments to apply.
+   * @param submoduleName The submodule name for error reporting.
+   * @return The resolved path string.
+   * @throws RepoException If '..' attempts to navigate above the provided segments list.
+   */
+  private String resolveRelativeSegments(
+      List<String> baseSegments, String relativeUrl, String submoduleName) throws RepoException {
+    List<String> segments = new ArrayList<>(baseSegments);
+
+    for (String part : Splitter.on('/').omitEmptyStrings().splitToList(relativeUrl)) {
+      // Ignore the current directory segment.
+      if (part.equals(".")) {
+        continue;
+      }
+      // Navigate up one level if possible.
+      if (part.equals("..")) {
+        // If there are no segments to navigate up, throw an error.
+        if (segments.isEmpty()) {
+          throw new RepoException(
+              String.format(
+                  "Cannot resolve relative url '%s' for submodule '%s': navigating above root",
+                  relativeUrl, submoduleName));
+        }
+        segments.remove(segments.size() - 1);
+      } else {
+        segments.add(part);
+      }
+    }
+
+    return Joiner.on('/').join(segments);
   }
 
   private String getSubmoduleField(String submoduleName, String field) throws RepoException {

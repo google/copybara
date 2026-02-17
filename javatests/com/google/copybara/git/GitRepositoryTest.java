@@ -509,6 +509,67 @@ public class GitRepositoryTest {
   }
 
   @Test
+  public void testListSubmodules_multipleLevels() throws Exception {
+    String gitmodules = "[submodule \"sub\"]\n" + "  path = sub\n" + "  url = ../../other/repo\n";
+    Files.write(workdir.resolve(".gitmodules"), gitmodules.getBytes(UTF_8));
+
+    repository.add().files(".gitmodules").run();
+    repository.simpleCommand("commit", "-m", "add .gitmodules");
+    GitRevision head = repository.getHeadRef();
+
+    Iterable<GitRepository.Submodule> submodules =
+        repository.listSubmodules("https://github.com/org/repo/main", head);
+    GitRepository.Submodule sub = Iterables.getOnlyElement(submodules);
+
+    assertThat(sub.url()).isEqualTo("https://github.com/org/other/repo");
+  }
+
+  @Test
+  public void testListSubmodules_oneLevel() throws Exception {
+    String gitmodules = "[submodule \"sub\"]\n" + "  path = sub\n" + "  url = ../other/repo\n";
+    Files.write(workdir.resolve(".gitmodules"), gitmodules.getBytes(UTF_8));
+
+    repository.add().files(".gitmodules").run();
+    repository.simpleCommand("commit", "-m", "add .gitmodules");
+    GitRevision head = repository.getHeadRef();
+
+    Iterable<GitRepository.Submodule> submodules =
+        repository.listSubmodules("https://github.com/org/repo/main", head);
+    GitRepository.Submodule sub = Iterables.getOnlyElement(submodules);
+
+    assertThat(sub.url()).isEqualTo("https://github.com/org/repo/other/repo");
+  }
+
+  @Test
+  public void testListSubmodules_failAboveRootLevel() throws Exception {
+    String gitmodules = "[submodule \"sub\"]\n" + "  path = sub\n" + "  url = ../../other/repo\n";
+    Files.write(workdir.resolve(".gitmodules"), gitmodules.getBytes(UTF_8));
+
+    repository.add().files(".gitmodules").run();
+    repository.simpleCommand("commit", "-m", "add .gitmodules");
+    GitRevision head = repository.getHeadRef();
+
+    // Should be an error as it tries to go above host.
+    assertThrows(RepoException.class, () -> repository.listSubmodules("rpc://fitbit", head));
+  }
+
+  @Test
+  public void testListSubmodules_scpLike() throws Exception {
+    String gitmodules = "[submodule \"sub\"]\n" + "  path = sub\n" + "  url = ../../other/repo\n";
+    Files.write(workdir.resolve(".gitmodules"), gitmodules.getBytes(UTF_8));
+
+    repository.add().files(".gitmodules").run();
+    repository.simpleCommand("commit", "-m", "add .gitmodules");
+    GitRevision head = repository.getHeadRef();
+
+    Iterable<GitRepository.Submodule> submodules =
+        repository.listSubmodules("git@github.com:org/repo", head);
+    GitRepository.Submodule sub = Iterables.getOnlyElement(submodules);
+
+    assertThat(sub.url()).isEqualTo("git@github.com:other/repo");
+  }
+
+  @Test
   public void testMultipleEntriesForMergeDiff() throws Exception {
     createGraphOfCommits();
 
