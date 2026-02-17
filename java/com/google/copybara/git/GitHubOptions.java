@@ -27,6 +27,7 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.Option;
 import com.google.copybara.checks.ApiChecker;
+import com.google.common.base.VerifyException;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -122,6 +123,19 @@ public class GitHubOptions implements Option {
    * <p>The project for 'https://github.com/foo/bar' is 'foo/bar'.
    */
   public GitHubApi newGitHubRestApi(
+      String gitHubHostName, String gitHubProject, @Nullable CredentialFileHandler credentials)
+      throws RepoException {
+    return newGitHubRestApi(
+        gitHubHostName, gitHubProject, /* checker= */ null, credentials, generalOptions.console());
+  }
+
+  /**
+   * Returns a new {@link GitHubApi} instance for the given project.
+   *
+   * <p>The project for 'https://github.com/foo/bar' is 'foo/bar'.
+   */
+  // TODO: Investigate if we can delete this. Ideally we always pass the GitHub host name.
+  public GitHubApi newGitHubRestApi(
       String gitHubProject, @Nullable CredentialFileHandler credentials) throws RepoException {
     return newGitHubRestApi(
         gitHubProject, /* checker= */ null, credentials, generalOptions.console());
@@ -133,6 +147,32 @@ public class GitHubOptions implements Option {
    *
    * <p>The project for 'https://github.com/foo/bar' is 'foo/bar'.
    */
+  public GitHubApi newGitHubRestApi(
+      String gitHubHostName,
+      String gitHubProject,
+      @Nullable Checker checker,
+      @Nullable CredentialFileHandler credentials,
+      Console console)
+      throws RepoException {
+    GitRepository repo = getCredentialsRepo(credentials);
+    String storePath = gitOptions.getCredentialHelperStorePath();
+    if (storePath == null) {
+      storePath = "~/.git-credentials";
+    }
+    GitHubApiTransport transport = newTransport(gitHubHostName, repo, storePath, console);
+    if (checker != null) {
+      transport = new GitHubApiTransportWithChecker(transport, new ApiChecker(checker, console));
+    }
+    return new GitHubApi(transport, generalOptions.profiler());
+  }
+
+  /**
+   * Returns a new {@link GitHubApi} instance for the given project enforcing the given {@link
+   * Checker}.
+   *
+   * <p>The project for 'https://github.com/foo/bar' is 'foo/bar'.
+   */
+  // TODO: Investigate if we can delete this. Ideally we always pass the GitHub host name.
   public GitHubApi newGitHubRestApi(
       String gitHubProject,
       @Nullable Checker checker,
@@ -216,10 +256,18 @@ public class GitHubOptions implements Option {
     // Accept any by default
   }
 
-  private GitHubApiTransport newTransport(
-      GitRepository repo, String storePath, Console console) {
+  // TODO: Investigate if we can delete this. Ideally we always pass the GitHub host name.
+  private GitHubApiTransport newTransport(GitRepository repo, String storePath, Console console) {
     return new GitHubApiTransportImpl(
         repo, newHttpTransport(), storePath, gitHubApiBearerAuth, console);
+  }
+
+  private GitHubApiTransport newTransport(
+      String gitHubHostName, GitRepository repo, String storePath, Console console) {
+    if (gitHubHostName.equals("github.com")) {
+      return newTransport(repo, storePath, console);
+    }
+    throw new VerifyException("Non-github.com Rest API is not yet supported.");
   }
 
   protected HttpTransport newHttpTransport() {

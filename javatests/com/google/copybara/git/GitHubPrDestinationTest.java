@@ -78,6 +78,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import com.google.common.base.VerifyException;
 
 @RunWith(JUnit4.class)
 public class GitHubPrDestinationTest {
@@ -1146,6 +1147,38 @@ public class GitHubPrDestinationTest {
                 url, customHost));
 
     assertThat(d.getProjectName()).isEqualTo(orgAndRepoName);
+  }
+
+  @Test
+  public void testGhesHostName() throws Exception {
+    GitHubPrDestination d =
+        skylark.eval(
+            "r",
+            "r = git.github_pr_destination("
+                + "    url = 'https://not.git.hub.com/repo_name', \n"
+                + "    github_host_name = 'not.git.hub.com'"
+                + ")");
+    WriterContext writerContext =
+        new WriterContext(
+            "piper_to_github",
+            "TEST",
+            false,
+            new DummyRevision("feature", "feature"),
+            Glob.ALL_FILES.roots());
+    Writer<GitRevision> writer = d.newWriter(writerContext);
+    GitRepository unused = gitUtil.mockRemoteRepo("not.git.hub.com/repo_name");
+    writeFile(this.workdir, "test.txt", "some content");
+
+    VerifyException e =
+        assertThrows(
+            VerifyException.class,
+            () ->
+                writer.write(
+                    TransformResults.of(this.workdir, new DummyRevision("one")),
+                    Glob.ALL_FILES,
+                    console));
+
+    assertThat(e).hasMessageThat().contains("Non-github.com Rest API is not yet supported.");
   }
 
   private void mockNoPullRequestsGet(String branchName) {
