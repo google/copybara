@@ -14,6 +14,8 @@
 
 package net.starlark.java.syntax;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.util.stream.Collectors.joining;
 
@@ -23,6 +25,7 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.FormatMethod;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nullable;
@@ -32,11 +35,20 @@ import net.starlark.java.spelling.SpellChecker;
  * A visitor for validating that expressions and statements respect the types of the symbols
  * appearing within them, as determined by the type tagger.
  *
+ * <p>In addition, this visitor modifies the function type on the {@link Resolver.Function} objects
+ * of {@link LambdaExpression}s in the AST (originally populated by the {@link TypeTagger}) to have
+ * a more precise return type, if possible; and populates the types on the {@link Resolver.Binding}
+ * objects of untyped variables with the inferred types of their values in their first assignments
+ * in typed code.
+ *
  * <p>Type annotations are not traversed by this visitor.
  */
 public final class TypeChecker extends NodeVisitor {
 
   private final List<SyntaxError> errors;
+  // Empty if we were invoked via inferTypeOf(Expression) to type-check an expression (since inside
+  // an expression, no function definitions are allowed). Populated and mutated by visitation.
+  private final ArrayDeque<Resolver.Function> functionStack = new ArrayDeque<>();
 
   // Formats and reports an error at the start of the specified node.
   @FormatMethod
@@ -116,6 +128,11 @@ public final class TypeChecker extends NodeVisitor {
       case FLOAT_LITERAL -> {
         return Types.FLOAT;
       }
+      case CAST -> {
+        var cast = (CastExpression) expr;
+        var unused = infer(cast.getValue()); // only to verify the value expr is well-typed
+        return cast.getStarlarkType();
+      }
       case DOT -> {
         var dot = (DotExpression) expr;
         StarlarkType objType = infer(dot.getObject());
@@ -134,6 +151,27 @@ public final class TypeChecker extends NodeVisitor {
       }
       case INDEX -> {
         return inferIndex((IndexExpression) expr);
+      }
+      case LAMBDA -> {
+        var lambda = (LambdaExpression) expr;
+        StarlarkType inferedReturnType = infer(lambda.getBody());
+        Types.CallableType originalType = lambda.getResolvedFunction().getFunctionType();
+        if (!originalType.getReturnType().equals(inferedReturnType)) {
+          // Update the lambda function type with a more precise return type.
+          lambda
+              .getResolvedFunction()
+              .setFunctionType(
+                  Types.callable(
+                      originalType.getParameterNames(),
+                      originalType.getParameterTypes(),
+                      originalType.getNumPositionalOnlyParameters(),
+                      originalType.getNumPositionalParameters(),
+                      originalType.getMandatoryParameters(),
+                      originalType.getVarargsType(),
+                      originalType.getKwargsType(),
+                      inferedReturnType));
+        }
+        return lambda.getResolvedFunction().getFunctionType();
       }
       case LIST_EXPR -> {
         var list = (ListExpression) expr;
@@ -239,7 +277,7 @@ public final class TypeChecker extends NodeVisitor {
         return Types.ANY;
       }
       default -> {
-        // TODO: #28037 - support cast, comprehension, lambda, and slice expressions.
+        // TODO: #28037 - support comprehension and slice expressions.
         errorf(expr, "UNSUPPORTED: cannot typecheck %s expression", expr.kind());
         return Types.ANY;
       }
@@ -739,6 +777,8 @@ public final class TypeChecker extends NodeVisitor {
    * {@code t : Tuple[int, int] = [1, 2]}).
    */
   private void assign(Expression lhs, StarlarkType rhsType) {
+    checkState(usesTypeSyntax());
+
     // infer() handles Identifier and DotExpression. The type for evaluating these expressions in a
     // read context is the same as its type for assignment purposes.
     StarlarkType lhsType = infer(lhs);
@@ -759,7 +799,24 @@ public final class TypeChecker extends NodeVisitor {
           rhsType,
           lhs,
           lhsType);
+      return;
     }
+
+    if (lhs instanceof Identifier id && id.getBinding().getType() == null) {
+      // If a variable has not been typed, infer its type from the rhs of the first assignment.
+      id.getBinding().setType(rhsType);
+    }
+  }
+
+  @Override
+  public void visit(StarlarkFile file) {
+    checkState(
+        functionStack.isEmpty(),
+        "When type-checkings a StarlarkFile, functionStack is expected to be initially empty");
+    Resolver.Function toplevel = file.getResolvedFunction();
+    this.functionStack.push(toplevel);
+    super.visit(file);
+    checkState(functionStack.pop().equals(toplevel));
   }
 
   // Expressions should only be visited via infer(), not the visit() dispatch mechanism.
@@ -773,6 +830,9 @@ public final class TypeChecker extends NodeVisitor {
 
   @Override
   public void visit(AssignmentStatement assignment) {
+    if (!usesTypeSyntax()) {
+      return;
+    }
     if (assignment.isAugmented()) {
       // TODO: #28037 - support this by validating that `lhs <op> rhs` would type check
       errorf(assignment, "UNSUPPORTED: cannot typecheck augmented assignment statements");
@@ -791,13 +851,95 @@ public final class TypeChecker extends NodeVisitor {
   }
 
   @Override
+  public void visit(ForStatement node) {
+    if (usesTypeSyntax()) {
+      StarlarkType collectionType = infer(node.getCollection());
+      StarlarkType varsRhsType; // The type of the value assigned to the vars expression.
+      if (collectionType.equals(Types.ANY)) {
+        varsRhsType = Types.ANY;
+      } else {
+        ArrayList<StarlarkType> varUnionElements = new ArrayList<>();
+        for (StarlarkType collectionUnionElement : Types.unfoldUnion(collectionType)) {
+          // TODO: #28037 - Check getSubtypes() instead of relying purely on Java inheritance.
+          // TODO: #28037 - Introduce an Iterable type and use it here to match language spec.
+          if (collectionUnionElement.equals(Types.ANY)) {
+            varUnionElements.add(Types.ANY);
+          } else if (collectionUnionElement instanceof Types.AbstractCollectionType collection) {
+            varUnionElements.add(collection.getElementType());
+          } else {
+            errorf(
+                node.getCollection(),
+                "'for' loop operand must be an iterable, got '%s'",
+                collectionType);
+            return;
+          }
+        }
+        varsRhsType = Types.union(varUnionElements);
+      }
+      assign(node.getVars(), varsRhsType);
+    }
+    // Visit the for loop body even in untyped code; it may contain nested typed def statements.
+    visitBlock(node.getBody());
+  }
+
+  @Override
   public void visit(DefStatement def) {
-    // TODO: #28037 - If the def statement is typed, verify default parameters and return type.
-    // The current no-op version exists only for call expression testing.
+    Resolver.Function function = def.getResolvedFunction();
+    functionStack.push(function);
+    if (function.usesTypeSyntax()) {
+      Types.CallableType callableType = checkNotNull(function.getFunctionType());
+      int numOrdinaryParams = callableType.getParameterTypes().size();
+      for (int i = 0; i < numOrdinaryParams; i++) {
+        Parameter param = def.getParameters().get(i);
+        if (param.getDefaultValue() != null) {
+          StarlarkType defaultValueType = infer(param.getDefaultValue());
+          if (!StarlarkType.assignableFrom(
+              callableType.getParameterTypeByPos(i), defaultValueType)) {
+            errorf(
+                param.getDefaultValue().getStartLocation(),
+                "%s(): parameter '%s' has default value of type '%s', declares '%s'",
+                def.getIdentifier().getName(),
+                param.getName(),
+                defaultValueType,
+                callableType.getParameterTypeByPos(i));
+          }
+        }
+      }
+
+      @Nullable Statement implicitNoneReturn = getImplicitNoneReturn(def.getBody());
+      if (implicitNoneReturn != null
+          && !StarlarkType.assignableFrom(callableType.getReturnType(), Types.NONE)) {
+        errorf(
+            implicitNoneReturn,
+            "%s() declares return type '%s' but may exit without an explicit 'return'",
+            def.getIdentifier().getName(),
+            callableType.getReturnType());
+      }
+    }
+
+    // Visit body even in untyped code; it may contain nested typed def statements.
+    visitBlock(def.getBody());
+    checkState(functionStack.poll() == function);
+  }
+
+  @Override
+  public void visit(IfStatement node) {
+    if (usesTypeSyntax()) {
+      // Check type constraints in the condition.
+      infer(node.getCondition());
+    }
+    // Visit then/else blocks even in untyped code; they may contain nested typed def statements.
+    visitBlock(node.getThenBlock());
+    if (node.getElseBlock() != null) {
+      visitBlock(node.getElseBlock());
+    }
   }
 
   @Override
   public void visit(ExpressionStatement expr) {
+    if (!usesTypeSyntax()) {
+      return;
+    }
     // Check constraints in the expression, but ignore the resulting type.
     // Don't dispatch to it via visit().
     infer(expr.getExpression());
@@ -811,6 +953,25 @@ public final class TypeChecker extends NodeVisitor {
   }
 
   @Override
+  public void visit(ReturnStatement ret) {
+    if (!usesTypeSyntax()) {
+      return;
+    }
+    StarlarkType returnType = ret.getResult() == null ? Types.NONE : infer(ret.getResult());
+    checkState(!functionStack.isEmpty());
+    Resolver.Function function = functionStack.peek();
+    Types.CallableType callableType = function.getFunctionType();
+    if (!StarlarkType.assignableFrom(callableType.getReturnType(), returnType)) {
+      errorf(
+          ret.getResult().getStartLocation(),
+          "%s() declares return type '%s' but may return '%s'",
+          function.getName(),
+          callableType.getReturnType(),
+          returnType);
+    }
+  }
+
+  @Override
   public void visit(TypeAliasStatement alias) {
     // Don't descend into children.
   }
@@ -820,7 +981,50 @@ public final class TypeChecker extends NodeVisitor {
     // Don't descend into children.
   }
 
-  // TODO: #28037 - Support `for`, `def`, `if`, and `return` statements.
+  /**
+   * Heuristically checks whether a function body ends with an implicit {@code None} return, i.e. a
+   * non-return statement, and if so, retrieves the statement after which the implicit {@code None}
+   * return occurs. Recurses into if statement bodies.
+   *
+   * <p>This check doesn't attempt to detect unreachable code within the body, so e.g.
+   *
+   * <pre>
+   * def f() -> int:
+   *     return 1
+   *     pass
+   * </pre>
+   *
+   * will be flagged as implicitly returning {@code None} on the unreachable last line.
+   *
+   * @return the first statement after which the function exits and the implicit {@code None} return
+   *     occurs, or {@code null} if none was found
+   */
+  @Nullable
+  private static Statement getImplicitNoneReturn(ImmutableList<Statement> body) {
+    Statement last = body.getLast();
+    if (last instanceof ReturnStatement) {
+      return null;
+    } else if (last instanceof IfStatement ifStmt) {
+      // An if statement is considered to have an explicit return if it has both `then` and `else`
+      // branches, and both branches end with an explicit return.
+      if (ifStmt.getElseBlock() == null) {
+        return ifStmt;
+      }
+      @Nullable Statement thenImplicitNoneReturn = getImplicitNoneReturn(ifStmt.getThenBlock());
+      return thenImplicitNoneReturn != null
+          ? thenImplicitNoneReturn
+          : getImplicitNoneReturn(ifStmt.getElseBlock());
+    }
+    return last;
+  }
+
+  /**
+   * Returns true if the current function is considered to use type syntax, or if we were invoked
+   * via {@link #inferTypeOf(Expression)}. If false, the current node must not be type-checked.
+   */
+  private boolean usesTypeSyntax() {
+    return functionStack.isEmpty() || functionStack.peek().usesTypeSyntax();
+  }
 
   /**
    * Checks that the given file's AST satisfies the types in the bindings of its identifiers.
