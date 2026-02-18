@@ -15,6 +15,7 @@
  */
 package com.google.copybara.regenerate;
 
+import static com.google.common.base.Strings.nullToEmpty;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static org.junit.Assert.assertThrows;
@@ -113,18 +114,19 @@ public class RegenerateCmdTest {
                 return new DestinationReader() {
                   @Override
                   public String readFile(String path) throws RepoException {
-                    throw new RepoException("not implemented");
-                  }
-
-                  @Override
-                  public void copyDestinationFiles(Object glob, Object path)
-                      throws RepoException, ValidationException {
-                    throw new RepoException("not implemented");
+                    String destinationSubdir = nullToEmpty(baseline);
+                    try {
+                      return Files.readString(
+                          destinationRoot.resolve(destinationSubdir).resolve(path));
+                    } catch (IOException e) {
+                      throw new RepoException("Error reading file in test", e);
+                    }
                   }
 
                   @Override
                   public void copyDestinationFilesToDirectory(Glob glob, Path directory) {
-                    Path sourceDirectory = destinationRoot.resolve(baseline);
+                    String destinationSubdir = nullToEmpty(baseline);
+                    Path sourceDirectory = destinationRoot.resolve(destinationSubdir);
                     try {
                       FileUtil.copyFilesRecursively(
                           sourceDirectory,
@@ -138,7 +140,15 @@ public class RegenerateCmdTest {
 
                   @Override
                   public boolean exists(String path) {
-                    return Files.exists(destinationRoot.resolve(baseline).resolve(path));
+                    // In this test, 'baseline' can be the destination subdir (e.g., "target")
+                    String destinationSubdir = nullToEmpty(baseline);
+                    return Files.exists(destinationRoot.resolve(destinationSubdir).resolve(path));
+                  }
+
+                  @Override
+                  public void copyDestinationFiles(Object glob, Object path)
+                      throws RepoException, ValidationException {
+                    throw new RepoException("copyDestinationFiles(Object, Object) not implemented");
                   }
                 };
               }
@@ -935,5 +945,48 @@ public class RegenerateCmdTest {
 
   private Path destinationPath(String name) {
     return destinationRoot.resolve(name);
+  }
+
+  @Test
+  public void testRegenerate_nonMergeImport_preservesConsistencyFile() throws Exception {
+    setupFooOriginImport(); // This creates "foo.txt" in origin
+    when(patchRegenerator.inferImportBaseline(any(), any()))
+        .thenReturn(Optional.of(origin.getLatestChange().asString()));
+    String destRef = "target";
+    setupTarget(destRef);
+    // Initial state with a consistency file
+    String consistencyContent = "===BASELINE===";
+    // Path relative to destination root for this test
+    String consistencyFilePath = CONSISTENCY_FILE_PATH;
+    writeDestination(destRef, consistencyFilePath, consistencyContent);
+    // Simulate foo.txt being in the destination from a previous import
+    writeDestination(destRef, "foo.txt", "foo");
+    String config =
+        """
+        core.workflow(
+            name = 'default',
+            origin = testing.origin(),
+            origin_files = glob(['**']),
+            destination = testing.destination(),
+            mode = 'SQUASH',
+            authoring = authoring.pass_thru('example <example@example.com>'),
+            consistency_file_path = '%s'
+        )
+        """
+            .formatted(consistencyFilePath);
+    RegenerateCmd cmd = getCmd(config);
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()), cmd);
+
+    ExitCode exitCode = cmd.run(commandEnv);
+
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
+    // Verify the consistency file was copied into the workdir passed to updateChange
+    ArgumentCaptor<Path> pathArg = ArgumentCaptor.forClass(Path.class);
+    verify(patchRegenerator).updateChange(any(), pathArg.capture(), any(), eq(destRef));
+    // Assert content in the workdir
+    assertThat(Files.readString(pathArg.getValue().resolve(consistencyFilePath)))
+        .isEqualTo(consistencyContent);
+    assertThat(Files.readString(pathArg.getValue().resolve("foo.txt"))).isEqualTo("foo");
   }
 }

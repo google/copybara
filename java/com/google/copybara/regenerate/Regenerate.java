@@ -186,6 +186,39 @@ public class Regenerate<O extends Revision, D extends Revision> {
       }
     }
 
+    if (workflow.getConsistencyFilePath() != null && !workflow.isConsistencyFileMergeImport()) {
+      console.info("Preserving consistency file in workdir for non-merge regenerate...");
+      Path workdirConsistencyFile = nextPath.resolve(workflow.getConsistencyFilePath());
+
+      // Only copy if it's not already in the workdir. There shouldn't be local changes to keep
+      // track of in the non-merge regenerate case, but adding this check to be robust
+      if (!Files.exists(workdirConsistencyFile)) {
+        try {
+          DestinationReader destReader =
+              destinationWriter.getDestinationReader(console, regenTarget, workdir);
+
+          if (destReader.exists(workflow.getConsistencyFilePath())) {
+            console.info("Consistency file found in destination, copying to workdir.");
+            if (!Files.exists(workdirConsistencyFile.getParent())) {
+              Files.createDirectories(workdirConsistencyFile.getParent());
+            }
+            String content = destReader.readFile(workflow.getConsistencyFilePath());
+            Files.writeString(workdirConsistencyFile, content);
+            console.info(
+                "Copied consistency file from destination to workdir: " + workdirConsistencyFile);
+          } else {
+            console.warn(
+                "Consistency file not found in destination: " + workflow.getConsistencyFilePath());
+          }
+        } catch (IOException | ValidationException | RepoException e) {
+          throw new RepoException("Error preserving consistency file in workdir", e);
+        }
+      } else {
+        console.info(
+            "Consistency file already exists in workdir, not copying: " + workdirConsistencyFile);
+      }
+    }
+
     if (autopatchConfig != null) {
       // generate new autopatch files in the target directory
       try {
