@@ -15,6 +15,7 @@
  */
 package com.google.copybara.remotefile.extractutil;
 
+import static org.junit.Assert.assertThrows;
 import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -150,5 +151,27 @@ public final class ExtractUtilTest {
     // Test whether all the expected files have been uncompressed and extracted.
     assertThat(MoreFiles.asByteSource(outputPath.resolve("foo.txt")).asCharSource(UTF_8).read())
         .isEqualTo("copybara");
+  }
+
+  @Test
+  public void testExtractArchive_zipSlipVulnerability() throws Exception {
+    Path maliciousZip = testFolder.resolve("malicious.zip");
+    try (ZipOutputStream zipOs = new ZipOutputStream(Files.newOutputStream(maliciousZip))) {
+      ZipEntry ze = new ZipEntry("../../evil.txt");
+      zipOs.putNextEntry(ze);
+      zipOs.write("evil content".getBytes(UTF_8));
+      zipOs.closeEntry();
+    }
+
+    Path outputPath = testFolder.resolve("output_safe");
+    Files.createDirectories(outputPath);
+
+    InputStream is = Files.newInputStream(maliciousZip);
+    IOException thrown =
+        assertThrows(
+            IOException.class,
+            () -> ExtractUtil.extractArchive(is, outputPath, ExtractType.ZIP, null));
+
+    assertThat(thrown).hasMessageThat().contains("Zip entry is outside of the target dir");
   }
 }
