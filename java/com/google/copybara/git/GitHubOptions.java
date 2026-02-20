@@ -22,12 +22,12 @@ import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.VerifyException;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.Option;
 import com.google.copybara.checks.ApiChecker;
-import com.google.common.base.VerifyException;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -262,7 +262,7 @@ public class GitHubOptions implements Option {
         repo, newHttpTransport(), storePath, gitHubApiBearerAuth, console);
   }
 
-  private GitHubApiTransport newTransport(
+  protected GitHubApiTransport newTransport(
       String gitHubHostName, GitRepository repo, String storePath, Console console) {
     if (gitHubHostName.equals("github.com")) {
       return newTransport(repo, storePath, console);
