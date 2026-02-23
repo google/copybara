@@ -855,10 +855,11 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     }
 
     /**
-     * @return a list of paths that resulted in merge errors, or null if a
-     * baseline could not be determined
+     * @return a list of paths that resulted in merge errors, or null if a baseline could not be
+     *     determined
      */
-    private @Nullable ImmutableList<String> runMergeImport(
+    @Nullable
+    private ImmutableList<String> runMergeImport(
         Console console,
         Writer<?> writer,
         Baseline<?> destinationBaseline,
@@ -996,7 +997,9 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                           checkoutDir,
                           workflow.getDestination().getHashFunction(),
                           workflow.getGeneralOptions().getEnvironment(),
-                          workflow.isVerbose())
+                          workflow.isVerbose(),
+                          workflow.getMainConfigFile().path(),
+                          workflow.getName())
                       .toBytes());
         } catch (InsideGitDirException e) {
           throw new ValidationException("Error generating consistency file", e);

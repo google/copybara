@@ -48,6 +48,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.stream.Stream;
+import javax.annotation.Nullable;
 
 /**
  * ConsistencyFile represents the difference between what exists in the destination files and the
@@ -66,10 +67,17 @@ public class ConsistencyFile {
 
   private final ImmutableMap<String, String> fileHashes;
   private final byte[] diffContent;
+  @Nullable private final String workflowInfo;
 
   public ConsistencyFile(ImmutableMap<String, String> fileHashes, byte[] diffContent) {
+    this(fileHashes, diffContent, null);
+  }
+
+  public ConsistencyFile(
+      ImmutableMap<String, String> fileHashes, byte[] diffContent, @Nullable String workflowInfo) {
     this.fileHashes = fileHashes;
     this.diffContent = diffContent;
+    this.workflowInfo = workflowInfo;
   }
 
   /**
@@ -89,6 +97,35 @@ public class ConsistencyFile {
       HashFunction hashFunction,
       Map<String, String> environment,
       boolean verbose)
+      throws IOException, InsideGitDirException, ValidationException {
+    return generate(baseline, destination, hashFunction, environment, verbose, (String) null);
+  }
+
+  public static ConsistencyFile generate(
+      Path baseline,
+      Path destination,
+      HashFunction hashFunction,
+      Map<String, String> environment,
+      boolean verbose,
+      String configPath,
+      String workflowName)
+      throws IOException, InsideGitDirException, ValidationException {
+    return generate(
+        baseline,
+        destination,
+        hashFunction,
+        environment,
+        verbose,
+        extractWorkflowInfo(configPath, workflowName));
+  }
+
+  public static ConsistencyFile generate(
+      Path baseline,
+      Path destination,
+      HashFunction hashFunction,
+      Map<String, String> environment,
+      boolean verbose,
+      @Nullable String workflowInfo)
       throws IOException, InsideGitDirException, ValidationException {
     byte[] diff = DiffUtil.diffWithIgnoreCrAtEol(baseline, destination, verbose, environment);
     ImmutableMap<String, String> destinationHashes = computeFileHashes(destination, hashFunction);
@@ -124,7 +161,7 @@ public class ConsistencyFile {
       throw new ValidationException(message);
     }
 
-    return new ConsistencyFile(destinationHashes, diff);
+    return new ConsistencyFile(destinationHashes, diff, workflowInfo);
   }
 
   record FileSetDiff(ImmutableList<String> destinationOnly, ImmutableList<String> originOnly) {}
@@ -140,6 +177,15 @@ public class ConsistencyFile {
         Sets.difference(baselineFileSet, destinationFileSet).immutableCopy();
 
     return new FileSetDiff(destinationOnly.asList(), originOnly.asList());
+  }
+
+  public static ConsistencyFile generateNoDiff(
+      Path contents, HashFunction hashFunction, String configPath, String workflowName)
+      throws IOException {
+    return new ConsistencyFile(
+        computeFileHashes(contents, hashFunction),
+        new byte[0],
+        extractWorkflowInfo(configPath, workflowName));
   }
 
   public static ConsistencyFile generateNoDiff(Path contents, HashFunction hashFunction)
@@ -250,6 +296,9 @@ public class ConsistencyFile {
     // OutputStreamWriter for this part for idiomatic string writing
     try (OutputStreamWriter outWriter = new OutputStreamWriter(out)) {
       outWriter.write(HEADER);
+      if (workflowInfo != null) {
+        outWriter.write(String.format("# Workflow: %s\n", workflowInfo));
+      }
 
       ArrayList<Entry<String, String>> fileHashesList =
           new ArrayList<>(fileHashes.entrySet().asList());
@@ -416,5 +465,9 @@ public class ConsistencyFile {
     } catch (IllegalArgumentException e) {
       throw new ValidationException(String.format("Parsed hash value is invalid: %s.", hash), e);
     }
+  }
+
+  private static String extractWorkflowInfo(String configPath, String workflowName) {
+    return String.format("%s:%s", configPath, workflowName);
   }
 }

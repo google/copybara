@@ -29,6 +29,7 @@ java_library(
         ":util",
         "//java/com/google/copybara/exception",
         "//third_party:guava",
+        "//third_party:jsr305",
     ],
 )
 

@@ -42,9 +42,8 @@ public class ConsistencyFileTest {
   private Path baseline;
   private Path destination;
 
-
   // Hash value produced by: 'echo -n 'hello' | sha256sum
-  private static final String helloHash =
+  private static final String HELLO_HASH =
       "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824";
 
   public ImmutableMap<String, String> env = ImmutableMap.copyOf(System.getenv());
@@ -98,7 +97,7 @@ public class ConsistencyFileTest {
     ConsistencyFile consistencyFile =
         ConsistencyFile.generate(baseline, destination, Hashing.sha256(), env, false);
 
-    assertThat(consistencyFile.getFileHashes()).containsExactly(testPath, helloHash);
+    assertThat(consistencyFile.getFileHashes()).containsExactly(testPath, HELLO_HASH);
   }
 
   @Test
@@ -138,7 +137,7 @@ public class ConsistencyFileTest {
     ConsistencyFile consistencyFile =
         ConsistencyFile.generate(baseline, destination, Hashing.sha256(), env, false);
 
-    assertThat(new String(consistencyFile.getDiffContent(), UTF_8)).isEqualTo("");
+    assertThat(new String(consistencyFile.getDiffContent(), UTF_8)).isEmpty();
   }
 
   @Test
@@ -186,7 +185,27 @@ public class ConsistencyFileTest {
     ConsistencyFile consistencyFile =
         ConsistencyFile.generate(baseline, destination, Hashing.sha256(), env, false);
 
-    assertThat(new String(consistencyFile.getDiffContent(), UTF_8)).isEqualTo("");
+    assertThat(new String(consistencyFile.getDiffContent(), UTF_8)).isEmpty();
+  }
+
+  @Test
+  public void testWorkflowInfoInHeader() throws Exception {
+    ConsistencyFile consistencyFile =
+        ConsistencyFile.generate(
+            baseline,
+            destination,
+            Hashing.sha256(),
+            env,
+            false,
+            "my_config.bara.sky",
+            "my_workflow");
+
+    String output = new String(consistencyFile.toBytes(), UTF_8);
+    assertThat(output).contains("# Workflow: my_config.bara.sky:my_workflow\n");
+
+    // Verify it can still be parsed (backward compatibility)
+    ConsistencyFile parsed = ConsistencyFile.fromBytes(consistencyFile.toBytes());
+    assertThat(parsed.getFileHashes()).isEqualTo(consistencyFile.getFileHashes());
   }
 
   public void write(Path folder, String relativePath, String contents) throws IOException {
@@ -283,7 +302,7 @@ public class ConsistencyFileTest {
     // Manually make an edit to the byte format
     // There should be an entry for "foo" with a corresponding hash.
     // Use non-hexadecimal chars to make an invalid hash.
-    String newConsistencyContent = consistencyContent.replace(helloHash, "gg");
+    String newConsistencyContent = consistencyContent.replace(HELLO_HASH, "gg");
 
     Throwable throwable =
         assertThrows(
@@ -407,7 +426,7 @@ public class ConsistencyFileTest {
 
     // maybe worth noting that even if sorting behavior broke, it is technically
     // possible that these end up sorted by coincidence
-    assertThat(new String(consistencyFile.toBytes()))
+    assertThat(new String(consistencyFile.toBytes(), UTF_8))
         .matches(
             """
             (?s).*test/foo/a.*

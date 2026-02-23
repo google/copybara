@@ -179,7 +179,9 @@ public class Regenerate<O extends Revision, D extends Revision> {
                         nextPath,
                         workflow.getDestination().getHashFunction(),
                         workflow.getGeneralOptions().getEnvironment(),
-                        workflow.isVerbose())
+                        workflow.isVerbose(),
+                        workflow.getMainConfigFile().path(),
+                        workflow.getName())
                     .toBytes());
       } catch (InsideGitDirException e) {
         throw new ValidationException("Error generating consistency file", e);
