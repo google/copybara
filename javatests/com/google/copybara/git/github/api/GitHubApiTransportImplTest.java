@@ -133,6 +133,27 @@ public class GitHubApiTransportImplTest {
     assertThat(headers).containsEntry("authorization", ImmutableList.of("Bearer SECRET"));
   }
 
+  @Test
+  public void testDefaultUrlsPopulated() throws Exception {
+    httpTransport = createMockHttpTransport(new IOException());
+    GitHubApiTransportImpl transport =
+        new GitHubApiTransportImpl(repo, httpTransport, "store", false, new TestingConsole());
+
+    assertThat(transport.getApiUrl()).isEqualTo("https://api.github.com");
+    assertThat(transport.getWebUrl()).isEqualTo("https://github.com");
+  }
+
+  @Test
+  public void testGhesUrlsPopulated() throws Exception {
+    httpTransport = createMockHttpTransport(new IOException());
+    GitHubApiTransportImpl transport =
+        new GitHubApiTransportImpl(
+            repo, httpTransport, "store", false, new TestingConsole(), "github.enterprise.com");
+
+    assertThat(transport.getApiUrl()).isEqualTo("https://github.enterprise.com/api/v3");
+    assertThat(transport.getWebUrl()).isEqualTo("https://github.enterprise.com");
+  }
+
   private void runTestThrowsHttpResponseException(Callable<?> c) throws Exception {
     HttpResponseException ex =
         new HttpResponseException.Builder(STATUS_CODE, ERROR_MESSAGE, new HttpHeaders()).build();

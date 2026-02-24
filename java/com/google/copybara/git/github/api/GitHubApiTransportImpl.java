@@ -27,6 +27,7 @@ import com.google.api.client.http.json.JsonHttpContent;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.JsonObjectParser;
 import com.google.api.client.json.gson.GsonFactory;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Iterables;
@@ -55,9 +56,11 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   private static final JsonFactory JSON_FACTORY = new GsonFactory();
-  private static final String API_URL = "https://api.github.com";
-  private static final String GITHUB_WEB_URL = "https://github.com";
+  private static final String GITHUB_DOT_COM_API_URL = "https://api.github.com";
+  private static final String GITHUB_DOT_COM_WEB_URL = "https://github.com";
 
+  private final String apiUrl;
+  private final String webUrl;
   private final GitRepository repo;
   private final HttpTransport httpTransport;
   private final String storePath;
@@ -71,6 +74,24 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
     this.storePath = storePath;
     this.console = Preconditions.checkNotNull(console);
     this.bearerAuth = bearerAuth;
+    this.apiUrl = GITHUB_DOT_COM_API_URL;
+    this.webUrl = GITHUB_DOT_COM_WEB_URL;
+  }
+
+  public GitHubApiTransportImpl(
+      GitRepository repo,
+      HttpTransport httpTransport,
+      String storePath,
+      boolean bearerAuth,
+      Console console,
+      String webUrl) {
+    this.repo = Preconditions.checkNotNull(repo);
+    this.httpTransport = Preconditions.checkNotNull(httpTransport);
+    this.storePath = storePath;
+    this.console = Preconditions.checkNotNull(console);
+    this.bearerAuth = bearerAuth;
+    this.webUrl = buildGhesWebUrl(Preconditions.checkNotNull(webUrl));
+    this.apiUrl = buildGhesApiUrl(this.webUrl);
   }
 
   @SuppressWarnings("unchecked")
@@ -87,7 +108,7 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
       Object responseObj = GsonParserUtil.parseHttpResponse(response, responseType, false);
       if (responseObj instanceof PaginatedPayload) {
         return (T)
-            ((PaginatedPayload) responseObj).annotatePayload(API_URL, maybeGetLinkHeader(response));
+            ((PaginatedPayload) responseObj).annotatePayload(apiUrl, maybeGetLinkHeader(response));
       }
       return (T) responseObj;
     } catch (HttpResponseException e) {
@@ -152,7 +173,7 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
           response, responseType, false);
       if (responseObj instanceof PaginatedPayload) {
         return (T)
-            ((PaginatedPayload) responseObj).annotatePayload(API_URL, maybeGetLinkHeader(response));
+            ((PaginatedPayload) responseObj).annotatePayload(apiUrl, maybeGetLinkHeader(response));
       }
       return (T) responseObj;
 
@@ -221,7 +242,7 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
 
   private GenericUrl getFullEndpointURL(String path) {
     String maybePrefix = path.startsWith("/") ? "" : "/";
-    return new GenericUrl(URI.create(API_URL + maybePrefix + path));
+    return new GenericUrl(URI.create(apiUrl + maybePrefix + path));
   }
 
   /**
@@ -231,10 +252,10 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
    */
   private UserPassword getCredentials() throws RepoException, ValidationException {
     try {
-      return repo.credentialFill(API_URL);
+      return repo.credentialFill(apiUrl);
     } catch (ValidationException e) {
       try {
-        return repo.credentialFill(GITHUB_WEB_URL);
+        return repo.credentialFill(webUrl);
       } catch (ValidationException e1) {
         // Ugly, but helpful...
         throw new ValidationException(String.format(
@@ -251,5 +272,23 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
                 + " as username)", storePath), e1);
       }
     }
+  }
+
+  private static String buildGhesWebUrl(String hostName) {
+    return "https://" + hostName;
+  }
+
+  private static String buildGhesApiUrl(String hostName) {
+    return hostName + "/api/v3";
+  }
+
+  @VisibleForTesting
+  public String getApiUrl() {
+    return apiUrl;
+  }
+
+  @VisibleForTesting
+  public String getWebUrl() {
+    return webUrl;
   }
 }

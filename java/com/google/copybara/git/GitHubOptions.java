@@ -22,7 +22,6 @@ import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.base.VerifyException;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.LazyResourceLoader;
@@ -227,7 +226,8 @@ public class GitHubOptions implements Option {
     if (gitHubHostName.equals("github.com")) {
       return newTransport(repo, storePath, console);
     }
-    throw new VerifyException("Non-github.com Rest API is not yet supported.");
+    return new GitHubApiTransportImpl(
+        repo, newHttpTransport(), storePath, gitHubApiBearerAuth, console, gitHubHostName);
   }
 
   protected HttpTransport newHttpTransport() {
