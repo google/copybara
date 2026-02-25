@@ -123,19 +123,6 @@ public class GitHubOptions implements Option {
    * <p>The project for 'https://github.com/foo/bar' is 'foo/bar'.
    */
   public GitHubApi newGitHubRestApi(
-      String gitHubHostName, String gitHubProject, @Nullable CredentialFileHandler credentials)
-      throws RepoException {
-    return newGitHubRestApi(
-        gitHubHostName, gitHubProject, /* checker= */ null, credentials, generalOptions.console());
-  }
-
-  /**
-   * Returns a new {@link GitHubApi} instance for the given project.
-   *
-   * <p>The project for 'https://github.com/foo/bar' is 'foo/bar'.
-   */
-  // TODO: Investigate if we can delete this. Ideally we always pass the GitHub host name.
-  public GitHubApi newGitHubRestApi(
       String gitHubProject, @Nullable CredentialFileHandler credentials) throws RepoException {
     return newGitHubRestApi(
         gitHubProject, /* checker= */ null, credentials, generalOptions.console());
@@ -147,32 +134,6 @@ public class GitHubOptions implements Option {
    *
    * <p>The project for 'https://github.com/foo/bar' is 'foo/bar'.
    */
-  public GitHubApi newGitHubRestApi(
-      String gitHubHostName,
-      String gitHubProject,
-      @Nullable Checker checker,
-      @Nullable CredentialFileHandler credentials,
-      Console console)
-      throws RepoException {
-    GitRepository repo = getCredentialsRepo(credentials);
-    String storePath = gitOptions.getCredentialHelperStorePath();
-    if (storePath == null) {
-      storePath = "~/.git-credentials";
-    }
-    GitHubApiTransport transport = newTransport(gitHubHostName, repo, storePath, console);
-    if (checker != null) {
-      transport = new GitHubApiTransportWithChecker(transport, new ApiChecker(checker, console));
-    }
-    return new GitHubApi(transport, generalOptions.profiler());
-  }
-
-  /**
-   * Returns a new {@link GitHubApi} instance for the given project enforcing the given {@link
-   * Checker}.
-   *
-   * <p>The project for 'https://github.com/foo/bar' is 'foo/bar'.
-   */
-  // TODO: Investigate if we can delete this. Ideally we always pass the GitHub host name.
   public GitHubApi newGitHubRestApi(
       String gitHubProject,
       @Nullable Checker checker,
@@ -256,7 +217,6 @@ public class GitHubOptions implements Option {
     // Accept any by default
   }
 
-  // TODO: Investigate if we can delete this. Ideally we always pass the GitHub host name.
   private GitHubApiTransport newTransport(GitRepository repo, String storePath, Console console) {
     return new GitHubApiTransportImpl(
         repo, newHttpTransport(), storePath, gitHubApiBearerAuth, console);

@@ -234,8 +234,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
           return result.build();
         }
 
-        GitHubApi api =
-            gitHubOptions.newGitHubRestApi(ghHost.getHost(), getProjectName(), credentials);
+        GitHubApi api = gitHubOptions.newGitHubRestApi(getProjectName(), credentials);
 
         ImmutableList<PullRequest> pullRequests =
             api.getPullRequests(
@@ -339,11 +338,9 @@ public class GitHubPrDestination implements Destination<GitRevision> {
       public Endpoint getFeedbackEndPoint(Console console) throws ValidationException {
         gitHubOptions.validateEndpointChecker(endpointChecker);
         return new GitHubEndPoint(
-            gitHubOptions.newGitHubApiSupplier(url, endpointChecker, credentials, ghHost),
-            url,
-            console,
-            ghHost,
-            credentials);
+            gitHubOptions.newGitHubApiSupplier(
+                url, endpointChecker, credentials, ghHost), url, console,
+            ghHost, credentials);
       }
     };
   }
