@@ -318,6 +318,30 @@ public class GitHubEndpointTest {
         .build());
   }
 
+  @Test
+  public void testCreateStatusExhaustive_longDescription() throws Exception {
+    ValidationException expected =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                runFeedback(
+                    ImmutableList.<String>builder()
+                        .add(
+                            "res = ctx.destination.create_status(sha ="
+                                + " 'e597746de9c1704e648ddc3ffa0d2096b146d600',"
+                                + " state = 'success', context = 'test', description = '%s')"
+                                    .formatted("a".repeat(141)))
+                        .addAll(checkFieldStarLark("res", "state", "'success'"))
+                        .addAll(
+                            checkFieldStarLark(
+                                "res", "target_url", "'https://github.com/google/example'"))
+                        .addAll(checkFieldStarLark("res", "description", "'Observed foo'"))
+                        .addAll(checkFieldStarLark("res", "context", "'test'"))
+                        .build()));
+    assertThat(expected)
+        .hasMessageThat()
+        .contains("Description cannot be longer than 140 characters");
+  }
 
   @Test
   public void testCreateStatusLimitReached() throws Exception {

@@ -120,7 +120,10 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
                 "The context for the commit status. Use a value like 'copybara/import_successful'"
                     + " or similar",
             named = true),
-        @Param(name = "description", named = true, doc = "Description about what happened"),
+        @Param(
+            name = "description",
+            named = true,
+            doc = "Description about what happened, maximum 140 characters."),
         @Param(
             name = "target_url",
             allowedTypes = {
@@ -130,8 +133,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
             named = true,
             doc = "Url with expanded information about the event",
             defaultValue = "None"),
-      }
-  )
+      })
   public Status createStatus(
       String sha, String state, String context, String description, Object targetUrl)
       throws EvalException, RepoException, ValidationException {
@@ -142,6 +144,8 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
           "Not a valid complete SHA-1: %s", sha);
       checkCondition(!Strings.isNullOrEmpty(description), "description cannot be empty");
       checkCondition(!Strings.isNullOrEmpty(context), "context cannot be empty");
+      checkCondition(
+          description.length() <= 140, "Description cannot be longer than 140 characters");
 
       String project = ghHost.getProjectNameFromUrl(url);
       return apiSupplier.load(console).createStatus(

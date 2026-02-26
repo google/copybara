@@ -4254,7 +4254,7 @@ Parameter | Description
 <span id=github_api_obj.create_status.sha href=#github_api_obj.create_status.sha>sha</span> | <code><a href="#string">string</a></code><br><p>The SHA-1 for which we want to create or update the status</p>
 <span id=github_api_obj.create_status.state href=#github_api_obj.create_status.state>state</span> | <code><a href="#string">string</a></code><br><p>The state of the commit status: 'success', 'error', 'pending' or 'failure'</p>
 <span id=github_api_obj.create_status.context href=#github_api_obj.create_status.context>context</span> | <code><a href="#string">string</a></code><br><p>The context for the commit status. Use a value like 'copybara/import_successful' or similar</p>
-<span id=github_api_obj.create_status.description href=#github_api_obj.create_status.description>description</span> | <code><a href="#string">string</a></code><br><p>Description about what happened</p>
+<span id=github_api_obj.create_status.description href=#github_api_obj.create_status.description>description</span> | <code><a href="#string">string</a></code><br><p>Description about what happened, maximum 140 characters.</p>
 <span id=github_api_obj.create_status.target_url href=#github_api_obj.create_status.target_url>target_url</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>Url with expanded information about the event</p>
 
 <a id="github_api_obj.delete_reference" aria-hidden="true"></a>
