@@ -103,8 +103,8 @@ filegroup(
     name = "cpu_profiler_jni",
     srcs = select({
         "//third_party/bazel/conditions:darwin": [":libcpu_profiler.dylib"],
-        "//third_party/bazel/conditions:windows": [":cpu_profiler.dll"],
-        "//conditions:default": [":libcpu_profiler.so"],  # POSIX
+        "//third_party/bazel/conditions:linux": [":libcpu_profiler.so"],
+        "//conditions:default": [],
     }),
     visibility = ["//third_party/bazel/main/java/net/starlark/java:clients"],
 )
@@ -116,20 +116,13 @@ genrule(
     cmd = "cp $< $@",
 )
 
-genrule(
-    name = "cpu_profiler_jni_windows",
-    srcs = ["libcpu_profiler.so"],
-    outs = ["cpu_profiler.dll"],
-    cmd = "cp $< $@",
-)
-
 # The C++ portion of the Starlark CPU profiler.
 cc_binary(
     name = "libcpu_profiler.so",
     srcs = select({
         "//third_party/bazel/conditions:darwin": ["cpu_profiler_posix.cc"],
         "//third_party/bazel/conditions:linux": ["cpu_profiler_posix.cc"],
-        "//conditions:default": ["cpu_profiler_unimpl.cc"],
+        "//conditions:default": [],
     }),
     linkshared = 1,
     deps = ["@rules_java//toolchains:jni"],
