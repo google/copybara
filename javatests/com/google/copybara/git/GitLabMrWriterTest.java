@@ -143,7 +143,7 @@ public final class GitLabMrWriterTest {
     // We should only have the single effect created by GitDestination's WriterImpl super class.
     assertThat(result).hasSize(1);
     String destinationSha1 = result.getFirst().getDestinationRef().getId();
-    assertThat(testLocalRepo.resolveReference(destinationSha1).getSha1())
+    assertThat(testLocalRepo.resolveReference(destinationSha1).getHash())
         .isEqualTo(destinationSha1);
   }
 
@@ -173,7 +173,7 @@ public final class GitLabMrWriterTest {
     // We should only have the single effect created by GitDestination's WriterImpl super class.
     assertThat(result).hasSize(1);
     String destinationSha1 = result.getFirst().getDestinationRef().getId();
-    assertThat(testLocalRepo.resolveReference(destinationSha1).getSha1())
+    assertThat(testLocalRepo.resolveReference(destinationSha1).getHash())
         .isEqualTo(destinationSha1);
   }
 

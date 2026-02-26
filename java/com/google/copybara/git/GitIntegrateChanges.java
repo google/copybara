@@ -202,7 +202,7 @@ public class GitIntegrateChanges implements StarlarkValue {
                              : repository.commitTree(msg, head.tree(),
                                  ImmutableList.<GitRevision>builder().addAll(head.parents())
                                      .add(integrateLabel.getRevision()).build());
-        repository.simpleCommand("update-ref", "HEAD", commit.getSha1());
+        repository.simpleCommand("update-ref", "HEAD", commit.getHash());
       }
     },
     /**
@@ -331,11 +331,13 @@ public class GitIntegrateChanges implements StarlarkValue {
                     repository, integrateLabel, head, failIfIntegrateCommitNotFound, console)
                 // If common parent cannot be found, it is fine, since this is not using the commit
                 // history but just the content for diffing.
-                .orElse(head.commit().getSha1());
+                .orElse(head.commit().getHash());
         // Create a patch of the changes from common baseline..feature head.
-        byte[] diffs = repository.simpleCommandNoRedirectOutput("diff",
-            commonBaseline + ".." + integrateLabel.getRevision().getSha1())
-            .getStdoutBytes();
+        byte[] diffs =
+            repository
+                .simpleCommandNoRedirectOutput(
+                    "diff", commonBaseline + ".." + integrateLabel.getRevision().getHash())
+                .getStdoutBytes();
         // Filter the diff to the external files changed by the external change that weren't
         // migrated to the internal repository.
         return DiffUtil.filterDiff(diffs, externalFiles);
@@ -365,11 +367,11 @@ public class GitIntegrateChanges implements StarlarkValue {
         throws ValidationException, RepoException {
       GitRevision previousHead = Iterables.getFirst(head.parents(), null);
       if (previousHead == null) {
-        return Optional.of(head.commit().getSha1());
+        return Optional.of(head.commit().getHash());
       }
       String sha1;
       try {
-        sha1 = integrateLabel.getRevision().getSha1();
+        sha1 = integrateLabel.getRevision().getHash();
       } catch (RepoException | ValidationException e) {
         // There is a weird git submodule issue where the first time we fetch a reference but
         // the local state (git-tree and workdir) doesn't have a reference to the submodule it
@@ -385,10 +387,10 @@ public class GitIntegrateChanges implements StarlarkValue {
                 "failIfIntegrateCommitNotFound is true, re-throwing exception: %s", e.getMessage());
             throw e;
           }
-          return Optional.of(head.commit().getSha1());
+          return Optional.of(head.commit().getHash());
         }
         try {
-          sha1 = integrateLabel.getRevision().getSha1();
+          sha1 = integrateLabel.getRevision().getHash();
         } catch (RepoException retryException) {
           logger.atWarning().withCause(retryException).log(
               "Cannot fetch/find integrate commit (2nd attempt): %s.", integrateLabel);
@@ -400,11 +402,11 @@ public class GitIntegrateChanges implements StarlarkValue {
                 retryException.getMessage());
             throw retryException;
           }
-          return Optional.of(head.commit().getSha1());
+          return Optional.of(head.commit().getHash());
         }
       }
       try {
-        return Optional.of(repository.mergeBase(previousHead.getSha1(), sha1));
+        return Optional.of(repository.mergeBase(previousHead.getHash(), sha1));
       } catch (RepoException e) {
         logger.atWarning().withCause(e).log(
             "Cannot find common parent for previous head commit %s and integrate commit: %s.",

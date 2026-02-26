@@ -88,7 +88,7 @@ public class FetchResult {
 
     @Override
     public String toString() {
-      return before.getSha1() + " -> " + after.getSha1();
+      return before.getHash() + " -> " + after.getHash();
     }
   }
 }

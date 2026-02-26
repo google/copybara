@@ -209,7 +209,7 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
     String configProjectName = ghHost.getProjectNameFromUrl(url);
 
     // GitHub's commit 'status' webhook provides only the commit SHA
-    if (GitRevision.COMPLETE_SHA1_PATTERN.matcher(reference).matches()) {
+    if (GitRevision.COMPLETE_GIT_HASH_PATTERN.matcher(reference).matches()) {
       PullRequest pr = getPrFromSha(configProjectName, reference);
       return getRevisionForPR(configProjectName, pr);
     }
@@ -248,7 +248,7 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
   @Override
   public GitRevision resolveLastRev(String reference) throws RepoException, ValidationException {
     String sha1Part = Splitter.on(" ").split(reference).iterator().next();
-    Matcher matcher = GitRevision.COMPLETE_SHA1_PATTERN.matcher(sha1Part);
+    Matcher matcher = GitRevision.COMPLETE_GIT_HASH_PATTERN.matcher(sha1Part);
     // Note that this might not work if the PR is for a different branch than the imported to
     // the destination. But in this case we cannot do that much apart from --force.
     if (matcher.matches()) {
@@ -266,9 +266,10 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
   @Override
   @Nullable
   public String showDiff(GitRevision revisionFrom, GitRevision revisionTo) throws RepoException {
-    return getRepository().showDiff(
-        checkNotNull(revisionFrom, "revisionFrom should not be null").getSha1(),
-        checkNotNull(revisionTo, "revisionTo should not be null").getSha1());
+    return getRepository()
+        .showDiff(
+            checkNotNull(revisionFrom, "revisionFrom should not be null").getHash(),
+            checkNotNull(revisionTo, "revisionTo should not be null").getHash());
   }
 
   /** Given a commit SHA, use the GitHub API to (try to) look up info for a corresponding PR. */
@@ -404,7 +405,7 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
     String refForMigration = actuallyUseMerge ? LOCAL_PR_MERGE_REF : LOCAL_PR_HEAD_REF;
     GitRevision gitRevision = getRepository().resolveReference(refForMigration);
 
-    String headPrSha1 = getRepository().resolveReference(LOCAL_PR_HEAD_REF).getSha1();
+    String headPrSha1 = getRepository().resolveReference(LOCAL_PR_HEAD_REF).getHash();
     String integrateLabel = new GitHubPrIntegrateLabel(getRepository(), generalOptions,
         project, prNumber,
         prData.getHead().getLabel(),
@@ -432,14 +433,15 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
         .map(User::getLogin)
         .collect(Collectors.toList()));
 
-    GitRevision result = new GitRevision(
-        getRepository(),
-        gitRevision.getSha1(),
-        // TODO(malcon): Decide the format to use here:
-        /*reviewReference=*/null,
-        actuallyUseMerge ? asMergeRef(prNumber) : asHeadRef(prNumber),
-        labels.build(),
-        url);
+    GitRevision result =
+        new GitRevision(
+            getRepository(),
+            gitRevision.getHash(),
+            // TODO(malcon): Decide the format to use here:
+            /* reviewReference= */ null,
+            actuallyUseMerge ? asMergeRef(prNumber) : asHeadRef(prNumber),
+            labels.build(),
+            url);
 
     return describeVersion ? getRepository().addDescribeVersion(result) : result;
   }
@@ -656,7 +658,7 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
           return super.findBaseline(startRevision, label);
         }
         return findBaselinesWithoutLabel(startRevision, /* limit= */ 1).stream()
-            .map(e -> new Baseline<>(e.getSha1(), e))
+            .map(e -> new Baseline<>(e.getHash(), e))
             .findFirst();
       }
 
@@ -702,7 +704,7 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
           return super.changes(fromRef, toRef);
         }
         GitLogEntry merge =
-            Iterables.getOnlyElement(getRepository().log(toRef.getSha1()).withLimit(1).run());
+            Iterables.getOnlyElement(getRepository().log(toRef.getHash()).withLimit(1).run());
         // Fast-forward merge
         if (merge.parents().size() == 1) {
           return super.changes(fromRef, toRef);

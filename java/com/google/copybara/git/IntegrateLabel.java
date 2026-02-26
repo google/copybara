@@ -42,7 +42,7 @@ public interface IntegrateLabel {
       @Override
       public String mergeMessage(ImmutableList<LabelFinder> labelsToAdd)
           throws ValidationException {
-        return IntegrateLabel.withLabels("Merge of " + revision.getSha1(), labelsToAdd);
+        return IntegrateLabel.withLabels("Merge of " + revision.getHash(), labelsToAdd);
       }
 
       @Override
@@ -52,7 +52,7 @@ public interface IntegrateLabel {
 
       @Override
       public String toString() {
-        return "Merge of " + revision.getSha1();
+        return "Merge of " + revision.getHash();
       }
     };
   }

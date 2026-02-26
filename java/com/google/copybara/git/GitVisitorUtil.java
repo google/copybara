@@ -65,7 +65,7 @@ public class GitVisitorUtil {
       }
     }
     if (skip == 0) {
-      throw new CannotResolveRevisionException("Cannot resolve reference " + start.getSha1());
+      throw new CannotResolveRevisionException("Cannot resolve reference " + start.getHash());
     }
   }
 }

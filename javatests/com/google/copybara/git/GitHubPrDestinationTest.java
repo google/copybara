@@ -738,13 +738,13 @@ public class GitHubPrDestinationTest {
         null,
         "first change",
         ImmutableMap.<String, String>builder().put("foo.txt", "").buildOrThrow());
-    String baseline = remote.resolveReference("HEAD").getSha1();
+    String baseline = remote.resolveReference("HEAD").getHash();
     addFiles(
         remote,
         "test_feature",
         "second change",
         ImmutableMap.<String, String>builder().put("foo.txt", "test").buildOrThrow());
-    String changeHead = remote.resolveReference("HEAD").getSha1();
+    String changeHead = remote.resolveReference("HEAD").getHash();
     gitUtil.mockApi("GET", getPullRequestsUrl("test_feature"), mockResponse("[{"
         + "  \"id\": 1,\n"
         + "  \"number\": 12345,\n"
@@ -830,13 +830,13 @@ public class GitHubPrDestinationTest {
         null,
         "first change",
         ImmutableMap.<String, String>builder().put("foo.txt", "").buildOrThrow());
-    String baseline = remote.resolveReference("HEAD").getSha1();
+    String baseline = remote.resolveReference("HEAD").getHash();
     addFiles(
         remote,
         "test_feature",
         "second change",
         ImmutableMap.<String, String>builder().put("foo.txt", "test").buildOrThrow());
-    String changeHead = remote.resolveReference("HEAD").getSha1();
+    String changeHead = remote.resolveReference("HEAD").getHash();
 
     gitUtil.mockApi("GET", getPullRequestsUrl("test_feature"), mockResponse("[{"
         + "  \"id\": 1,\n"
@@ -898,13 +898,13 @@ public class GitHubPrDestinationTest {
         null,
         "first change",
         ImmutableMap.<String, String>builder().put("foo.txt", "").buildOrThrow());
-    String baseline = remote.resolveReference("HEAD").getSha1();
+    String baseline = remote.resolveReference("HEAD").getHash();
     addFiles(
         remote,
         "test_feature",
         "second change",
         ImmutableMap.<String, String>builder().put("foo.txt", "test").buildOrThrow());
-    String changeHead = remote.resolveReference("HEAD").getSha1();
+    String changeHead = remote.resolveReference("HEAD").getHash();
 
     gitUtil.mockApi("GET", getPullRequestsUrl("test_feature"), mockResponse("[{"
         + "  \"id\": 1,\n"
@@ -953,9 +953,9 @@ public class GitHubPrDestinationTest {
         null,
         "first change",
         ImmutableMap.<String, String>builder().put("foo.txt", "").buildOrThrow());
-    String baseline = remote.resolveReference("HEAD").getSha1();
+    String baseline = remote.resolveReference("HEAD").getHash();
 
-    String changeHead = remote.resolveReference("HEAD").getSha1();
+    String changeHead = remote.resolveReference("HEAD").getHash();
     gitUtil.mockApi("GET", getPullRequestsUrl("test_feature"), mockResponse("[{"
         + "  \"id\": 1,\n"
         + "  \"number\": 12345,\n"

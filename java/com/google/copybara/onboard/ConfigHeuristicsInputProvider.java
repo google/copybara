@@ -154,7 +154,7 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
               .collect(toImmutableList());
 
       console.progressFmt("Checking out git files");
-      repo.withWorkTree(git).forceCheckout(gitRevision.getSha1());
+      repo.withWorkTree(git).forceCheckout(gitRevision.getHash());
 
       ConfigGenHeuristics heuristics =
           getConfigGenHeuristics(

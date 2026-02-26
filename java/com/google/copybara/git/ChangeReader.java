@@ -100,8 +100,8 @@ class ChangeReader {
       throws RepoException, ValidationException {
     String refExpression =
         fromRev == null || historyIsNonLinear
-            ? toRev.getSha1()
-            : fromRev.getSha1() + ".." + toRev.getSha1();
+            ? toRev.getHash()
+            : fromRev.getHash() + ".." + toRev.getHash();
     LogCmd logCmd = repository.log(refExpression).firstParent(firstParent).topoOrder(topoOrder);
     if (limit != -1) {
       logCmd = logCmd.withLimit(limit);
@@ -145,7 +145,7 @@ class ChangeReader {
 
     ImmutableList<GitLogEntry> entries =
         repository
-            .log(parents.get(0).getSha1() + ".." + ref.getSha1())
+            .log(parents.get(0).getHash() + ".." + ref.getHash())
             // This might give incorrect results but several migrations rely on this behavior.
             // and first_parent = False doesn't work for ITERATIVE
             .withPaths(Glob.isEmptyRoot(roots) ? ImmutableList.of() : roots)
@@ -158,15 +158,28 @@ class ChangeReader {
     // Remove the merge commit. Since we already have that in the body.
     entries = entries.subList(1, entries.size());
 
-    return "\n" + BRANCH_COMMIT_LOG_HEADING + "\n" +
-        Joiner.on("\n").join(entries.stream()
-            .map(e -> ""
-                + "commit " + e.commit().getSha1() + "\n"
-                + "Author:  " + filterAuthor(e.author()) + "\n"
-                + "Date:    " + e.authorDate() + "\n"
-                + "\n"
-                + "    " + e.body().replace("\n", "    \n"))
-            .collect(Collectors.toList()));
+    return "\n"
+        + BRANCH_COMMIT_LOG_HEADING
+        + "\n"
+        + Joiner.on("\n")
+            .join(
+                entries.stream()
+                    .map(
+                        e ->
+                            ""
+                                + "commit "
+                                + e.commit().getHash()
+                                + "\n"
+                                + "Author:  "
+                                + filterAuthor(e.author())
+                                + "\n"
+                                + "Date:    "
+                                + e.authorDate()
+                                + "\n"
+                                + "\n"
+                                + "    "
+                                + e.body().replace("\n", "    \n"))
+                    .collect(Collectors.toList()));
   }
 
   private ImmutableList<Change<GitRevision>> parseChanges(
@@ -183,9 +196,9 @@ class ChangeReader {
       }
       last = e.commit();
       ImmutableListMultimap<String, String> labelsToCopy =
-          labels.getOrDefault(e.commit().getSha1(), ImmutableListMultimap.of());
+          labels.getOrDefault(e.commit().getHash(), ImmutableListMultimap.of());
       // Carry over the context reference to the corresponding change in the list.
-      if (last.getSha1().equals(toRev.getSha1()) && toRev.contextReference() != null) {
+      if (last.getHash().equals(toRev.getHash()) && toRev.contextReference() != null) {
         last = last.withContextReference(toRev.contextReference());
       }
       result.add(

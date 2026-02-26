@@ -492,12 +492,12 @@ public class GitOriginTest {
   @Test
   public void testGitOriginResolveToExactTag() throws Exception {
     git("tag", "-m", "This is a tag", "0.1");
-    String firstSha1 = this.repo.resolveReference("HEAD").getSha1();
+    String firstSha1 = this.repo.resolveReference("HEAD").getHash();
 
     writeFile(remote, "test.txt", "updated");
     repo.add().files("test.txt").run();
     git("commit", "-m", "another commit");
-    String secondSha1 = this.repo.resolveReference("HEAD").getSha1();
+    String secondSha1 = this.repo.resolveReference("HEAD").getHash();
 
     assertThat(origin().resolve(firstSha1).contextReference()).isEqualTo("0.1");
     assertThat(origin().resolve(secondSha1).contextReference()).isNull();
@@ -506,15 +506,15 @@ public class GitOriginTest {
   @Test
   public void getGitRevisionHasShaLabel() throws Exception {
     GitRevision head = repo.resolveReference(defaultBranch);
-    assertThat(head.associatedLabels().get("GIT_SHA1")).containsExactly(head.getSha1());
+    assertThat(head.associatedLabels().get("GIT_SHA1")).containsExactly(head.getHash());
     assertThat(head.associatedLabels().get("GIT_SHORT_SHA1"))
-        .containsExactly(head.getSha1().substring(0, 7));
+        .containsExactly(head.getHash().substring(0, 7));
 
     // Same as above but thru git.origin
     assertThat(origin().resolve(defaultBranch).associatedLabels().get("GIT_SHA1"))
-        .containsExactly(head.getSha1());
+        .containsExactly(head.getHash());
     assertThat(origin().resolve(defaultBranch).associatedLabels().get("GIT_SHORT_SHA1"))
-        .containsExactly(head.getSha1().substring(0, 7));
+        .containsExactly(head.getHash().substring(0, 7));
   }
 
   @Test
@@ -537,20 +537,20 @@ public class GitOriginTest {
     writeFile(remote, "test.txt", "initial");
     repo.add().files("test.txt").run();
     git("commit", "-m", "ancestor commit");
-    String ancestorSha1 = repo.resolveReference("HEAD").getSha1();
+    String ancestorSha1 = repo.resolveReference("HEAD").getHash();
     writeFile(remote, "test.txt", "changed");
     repo.add().files("test.txt").run();
     git("commit", "-m", "random commit");
     writeFile(remote, "test.txt", "changed-again");
     repo.add().files("test.txt").run();
     git("commit", "-m", "descendant commit");
-    String descendantRef = repo.resolveReference("HEAD").getSha1();
+    String descendantRef = repo.resolveReference("HEAD").getHash();
     newReader().checkout(origin.resolve("my_branch"), checkoutDir);
     GitRevision descendantRev = origin.resolve("my_branch");
 
     assertThat(descendantRef).isEqualTo(descendantRev.fixedReference());
     GitRevision ancestorRev = origin().resolveAncestorRef(ancestorSha1, descendantRev);
-    assertThat(ancestorRev.getSha1()).isEqualTo(ancestorSha1);
+    assertThat(ancestorRev.getHash()).isEqualTo(ancestorSha1);
     assertThat(ancestorRev.contextReference()).isEqualTo("my_branch");
   }
 
@@ -561,13 +561,13 @@ public class GitOriginTest {
     writeFile(remote, "test.txt", "initial");
     repo.add().files("test.txt").run();
     git("commit", "-m", "ancestor commit");
-    String ancestorSha1 = repo.resolveReference("HEAD").getSha1();
-    String descendantRef = repo.resolveReference("HEAD").getSha1();
+    String ancestorSha1 = repo.resolveReference("HEAD").getHash();
+    String descendantRef = repo.resolveReference("HEAD").getHash();
     newReader().checkout(origin.resolve("my_branch"), checkoutDir);
     GitRevision descendantRev = origin.resolve("my_branch");
 
     GitRevision ancestorRev = origin().resolveAncestorRef(ancestorSha1, descendantRev);
-    assertThat(ancestorRev.getSha1()).isEqualTo(descendantRef);
+    assertThat(ancestorRev.getHash()).isEqualTo(descendantRef);
     assertThat(ancestorRev.contextReference()).isEqualTo("my_branch");
   }
 
@@ -583,7 +583,7 @@ public class GitOriginTest {
     writeFile(remote, "test.txt", "changed");
     repo.add().files("test.txt").run();
     git("commit", "-m", "newer commit");
-    String newerSha1 = repo.resolveReference("HEAD").getSha1();
+    String newerSha1 = repo.resolveReference("HEAD").getHash();
     newReader().checkout(origin.resolve("my_branch"), checkoutDir);
 
     ValidationException e =
@@ -918,15 +918,15 @@ public class GitOriginTest {
                     .withLabels(ImmutableListMultimap.of("MY_LABEL_KEY", "MY_LABEL_VALUE")))
             .getChanges();
 
-    String headSHA = origin.resolve("HEAD").getSha1();
+    String headSHA = origin.resolve("HEAD").getHash();
 
     ImmutableList<Change<GitRevision>> headChange =
         changes.stream()
-            .filter(change -> change.getRevision().getSha1().equals(headSHA))
+            .filter(change -> change.getRevision().getHash().equals(headSHA))
             .collect(toImmutableList());
     ImmutableList<Change<GitRevision>> notHeadChanges =
         changes.stream()
-            .filter(change -> !change.getRevision().getSha1().equals(headSHA))
+            .filter(change -> !change.getRevision().getHash().equals(headSHA))
             .collect(toImmutableList());
     assertThat(Iterables.getOnlyElement(headChange).getRevision().associatedLabel("MY_LABEL_KEY"))
         .isEqualTo(ImmutableList.of("MY_LABEL_VALUE"));
@@ -1070,8 +1070,7 @@ public class GitOriginTest {
   public void testVisitOutsideRoot() throws Exception {
     String author = "John Name <john@name.com>";
     singleFileCommit(author, "two", "bar/test.txt", "some content2");
-    String first = Iterables.getOnlyElement(repo.log("HEAD").withLimit(1).run()).commit()
-        .getSha1();
+    String first = Iterables.getOnlyElement(repo.log("HEAD").withLimit(1).run()).commit().getHash();
     singleFileCommit(author, "three", "foo/test.txt", "some content3");
     singleFileCommit(author, "four", "bar/test.txt", "some content3");
     GitRevision lastCommitRef = getLastCommitRef();
@@ -1537,7 +1536,7 @@ public class GitOriginTest {
     GitRevision firstIncludedRef =
         (GitRevision) Iterables.getOnlyElement(destination.processed).getOriginRef();
 
-    assertThat(firstIncludedRef.getSha1()).isEqualTo(firstExpected);
+    assertThat(firstIncludedRef.getHash()).isEqualTo(firstExpected);
 
     // Add an excluded file, and make sure the commit is skipped.
     writeFile(remote, "excluded_file_2.txt", "some content");
@@ -1551,7 +1550,7 @@ public class GitOriginTest {
     firstIncludedRef =
         (GitRevision) Iterables.getOnlyElement(destination.processed).getOriginRef();
     // Still only change is the one that changed included files.
-    assertThat(firstIncludedRef.getSha1()).isEqualTo(firstExpected);
+    assertThat(firstIncludedRef.getHash()).isEqualTo(firstExpected);
 
     // Add another included file, and make sure we only get the 2 included changes, and the
     // intervening excluded one is absent.
@@ -1647,7 +1646,7 @@ public class GitOriginTest {
         newReader().changes(null, origin.resolve("HEAD")).getChanges();
     List<Change<GitRevision>> handledChanges =
         changes.stream()
-            .takeWhile(c -> !c.getRevision().getSha1().equals(branch2))
+            .takeWhile(c -> !c.getRevision().getHash().equals(branch2))
             .collect(toImmutableList());
     assertThat(changes).hasSize(8);
     assertThat(changes.get(0).getMessage()).contains("first file");

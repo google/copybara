@@ -304,7 +304,7 @@ public class GerritOrigin extends GitOrigin {
         PathMatcher pathMatcher = originFiles.relativeTo(Paths.get("/"));
         if (change.getChangeFiles().stream()
             .noneMatch(x -> pathMatcher.matches(Paths.get("/", x)))) {
-          logger.atInfo().log("Skipping a Gerrit noop change with ref: %s", toRef.getSha1());
+          logger.atInfo().log("Skipping a Gerrit noop change with ref: %s", toRef.getHash());
           return ChangesResponse.noChanges(EmptyReason.NO_CHANGES);
         }
         return result;

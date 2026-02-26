@@ -107,9 +107,9 @@ public class GitLabMrOriginTest {
     GitLabMrOrigin underTest = getGitLabMrOrigin(false);
 
     GitRevision revision =
-        underTest.resolveLastRev(testRepo.resolveReference("source-branch").getSha1());
+        underTest.resolveLastRev(testRepo.resolveReference("source-branch").getHash());
 
-    assertThat(revision.getSha1()).isEqualTo(testRepo.resolveReference("source-branch").getSha1());
+    assertThat(revision.getHash()).isEqualTo(testRepo.resolveReference("source-branch").getHash());
   }
 
   @Test
@@ -135,8 +135,8 @@ public class GitLabMrOriginTest {
 
     GitRevision revision = underTest.resolve("1");
 
-    assertThat(revision.getSha1())
-        .isEqualTo(testRepo.resolveReference("refs/merge-requests/1/head").getSha1());
+    assertThat(revision.getHash())
+        .isEqualTo(testRepo.resolveReference("refs/merge-requests/1/head").getHash());
   }
 
   @Test
@@ -167,8 +167,8 @@ public class GitLabMrOriginTest {
 
     GitRevision revision = underTest.resolve("1");
 
-    assertThat(revision.getSha1())
-        .isEqualTo(testRepo.resolveReference("refs/merge-requests/1/merge").getSha1());
+    assertThat(revision.getHash())
+        .isEqualTo(testRepo.resolveReference("refs/merge-requests/1/merge").getHash());
   }
 
   @Test
@@ -332,8 +332,8 @@ public class GitLabMrOriginTest {
 
     assertThat(
             underTest.findBaselinesWithoutLabel(startRevision, 1).stream()
-                .map(GitRevision::getSha1))
-        .containsExactly(baseline.getSha1());
+                .map(GitRevision::getHash))
+        .containsExactly(baseline.getHash());
   }
 
   @Test
@@ -422,7 +422,7 @@ origin = git.gitlab_mr_origin(
         repoDir,
         "update-ref",
         "refs/merge-requests/1/head",
-        testRepo.resolveReference("source-branch").getSha1());
+        testRepo.resolveReference("source-branch").getHash());
     testRepo.forceCheckout(mainBranch);
     testRepo.branch("merge-branch").run();
     testRepo.merge("source-branch", ImmutableList.of()).run(ImmutableMap.of());
@@ -431,21 +431,20 @@ origin = git.gitlab_mr_origin(
         repoDir,
         "update-ref",
         "refs/merge-requests/1/merge",
-        testRepo.resolveReference("merge-branch").getSha1());
+        testRepo.resolveReference("merge-branch").getHash());
   }
   
   private MergeRequest getMergeRequest() throws RepoException, CannotResolveRevisionException {
     return new MergeRequest(
         12345,
         1,
-        testRepo.resolveReference("source-branch").getSha1(),
+        testRepo.resolveReference("source-branch").getHash(),
         "title",
         "description",
         DetailedMergeStatus.MERGEABLE,
         "source-branch",
         "https://gitlab.com/example/1",
-        State.OPENED
-    );
+        State.OPENED);
   }
 
   private GitLabMrOrigin getGitLabMrOrigin(boolean useMergeCommit) {

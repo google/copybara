@@ -343,7 +343,7 @@ public class GitDestination implements Destination<GitRevision> {
         GitRevision revision = fetchFromRemote(console, repo, repoUrl, remoteFetch);
         if (revision != null) {
           try {
-            repo.branch(state.localBranch).withStartPoint(revision.getSha1()).run();
+            repo.branch(state.localBranch).withStartPoint(revision.getHash()).run();
           } catch (RepoException e) {
             if (e.getMessage().contains(String.format("%s already exists", state.localBranch))) {
               return;
@@ -490,10 +490,10 @@ public class GitDestination implements Destination<GitRevision> {
         return ImmutableList.of(
             new DestinationEffect(
                 DestinationEffect.Type.CREATED,
-                String.format("Created revision %s", pushedRevision.getSha1()),
+                String.format("Created revision %s", pushedRevision.getHash()),
                 originChanges,
                 new DestinationEffect.DestinationRef(
-                    pushedRevision.getSha1(), "commit", /*url=*/ null)));
+                    pushedRevision.getHash(), "commit", /* url= */ null)));
       }
 
       @Override
@@ -630,11 +630,12 @@ public class GitDestination implements Destination<GitRevision> {
         alternate.simpleCommand("reset", "--hard");
         ValidationException.checkCondition(localBranchRevision != null,
             "Unable to rebase because the local branch's revision was not resolvable.");
-        alternate.rebaseCmd(localBranchRevision.getSha1())
+        alternate
+            .rebaseCmd(localBranchRevision.getHash())
             .errorAdvice("Please consider to use flag --nogit-destination-rebase to workaround")
             .run();
         afterRebaseRev = alternate.resolveReference("HEAD");
-        if (afterRebaseRev.getSha1().equals(localBranchRevision.getSha1())) {
+        if (afterRebaseRev.getHash().equals(localBranchRevision.getHash())) {
           throw new EmptyChangeException("Empty change after rebase. The only affected"
               + " paths were already applied in main branch. This usually happens if"
               + " in presubmit workflows where the used config file is more up-to-date"
@@ -647,7 +648,7 @@ public class GitDestination implements Destination<GitRevision> {
         if (afterRebaseRev != null) {
           localBranchName = "copybara/local";
           alternate.simpleCommand(
-              getMaxRepoTimeout(), "checkout", "-B", localBranchName, afterRebaseRev.getSha1());
+              getMaxRepoTimeout(), "checkout", "-B", localBranchName, afterRebaseRev.getHash());
         }
         scratchClone.simpleCommand(getMaxRepoTimeout(), "checkout", state.localBranch);
       }
@@ -686,7 +687,7 @@ public class GitDestination implements Destination<GitRevision> {
                 String.format(
                     "Dry run commit '%s' created locally at %s", head, scratchClone.getGitDir()),
                 originChanges,
-                new DestinationEffect.DestinationRef(head.getSha1(), "commit", /*url=*/ null)));
+                new DestinationEffect.DestinationRef(head.getHash(), "commit", /* url= */ null)));
       }
       String push =
           writeHook.getPushReference(scratchClone, getCompleteRef(remotePush), transformResult);

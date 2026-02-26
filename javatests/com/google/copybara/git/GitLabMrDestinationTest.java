@@ -242,7 +242,7 @@ public class GitLabMrDestinationTest {
                 .localRepo
                 .load(console)
                 .resolveReference(underTest.state.localBranch)
-                .getSha1())
+                .getHash())
         .isEqualTo(sha1);
   }
 
@@ -346,7 +346,7 @@ public class GitLabMrDestinationTest {
                 .localRepo
                 .load(console)
                 .resolveReference(underTest.state.localBranch)
-                .getSha1())
+                .getHash())
         .isEqualTo(sha1);
   }
 

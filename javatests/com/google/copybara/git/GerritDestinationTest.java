@@ -1724,12 +1724,12 @@ public class GerritDestinationTest {
     repo.simpleCommand("commit", "-m", "previous patchset");
 
     GitRevision currentRev = repo.resolveReference("HEAD");
-    repo.simpleCommand("update-ref", "refs/changes/10/12310/1", currentRev.getSha1());
+    repo.simpleCommand("update-ref", "refs/changes/10/12310/1", currentRev.getHash());
     repo.simpleCommand("reset", "--hard", "HEAD~1");
 
     mockChangeFound(currentRev, 12310);
 
-    runAllowEmptyPatchSetFalse(oldParent.getSha1());
+    runAllowEmptyPatchSetFalse(oldParent.getHash());
   }
 
   @Test
@@ -1767,7 +1767,7 @@ public class GerritDestinationTest {
 
     mockNoChangesFound();
 
-    runAllowEmptyPatchSetFalse(oldParent.getSha1());
+    runAllowEmptyPatchSetFalse(oldParent.getHash());
 
     String primaryBranch = repo.getPrimaryBranch();
     assertThatGerritCheckout(repo(), "refs/for/" + primaryBranch)
@@ -1776,7 +1776,7 @@ public class GerritDestinationTest {
         .containsNoMoreFiles();
 
     GitRevision currentRev = repo.resolveReference(getGerritRef(repo, "refs/for/" + primaryBranch));
-    repo.simpleCommand("update-ref", "refs/changes/10/12310/1", currentRev.getSha1());
+    repo.simpleCommand("update-ref", "refs/changes/10/12310/1", currentRev.getHash());
     // To avoid the non-fastforward. In real Gerrit this is not a problem
     repo.simpleCommand("update-ref", "-d", getGerritRef(repo, "refs/for/" + primaryBranch));
 
@@ -1816,7 +1816,7 @@ public class GerritDestinationTest {
 
     RedundantChangeException e =
         assertThrows(
-            RedundantChangeException.class, () -> runAllowEmptyPatchSetFalse(newParent.getSha1()));
+            RedundantChangeException.class, () -> runAllowEmptyPatchSetFalse(newParent.getHash()));
     assertThat(e)
         .hasMessageThat()
         .contains(
@@ -1838,7 +1838,7 @@ public class GerritDestinationTest {
     writeFile(workdir, "foo.txt", thirdChange);
 
     writeFile(workdir, "non_relevant.txt", "bar");
-    runAllowEmptyPatchSetFalse(newParent.getSha1());
+    runAllowEmptyPatchSetFalse(newParent.getHash());
 
     assertThatGerritCheckout(repo(), "refs/for/" + primaryBranch)
         .containsFile("non_relevant.txt", "bar")
@@ -1860,18 +1860,18 @@ public class GerritDestinationTest {
     writeFile(workdir, "foo.txt", "content 2");
 
     mockNoChangesFound();
-    runAllowEmptyPatchSetFalse(repo.resolveReference("HEAD").getSha1());
+    runAllowEmptyPatchSetFalse(repo.resolveReference("HEAD").getHash());
 
     String primaryBranch = repo.getPrimaryBranch();
 
     GitRevision currentRev = repo.resolveReference(getGerritRef(repo, "refs/for/" + primaryBranch));
-    repo.simpleCommand("update-ref", "refs/changes/10/12310/1", currentRev.getSha1());
+    repo.simpleCommand("update-ref", "refs/changes/10/12310/1", currentRev.getHash());
     // To avoid the non-fastforward. In real Gerrit this is not a problem
     repo.simpleCommand("update-ref", "-d", getGerritRef(repo, "refs/for/" + primaryBranch));
 
     repo.forceCheckout(primaryBranch);
     mockChangeFound(currentRev, 12310);
-    runAllowEmptyPatchSetFalse(repo.resolveReference("HEAD").getSha1());
+    runAllowEmptyPatchSetFalse(repo.resolveReference("HEAD").getHash());
   }
 
   private void mockChangeFound(GitRevision currentRev, int changeNum) throws IOException {
@@ -1889,7 +1889,7 @@ public class GerritDestinationTest {
                               + "\"status\" : \"NEW\", "
                               + "\"_number\" : \"%s\", "
                               + "\"current_revision\" : \"%s\"}]",
-                          change, changeNum, currentRev.getSha1()));
+                          change, changeNum, currentRev.getHash()));
                 });
   }
 

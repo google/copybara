@@ -66,8 +66,13 @@ public enum GitRepoType {
                 /* fetchTags= */ describeVersion,
                 partialFetch,
                 fetchDepth);
-        return new GitRevision(repository, rev.getSha1(), sha1WithPatchSet.group(2),
-                               rev.contextReference(), rev.associatedLabels(), repoUrl);
+        return new GitRevision(
+            repository,
+            rev.getHash(),
+            sha1WithPatchSet.group(2),
+            rev.contextReference(),
+            rev.associatedLabels(),
+            repoUrl);
       }
 
 
@@ -197,10 +202,11 @@ public enum GitRepoType {
               Optional.empty());
       return new GitRevision(
           repository,
-          gitRevision.getSha1(),
-          /*reviewReference=*/null,
+          gitRevision.getHash(),
+          /* reviewReference= */ null,
           stableRef,
-          ImmutableListMultimap.of(), repoUrl);
+          ImmutableListMultimap.of(),
+          repoUrl);
     }
     if (GitHubUtil.maybeParseGithubPrFromMergeOrHeadRef(ref).isPresent()) {
       GitRevision gitRevision =
@@ -208,10 +214,11 @@ public enum GitRepoType {
               repoUrl, ref, /* fetchTags= */ describeVersion, partialFetch, Optional.empty());
       return new GitRevision(
           repository,
-          gitRevision.getSha1(),
-          /*reviewReference=*/null,
+          gitRevision.getHash(),
+          /* reviewReference= */ null,
           ref,
-          ImmutableListMultimap.of(), repoUrl);
+          ImmutableListMultimap.of(),
+          repoUrl);
     }
     return null;
   }
@@ -225,7 +232,7 @@ public enum GitRepoType {
 
   /** Example: "54d2a09b272f22a6d27e76b891f36213b98e0ddc random text" */
   private static final Pattern SHA_1_WITH_REVIEW_DATA =
-      Pattern.compile("(" + GitRevision.COMPLETE_SHA1_PATTERN.pattern() + ") (.+)");
+      Pattern.compile("(" + GitRevision.COMPLETE_GIT_HASH_PATTERN.pattern() + ") (.+)");
 
   // TODO(malcon): Remove all these once internal code reveres to GerritChange fields
   public static final String GERRIT_CHANGE_NUMBER_LABEL = GerritChange.GERRIT_CHANGE_NUMBER_LABEL;

@@ -984,7 +984,7 @@ public class GitDestinationTest {
                     newWriter(),
                     destinationFiles,
                     new DummyRevision("origin_ref"),
-                    baseline.getSha1()));
+                    baseline.getHash()));
     assertThat(e).hasMessageThat().contains("Empty change after rebase");
   }
 
@@ -1015,14 +1015,14 @@ public class GitDestinationTest {
                   newWriter(),
                   destinationFiles,
                   new DummyRevision("origin_ref"),
-                  baseline.getSha1()));
+                  baseline.getHash()));
 
     writeFile(workdir, "foo", "conflict");
     writeFile(workdir, "bar", "other file");
 
     destinationFiles = Glob.createGlob(ImmutableList.of("foo", "bar"));
     processWithBaseline(newWriter(), destinationFiles, new DummyRevision("origin_ref"),
-        baseline.getSha1());
+        baseline.getHash());
 
     assertThat(rebaseConflictException).hasMessageThat()
         .containsMatch(
@@ -1053,7 +1053,7 @@ public class GitDestinationTest {
 
     destinationFiles = Glob.createGlob(ImmutableList.of("foo"));
     TransformResult result = TransformResults.of(workdir, new DummyRevision("origin_ref"))
-        .withBaseline(baseline.getSha1()).withSummary("Empty");
+        .withBaseline(baseline.getHash()).withSummary("Empty");
     EmptyChangeException e =
         assertThrows(
             EmptyChangeException.class,
@@ -2109,7 +2109,7 @@ public class GitDestinationTest {
 
     GitRevision primary = repo().resolveReference(primaryBranch);
 
-    repo().simpleCommand("update-ref", "refs/other/" + primaryBranch, primary.getSha1());
+    repo().simpleCommand("update-ref", "refs/other/" + primaryBranch, primary.getHash());
 
     checkLocalRepo(true);
   }
@@ -2483,7 +2483,7 @@ public class GitDestinationTest {
     assertThat(
         writer.getDestinationReader(
             console,
-            new Baseline<>(repo().resolveReference("HEAD").getSha1(), null),
+            new Baseline<>(repo().resolveReference("HEAD").getHash(), null),
             workdir)
             .readFile("test.txt")).contains("some content");
   }
@@ -2505,11 +2505,11 @@ public class GitDestinationTest {
     assertThat(
         writer.getDestinationReader(console, "HEAD", workdir)
           .lastModified("1.txt"))
-      .isEqualTo(firstCommit.commit().getSha1());
+      .isEqualTo(firstCommit.commit().getHash());
     assertThat(
         writer.getDestinationReader(console, "HEAD", workdir)
           .lastModified("2.txt"))
-      .isEqualTo(secondCommit.commit().getSha1());
+      .isEqualTo(secondCommit.commit().getHash());
   }
 
 }

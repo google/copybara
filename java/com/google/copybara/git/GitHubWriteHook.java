@@ -128,7 +128,7 @@ public class GitHubWriteHook extends DefaultWriteHook {
 
         String pullRequestRepoUrl = pr.getHead().getRepo().getHtmlUrl();
 
-          if (!pr.getHead().getSha().equals(integrateLabel.getRevision().getSha1())) {
+        if (!pr.getHead().getSha().equals(integrateLabel.getRevision().getHash())) {
             console.errorFmt(
                 "The head commit of the PR %s is not the same as the commit that was used to "
                     + "create the PR. This is likely due to a commit being pushed to the "
@@ -146,7 +146,7 @@ public class GitHubWriteHook extends DefaultWriteHook {
                           pullRequestRepoUrl,
                           ImmutableList.of(scratchClone.createRefSpec("HEAD:" + completeRef)))
                       .withForceLease(
-                          ImmutableMap.of(completeRef, integrateLabel.getRevision().getSha1()))
+                          ImmutableMap.of(completeRef, integrateLabel.getRevision().getHash()))
                       .run());
           return;
         } catch (GitHubApiException e) {

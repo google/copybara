@@ -241,7 +241,7 @@ public class GitHubPrOriginTest {
     String sha1 = gitUtil.mockRemoteRepo("github.com/google/example").parseRef("HEAD");
     GitRevision rev = origin.resolveLastRev(sha1 + " not important review data");
 
-    assertThat(rev.getSha1()).isEqualTo(sha1);
+    assertThat(rev.getHash()).isEqualTo(sha1);
   }
 
   @Test
@@ -661,7 +661,7 @@ public class GitHubPrOriginTest {
     Reader<GitRevision> reader = origin.newReader(Glob.ALL_FILES, authoring);
 
     GitRevision prHead = origin.resolve("123");
-    assertThat(prHead.getSha1()).isEqualTo(prHeadSha1);
+    assertThat(prHead.getHash()).isEqualTo(prHeadSha1);
     ImmutableList<Change<GitRevision>> changes =
         reader.changes(origin.resolveLastRev(base), prHead).getChanges();
 
@@ -723,7 +723,7 @@ public class GitHubPrOriginTest {
     List<String> msgs =
         Lists.transform(
             reader.changes(/* fromRef= */ null, mergeRevision).getChanges(), Change::getMessage);
-    assertThat(mergeRevision.getSha1()).isEqualTo(remote.parseRef("HEAD"));
+    assertThat(mergeRevision.getHash()).isEqualTo(remote.parseRef("HEAD"));
     assertThat(msgs)
         .containsExactly("first commit\n", "second commit\n", "Merge branch 'pr_branch'\n");
     assertThat(
@@ -763,14 +763,14 @@ public class GitHubPrOriginTest {
             .getChanges();
     ImmutableList<Change<GitRevision>> headChange =
         changes.stream()
-            .filter(change -> change.getRevision().getSha1().equals(prHeadSha1))
+            .filter(change -> change.getRevision().getHash().equals(prHeadSha1))
             .collect(ImmutableList.toImmutableList());
     ImmutableList<Change<GitRevision>> notHeadChanges =
         changes.stream()
-            .filter(change -> !change.getRevision().getSha1().equals(prHeadSha1))
+            .filter(change -> !change.getRevision().getHash().equals(prHeadSha1))
             .collect(ImmutableList.toImmutableList());
 
-    assertThat(prHead.getSha1()).isEqualTo(prHeadSha1);
+    assertThat(prHead.getHash()).isEqualTo(prHeadSha1);
     assertThat(Iterables.getOnlyElement(headChange).getRevision().associatedLabel("MY_LABEL_KEY"))
         .isEqualTo(ImmutableList.of("MY_LABEL_VALUE"));
     assertThat(notHeadChanges).isNotEmpty();
@@ -820,7 +820,7 @@ public class GitHubPrOriginTest {
     assertThat(headPrRevision.associatedLabels()).containsEntry(GITHUB_PR_ASSIGNEE, "assignee1");
     assertThat(headPrRevision.associatedLabels()).containsEntry(GITHUB_PR_ASSIGNEE, "assignee2");
     assertThat(headPrRevision.associatedLabels())
-        .containsEntry(GITHUB_PR_HEAD_SHA, headPrRevision.getSha1());
+        .containsEntry(GITHUB_PR_HEAD_SHA, headPrRevision.getHash());
     assertThat(headPrRevision.associatedLabels()).containsEntry(GITHUB_PR_BODY,
         "test summary\n\nMore text");
 
@@ -828,7 +828,7 @@ public class GitHubPrOriginTest {
     Optional<Baseline<GitRevision>> baselineObj = reader.findBaseline(headPrRevision, "RevId");
     assertThat(baselineObj.isPresent()).isTrue();
     assertThat(baselineObj.get().getBaseline())
-        .isEqualTo(baselineObj.get().getOriginRevision().getSha1());
+        .isEqualTo(baselineObj.get().getOriginRevision().getHash());
 
     assertThat(baselineObj.get().getBaseline()).isEqualTo(baseline1);
 
@@ -838,7 +838,7 @@ public class GitHubPrOriginTest {
                 .size())
         .isEqualTo(2);
 
-    assertThat(reader.findBaselinesWithoutLabel(headPrRevision, /*limit=*/ 1).get(0).getSha1())
+    assertThat(reader.findBaselinesWithoutLabel(headPrRevision, /* limit= */ 1).get(0).getHash())
         .isEqualTo(baseline1);
 
     reader.checkout(headPrRevision, workdir);
@@ -876,7 +876,7 @@ public class GitHubPrOriginTest {
     baselineObj = reader.findBaseline(mergePrRevision, "RevId");
     assertThat(baselineObj.isPresent()).isTrue();
     assertThat(baselineObj.get().getBaseline())
-        .isEqualTo(baselineObj.get().getOriginRevision().getSha1());
+        .isEqualTo(baselineObj.get().getOriginRevision().getHash());
 
     assertThat(baselineObj.get().getBaseline()).isEqualTo(baselineMerge);
 
@@ -886,7 +886,7 @@ public class GitHubPrOriginTest {
                 .size())
         .isEqualTo(2);
 
-    assertThat(reader.findBaselinesWithoutLabel(mergePrRevision, /*limit=*/ 1).get(0).getSha1())
+    assertThat(reader.findBaselinesWithoutLabel(mergePrRevision, /* limit= */ 1).get(0).getHash())
         .isEqualTo(baselineMerge);
 
     reader.checkout(mergePrRevision, workdir);
@@ -1257,9 +1257,10 @@ public class GitHubPrOriginTest {
     // in the worse case it wouldn't find the merge sha-1 since baseline branch could have
     // already moved.
     assertThat(mergeRevision.associatedLabels().get(GitModule.DEFAULT_INTEGRATE_LABEL))
-        .contains(String.format(
-            "https://github.com/google/example/pull/123 from googletestuser:example-branch %s",
-            remote.resolveReference(GitHubUtil.asHeadRef(123)).getSha1()));
+        .contains(
+            String.format(
+                "https://github.com/google/example/pull/123 from googletestuser:example-branch %s",
+                remote.resolveReference(GitHubUtil.asHeadRef(123)).getHash()));
 
     Reader<GitRevision> reader = origin.newReader(Glob.ALL_FILES, authoring);
     List<String> msgs = Lists.transform(
@@ -1338,8 +1339,8 @@ public class GitHubPrOriginTest {
     GitHubPrOrigin origin =
         githubPrOrigin("url = 'https://github.com/google/example'", "use_merge = True");
 
-    assertThat(origin.resolve("123").getSha1())
-        .isEqualTo(remote.resolveReference(GitHubUtil.asMergeRef(123)).getSha1());
+    assertThat(origin.resolve("123").getHash())
+        .isEqualTo(remote.resolveReference(GitHubUtil.asMergeRef(123)).getHash());
     assertThat(origin.resolve("123").associatedLabel(GITHUB_PR_USE_MERGE)).containsExactly("true");
 
     // Using --force should override "use_merge = True", since no merge commit exists
@@ -1358,8 +1359,8 @@ public class GitHubPrOriginTest {
     origin =
         githubPrOrigin("url = 'https://github.com/google/example'", "use_merge = True");
 
-    assertThat(origin.resolve("123").getSha1())
-        .isEqualTo(remote.resolveReference(GitHubUtil.asHeadRef(123)).getSha1());
+    assertThat(origin.resolve("123").getHash())
+        .isEqualTo(remote.resolveReference(GitHubUtil.asHeadRef(123)).getHash());
     assertThat(origin.resolve("123").associatedLabel(GITHUB_PR_USE_MERGE)).containsExactly("false");
   }
 
@@ -1390,8 +1391,8 @@ public class GitHubPrOriginTest {
         .mock();
     GitHubPrOrigin origin =
         githubPrOrigin("url = 'https://github.com/google/example'", "use_merge = True");
-    assertThat(origin.resolve("123").getSha1())
-        .isEqualTo(remote.resolveReference(GitHubUtil.asMergeRef(123)).getSha1());
+    assertThat(origin.resolve("123").getHash())
+        .isEqualTo(remote.resolveReference(GitHubUtil.asMergeRef(123)).getHash());
     assertThat(origin.resolve("123").associatedLabel(GITHUB_PR_USE_MERGE)).containsExactly("true");
   }
 
@@ -1445,8 +1446,8 @@ public class GitHubPrOriginTest {
     GitHubPrOrigin origin =
         githubPrOrigin("url = 'https://github.com/google/example'", "use_merge = True");
 
-    assertThat(origin.resolve("123").getSha1())
-        .isEqualTo(remote.resolveReference(GitHubUtil.asHeadRef(123)).getSha1());
+    assertThat(origin.resolve("123").getHash())
+        .isEqualTo(remote.resolveReference(GitHubUtil.asHeadRef(123)).getHash());
     assertThat(origin.resolve("123").associatedLabel(GITHUB_PR_USE_MERGE)).containsExactly("false");
   }
 
@@ -1540,7 +1541,7 @@ public class GitHubPrOriginTest {
 
     tmpRepo.add().all().run();
     tmpRepo.simpleCommand("commit", "-m", msg);
-    return Iterables.getOnlyElement(tmpRepo.log("HEAD").withLimit(1).run()).commit().getSha1();
+    return Iterables.getOnlyElement(tmpRepo.log("HEAD").withLimit(1).run()).commit().getHash();
   }
 
   private GitRepository withTmpWorktree(GitRepository remote) throws IOException {

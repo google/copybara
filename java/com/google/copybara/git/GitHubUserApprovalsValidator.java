@@ -117,7 +117,7 @@ public class GitHubUserApprovalsValidator {
     }
 
     for (ChangeWithApprovals change : changes) {
-      String sha = ((GitRevision) change.getChange().getRevision()).getSha1();
+      String sha = ((GitRevision) change.getChange().getRevision()).getHash();
 
       AssociatedPullRequests associatedPullRequests = getAssociatedPullRequest(sha, response);
       if (associatedPullRequests == null || associatedPullRequests.getEdges().isEmpty()) {
@@ -175,7 +175,7 @@ public class GitHubUserApprovalsValidator {
     ImmutableSet<String> responseOids =
         historyNodes.stream().map(HistoryNode::getOid).collect(toImmutableSet());
     for (ChangeWithApprovals change : changes) {
-      String sha = ((GitRevision) change.getChange().getRevision()).getSha1();
+      String sha = ((GitRevision) change.getChange().getRevision()).getHash();
       if (!responseOids.contains(sha)) {
         return false;
       }

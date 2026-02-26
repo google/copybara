@@ -717,10 +717,12 @@ public class GitMirrorTest {
 
     mirror1.run(workdir, ImmutableList.of());
 
-    console.assertThat().onceInLog(MessageType.INFO,
-        "REF: refs/heads/create_old:" + one.commit().getSha1());
-    console.assertThat().onceInLog(MessageType.INFO,
-        "REF: refs/heads/create_head:" + two.commit().getSha1());
+    console
+        .assertThat()
+        .onceInLog(MessageType.INFO, "REF: refs/heads/create_old:" + one.commit().getHash());
+    console
+        .assertThat()
+        .onceInLog(MessageType.INFO, "REF: refs/heads/create_head:" + two.commit().getHash());
   }
 
   @Test
@@ -839,20 +841,20 @@ public class GitMirrorTest {
     ImmutableList<GitLogEntry> logCp = destRepo.log("my_branch").run();
     ImmutableList<GitLogEntry> log = destRepo.log(primaryBranch).run();
 
-    assertThat(logCp.get(0).body()).containsMatch("four(.|\n)*"
-        + "cherry picked from commit " + four.commit().getSha1());
-    assertThat(logCp.get(0).commit().getSha1()).isNotEqualTo(four.commit().getSha1());
+    assertThat(logCp.get(0).body())
+        .containsMatch("four(.|\n)*" + "cherry picked from commit " + four.commit().getHash());
+    assertThat(logCp.get(0).commit().getHash()).isNotEqualTo(four.commit().getHash());
 
-    assertThat(logCp.get(1).body()).containsMatch("three(.|\n)*"
-        + "cherry picked from commit " + three.commit().getSha1());
-    assertThat(logCp.get(1).commit().getSha1()).isNotEqualTo(three.commit().getSha1());
+    assertThat(logCp.get(1).body())
+        .containsMatch("three(.|\n)*" + "cherry picked from commit " + three.commit().getHash());
+    assertThat(logCp.get(1).commit().getHash()).isNotEqualTo(three.commit().getHash());
 
-    assertThat(logCp.get(2).body()).containsMatch("two(.|\n)*"
-        + "cherry picked from commit " + two.commit().getSha1());
-    assertThat(logCp.get(2).commit().getSha1()).isNotEqualTo(two.commit().getSha1());
+    assertThat(logCp.get(2).body())
+        .containsMatch("two(.|\n)*" + "cherry picked from commit " + two.commit().getHash());
+    assertThat(logCp.get(2).commit().getHash()).isNotEqualTo(two.commit().getHash());
 
     assertThat(logCp.get(3).body()).containsMatch("one");
-    assertThat(logCp.get(3).commit().getSha1()).isEqualTo(one.commit().getSha1());
+    assertThat(logCp.get(3).commit().getHash()).isEqualTo(one.commit().getHash());
   }
 
   @Test
@@ -883,7 +885,7 @@ public class GitMirrorTest {
     mirror.run(workdir, ImmutableList.of());
 
     // We pushed HEAD~1 to the destination:
-    assertEquals(destRepo.getHeadRef().getSha1(), two.commit().getSha1());
+    assertEquals(destRepo.getHeadRef().getHash(), two.commit().getHash());
   }
 
   @Test

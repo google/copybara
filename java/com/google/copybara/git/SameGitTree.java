@@ -47,7 +47,7 @@ public class SameGitTree {
     GitRevision gitRevision = repo.getHeadRef();
     return gitRevision.contextReference() != null
         ? gitRevision.contextReference()
-        : gitRevision.getSha1();
+        : gitRevision.getHash();
   }
 
   /**

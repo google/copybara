@@ -144,7 +144,7 @@ public class GerritOriginTest {
                 .put(GitRepository.GIT_DESCRIBE_FIRST_PARENT, repo.parseRef("HEAD").substring(0, 7))
                 .build(),
             url);
-    git("update-ref", "refs/changes/45/12345/1", firstRevision.getSha1());
+    git("update-ref", "refs/changes/45/12345/1", firstRevision.getHash());
 
     git("commit", "-m", "second change", "--date", commitTime, "--amend");
 
@@ -174,7 +174,7 @@ public class GerritOriginTest {
                 .put(DEFAULT_INTEGRATE_LABEL, "gerrit " + url + " 12345 Patch Set 2 " + CHANGE_ID)
                 .build(),
             url);
-    git("update-ref", "refs/changes/45/12345/2", secondRevision.getSha1());
+    git("update-ref", "refs/changes/45/12345/2", secondRevision.getHash());
 
     git("commit", "-m", "third change", "--date", commitTime, "--amend");
     thirdRevision =
@@ -200,7 +200,7 @@ public class GerritOriginTest {
                 .put(DEFAULT_INTEGRATE_LABEL, "gerrit " + url + " 12345 Patch Set 3 " + CHANGE_ID)
                 .build(),
             url);
-    git("update-ref", "refs/changes/45/12345/3", thirdRevision.getSha1());
+    git("update-ref", "refs/changes/45/12345/3", thirdRevision.getHash());
 
     GitTestUtil.createFakeGerritNodeDbMeta(repo, 12345, CHANGE_ID);
   }
@@ -227,11 +227,11 @@ public class GerritOriginTest {
 
     // Test resolving from GitOrigin-RevId string:
     GitRevision resolved = origin.resolve(thirdRevision.asString());
-    assertThat(resolved.getSha1()).isEqualTo(thirdRevision.getSha1());
+    assertThat(resolved.getHash()).isEqualTo(thirdRevision.getHash());
     assertThat(resolved.getReviewReference()).isEqualTo(thirdRevision.getReviewReference());
 
-    resolved = origin.resolve(thirdRevision.getSha1());
-    assertThat(resolved.getSha1()).isEqualTo(thirdRevision.getSha1());
+    resolved = origin.resolve(thirdRevision.getHash());
+    assertThat(resolved.getHash()).isEqualTo(thirdRevision.getHash());
     assertThat(resolved.getReviewReference()).isNull();
 
     // Doesn't have any context as we passed a SHA-1
@@ -301,7 +301,7 @@ public class GerritOriginTest {
     assertThat(e).hasMessageThat().contains("Skipping import of change 12345 for branch my_branch");
     assertThat(describe).containsAtLeast("branch", "master");
     // But this should work, as the last-rev needs to be resolved:
-    origin.resolve(firstRevision.getSha1());
+    origin.resolve(firstRevision.getHash());
   }
 
   @Test
@@ -325,7 +325,7 @@ public class GerritOriginTest {
         .contains("Skipping import of change 12345 as it is marked as Work in Progress.");
     assertThat(describe).containsAtLeast("import_wip_changes", "false");
     // But this should work, as the last-rev needs to be resolved:
-    origin.resolve(firstRevision.getSha1());
+    origin.resolve(firstRevision.getHash());
   }
 
   @Test
@@ -347,16 +347,19 @@ public class GerritOriginTest {
     // Each ref is conceptually a rebase. Size is not really important for this test.
     assertThat(changes).hasSize(1);
 
-    assertThat(reader.findBaselinesWithoutLabel(origin.resolve("12345"), /*limit=*/ 1).get(0)
-        .getSha1())
+    assertThat(
+            reader
+                .findBaselinesWithoutLabel(origin.resolve("12345"), /* limit= */ 1)
+                .get(0)
+                .getHash())
         .isEqualTo(baseline);
   }
 
   @Test
   public void testChanges_reNotAvailable() throws Exception {
     mockChange(2345);
-    git("update-ref", "refs/changes/45/2345/1", firstRevision.getSha1());
-    git("update-ref", "refs/changes/45/2345/2", firstRevision.getSha1());
+    git("update-ref", "refs/changes/45/2345/1", firstRevision.getHash());
+    git("update-ref", "refs/changes/45/2345/2", firstRevision.getHash());
     assertThrows(RepoException.class, () -> origin.resolve("http://foo.com/#/c/2345/2"));
   }
 
@@ -401,17 +404,19 @@ public class GerritOriginTest {
                 .put(GitRepository.GIT_DESCRIBE_ABBREV, "")
                 .build(),
             url);
-    git("update-ref", "refs/changes/45/12345/1", firstRevision.getSha1());
-    git("update-ref", "refs/changes/45/12345/2", firstRevision.getSha1());
-    git("update-ref", "refs/changes/45/12345/3", firstRevision.getSha1());
-
+    git("update-ref", "refs/changes/45/12345/1", firstRevision.getHash());
+    git("update-ref", "refs/changes/45/12345/2", firstRevision.getHash());
+    git("update-ref", "refs/changes/45/12345/3", firstRevision.getHash());
 
     mockChange(12345);
     Reader<GitRevision> reader =
         origin.newReader(Glob.createGlob(ImmutableList.of("included/*")), AUTHORING);
 
-    assertThat(reader.findBaselinesWithoutLabel(origin.resolve("12345"), /*limit=*/ 1).get(0)
-        .getSha1())
+    assertThat(
+            reader
+                .findBaselinesWithoutLabel(origin.resolve("12345"), /* limit= */ 1)
+                .get(0)
+                .getHash())
         .isEqualTo(baseline);
 }
   @Test
@@ -493,7 +498,7 @@ public class GerritOriginTest {
 
   private void validateSameGitRevision(GitRevision resolved, GitRevision expected) {
     assertThat(resolved.asString()).isEqualTo(expected.asString());
-    assertThat(resolved.getSha1()).isEqualTo(expected.getSha1());
+    assertThat(resolved.getHash()).isEqualTo(expected.getHash());
     assertThat(resolved.getReviewReference()).isEqualTo(expected.getReviewReference());
     assertThat(resolved.contextReference()).isEqualTo(expected.contextReference());
     assertThat(resolved.associatedLabels()).isEqualTo(expected.associatedLabels());

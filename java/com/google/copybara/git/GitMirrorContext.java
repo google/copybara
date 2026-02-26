@@ -301,7 +301,7 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
       return Dict.immutableCopyOf(
           repo.showRef().entrySet().stream()
               .filter(e -> filter.test(e.getKey()))
-              .collect(ImmutableMap.toImmutableMap(Entry::getKey, v -> v.getValue().getSha1())));
+              .collect(ImmutableMap.toImmutableMap(Entry::getKey, v -> v.getValue().getHash())));
     } catch (RepoException e) {
       throw new ValidationException("Cannot list references in the local repository", e);
     }

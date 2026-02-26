@@ -346,7 +346,7 @@ public class GitLabMrWriteHookTest {
                 """
                 {"iid": 123, "detailed_merge_status": "mergeable", "sha": "%s"}
                 """,
-                mockRepos.remoteRepo().resolveReference("HEAD").getSha1()),
+                mockRepos.remoteRepo().resolveReference("HEAD").getHash()),
             TypeToken.get(MergeRequest.class).getType(),
             false);
     when(gitLabApi.getProject(anyString())).thenReturn(Optional.of(project));
@@ -386,7 +386,7 @@ public class GitLabMrWriteHookTest {
     Files.writeString(remoteRepoPath.resolve("foo.txt"), "foo");
     remoteRepo.add().files("foo.txt").run();
     remoteRepo.simpleCommand("commit", "foo.txt", "-m", "commit msg remote 1");
-    String sha1 = remoteRepo.resolveReference("HEAD").getSha1();
+    String sha1 = remoteRepo.resolveReference("HEAD").getHash();
     GitRevision unused =
         localRepo.fetchSingleRef(
             remoteRepoPath.toString(), remoteRepo.getPrimaryBranch(), false, Optional.empty());

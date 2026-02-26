@@ -407,13 +407,15 @@ public final class GerritDestination implements Destination<GitRevision> {
       if (gerritSubmit) {
         submitChange(gerritMessageInfo.changeId);
       }
-      ImmutableList.Builder<DestinationEffect> result = ImmutableList.<DestinationEffect>builder()
-              .add(new DestinationEffect(
-                  DestinationEffect.Type.CREATED,
-                  String.format("Created revision %s", pushedRevision.getSha1()),
-                  originChanges,
-                  new DestinationEffect.DestinationRef(
-                      pushedRevision.getSha1(), "commit", /*url=*/ null)));
+      ImmutableList.Builder<DestinationEffect> result =
+          ImmutableList.<DestinationEffect>builder()
+              .add(
+                  new DestinationEffect(
+                      DestinationEffect.Type.CREATED,
+                      String.format("Created revision %s", pushedRevision.getHash()),
+                      originChanges,
+                      new DestinationEffect.DestinationRef(
+                          pushedRevision.getHash(), "commit", /* url= */ null)));
 
       List<String> lines = Splitter.on("\n").splitToList(serverResponse);
       Matcher gerritUrlMatcher = tryFindGerritUrl(lines);

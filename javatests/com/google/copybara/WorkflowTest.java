@@ -653,7 +653,7 @@ public class WorkflowTest {
     remote.simpleCommand("commit", "bar.txt", "-m", "message_s");
 
     TestingConsole testingConsole = new TestingConsole().respondYes();
-    options.workflowOptions.lastRevision = lastRev.getSha1();
+    options.workflowOptions.lastRevision = lastRev.getHash();
     options
         .setWorkdirToRealTempDir()
         .setConsole(testingConsole)
@@ -697,7 +697,7 @@ public class WorkflowTest {
     remote.simpleCommand("commit", "bar.txt", "-m", "message_s");
 
     TestingConsole testingConsole = new TestingConsole().respondNo();
-    options.workflowOptions.lastRevision = lastRev.getSha1();
+    options.workflowOptions.lastRevision = lastRev.getHash();
     options
         .setWorkdirToRealTempDir()
         .setConsole(testingConsole)
@@ -1527,7 +1527,7 @@ public class WorkflowTest {
     remote.simpleCommand("commit", "foo.txt", "-m", "message_a");
 
     TestingConsole testingConsole = new TestingConsole().respondYes();
-    options.workflowOptions.lastRevision = lastRev.getSha1();
+    options.workflowOptions.lastRevision = lastRev.getHash();
     options.general.force = false;
     options
         .setWorkdirToRealTempDir()
@@ -1582,7 +1582,7 @@ public class WorkflowTest {
     remote.tag("tag_c").run();
     GitRevision lastRev = remote.resolveReference(primaryBranch);
 
-    options.workflowOptions.lastRevision = lastRev.getSha1();
+    options.workflowOptions.lastRevision = lastRev.getHash();
     options.general.force = false;
     options.setWorkdirToRealTempDir().setHomeDir(StandardSystemProperty.USER_HOME.value());
 
@@ -1631,7 +1631,7 @@ public class WorkflowTest {
 
     GitRevision lastRev = remote.resolveReference(primaryBranch);
 
-    options.workflowOptions.lastRevision = lastRev.getSha1();
+    options.workflowOptions.lastRevision = lastRev.getHash();
     options.general.force = false;
     options.setWorkdirToRealTempDir().setHomeDir(StandardSystemProperty.USER_HOME.value());
 
@@ -1682,7 +1682,7 @@ public class WorkflowTest {
 
     GitRevision lastRev = remote.resolveReference("tag_a");
 
-    options.workflowOptions.lastRevision = lastRev.getSha1();
+    options.workflowOptions.lastRevision = lastRev.getHash();
     options.general.force = false;
     options.setWorkdirToRealTempDir().setHomeDir(StandardSystemProperty.USER_HOME.value());
 
@@ -5384,7 +5384,7 @@ public class WorkflowTest {
         assertThrows(EmptyChangeException.class, () -> workflow.run(workdir, ImmutableList.of()));
     assertThat(e)
         .hasMessageThat()
-        .matches("No changes from " + lastRev.getSha1() + " up to .* match any origin_files.*");
+        .matches("No changes from " + lastRev.getHash() + " up to .* match any origin_files.*");
   }
 
   @Test

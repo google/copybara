@@ -131,7 +131,7 @@ public class GitHubPreSubmitApprovalsProvider implements ApprovalsProvider {
         Iterables.indexOf(
             approvalsInProgress,
             change ->
-                ((GitRevision) change.getChange().getRevision()).getSha1().equals(baselineSha));
+                ((GitRevision) change.getChange().getRevision()).getHash().equals(baselineSha));
 
     // Slice the changes into two sublists representing the postsubmits and presubmits.
     ImmutableList<ChangeWithApprovals> preSubmitChanges =
@@ -220,7 +220,7 @@ public class GitHubPreSubmitApprovalsProvider implements ApprovalsProvider {
 
     ImmutableList<String> headApprovers = extractHeadApprovers(reviews, prHeadSha);
     for (ChangeWithApprovals change : presubmitChanges) {
-      String sha = ((GitRevision) change.getChange().getRevision()).getSha1();
+      String sha = ((GitRevision) change.getChange().getRevision()).getHash();
       ChangeWithApprovals newChange =
           change.addApprovals(
               ImmutableList.<StatementPredicate>builder()

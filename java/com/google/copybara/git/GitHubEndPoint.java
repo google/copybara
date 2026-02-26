@@ -140,8 +140,10 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
     try {
       checkCondition(State.VALID_VALUES.contains(state),
           "Invalid value for state. Valid values: %s", State.VALID_VALUES);
-      checkCondition(GitRevision.COMPLETE_SHA1_PATTERN.matcher(sha).matches(),
-          "Not a valid complete SHA-1: %s", sha);
+      checkCondition(
+          GitRevision.COMPLETE_GIT_HASH_PATTERN.matcher(sha).matches(),
+          "Not a valid complete SHA-1: %s",
+          sha);
       checkCondition(!Strings.isNullOrEmpty(description), "description cannot be empty");
       checkCondition(!Strings.isNullOrEmpty(context), "context cannot be empty");
       checkCondition(
@@ -176,8 +178,10 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       })
   public ImmutableList<CheckRun> getCheckRuns(String sha) throws EvalException, RepoException {
     try {
-      checkCondition(GitRevision.COMPLETE_SHA1_PATTERN.matcher(sha).matches(),
-          "Not a valid complete SHA-1: %s", sha);
+      checkCondition(
+          GitRevision.COMPLETE_GIT_HASH_PATTERN.matcher(sha).matches(),
+          "Not a valid complete SHA-1: %s",
+          sha);
       String project = ghHost.getProjectNameFromUrl(url);
       return apiSupplier.load(console).getCheckRuns(project, sha);
     } catch (ValidationException | RuntimeException e) {
@@ -249,8 +253,10 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
   public Ref updateReference(String sha, String ref, boolean force)
       throws EvalException, RepoException {
     try {
-      checkCondition(GitRevision.COMPLETE_SHA1_PATTERN.matcher(sha).matches(),
-          "Not a valid complete SHA-1: %s", sha);
+      checkCondition(
+          GitRevision.COMPLETE_GIT_HASH_PATTERN.matcher(sha).matches(),
+          "Not a valid complete SHA-1: %s",
+          sha);
       checkCondition(!Strings.isNullOrEmpty(ref), "ref cannot be empty");
 
       if (!ref.startsWith("refs/")) {

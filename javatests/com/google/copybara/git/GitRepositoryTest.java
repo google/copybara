@@ -129,8 +129,8 @@ public class GitRepositoryTest {
     repo.simpleCommand("commit", "bar.txt", "-m", "message_s");
     ImmutableMap<String, GitRevision> revisionsBar = repo.showRef();
 
-    String diff = repo.showDiff(revisionsFoo.values().asList().get(0).getSha1(),
-        revisionsBar.values().asList().get(0).getSha1());
+    String diff = repo.showDiff(revisionsFoo.values().asList().get(0).getHash(),
+        revisionsBar.values().asList().get(0).getHash());
     assertThat("index 0000000..805c36b\n--- /dev/null\n").matches("(.*\n){2}");
     assertThat(diff).matches("(diff --git a/bar.txt b/bar.txt\nnew file mode 100644\n)"
         + "(.*\n){4}(\\+change content\n)(.*\n)");
@@ -148,7 +148,7 @@ public class GitRepositoryTest {
 
     String primaryBranch = repo.getPrimaryBranch();
 
-    repo.branch("test").withStartPoint(one.getSha1()).run();
+    repo.branch("test").withStartPoint(one.getHash()).run();
     repo.simpleCommand("checkout", "test");
 
     repo.cherryPick(ImmutableList.of("HEAD.." + primaryBranch)).addCommitOriginInfo(true).run();
@@ -156,11 +156,11 @@ public class GitRepositoryTest {
     ImmutableList<GitLogEntry> head = repo.log("HEAD").run();
 
     assertThat(head.get(0).body()).containsMatch("message_d(.|\n)*"
-        + "cherry picked from commit " + four.getSha1());
+        + "cherry picked from commit " + four.getHash());
     assertThat(head.get(1).body()).containsMatch("message_c(.|\n)*"
-        + "cherry picked from commit " + three.getSha1());
+        + "cherry picked from commit " + three.getHash());
     assertThat(head.get(2).body()).containsMatch("message_b(.|\n)*"
-        + "cherry picked from commit " + two.getSha1());
+        + "cherry picked from commit " + two.getHash());
     assertThat(head.get(3).body()).containsMatch("message_a");
     assertThat(head.get(3).body()).doesNotContain("cherry picked from commit");
   }
@@ -176,7 +176,7 @@ public class GitRepositoryTest {
     repository.add().files("bar.txt").run();
     repo.simpleCommand("commit", "bar.txt", "-m", "message_s");
 
-    repo.branch("test").withStartPoint(headRef.getSha1()).run();
+    repo.branch("test").withStartPoint(headRef.getHash()).run();
 
     assertThat(repo.showRef()).containsEntry("refs/heads/test", headRef);
   }
@@ -198,7 +198,7 @@ public class GitRepositoryTest {
     GitLogEntry entry = Iterables.getOnlyElement(repository.log("HEAD").withLimit(1).run());
 
     String badCommit = "tree " + entry.tree() + "\n"
-        + "parent " + entry.commit().getSha1() + "\n"
+        + "parent " + entry.commit().getHash() + "\n"
         + "author Some User <example@example.com> 1528942829 --400\n"
         + "committer Some User <example@example.com> 1528942829 --400\n"
         + "\n"
@@ -649,7 +649,7 @@ public class GitRepositoryTest {
       paged.addAll(page);
       // Merge commit shows multiple entries when using -m and --name-only but first parent is
       // disabled. Each entry represents the parent file changes.
-      skip += page.stream().map(e -> e.commit().getSha1()).collect(Collectors.toSet()).size();
+      skip += page.stream().map(e -> e.commit().getHash()).collect(Collectors.toSet()).size();
     }
     assertThat(paged.toString()).isEqualTo(singlePage.toString());
   }
@@ -874,7 +874,7 @@ public class GitRepositoryTest {
 
     var unused =
         local.fetchSingleRefWithTags(
-            fetchUrl, repository.getHeadRef().getSha1(), true, false, Optional.empty());
+            fetchUrl, repository.getHeadRef().getHash(), true, false, Optional.empty());
 
     String gitTagStdOut = local.simpleCommand("tag").getStdout();
     assertThat(gitTagStdOut).contains("foo");
@@ -1147,7 +1147,7 @@ public class GitRepositoryTest {
     GitTestUtil.writeFile(repository.getGitDir(), "HEAD",
         "ref: refs/heads/other");
     dest.fetchSingleRef(
-        "file://" + repository.getGitDir(), rev.getSha1(), false, Optional.empty());
+        "file://" + repository.getGitDir(), rev.getHash(), false, Optional.empty());
   }
 
   @Test
@@ -1432,7 +1432,7 @@ public class GitRepositoryTest {
         .containsExactly("message2\n", "message\n");
 
     repository.simpleCommand("reset", "--hard", "HEAD~1");
-    String sha1 = repository.getHeadRef().getSha1();
+    String sha1 = repository.getHeadRef().getHash();
 
     Files.write(workdir.resolve("foo.txt"), "a".getBytes(UTF_8));
     repository.add().files("foo.txt").run();
@@ -1717,11 +1717,11 @@ public class GitRepositoryTest {
     var change4 = simpleChange(repository, "foo.txt", "4", "4");
     var change5 = simpleChange(repository, "bar.txt", "5", "5");
 
-    assertThat(repository.lastModified("HEAD", "bar.txt")).isEqualTo(change5.getSha1());
-    assertThat(repository.lastModified("HEAD", "foo.txt")).isEqualTo(change4.getSha1());
-    assertThat(repository.lastModified(change4.getSha1(), "foo.txt")).isEqualTo(change4.getSha1());
-    assertThat(repository.lastModified(change4.getSha1(), "bar.txt")).isEqualTo(change3.getSha1());
-    assertThat(repository.lastModified(change2.getSha1(), "bar.txt")).isEqualTo(change1.getSha1());
+    assertThat(repository.lastModified("HEAD", "bar.txt")).isEqualTo(change5.getHash());
+    assertThat(repository.lastModified("HEAD", "foo.txt")).isEqualTo(change4.getHash());
+    assertThat(repository.lastModified(change4.getHash(), "foo.txt")).isEqualTo(change4.getHash());
+    assertThat(repository.lastModified(change4.getHash(), "bar.txt")).isEqualTo(change3.getHash());
+    assertThat(repository.lastModified(change2.getHash(), "bar.txt")).isEqualTo(change1.getHash());
   }
 
   @Test
@@ -1745,7 +1745,7 @@ public class GitRepositoryTest {
     repo.simpleCommand("commit", "foo.txt", "-m", "message_a");
 
     assertThat(repo.getHeadRef().contextReference()).isEqualTo(branch);
-    assertThat(repo.getHeadRef().fixedReference()).isEqualTo(repository.getHeadRef().getSha1());
+    assertThat(repo.getHeadRef().fixedReference()).isEqualTo(repository.getHeadRef().getHash());
   }
 
   @Test
@@ -1757,7 +1757,7 @@ public class GitRepositoryTest {
     Files.write(workdir.resolve("foo.txt"), new byte[]{});
     repository.add().files("foo.txt").run();
     mockRemoteRepo.simpleCommand("commit", "foo.txt", "-m", "message_a");
-    String sha1 =  mockRemoteRepo.resolveReference("HEAD").getSha1();
+    String sha1 =  mockRemoteRepo.resolveReference("HEAD").getHash();
 
     // mock local repo
     Path localWorkTree = Files.createTempDirectory("localWorkTree");
@@ -1781,7 +1781,7 @@ public class GitRepositoryTest {
     Files.writeString(workdir.resolve("foo.txt"), "");
     repository.add().files("foo.txt").run();
     repository.simpleCommand("commit", "-m", "add foo");
-    String firstCommitSha1 = repository.resolveReference("HEAD").getSha1();
+    String firstCommitSha1 = repository.resolveReference("HEAD").getHash();
 
     Files.writeString(workdir.resolve("bar.txt"), "bar");
     repository.add().files("bar.txt").run();
@@ -1791,7 +1791,7 @@ public class GitRepositoryTest {
     repository.add().files("baz.txt").run();
     repository.simpleCommand("commit", "-m", "add baz");
 
-    String lastCommitSha1 = repository.resolveReference("HEAD").getSha1();
+    String lastCommitSha1 = repository.resolveReference("HEAD").getHash();
 
     // go to first commit of main branch and create branch "test"
     repository.simpleCommand("checkout", firstCommitSha1);
@@ -1800,7 +1800,7 @@ public class GitRepositoryTest {
     Files.writeString(workdir.resolve("baz.txt"), "baz");
     repository.add().files("baz.txt").run();
     repository.simpleCommand("commit", "-m", "add baz");
-    String branchedCommitSha1 = repository.resolveReference("HEAD").getSha1();
+    String branchedCommitSha1 = repository.resolveReference("HEAD").getHash();
 
     // go back to tip of main branch
     repository.simpleCommand("checkout", lastCommitSha1);
@@ -1819,7 +1819,7 @@ public class GitRepositoryTest {
     Files.writeString(workdir.resolve("foo.txt"), "");
     repository.add().files("foo.txt").run();
     repository.simpleCommand("commit", "-m", "message_a");
-    String firstCommitSha1 = repository.resolveReference("HEAD").getSha1();
+    String firstCommitSha1 = repository.resolveReference("HEAD").getHash();
 
     Files.writeString(workdir.resolve("bar.txt"), "bar");
     repository.add().files("bar.txt").run();
@@ -1829,7 +1829,7 @@ public class GitRepositoryTest {
     repository.add().files("baz.txt").run();
     repository.simpleCommand("commit", "-m", "add baz");
 
-    String lastCommitSha1 = repository.resolveReference("HEAD").getSha1();
+    String lastCommitSha1 = repository.resolveReference("HEAD").getHash();
 
     // go to first commit of main branch and create branch "test"
     repository.simpleCommand("checkout", firstCommitSha1);
@@ -1838,7 +1838,7 @@ public class GitRepositoryTest {
     Files.writeString(workdir.resolve("baz.txt"), "not baz");
     repository.add().files("baz.txt").run();
     repository.simpleCommand("commit", "-m", "add baz");
-    String branchedCommitSha1 = repository.resolveReference("HEAD").getSha1();
+    String branchedCommitSha1 = repository.resolveReference("HEAD").getHash();
 
     // go back to tip of main branch
     repository.simpleCommand("checkout", lastCommitSha1);
@@ -1872,13 +1872,13 @@ public class GitRepositoryTest {
     Files.write(workdir.resolve("foo.txt"), "".getBytes(UTF_8));
     repository.add().all().run();
     repository.simpleCommand("commit", "-m", "first");
-    String targetSha = repository.resolveReference("HEAD").getSha1();
+    String targetSha = repository.resolveReference("HEAD").getHash();
     repository.tag("main_tag").withAnnotatedTag("message").run();
 
     Files.write(workdir.resolve("bar.txt"), "".getBytes(UTF_8));
     repository.add().all().run();
     repository.simpleCommand("commit", "-m", "second");
-    String targetSha2 = repository.resolveReference("HEAD").getSha1();
+    String targetSha2 = repository.resolveReference("HEAD").getHash();
     repository.tag("main_tag2").withAnnotatedTag("message").run();
 
     repository.branch("foo").run();

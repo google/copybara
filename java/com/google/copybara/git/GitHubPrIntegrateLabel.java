@@ -95,12 +95,15 @@ class GitHubPrIntegrateLabel implements IntegrateLabel {
     if (sha1 == null) {
       return gitRevision;
     }
-    if (sha1.equals(gitRevision.getSha1())) {
+    if (sha1.equals(gitRevision.getHash())) {
       return gitRevision;
     }
-    generalOptions.console().warnFmt(
-        "Pull Request %s has more changes after %s (PR HEAD is %s)."
-            + " Not all changes might be migrated", pr, sha1, gitRevision.getSha1());
+    generalOptions
+        .console()
+        .warnFmt(
+            "Pull Request %s has more changes after %s (PR HEAD is %s)."
+                + " Not all changes might be migrated",
+            pr, sha1, gitRevision.getHash());
     return repository.resolveReferenceWithContext(sha1, gitRevision.contextReference(), repoUrl);
   }
 

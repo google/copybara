@@ -117,7 +117,7 @@ public class GitRepoTypeTest {
     GitRevision rev = GitRepoType.GIT.resolveRef(testRepo, fileUrl, sha1, generalOptions,
         /*describeVersion=*/false, /*partialFetch=*/ false, Optional.empty());
     assertThat(rev.asString()).isEqualTo(sha1);
-    assertThat(rev.getSha1()).isEqualTo(sha1);
+    assertThat(rev.getHash()).isEqualTo(sha1);
     assertThat(rev.getReviewReference()).isNull();
 
     console.assertThat().containsNoMoreMessages();
@@ -131,7 +131,7 @@ public class GitRepoTypeTest {
         GitRepoType.GIT.resolveRef(testRepo, fileUrl, sha1 + " more stuff",
             generalOptions, /*describeVersion=*/false, false, Optional.empty());
     assertThat(rev.asString()).isEqualTo(sha1 + " more stuff");
-    assertThat(rev.getSha1()).isEqualTo(sha1);
+    assertThat(rev.getHash()).isEqualTo(sha1);
     assertThat(rev.getReviewReference()).isEqualTo("more stuff");
 
     console.assertThat().containsNoMoreMessages();
@@ -208,7 +208,7 @@ public class GitRepoTypeTest {
     GitRevision rev = GitRepoType.GERRIT.resolveRef(testRepo, fileUrl, "1204", generalOptions,
         /*describeVersion=*/false, /*partialFetch=*/ false, Optional.empty());
     assertThat(rev.asString()).isEqualTo(sha1 + " PatchSet 1");
-    assertThat(rev.getSha1()).isEqualTo(sha1);
+    assertThat(rev.getHash()).isEqualTo(sha1);
     assertThat(rev.getReviewReference()).isEqualTo("PatchSet 1");
 
     console.assertThat().containsNoMoreMessages();

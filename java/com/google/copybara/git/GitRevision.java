@@ -45,10 +45,11 @@ import javax.annotation.Nullable;
 public final class GitRevision implements Revision {
 
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
-  public static final Pattern COMPLETE_SHA1_PATTERN = Pattern.compile("[a-f0-9]{40}");
+  public static final Pattern COMPLETE_GIT_HASH_PATTERN =
+      Pattern.compile("[a-f0-9]{40}|[a-f0-9]{64}");
 
   private final GitRepository repository;
-  private final String sha1;
+  private final String hash;
   @Nullable private final String reference;
   private final ListMultimap<String, String> associatedLabels;
   @Nullable private final String reviewReference;
@@ -59,40 +60,44 @@ public final class GitRevision implements Revision {
   private Optional<String> fullReference = Optional.empty();
 
   /**
-   * Create a git revision from a complete (40 characters) git SHA-1 string.
+   * Create a git revision from a complete (40 or 64 characters) git hash string.
    *
-   * @param repository git repository that should contain the {@code sha1}
-   * @param sha1 a 40 characters SHA-1
+   * @param repository git repository that should contain the {@code hash}
+   * @param hash the commit hash
    */
-  GitRevision(GitRepository repository, String sha1) {
-    this(repository, sha1, /*reviewReference=*/ null, /*reference=*/ null,
-        ImmutableListMultimap.of(), /*url=*/null);
+  GitRevision(GitRepository repository, String hash) {
+    this(
+        repository,
+        hash,
+        /* reviewReference= */ null,
+        /* reference= */ null,
+        ImmutableListMultimap.of(),
+        /* url= */ null);
   }
 
   /**
-   * Create a git revision from a complete (40 characters) git SHA-1 string.
+   * Create a git revision from a complete (40 or 64 characters) git hash string.
    *
-   * @param repository Git repository that should contain the {@code sha1}
-   * @param sha1 A 40 character SHA-1.
+   * @param repository Git repository that should contain the {@code hash}
+   * @param hash The commit hash.
    * @param url The url of the repository that the revision comes from.
    */
-  GitRevision(GitRepository repository, String sha1, String url) {
-    this(repository, sha1, null, null, ImmutableListMultimap.of(), url);
+  GitRevision(GitRepository repository, String hash, String url) {
+    this(repository, hash, null, null, ImmutableListMultimap.of(), url);
   }
 
   /**
-   * Create a git revision from a complete (40 characters) git SHA-1 string.
+   * Create a git revision from a complete (40 or 64 characters) git hash string.
    *
-   * @param repository git repository that should contain the {@code sha1}
-   * @param sha1 a 40 characters SHA-1
+   * @param repository git repository that should contain the {@code hash}
+   * @param hash the commit hash
    * @param reviewReference an arbitrary string that allows to keep track of the revision of the
-   *     code review being migrated. SHA-1 is not enough because code reviews are mutable and can go
-   *     back and forth in to the same revision:
+   *     code review being migrated. The hash is not enough because code reviews are mutable and can
+   *     go back and forth in to the same revision:
    *     <ul>
-   *       <li>V1: sha1: abc
-   *       <li>V2: sha1: cdb
-   *       <li>V3: sha1: abc. Goes back to the original SHA-1. But we could have already migrated
-   *           V2.
+   *       <li>V1: hash: abc
+   *       <li>V2: hash: cdb
+   *       <li>V3: hash: abc. Goes back to the original hash. But we could have already migrated V2.
    *     </ul>
    *
    * @param reference a stable name that describes where this is coming from. Could be a git
@@ -103,25 +108,28 @@ public final class GitRevision implements Revision {
   @VisibleForTesting
   public GitRevision(
       GitRepository repository,
-      String sha1,
+      String hash,
       @Nullable String reviewReference,
       @Nullable String reference,
       ImmutableListMultimap<String, String> associatedLabels,
       @Nullable String url) {
     this.reviewReference = reviewReference;
     Preconditions.checkArgument(
-        COMPLETE_SHA1_PATTERN.matcher(sha1).matches(),
-        "Reference '%s' is not a 40 characters SHA-1",
-        sha1);
+        COMPLETE_GIT_HASH_PATTERN.matcher(hash).matches(),
+        "Reference '%s' is not a full git hash (40 characters SHA-1 or 64 characters SHA-256",
+        hash);
 
     this.repository = Preconditions.checkNotNull(repository);
-    this.sha1 = sha1;
+    this.hash = hash;
     this.reference = reference;
     ArrayListMultimap<String, String> labels = ArrayListMultimap.create();
     labels.putAll(associatedLabels);
+    // TODO: hsudhof - Remove GIT_SHA1 and GIT_SHORT_SHA1 labels once all instances are updated.
     if (!associatedLabels.containsKey("GIT_SHA1")) {
-      labels.put("GIT_SHA1", sha1);
-      labels.put("GIT_SHORT_SHA1", sha1.substring(0, 7));
+      labels.put("GIT_SHA1", hash);
+      labels.put("GIT_SHORT_SHA1", hash.substring(0, 7));
+      labels.put("GIT_HASH", hash);
+      labels.put("GIT_SHORT_HASH", hash.substring(0, 7));
     }
     this.associatedLabels = labels;
     this.url = url;
@@ -135,7 +143,7 @@ public final class GitRevision implements Revision {
 
   @Override
   public String fixedReference() {
-    return sha1;
+    return hash;
   }
 
   @Override
@@ -154,7 +162,7 @@ public final class GitRevision implements Revision {
                 .entrySet()
                 .stream()
                 .filter(e -> e.getKey().startsWith(COPYBARA_FETCH_NAMESPACE + "/refs/"))
-                .filter(e -> e.getValue().getSha1().equals(sha1))
+                .filter(e -> e.getValue().getHash().equals(hash))
                 .map(Entry::getKey)
                 .map(GitRevision::getCleanedFullReference)
                 .collect(toImmutableList());
@@ -194,20 +202,20 @@ public final class GitRevision implements Revision {
   @Override
   public ZonedDateTime readTimestamp() throws RepoException {
     // TODO(malcon): We should be able to skip this for revisions coming from 'git log'.
-    ImmutableList<GitLogEntry> entry = repository.log(sha1).withLimit(1).run();
+    ImmutableList<GitLogEntry> entry = repository.log(hash).withLimit(1).run();
     if (entry.isEmpty()) {
-      throw new RepoException(String.format("Cannot find '%s' in the git repository", sha1));
+      throw new RepoException(String.format("Cannot find '%s' in the git repository", hash));
     }
     return Iterables.getOnlyElement(entry).authorDate();
   }
 
   @Override
   public String asString() {
-    return sha1 + (reviewReference == null ? "" : " " + reviewReference);
+    return hash + (reviewReference == null ? "" : " " + reviewReference);
   }
 
-  public String getSha1() {
-    return sha1;
+  public String getHash() {
+    return hash;
   }
 
   @Nullable
@@ -221,7 +229,7 @@ public final class GitRevision implements Revision {
         .omitNullValues()
         .add("url", url)
         .add("reference", reference)
-        .add("sha1", this.sha1)
+        .add("hash", this.hash)
         .add("labels", this.associatedLabels)
         .toString();
   }
@@ -246,12 +254,12 @@ public final class GitRevision implements Revision {
       return false;
     }
     GitRevision that = (GitRevision) o;
-    return Objects.equals(sha1, that.sha1);
+    return Objects.equals(hash, that.hash);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(sha1);
+    return Objects.hashCode(hash);
   }
 
   @Override
@@ -292,8 +300,8 @@ public final class GitRevision implements Revision {
         describe = repository.describe(this, false);
       } catch (RepoException e) {
         logger.atWarning().withCause(e).log(
-            "Cannot describe version for %s. Using short sha", sha1);
-        describe = sha1.substring(0, 7);
+            "Cannot describe version for %s. Using shortened hash.", hash);
+        describe = hash.substring(0, 7);
       }
     }
     return ImmutableList.of(describe);
@@ -309,7 +317,7 @@ public final class GitRevision implements Revision {
       associatedLabels.putAll(GitRepository.GIT_TAG_POINTS_AT, tags);
       return tags;
     } catch (RepoException e) {
-      logger.atWarning().withCause(e).log("Cannot get 'tag --points-to' output for %s", sha1);
+      logger.atWarning().withCause(e).log("Cannot get 'tag --points-to' output for %s", hash);
     }
 
     return ImmutableList.of();
@@ -324,8 +332,7 @@ public final class GitRevision implements Revision {
       try {
         describeAbbrev = repository.describeAbbrev(this);
       } catch (RepoException e) {
-        logger.atWarning().withCause(e).log(
-            "Cannot get closest tag for %s.", sha1);
+        logger.atWarning().withCause(e).log("Cannot get closest tag for %s.", hash);
       }
     }
     if (describeAbbrev != null) {
@@ -338,11 +345,11 @@ public final class GitRevision implements Revision {
   private synchronized ImmutableList<String> populateRevisionNumber() {
     if (revisionNumber == null) {
       try {
-        CommandOutput cmdout = repository.simpleCommand("rev-list", "--count", sha1);
+        CommandOutput cmdout = repository.simpleCommand("rev-list", "--count", hash);
         revisionNumber = cmdout.getStdout().trim();
       } catch (RepoException e) {
         logger.atWarning().withCause(e).log(
-            "Cannot get revision number for %s. Using short sha", sha1);
+            "Cannot get revision number for %s. Using shortened hash", hash);
         revisionNumber = "";
       }
     }
@@ -350,14 +357,19 @@ public final class GitRevision implements Revision {
   }
 
   GitRevision withUrl(String url) {
-    return new GitRevision(repository, sha1, reviewReference, reference,
-        ImmutableListMultimap.copyOf(associatedLabels), url);
+    return new GitRevision(
+        repository,
+        hash,
+        reviewReference,
+        reference,
+        ImmutableListMultimap.copyOf(associatedLabels),
+        url);
   }
 
   GitRevision withContextReference(String tag) {
     return new GitRevision(
         repository,
-        sha1,
+        hash,
         reviewReference,
         tag,
         ImmutableListMultimap.copyOf(associatedLabels),
@@ -365,7 +377,12 @@ public final class GitRevision implements Revision {
   }
 
   GitRevision withLabels(ImmutableListMultimap<String, String> labels) {
-    return new GitRevision(repository, sha1, reviewReference, reference,
-        Revision.addNewLabels(ImmutableListMultimap.copyOf(associatedLabels), labels), url);
+    return new GitRevision(
+        repository,
+        hash,
+        reviewReference,
+        reference,
+        Revision.addNewLabels(ImmutableListMultimap.copyOf(associatedLabels), labels),
+        url);
   }
 }

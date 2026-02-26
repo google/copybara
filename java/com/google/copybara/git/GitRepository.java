@@ -513,15 +513,15 @@ public class GitRepository {
       ImmutableList.Builder<String> args = ImmutableList.builder();
       args.add("describe");
       args.add(arg);
-      args.add("--").add(rev.getSha1());
+      args.add("--").add(rev.getHash());
       return simpleCommand(args.build()).getStdout().trim();
     } catch (RepoException e) {
       logger.atWarning().withCause(e).log(
-          "Cannot get describe version for commit %s", rev.getSha1());
+          "Cannot get describe version for commit %s", rev.getHash());
       if (!fallback) {
         return null;
       }
-      return simpleCommand("describe", "--always", "--", rev.getSha1()).getStdout().trim();
+      return simpleCommand("describe", "--always", "--", rev.getHash()).getStdout().trim();
     }
   }
 
@@ -546,7 +546,7 @@ public class GitRepository {
 
   public ImmutableList<String> tagPointsAt(GitRevision rev) throws RepoException {
     return ImmutableList.copyOf(
-        simpleCommand("tag", "--points-at", rev.getSha1()).getStdout().trim().split("\n"));
+        simpleCommand("tag", "--points-at", rev.getHash()).getStdout().trim().split("\n"));
   }
 
   public String showDiff(String referenceFrom, String referenceTo) throws RepoException {
@@ -1399,7 +1399,7 @@ public class GitRepository {
       return new GitRevision(this, parseRef(reference), null, reference,
           ImmutableListMultimap.of(), null);
     } catch (RepoException e) {
-      return new GitRevision(this, this.resolveReference("HEAD").getSha1());
+      return new GitRevision(this, this.resolveReference("HEAD").getHash());
     }
   }
 
@@ -1635,7 +1635,7 @@ public class GitRepository {
       boolean recursive, boolean fullName)
       throws RepoException {
     ImmutableList.Builder<TreeElement> result = ImmutableList.builder();
-    List<String> args = Lists.newArrayList("ls-tree", reference.getSha1());
+    List<String> args = Lists.newArrayList("ls-tree", reference.getHash());
     if (recursive) {
       args.add("-r");
     }
@@ -2095,7 +2095,7 @@ public class GitRepository {
       throws RepoException, CannotResolveRevisionException {
     // Nothing needs to be resolved, since it is a complete SHA-1. But we
     // check that the reference exists.
-    if (GitRevision.COMPLETE_SHA1_PATTERN.matcher(reference).matches()) {
+    if (GitRevision.COMPLETE_GIT_HASH_PATTERN.matcher(reference).matches()) {
       if (checkSha1Exists(reference)) {
         return new GitRevision(this, reference, url);
       }
@@ -2115,7 +2115,7 @@ public class GitRepository {
       throws RepoException, CannotResolveRevisionException {
     // Nothing needs to be resolved, since it is a complete SHA-1. But we
     // check that the reference exists.
-    if (GitRevision.COMPLETE_SHA1_PATTERN.matcher(reference).matches()) {
+    if (GitRevision.COMPLETE_GIT_HASH_PATTERN.matcher(reference).matches()) {
       if (checkSha1Exists(reference)) {
         return new GitRevision(this, reference);
       }
@@ -2187,7 +2187,7 @@ public class GitRepository {
         args.add(
           "--git-dir", gitDir.toString(),
           "--work-tree", destRoot.toString(),
-          "checkout", rev.getSha1(), "--");
+          "checkout", rev.getHash(), "--");
         args.addAll(files);
         git(getCwd(), args.build().toArray(new String[0]));
       }
@@ -2218,7 +2218,7 @@ public class GitRepository {
       throws RepoException {
     ImmutableList.Builder<String> args = ImmutableList.<String>builder().add("commit-tree", tree);
     for (GitRevision parent : parents) {
-      args.add("-p", parent.getSha1());
+      args.add("-p", parent.getHash());
     }
     args.add("-m", message);
 
@@ -2897,7 +2897,7 @@ public class GitRepository {
           // disabled. Each entry represents the parent file changes.
           batchSkip =
               (int)
-                  (batchSkip + batchRes.stream().map(e -> e.commit().getSha1()).distinct().count());
+                  (batchSkip + batchRes.stream().map(e -> e.commit().getHash()).distinct().count());
           overallLimit -= batchSkip;
         }
         res.addAll(batchRes);

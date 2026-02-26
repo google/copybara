@@ -32,10 +32,8 @@ public class RequestedShaVersionSelector implements VersionSelector {
   @Override
   public Optional<String> select(VersionList versionList, @Nullable String requestedRef,
       Console console) {
-    if (requestedRef != null && GitRevision.COMPLETE_SHA1_PATTERN.matcher(requestedRef).matches()) {
-      return Optional.of(requestedRef);
-    }
-    return Optional.empty();
+    return Optional.ofNullable(requestedRef)
+        .filter(value -> GitRevision.COMPLETE_GIT_HASH_PATTERN.matcher(value).matches());
   }
 
   @Override

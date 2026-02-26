@@ -191,7 +191,7 @@ class GerritChange {
     String changeDescription = getDescriptionFromMeta(repository, metaRevision , metaRef);
     return new GitRevision(
         repository,
-        gitRevision.getSha1(),
+        gitRevision.getHash(),
         gerritPatchSetAsReviewReference(patchSet),
         changeNumber,
         ImmutableListMultimap.<String, String>builder()
@@ -201,7 +201,7 @@ class GerritChange {
             .put(
                 DEFAULT_INTEGRATE_LABEL,
                 new GerritIntegrateLabel(
-                    repository, generalOptions, repoUrl, change, patchSet, changeId)
+                        repository, generalOptions, repoUrl, change, patchSet, changeId)
                     .toString())
             .putAll(additionalLabels)
             .putAll(generalOptions.cliLabels().entrySet())
@@ -256,8 +256,9 @@ class GerritChange {
    */
   private List<ChangeMessage> getChanges(GitRepository repo, GitRevision metaRevision,
       String metaRef) throws RepoException {
-    List<ChangeMessage> changes = Lists.transform(repo.log(metaRevision.getSha1()).run(),
-        e -> ChangeMessage.parseMessage(e.body()));
+    List<ChangeMessage> changes =
+        Lists.transform(
+            repo.log(metaRevision.getHash()).run(), e -> ChangeMessage.parseMessage(e.body()));
 
     if (changes.isEmpty()) {
       throw new RepoException("Cannot find any PatchSet in " + metaRef);

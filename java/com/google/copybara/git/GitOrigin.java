@@ -352,7 +352,7 @@ public class GitOrigin implements Origin<GitRevision> {
   @Override
   @Nullable
   public String showDiff(GitRevision revisionFrom, GitRevision revisionTo) throws RepoException {
-    return getRepository().showDiff(revisionFrom.getSha1(), revisionTo.getSha1());
+    return getRepository().showDiff(revisionFrom.getHash(), revisionTo.getHash());
   }
 
   static class ReaderImpl implements Reader<GitRevision> {
@@ -467,11 +467,11 @@ public class GitOrigin implements Origin<GitRevision> {
       GitRepository repo = repository.withWorkTree(workdir);
       if (partialFetch) {
         repo.setSparseCheckout(originFiles.tips());
-        repo.forceCheckout(ref.getSha1(), generalOptions.commandsTimeout);
+        repo.forceCheckout(ref.getHash(), generalOptions.commandsTimeout);
         return repo;
       }
       repo.forceCheckout(
-          ref.getSha1(),
+          ref.getHash(),
           gitOptions.experimentCheckoutAffectedFiles ? originFiles.roots() : ImmutableSet.of(),
           generalOptions.commandsTimeout);
       return repo;
@@ -567,7 +567,7 @@ public class GitOrigin implements Origin<GitRevision> {
       generalOptions.console().info(String.format("Rebasing %s to %s", rebaseToRef, rebaseToRef));
       GitRevision rebaseRev = repo.fetchSingleRef(repoUrl, rebaseToRef, partialFetch,
           Optional.empty());
-      repo.simpleCommand("update-ref", COPYBARA_TMP_REF, rebaseRev.getSha1());
+      repo.simpleCommand("update-ref", COPYBARA_TMP_REF, rebaseRev.getHash());
       repo.rebaseCmd(COPYBARA_TMP_REF)
           .errorAdvice(
               "Please consider not using the flag --git-origin-rebase-ref as a workaround")
@@ -584,17 +584,18 @@ public class GitOrigin implements Origin<GitRevision> {
       // toRef might already have labels that we want to maintain in the toRef copy when we return
       // (fromRef, toRef] (that includes toRef).
       ImmutableMap<String, ImmutableListMultimap<String, String>> labelsToPropagate =
-          ImmutableMap.of(toRef.getSha1(), toRef.associatedLabels());
+          ImmutableMap.of(toRef.getHash(), toRef.associatedLabels());
       ImmutableList<Change<GitRevision>> gitChanges =
           changeReader.run(fromRef, toRef, gitOriginOptions.historyIsNonLinear, labelsToPropagate);
       if (gitOriginOptions.historyIsNonLinear && fromRef != null) {
         // This is to have a consistent git history (as long as no more merges are added).
         // There is a potential issue if the re-ordering in forChangesWithMerges changes its order
         // but adding handling for conditional changes would add more complexity.
-        gitChanges = gitChanges.stream()
-            .dropWhile(c -> !c.getRevision().getSha1().equals(fromRef.getSha1()))
-            .skip(1)
-            .collect(toImmutableList());
+        gitChanges =
+            gitChanges.stream()
+                .dropWhile(c -> !c.getRevision().getHash().equals(fromRef.getHash()))
+                .skip(1)
+                .collect(toImmutableList());
       }
       if (!gitChanges.isEmpty()) {
         return ChangesResponse.forChangesWithMerges(gitChanges);
@@ -602,11 +603,11 @@ public class GitOrigin implements Origin<GitRevision> {
       if (fromRef == null) {
         return noChanges(EmptyReason.NO_CHANGES);
       }
-      if (fromRef.getSha1().equals(toRef.getSha1())
-          || getRepository().isAncestor(toRef.getSha1(), fromRef.getSha1())) {
+      if (fromRef.getHash().equals(toRef.getHash())
+          || getRepository().isAncestor(toRef.getHash(), fromRef.getHash())) {
         return noChanges(EmptyReason.TO_IS_ANCESTOR);
       }
-      if (getRepository().isAncestor(fromRef.getSha1(), toRef.getSha1())) {
+      if (getRepository().isAncestor(fromRef.getHash(), toRef.getHash())) {
         return noChanges(EmptyReason.NO_CHANGES);
       }
       return noChanges(EmptyReason.UNRELATED_REVISIONS);

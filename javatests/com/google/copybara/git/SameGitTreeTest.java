@@ -67,7 +67,7 @@ public class SameGitTreeTest {
       Files.write(workdir.resolve("foo.txt"), new byte[]{});
       repository.add().files("foo.txt").run();
       mockRemoteRepo.simpleCommand("commit", "foo.txt", "-m", "message_a");
-      String sha1 =  mockRemoteRepo.resolveReference("HEAD").getSha1();
+    String sha1 = mockRemoteRepo.resolveReference("HEAD").getHash();
 
       // mock local repo
       Path localWorkTree = Files.createTempDirectory("localWorkTree");
@@ -83,7 +83,7 @@ public class SameGitTreeTest {
         repo.simpleCommand("commit", "foo.txt", "-m", "update msg");
       }
 
-      String remoteHeadSha1 = mockRemoteRepo.resolveReference("HEAD").getSha1();
+    String remoteHeadSha1 = mockRemoteRepo.resolveReference("HEAD").getHash();
       SameGitTree sameGitTree = new SameGitTree(repository, mockRemoteRepo.getGitDir().toString(),
           options.general, false);
       assertThat(sameGitTree.hasSameTree(remoteHeadSha1)).isTrue();

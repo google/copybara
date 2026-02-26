@@ -162,7 +162,8 @@ public class GitLabMrOrigin implements Origin<GitRevision> {
   @Override
   public GitRevision resolveLastRev(String reference) throws RepoException, ValidationException {
     reference = reference.trim();
-    String sha1 = GitRevision.COMPLETE_SHA1_PATTERN.matcher(reference).matches() ? reference : null;
+    String sha1 =
+        GitRevision.COMPLETE_GIT_HASH_PATTERN.matcher(reference).matches() ? reference : null;
     GitRepository repo = getRepository();
 
     if (sha1 != null) {
@@ -337,7 +338,7 @@ public class GitLabMrOrigin implements Origin<GitRevision> {
 
         String mergeBase =
             repository.mergeBase(
-                startRevision.getSha1(), repository.resolveReference(baseBranchRef).getSha1());
+                startRevision.getHash(), repository.resolveReference(baseBranchRef).getHash());
         GitRevision baseline = repository.resolveReference(mergeBase);
         BaselinesWithoutLabelVisitor<GitRevision> visitor =
             new BaselinesWithoutLabelVisitor<>(originFiles, limit, Optional.empty(), false);

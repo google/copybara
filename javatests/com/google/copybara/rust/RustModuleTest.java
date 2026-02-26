@@ -384,7 +384,7 @@ public class RustModuleTest {
               "path_in_vcs": ""
             }\
             """,
-            repo.getHeadRef().getSha1());
+            repo.getHeadRef().getHash());
     Files.writeString(cratePath.resolve("Cargo.toml"), cargoToml);
     Files.writeString(cratePath.resolve(".cargo_vcs_info.json"), cargoVcsJson);
 
@@ -454,7 +454,7 @@ public class RustModuleTest {
               "path_in_vcs": "%s"
             }\
             """,
-            repo.getHeadRef().getSha1(), vcsPath);
+            repo.getHeadRef().getHash(), vcsPath);
     Files.writeString(cratePath.resolve("Cargo.toml"), cargoToml);
     Files.writeString(cratePath.resolve(".cargo_vcs_info.json"), cargoVcsJson);
 

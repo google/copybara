@@ -53,7 +53,7 @@ public class GitDestinationReader extends DestinationReader {
 
   @Override
   public String readFile(String path) throws RepoException {
-    return repository.readFile(baseline.getSha1(), path);
+    return repository.readFile(baseline.getHash(), path);
   }
 
   @Override
@@ -89,7 +89,7 @@ public class GitDestinationReader extends DestinationReader {
   @Override
   public boolean exists(String path) {
     try {
-      return repository.readFile(baseline.getSha1(), path) != null;
+      return repository.readFile(baseline.getHash(), path) != null;
     } catch (RepoException e) {
       return false;
     }
@@ -97,6 +97,6 @@ public class GitDestinationReader extends DestinationReader {
 
   @Override
   public String lastModified(String path) throws RepoException {
-    return repository.lastModified(baseline.getSha1(), path);
+    return repository.lastModified(baseline.getHash(), path);
   }
 }

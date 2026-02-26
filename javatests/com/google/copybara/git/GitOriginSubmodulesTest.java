@@ -345,7 +345,7 @@ public class GitOriginSubmodulesTest {
     GitRevision r2SecondSha1 = r2.showRef().get("refs/heads/" + primaryBranch);
 
     GitOrigin origin = origin("file://" + r2.getGitDir(), "refs/heads/" + primaryBranch);
-    origin.resolve(r2FirstSha1.getSha1());
+    origin.resolve(r2FirstSha1.getHash());
     origin.newReader(Glob.ALL_FILES, authoring).checkout(r2FirstSha1, checkoutDir);
 
     FileSubjects.assertThatPath(checkoutDir)
@@ -354,7 +354,7 @@ public class GitOriginSubmodulesTest {
         .containsFile("r1/foo", "1")
         .containsNoMoreFiles();
 
-    origin.resolve(r2SecondSha1.getSha1());
+    origin.resolve(r2SecondSha1.getHash());
     origin.newReader(Glob.ALL_FILES, authoring).checkout(r2SecondSha1, checkoutDir);
 
     FileSubjects.assertThatPath(checkoutDir)
