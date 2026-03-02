@@ -18,10 +18,10 @@ load("//third_party:bazel.bzl", "bazel_sha256", "bazel_version")
 load("//third_party:bazel_skylib.bzl", "skylib_sha256", "skylib_version")
 
 def copybara_repositories():
-   return
+    return
 
 def _non_module_deps(_):
-    return;
+    return
 
 non_module_deps = module_extension(implementation = _non_module_deps)
 
