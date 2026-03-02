@@ -363,6 +363,47 @@ public class WorkflowTest {
   }
 
   @Test
+  public void testGetDefinitionStack() throws Exception {
+    Workflow<?, ?> workflow = skylarkWorkflow("test_stack", SQUASH);
+    assertThat(workflow.getDefinitionStack().get(0).location.file()).isEqualTo("copy.bara.sky");
+    assertThat(workflow.getDefinitionStack().get(1).name).isEqualTo("workflow");
+  }
+
+  @Test
+  public void testGetDefinitionStackWithLoad() throws Exception {
+    String libContent =
+        ""
+            + "def git_to_third_party(name):\n"
+            + "    core.workflow(\n"
+            + "        name = name,\n"
+            + "        origin = testing.origin(),\n"
+            + "        destination = testing.destination(),\n"
+            + "        authoring = authoring.overwrite('Copybara <no-reply@google.com>'),\n"
+            + "        mode = 'SQUASH',\n"
+            + "    )\n";
+    String mainContent =
+        ""
+            + "load('lib', 'git_to_third_party')\n"
+            + "\n"
+            + "git_to_third_party(name = 'default')\n";
+    Migration migration =
+        skylark
+            .loadConfig(
+                new MapConfigFile(
+                    ImmutableMap.of(
+                        "lib.bara.sky",
+                        libContent.getBytes(UTF_8),
+                        "copy.bara.sky",
+                        mainContent.getBytes(UTF_8)),
+                    "copy.bara.sky"))
+            .getMigration("default");
+    assertThat(migration.getDefinitionStack().get(0).location.file()).matches("copy\\.bara\\.sky");
+    assertThat(migration.getDefinitionStack().get(1).name).matches("git_to_third_party");
+    assertThat(migration.getDefinitionStack().get(1).location.file()).matches("lib\\.bara\\.sky");
+    assertThat(migration.getDefinitionStack().get(2).name).matches("workflow");
+  }
+
+  @Test
   public void toStringIncludesName() throws Exception {
     assertThat(skylarkWorkflow("toStringIncludesName", SQUASH).toString())
         .contains("toStringIncludesName");

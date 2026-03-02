@@ -658,7 +658,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     fixedOriginHttp, originChecker, originCredential, false, thread),
                 getEndpointProvider(
                     fixedDestinationHttp, destinationChecker, destinationCredential, false, thread),
-                creds));
+                creds,
+                thread.getCallStack()));
     return Starlark.NONE;
   }
 

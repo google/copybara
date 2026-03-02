@@ -45,6 +45,7 @@ import java.util.Locale;
 import java.util.Objects;
 import javax.annotation.Nullable;
 import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.StarlarkThread;
 import net.starlark.java.eval.Structure;
 
 /**
@@ -63,6 +64,7 @@ public class ActionMigration implements Migration {
   private final GeneralOptions generalOptions;
   private final String mode;
   private final boolean fileSystem;
+  private final ImmutableList<StarlarkThread.CallStackEntry> definitionStack;
 
   public ActionMigration(
       String name,
@@ -73,7 +75,8 @@ public class ActionMigration implements Migration {
       ImmutableList<Action> actions,
       GeneralOptions generalOptions,
       String mode,
-      boolean fileSystem) {
+      boolean fileSystem,
+      ImmutableList<StarlarkThread.CallStackEntry> definitionStack) {
     this.name = Preconditions.checkNotNull(name);
     this.description = description;
     this.configFile = Preconditions.checkNotNull(configFile);
@@ -83,6 +86,7 @@ public class ActionMigration implements Migration {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.mode = mode;
     this.fileSystem = fileSystem;
+    this.definitionStack = Preconditions.checkNotNull(definitionStack);
   }
 
   @Override
@@ -253,5 +257,10 @@ public class ActionMigration implements Migration {
 
   private EventMonitors eventMonitors() {
     return generalOptions.eventMonitors();
+  }
+
+  @Override
+  public ImmutableList<StarlarkThread.CallStackEntry> getDefinitionStack() {
+    return definitionStack;
   }
 }

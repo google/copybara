@@ -704,7 +704,8 @@ public class CoreModule implements LabelsAwareModule, StarlarkValue {
             checkout,
             consistencyFilePath,
             workflowOptions.expectedFixedRef,
-            workflowOptions.pinnedFixedRef);
+            workflowOptions.pinnedFixedRef,
+            thread.getCallStack());
     Module module = Module.ofInnermostEnclosingStarlarkFunction(thread);
     registerGlobalMigration(workflowName, workflow, module);
   }
@@ -2089,7 +2090,8 @@ public class CoreModule implements LabelsAwareModule, StarlarkValue {
             handleActionActionsMigration(actionList, action),
             generalOptions,
             "feedback",
-            /* fileSystem= */ false);
+            /* fileSystem= */ false,
+            thread.getCallStack());
     Module module = Module.ofInnermostEnclosingStarlarkFunction(thread);
     registerGlobalMigration(workflowName, migration, module);
     return Starlark.NONE;
@@ -2208,7 +2210,8 @@ public class CoreModule implements LabelsAwareModule, StarlarkValue {
             actions,
             generalOptions,
             "action_migration",
-            filesystem);
+            filesystem,
+            thread.getCallStack());
     Module module = Module.ofInnermostEnclosingStarlarkFunction(thread);
     registerGlobalMigration(workflowName, migration, module);
     return Starlark.NONE;

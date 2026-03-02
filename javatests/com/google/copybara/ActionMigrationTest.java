@@ -86,6 +86,14 @@ public class ActionMigrationTest {
   }
 
   @Test
+  public void testGetDefinitionStack() throws Exception {
+    ActionMigration actionMigration = loggingFeedback();
+    assertThat(actionMigration.getDefinitionStack().get(0).location.file())
+        .matches("copy\\.bara\\.sky");
+    assertThat(actionMigration.getDefinitionStack().get(1).name).matches("feedback");
+  }
+
+  @Test
   public void testDescription() throws Exception {
     String config =
         """

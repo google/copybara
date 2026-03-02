@@ -128,6 +128,13 @@ public class GitMirrorTest {
   }
 
   @Test
+  public void testGetDefinitionStack() throws Exception {
+    Migration mirror = createMirrorObj();
+    assertThat(mirror.getDefinitionStack().get(0).location.file()).matches("copy\\.bara\\.sky");
+    assertThat(mirror.getDefinitionStack().get(1).name).matches("mirror");
+  }
+
+  @Test
   public void testMirrorDryRun() throws Exception {
     Migration mirror = createMirrorObj();
     mirror.run(workdir, ImmutableList.of());

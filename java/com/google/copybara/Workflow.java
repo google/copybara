@@ -69,6 +69,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import net.starlark.java.eval.StarlarkThread;
 
 /**
  * Represents a particular migration operation that can occur for a project. Each project can have
@@ -128,6 +129,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   @Nullable String consistencyFilePath;
   @Nullable private final String expectedFixedRef;
   @Nullable private final String pinnedFixedRef;
+  private final ImmutableList<StarlarkThread.CallStackEntry> definitionStack;
 
   public Workflow(
       String name,
@@ -163,7 +165,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       boolean checkout,
       @Nullable String consistencyFilePath,
       @Nullable String expectedFixedRef,
-      @Nullable String pinnedFixedRef) {
+      @Nullable String pinnedFixedRef,
+      ImmutableList<StarlarkThread.CallStackEntry> definitionStack) {
     this.name = Preconditions.checkNotNull(name);
     this.description = description;
     this.origin = Preconditions.checkNotNull(origin);
@@ -202,6 +205,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     this.consistencyFilePath = consistencyFilePath;
     this.expectedFixedRef = expectedFixedRef;
     this.pinnedFixedRef = pinnedFixedRef;
+    this.definitionStack = definitionStack;
   }
 
   @Override
@@ -806,5 +810,10 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   @Nullable
   public String getPinnedFixedRef() {
     return pinnedFixedRef;
+  }
+
+  @Override
+  public ImmutableList<StarlarkThread.CallStackEntry> getDefinitionStack() {
+    return definitionStack;
   }
 }

@@ -116,6 +116,15 @@ public class ReadConfigFromChangeWorkflowTest {
     assertThat((Iterable<?>) destinationInfo3.getValues("filename")).containsExactly("file3");
   }
 
+  @Test
+  public void testGetDefinitionStack() throws Exception {
+    String configCode = mutatingWorkflow("*");
+    Config cfg = skylark.loadConfig(configCode);
+    Workflow<?, ?> wf = (Workflow<?, ?>) cfg.getMigration("default");
+    assertThat(wf.getDefinitionStack().get(0).location.file()).matches("copy\\.bara\\.sky");
+    assertThat(wf.getDefinitionStack().get(1).name).matches("workflow");
+  }
+
   private String mutatingWorkflow(String suffix) {
     return "def _dynamicTransform(ctx):\n"
         + "    ctx.destination_info().add_value('filename', 'file" + suffix + "')\n"

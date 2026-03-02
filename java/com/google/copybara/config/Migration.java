@@ -25,6 +25,7 @@ import com.google.copybara.revision.Revision;
 import java.io.IOException;
 import java.nio.file.Path;
 import javax.annotation.Nullable;
+import net.starlark.java.eval.StarlarkThread;
 
 /**
  * A migration is a process that moves files and/or metadata (comments, labels...) at a particular
@@ -91,4 +92,9 @@ public interface Migration {
    */
   ImmutableList<ImmutableSetMultimap<String, String>> getCredentialDescription()
       throws ValidationException;
+
+  /** Returns the Starlark call stack captured when the migration was defined. */
+  default ImmutableList<StarlarkThread.CallStackEntry> getDefinitionStack() {
+    return ImmutableList.of();
+  }
 }

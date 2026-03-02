@@ -48,6 +48,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import net.starlark.java.eval.Dict;
+import net.starlark.java.eval.StarlarkThread;
 
 /** Mirror one or more refspec between git repositories. */
 public class Mirror implements Migration {
@@ -71,8 +72,7 @@ public class Mirror implements Migration {
   private final LazyResourceLoader<EndpointProvider<?>> originApiEndpointProvider;
   private final LazyResourceLoader<EndpointProvider<?>> destinationApiEndpointProvider;
   private final ImmutableList<CredentialFileHandler> credentials;
-
-
+  private final ImmutableList<StarlarkThread.CallStackEntry> definitionStack;
 
   Mirror(
       GeneralOptions generalOptions,
@@ -89,7 +89,8 @@ public class Mirror implements Migration {
       @Nullable Action action,
       @Nullable LazyResourceLoader<EndpointProvider<?>> originApiEndpointProvider,
       @Nullable LazyResourceLoader<EndpointProvider<?>> destinationApiEndpointProvider,
-      ImmutableList<CredentialFileHandler> credentials) {
+      ImmutableList<CredentialFileHandler> credentials,
+      ImmutableList<StarlarkThread.CallStackEntry> definitionStack) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.gitOptions = Preconditions.checkNotNull(gitOptions);
     this.name = Preconditions.checkNotNull(name);
@@ -105,6 +106,7 @@ public class Mirror implements Migration {
     this.originApiEndpointProvider = originApiEndpointProvider;
     this.destinationApiEndpointProvider = destinationApiEndpointProvider;
     this.credentials = Preconditions.checkNotNull(credentials);
+    this.definitionStack = definitionStack;
   }
 
   @Override
@@ -311,5 +313,10 @@ public class Mirror implements Migration {
   @Override
   public String getModeString() {
     return MODE_STRING;
+  }
+
+  @Override
+  public ImmutableList<StarlarkThread.CallStackEntry> getDefinitionStack() {
+    return definitionStack;
   }
 }
