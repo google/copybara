@@ -49,18 +49,21 @@ public class GoProxyVersionResolver implements VersionResolver {
    * Will try to load go proxy version that the {@code ref} points to in go proxy. First with ref as
    * a version literal and if that does not work then try to resolve it as a .info reference.
    *
-   * @param ref reference to version known to go proxy.
+   * @param ref reference to version known to go proxy (e.g., "1.2.3", "v1.2.3", "main", <hash>).
    */
   private String resolve(String ref) throws ValidationException {
     try {
       // try to resolve as version.
       ImmutableSet<String> version =
           GoProxyVersionList.forVersion(module, remoteFileOptions, auth).list();
-      if (!version.contains(ref)) {
+      // Go proxy expects a "v" prefix for versions. Optimistically add "v" to ref if absent and try
+      // to resolve it as a version.
+      String proxyRef = ref.startsWith("v") ? ref : "v" + ref;
+      if (!version.contains(proxyRef)) {
         throw new CannotResolveRevisionException(
             String.format("Could not locate version with ref '%s' as a version.", ref));
       }
-      return ref;
+      return proxyRef;
     } catch (ValidationException e) {
       // Darn, it failed, try to resolve as .info
       return Iterables.getOnlyElement(
@@ -89,7 +92,7 @@ public class GoProxyVersionResolver implements VersionResolver {
                             "Failed to assemble url template with provided assembly strategy."
                                 + " Provided ref = '%s' and resolved version = '%s'.",
                             ref, version)));
-    RemoteArchiveVersion remoteArchiveVersion = new RemoteArchiveVersion(fullUrl, version);
+    RemoteArchiveVersion remoteArchiveVersion = new RemoteArchiveVersion(fullUrl, ref);
     return new RemoteArchiveRevision(remoteArchiveVersion);
   }
 

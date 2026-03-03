@@ -196,6 +196,35 @@ public class GoProxyVersioningTest {
   }
 
   @Test
+  @TestParameters({
+    "{ref: \"1.0.0\", expectedUrlVersion: \"v1.0.0\"}",
+    "{ref: \"v1.1.0\", expectedUrlVersion: \"v1.1.0\"}"
+  })
+  public void testGoProxyVersionResolver_resolveSemVer(String ref, String expectedUrlVersion)
+      throws Exception {
+    setUpMockTransportForSkylarkExecutor(
+        ImmutableMap.of(
+            "https://proxy.golang.org/github.com/google/example/@v/list", "v1.0.0\nv1.1.0"));
+    VersionResolver versionResolver =
+        skylark.eval(
+            "version_resolver",
+            "version_resolver = go.go_proxy_resolver(module='github.com/google/example')");
+    Revision revision =
+        versionResolver.resolve(
+            ref,
+            (version) ->
+                Optional.of(
+                    String.format(
+                        "https://proxy.golang.org/github.com/google/example/@v/%s.zip", version)));
+    assertThat(revision.getUrl())
+        .isEqualTo(
+            String.format(
+                "https://proxy.golang.org/github.com/google/example/@v/%s.zip",
+                expectedUrlVersion));
+    assertThat(revision.asString()).isEqualTo(ref);
+  }
+
+  @Test
   public void testGoProxyVersionList_getInfoQuery_withRef() throws Exception {
     setUpMockTransportForSkylarkExecutor(
         ImmutableMap.of(
