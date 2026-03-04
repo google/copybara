@@ -152,17 +152,6 @@ public class GitHubOptions implements Option {
   }
 
   /**
-   * Returns a new {@link GitHubApi} instance for the given project.
-   *
-   * <p>The project for 'https://github.com/foo/bar' is 'foo/bar'.
-   */
-  public GitHubGraphQLApi newGitHubGraphQLApi(
-      String gitHubProject, @Nullable CredentialFileHandler credentials) throws RepoException {
-    return newGitHubGraphQLApi(
-        gitHubProject, /* checker= */ null, credentials, generalOptions.console());
-  }
-
-  /**
    * Returns a new {@link GitHubApi} instance for the given project enforcing the given {@link
    * Checker}.
    *
