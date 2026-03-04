@@ -202,8 +202,10 @@ public class GitHubPreSubmitApprovalsProvider implements ApprovalsProvider {
         ImmutableList.builder();
     ImmutableList<Review> reviews = null;
     try {
-      reviews = this.githubOptions.newGitHubRestApi(projectId, creds)
-          .getReviews(projectId, prNumber);
+      reviews =
+          this.githubOptions
+              .newGitHubRestApi(projectId, null, creds, console)
+              .getReviews(projectId, prNumber);
     } catch (RepoException | ValidationException e) {
       console.warnFmt(
           "Could not do presubmit changes validation with"

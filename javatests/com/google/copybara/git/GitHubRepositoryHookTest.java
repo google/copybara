@@ -54,12 +54,25 @@ public final class GitHubRepositoryHookTest {
       GitRepositoryHook.GitRepositoryData gitRepositoryData, GitHubOptions gitHubOptions)
       throws Exception {
     return new GitHubRepositoryHook(
-        gitRepositoryData, gitHubOptions, mock(CredentialFileHandler.class));
+        gitRepositoryData, gitHubOptions, mock(CredentialFileHandler.class), console);
   }
 
   @Test
   public void constructor_withNullValues_throwsNullPointerException() throws Exception {
     assertThrows(NullPointerException.class, () -> getGitRepositoryHookUnderTest(null, null));
+  }
+
+  @Test
+  public void constructor_withNullConsole_throwsNullPointerException() throws Exception {
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new GitHubRepositoryHook(
+                new GitRepositoryHook.GitRepositoryData(
+                    "123456789", "https://github.com/google/copybara"),
+                builder.github,
+                mock(CredentialFileHandler.class),
+                null));
   }
 
   @Test

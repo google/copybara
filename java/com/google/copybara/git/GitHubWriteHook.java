@@ -92,7 +92,9 @@ public class GitHubWriteHook extends DefaultWriteHook {
   private PullRequest getPrFromNumber(String project, long prNumber)
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = generalOptions.profiler().start("github_api_get_pr")) {
-      return gitHubOptions.newGitHubRestApi(project, creds).getPullRequest(project, prNumber);
+      return gitHubOptions
+          .newGitHubRestApi(project, null, creds, console)
+          .getPullRequest(project, prNumber);
     }
   }
 
@@ -106,9 +108,8 @@ public class GitHubWriteHook extends DefaultWriteHook {
       throws ValidationException, RepoException {
 
     String configProjectName = ghHost.getProjectNameFromUrl(repoUrl);
-    GitHubApi api = gitHubOptions.newGitHubRestApi(configProjectName, creds);
-        
-        
+    GitHubApi api = gitHubOptions.newGitHubRestApi(configProjectName, null, creds, console);
+
     // TODO(joshgoldman): add credentials to the GitRepository object for pushing to the fork
     if (pushToFork) {
       if (integrateLabels.isEmpty()) {
@@ -204,7 +205,7 @@ public class GitHubWriteHook extends DefaultWriteHook {
       return baseEffects.build();
     }
     String projectId = ghHost.getProjectNameFromUrl(repoUrl);
-    GitHubApi api = gitHubOptions.newGitHubRestApi(projectId, creds);
+    GitHubApi api = gitHubOptions.newGitHubRestApi(projectId, null, creds, console);
 
     if (!originChanges.isEmpty()) {
       if (gitHubOptions.githubPrBranchDeletionDelay != null) {

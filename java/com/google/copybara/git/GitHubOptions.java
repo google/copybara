@@ -117,17 +117,6 @@ public class GitHubOptions implements Option {
   }
 
   /**
-   * Returns a new {@link GitHubApi} instance for the given project.
-   *
-   * <p>The project for 'https://github.com/foo/bar' is 'foo/bar'.
-   */
-  public GitHubApi newGitHubRestApi(
-      String gitHubProject, @Nullable CredentialFileHandler credentials) throws RepoException {
-    return newGitHubRestApi(
-        gitHubProject, /* checker= */ null, credentials, generalOptions.console());
-  }
-
-  /**
    * Returns a new {@link GitHubApi} instance for the given project enforcing the given {@link
    * Checker}.
    *
@@ -179,7 +168,7 @@ public class GitHubOptions implements Option {
   public GitRepositoryHook getGitRepositoryHook(
       GitRepositoryHook.GitRepositoryData gitRepositoryData,
       @Nullable CredentialFileHandler credentials) {
-    return new GitHubRepositoryHook(gitRepositoryData, this, credentials);
+    return new GitHubRepositoryHook(gitRepositoryData, this, credentials, generalOptions.console());
   }
 
   @Parameter(names = "--github-destination-delete-pr-branch",

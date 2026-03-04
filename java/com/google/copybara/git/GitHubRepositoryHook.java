@@ -22,6 +22,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.git.github.util.GitHubHost;
+import com.google.copybara.util.console.Console;
 import java.util.Objects;
 import javax.annotation.Nullable;
 
@@ -30,14 +31,17 @@ public final class GitHubRepositoryHook implements GitRepositoryHook {
   private final GitHubOptions gitHubOptions;
   private final GitRepositoryData gitRepositoryData;
   private final CredentialFileHandler creds;
+  private final Console console;
 
   public GitHubRepositoryHook(
       GitRepositoryData gitRepositoryData,
       GitHubOptions gitHubOptions,
-      @Nullable CredentialFileHandler creds) {
+      @Nullable CredentialFileHandler creds,
+      Console console) {
     this.gitHubOptions = Preconditions.checkNotNull(gitHubOptions);
     this.gitRepositoryData = Preconditions.checkNotNull(gitRepositoryData);
     this.creds = creds;
+    this.console = Preconditions.checkNotNull(console);
   }
 
   /**
@@ -54,7 +58,7 @@ public final class GitHubRepositoryHook implements GitRepositoryHook {
     }
     GitHubHost gitHubHost = new GitHubHost("github.com");
     String projectId = gitHubHost.getProjectNameFromUrl(gitRepositoryData.url());
-    GitHubApi api = gitHubOptions.newGitHubRestApi(projectId, creds);
+    GitHubApi api = gitHubOptions.newGitHubRestApi(projectId, null, creds, console);
     long actualId = api.getRepository(projectId).getId();
     if (!Objects.equals(String.valueOf(actualId), getGitRepositoryData().id())) {
       throw new ValidationException(
