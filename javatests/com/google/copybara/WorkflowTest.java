@@ -59,8 +59,10 @@ import com.google.copybara.Info.MigrationReference;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.AuthorParser;
 import com.google.copybara.config.Config;
+import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.MapConfigFile;
 import com.google.copybara.config.Migration;
+import com.google.copybara.config.PathBasedConfigFile;
 import com.google.copybara.effect.DestinationEffect;
 import com.google.copybara.effect.DestinationEffect.Type;
 import com.google.copybara.exception.CannotResolveRevisionException;
@@ -2532,6 +2534,39 @@ public class WorkflowTest {
         .contains(
             "error: consistency_file_path set and merge import is enabled, but use_consistency_file"
                 + " in merge_import is false");
+  }
+
+  @Test
+  public void testAbsoluteConfigPathTruncation() throws Exception {
+    Path root = workdir.resolve("root"); // /workdir/root
+    Files.createDirectories(root);
+    Path configPath = root.resolve("subdir/copy.bara.sky"); // /workdir/root/subdir/copy.bara.sky
+    assertThat(configPath.isAbsolute()).isTrue();
+    Files.createDirectories(configPath.getParent());
+    // Enable consistency file and labels
+    consistencyFilePath = "\"copy.bara.consistency\"";
+    transformations = ImmutableList.of("metadata.add_header('PATH=${COPYBARA_CONFIG_PATH}')");
+
+    Files.writeString(configPath, getConfigString("default", SQUASH));
+
+    ConfigFile configFile = new PathBasedConfigFile(configPath, root, /* identifierPrefix= */ null);
+
+    skylark = new SkylarkTestExecutor(options);
+    Config config = skylark.loadConfig(configFile);
+    Workflow<?, ?> workflow = (Workflow<?, ?>) config.getMigration("default");
+
+    origin.addSimpleChange(/* timestamp= */ 1);
+
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+
+    ProcessedChange change = Iterables.getOnlyElement(destination.processed);
+
+    // Verify consistency file content
+    String consistencyFile = change.getContent("copy.bara.consistency");
+    assertThat(consistencyFile).contains("# Workflow: subdir/copy.bara.sky:default");
+
+    // Also verify the label in TransformResult for completeness
+    assertThat(change.getChangesSummary()).contains("PATH=subdir/copy.bara.sky");
   }
 
   @Test

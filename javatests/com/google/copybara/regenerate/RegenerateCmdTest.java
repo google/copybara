@@ -34,6 +34,8 @@ import com.google.copybara.DestinationReader;
 import com.google.copybara.ModuleSet;
 import com.google.copybara.WriterContext;
 import com.google.copybara.config.Config;
+import com.google.copybara.config.ConfigFile;
+import com.google.copybara.config.PathBasedConfigFile;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.revision.Revision;
@@ -988,5 +990,61 @@ public class RegenerateCmdTest {
     assertThat(Files.readString(pathArg.getValue().resolve(consistencyFilePath)))
         .isEqualTo(consistencyContent);
     assertThat(Files.readString(pathArg.getValue().resolve("foo.txt"))).isEqualTo("foo");
+  }
+
+  @Test
+  public void testAbsoluteConfigPathTruncation() throws Exception {
+    Path root = tempFolder.newFolder("root").toPath();
+    Path configPath = root.resolve("subdir/copy.bara.sky");
+    assertThat(configPath.isAbsolute()).isTrue();
+    Files.createDirectories(configPath.getParent());
+
+    Files.writeString(configPath, getConsistencyFileConfigString());
+
+    ConfigFile configFile = new PathBasedConfigFile(configPath, root, /* identifierPrefix= */ null);
+
+    // Setup an origin change
+    setupFooOriginImport();
+    when(patchRegenerator.inferImportBaseline(any(), any()))
+        .thenReturn(Optional.of(origin.getLatestChange().asString()));
+
+    setupTarget("bar");
+    writeDestination("bar", "foo.txt", "bar");
+
+    // Prepare baseline consistency file (pristine vs baseline)
+    setupPristineBaseline("pristine");
+    writeDestination("pristine", "foo.txt", "foo");
+    setupBaseline("baseline");
+    writeDestination("baseline", "foo.txt", "foo");
+    setupBaselineConsistencyFile("pristine", "baseline");
+
+    RegenerateCmd cmd =
+        new RegenerateCmd(
+            (path, sourceRef) ->
+                new ConfigLoader(
+                    skylark.createModuleSet(), configFile, options.general.getStarlarkMode()) {
+                  @Override
+                  protected Config doLoadForRevision(Console console, Revision revision)
+                      throws ValidationException {
+                    try {
+                      return skylark.loadConfig(path);
+                    } catch (IOException e) {
+                      throw new RuntimeException(e);
+                    }
+                  }
+                });
+
+    CommandEnv commandEnv = prepAndGetCommandEnv(ImmutableList.of(configPath.toString()), cmd);
+
+    ExitCode exitCode = cmd.run(commandEnv);
+
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
+
+    ArgumentCaptor<Path> pathArg = ArgumentCaptor.forClass(Path.class);
+    verify(patchRegenerator).updateChange(any(), pathArg.capture(), any(), eq("bar"));
+
+    // Verify consistency file content starts with the relative path
+    String consistencyFile = Files.readString(pathArg.getValue().resolve(CONSISTENCY_FILE_PATH));
+    assertThat(consistencyFile).contains("# Workflow: subdir/copy.bara.sky:default");
   }
 }

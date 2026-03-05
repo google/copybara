@@ -786,7 +786,10 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         if (workflow.getConsistencyFilePath() != null) {
           byte[] consistencyFileContents =
               ConsistencyFile.generateNoDiff(
-                      checkoutDir, workflow.getDestination().getHashFunction())
+                      checkoutDir,
+                      workflow.getDestination().getHashFunction(),
+                      workflow.getMainConfigFile().getIdentifier(),
+                      workflow.getName())
                   .toBytes();
           Files.createDirectories(
               checkoutDir.resolve(workflow.getConsistencyFilePath()).getParent());
@@ -998,7 +1001,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                           workflow.getDestination().getHashFunction(),
                           workflow.getGeneralOptions().getEnvironment(),
                           workflow.isVerbose(),
-                          workflow.getMainConfigFile().path(),
+                          workflow.getMainConfigFile().getIdentifier(),
                           workflow.getName())
                       .toBytes());
         } catch (InsideGitDirException e) {

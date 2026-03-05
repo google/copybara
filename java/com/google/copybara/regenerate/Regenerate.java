@@ -180,7 +180,7 @@ public class Regenerate<O extends Revision, D extends Revision> {
                         workflow.getDestination().getHashFunction(),
                         workflow.getGeneralOptions().getEnvironment(),
                         workflow.isVerbose(),
-                        workflow.getMainConfigFile().path(),
+                        workflow.getMainConfigFile().getIdentifier(),
                         workflow.getName())
                     .toBytes());
       } catch (InsideGitDirException e) {
