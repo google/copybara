@@ -174,9 +174,11 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
               + " in the destination_files glob in order to get updated. Underneath, Copybara"
               + " runs `quilt import; quilt push; quilt refresh` for each patch file in the"
               + " `series` file in order. Currently, all patch files and the `series` file must"
-              + " reside in a \"patches\" sub-directory under the root directory containing the"
-              + " migrated code. This means it has the limitation that the migrated code itself"
-              + " cannot contain a directory with the name \"patches\".",
+              + " reside in a \"patches\" sub-directory under the directory where the"
+              + " patches are applied (the root directory by default, or the directory"
+              + " specified by the `directory` parameter). This means it has the"
+              + " limitation that the migrated code itself cannot contain a directory"
+              + " with the name \"patches\" in that location.",
       parameters = {
         @Param(
             name = "series",
@@ -187,8 +189,19 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
                     + " parameter in `patch.apply` transformation, and is required for Quilt."
                     + " Patches listed in this file will be applied relative to the checkout dir,"
                     + " and the leading path component is stripped via the `-p1` flag. Currently"
-                    + " this file should be the `patches/series` file in the root directory"
-                    + " of the migrated code."),
+                    + " this file should be the `patches/series` file in the directory where"
+                    + " the patches are applied."),
+        @Param(
+            name = "directory",
+            named = true,
+            positional = false,
+            defaultValue = "''",
+            doc =
+                "Path relative to the working directory from which to apply patches. This supports"
+                    + " patches that specify relative paths in their file diffs but use a different"
+                    + " relative path base than the working directory. Checks out the given"
+                    + " directory and runs Quilt commands in it. By default, it uses the current"
+                    + " directory."),
       },
       useStarlarkThread = true)
   @Example(
@@ -214,9 +227,7 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
               + " `patch1.patch` itself will be updated during the migration if it is applied with"
               + " fuzz.")
   @UsesFlags(PatchingOptions.class)
-  public QuiltTransformation quiltApply(
-      String series,
-      StarlarkThread thread)
+  public QuiltTransformation quiltApply(String series, String directory, StarlarkThread thread)
       throws EvalException, ValidationException {
     ImmutableList.Builder<ConfigFile> builder = ImmutableList.builder();
     Optional<ConfigFile> seriesFile = parseSeries(series, builder);
@@ -228,7 +239,8 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
         seriesFile,
         builder.build(),
         patchingOptions,
-        /*reverse=*/ false,
+        /* reverse= */ false,
+        directory,
         thread.getCallerLocation());
   }
 

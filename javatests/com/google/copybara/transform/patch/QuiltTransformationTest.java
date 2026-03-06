@@ -126,9 +126,13 @@ public final class QuiltTransformationTest {
     Files.write(checkoutDir.resolve("file1.txt"), "line1\nfoo\nline3".getBytes(UTF_8));
     Files.write(checkoutDir.resolve("file2.txt"), "bar\n".getBytes(UTF_8));
     QuiltTransformation transform =
-        new QuiltTransformation(Optional.of(seriesFile),
-            ImmutableList.of(patchFile), patchingOptions,
-            /*reverse=*/ false, Location.BUILTIN);
+        new QuiltTransformation(
+            Optional.of(seriesFile),
+            ImmutableList.of(patchFile),
+            patchingOptions,
+            /* reverse= */ false,
+            /* directory= */ "",
+            Location.BUILTIN);
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
     assertThatPath(checkoutDir)
         .containsFile("file1.txt", "line1\nbar\nline3")
@@ -161,8 +165,13 @@ public final class QuiltTransformationTest {
     Files.write(checkoutDir.resolve("file1.txt"), "new line\n\nline1\nfoo\nline3".getBytes(UTF_8));
     Files.write(checkoutDir.resolve("file2.txt"), "bar\n".getBytes(UTF_8));
     QuiltTransformation transform =
-        new QuiltTransformation(Optional.of(seriesFile), ImmutableList.of(patchFile),
-            patchingOptions, /*reverse=*/ false, Location.BUILTIN);
+        new QuiltTransformation(
+            Optional.of(seriesFile),
+            ImmutableList.of(patchFile),
+            patchingOptions,
+            /* reverse= */ false,
+            /* directory= */ "",
+            Location.BUILTIN);
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
     assertThatPath(checkoutDir)
         .containsFile("file1.txt", "new line\n\nline1\nbar\nline3")
@@ -183,6 +192,7 @@ public final class QuiltTransformationTest {
             ImmutableList.of(patchFile),
             patchingOptions,
             /* reverse= */ false,
+            /* directory= */ "",
             Location.BUILTIN);
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
     ValidationException e =
@@ -215,6 +225,7 @@ public final class QuiltTransformationTest {
             ImmutableList.of(patchFile),
             patchingOptions,
             /* reverse= */ false,
+            /* directory= */ "",
             Location.BUILTIN);
     ValidationException e =
         assertThrows(
@@ -319,9 +330,65 @@ public final class QuiltTransformationTest {
   }
 
   @Test
+  public void quiltApplyWithDirectoryTest() throws Exception {
+    Path subdir = Files.createDirectories(checkoutDir.resolve("sub/dir"));
+    Files.write(subdir.resolve("file1.txt"), "line1\nfoo\nline3".getBytes(UTF_8));
+    Files.write(subdir.resolve("file2.txt"), "bar\n".getBytes(UTF_8));
+
+    // Patch for file in subdirectory
+    String subDiff =
+        """
+        --- a/file1.txt
+        +++ b/file1.txt
+        @@ -1,3 +1,3 @@
+         line1
+        -foo
+        +bar
+         line3
+        \\ No newline at end of file
+        --- a/file2.txt
+        +++ b/file2.txt
+        @@ -1 +1 @@
+        -bar
+        +new bar
+        """;
+
+    ImmutableMap<String, byte[]> configFiles =
+        ImmutableMap.of(
+            "patches/diff.patch", subDiff.getBytes(UTF_8),
+            "patches/series", SERIES.getBytes(UTF_8));
+    ConfigFile subPatchFile = new MapConfigFile(configFiles, "patches/diff.patch");
+    ConfigFile subSeriesFile = new MapConfigFile(configFiles, "patches/series");
+
+    QuiltTransformation transform =
+        new QuiltTransformation(
+            Optional.of(subSeriesFile),
+            ImmutableList.of(subPatchFile),
+            patchingOptions,
+            /* reverse= */ false,
+            /* directory= */ "sub/dir",
+            Location.BUILTIN);
+
+    transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
+
+    assertThatPath(checkoutDir)
+        .containsFile("sub/dir/file1.txt", "line1\nbar\nline3")
+        .containsFile("sub/dir/file2.txt", "new bar\n")
+        .containsFile("sub/dir/patches/diff.patch", subDiff)
+        .containsFile("sub/dir/patches/series", SERIES)
+        .containsNoMoreFiles();
+  }
+
+  @Test
   public void describeTest() {
-    QuiltTransformation transform = new QuiltTransformation(Optional.of(seriesFile),
-        ImmutableList.of(patchFile), patchingOptions, /*reverse=*/ false, Location.BUILTIN);
+    QuiltTransformation transform =
+        new QuiltTransformation(
+            Optional.of(seriesFile),
+            ImmutableList.of(patchFile),
+            patchingOptions,
+            /* reverse= */ false,
+            "",
+            Location.BUILTIN);
     assertThat(transform.describe()).isEqualTo(
         "Patch.quilt_apply: using quilt to apply and update patches: patches/diff.patch");
   }

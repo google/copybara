@@ -55,15 +55,21 @@ public final class QuiltTransformation implements Transformation {
   // We could possibly implement it without using quilt. Assuming reversal does not require updating
   // any patch files, it can run "patch -R" for each patch in the reverse order of the series file.
   private final boolean reverse;
+  private final String directory;
   private final Location location;
 
   QuiltTransformation(
-      Optional<ConfigFile> series, ImmutableList<ConfigFile> patches, PatchingOptions options,
-      boolean reverse, Location location) {
+      Optional<ConfigFile> series,
+      ImmutableList<ConfigFile> patches,
+      PatchingOptions options,
+      boolean reverse,
+      String directory,
+      Location location) {
     this.series = series;
     this.patchConfigs = patches;
     this.options = options;
     this.reverse = reverse;
+    this.directory = checkNotNull(directory);
     this.location = checkNotNull(location);
   }
 
@@ -71,7 +77,7 @@ public final class QuiltTransformation implements Transformation {
   public TransformationStatus transform(TransformWork work)
       throws IOException, ValidationException {
     boolean verbose = options.getGeneralOptions().isVerbose();
-    Path checkoutDir = work.getCheckoutDir();
+    Path checkoutDir = work.getCheckoutDir().resolve(directory);
     work.getConsole().infoFmt("Applying and updating patches with quilt.");
     // "quilt import <patch_path>" only works for a local path, so we copy the patch config files
     // to a local temp directory first.
@@ -85,7 +91,7 @@ public final class QuiltTransformation implements Transformation {
 
   @Override
   public Transformation reverse() {
-    return new QuiltTransformation(series, patchConfigs, options, !reverse, location);
+    return new QuiltTransformation(series, patchConfigs, options, !reverse, directory, location);
   }
 
   @Override
