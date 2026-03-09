@@ -625,4 +625,8 @@ public class GitHubApi {
           MAX_PER_PAGE);
     }
   }
+
+  public String getTransportClassName() {
+    return transport.getClass().getName();
+  }
 }
