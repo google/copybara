@@ -67,17 +67,6 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
   private final Console console;
   private final boolean bearerAuth;
 
-  public GitHubApiTransportImpl(GitRepository repo, HttpTransport httpTransport,
-      String storePath, boolean bearerAuth, Console console) {
-    this.repo = Preconditions.checkNotNull(repo);
-    this.httpTransport = Preconditions.checkNotNull(httpTransport);
-    this.storePath = storePath;
-    this.console = Preconditions.checkNotNull(console);
-    this.bearerAuth = bearerAuth;
-    this.apiUrl = GITHUB_DOT_COM_API_URL;
-    this.webUrl = GITHUB_DOT_COM_WEB_URL;
-  }
-
   public GitHubApiTransportImpl(
       GitRepository repo,
       HttpTransport httpTransport,
@@ -90,8 +79,8 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
     this.storePath = storePath;
     this.console = Preconditions.checkNotNull(console);
     this.bearerAuth = bearerAuth;
-    this.webUrl = buildGhesWebUrl(Preconditions.checkNotNull(webUrl));
-    this.apiUrl = buildGhesApiUrl(this.webUrl);
+    this.webUrl = buildWebUrl(Preconditions.checkNotNull(webUrl));
+    this.apiUrl = determineApiUrl(this.webUrl);
   }
 
   @SuppressWarnings("unchecked")
@@ -274,11 +263,16 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
     }
   }
 
-  private static String buildGhesWebUrl(String hostName) {
+  private static String buildWebUrl(String hostName) {
     return "https://" + hostName;
   }
 
-  private static String buildGhesApiUrl(String hostName) {
+  private static String determineApiUrl(String hostName) {
+    // Github.com has a unique API URL.
+    // GitHub Enterprise instances have a specific format of API URL.
+    if (hostName.equals(GITHUB_DOT_COM_WEB_URL)) {
+      return GITHUB_DOT_COM_API_URL;
+    }
     return hostName + "/api/v3";
   }
 

@@ -50,6 +50,7 @@ public class GitHubApiTransportImplTest {
 
   private static final int STATUS_CODE = 400;
   private static final String ERROR_MESSAGE = "errorMessage";
+  private static final String WEB_URL = "github.com";
   private MockHttpTransport httpTransport;
 
   private GitHubApiTransport transport;
@@ -104,8 +105,9 @@ public class GitHubApiTransportImplTest {
         };
       }
     };
-    transport = new GitHubApiTransportImpl(
-        repo, httpTransport, "store", false, new TestingConsole());
+    transport =
+        new GitHubApiTransportImpl(
+            repo, httpTransport, "store", false, new TestingConsole(), WEB_URL);
     String unused = transport.get(String.class, "foo/bar");
     assertThat(headers).containsEntry("authorization", ImmutableList.of("Basic dXNlcjpTRUNSRVQ="));
   }
@@ -127,8 +129,9 @@ public class GitHubApiTransportImplTest {
         };
       }
     };
-    transport = new GitHubApiTransportImpl(
-        repo, httpTransport, "store", true, new TestingConsole());
+    transport =
+        new GitHubApiTransportImpl(
+            repo, httpTransport, "store", true, new TestingConsole(), WEB_URL);
     String unused = transport.get(String.class, "foo/bar");
     assertThat(headers).containsEntry("authorization", ImmutableList.of("Bearer SECRET"));
   }
@@ -137,7 +140,8 @@ public class GitHubApiTransportImplTest {
   public void testDefaultUrlsPopulated() throws Exception {
     httpTransport = createMockHttpTransport(new IOException());
     GitHubApiTransportImpl transport =
-        new GitHubApiTransportImpl(repo, httpTransport, "store", false, new TestingConsole());
+        new GitHubApiTransportImpl(
+            repo, httpTransport, "store", false, new TestingConsole(), WEB_URL);
 
     assertThat(transport.getApiUrl()).isEqualTo("https://api.github.com");
     assertThat(transport.getWebUrl()).isEqualTo("https://github.com");
@@ -158,8 +162,9 @@ public class GitHubApiTransportImplTest {
     HttpResponseException ex =
         new HttpResponseException.Builder(STATUS_CODE, ERROR_MESSAGE, new HttpHeaders()).build();
     httpTransport = createMockHttpTransport(ex);
-    transport = new GitHubApiTransportImpl(
-        repo, httpTransport, "store", false, new TestingConsole());
+    transport =
+        new GitHubApiTransportImpl(
+            repo, httpTransport, "store", false, new TestingConsole(), WEB_URL);
     try {
       c.call();
       fail();
@@ -172,8 +177,9 @@ public class GitHubApiTransportImplTest {
   private void runTestThrowsIOException(Callable<?> c) throws Exception {
     IOException ioException = new IOException();
     httpTransport = createMockHttpTransport(ioException);
-    transport = new GitHubApiTransportImpl(
-        repo, httpTransport, "store", false,  new TestingConsole());
+    transport =
+        new GitHubApiTransportImpl(
+            repo, httpTransport, "store", false, new TestingConsole(), WEB_URL);
     try {
       c.call();
       fail();

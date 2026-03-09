@@ -133,7 +133,8 @@ public class GitHubOptions implements Option {
     if (storePath == null) {
       storePath = "~/.git-credentials";
     }
-    GitHubApiTransport transport = newTransport(repo, storePath, console);
+    // TODO(b/491081743): Stop hardcoding "github.com" and allow for custom GHES URLs.
+    GitHubApiTransport transport = newTransport("github.com", repo, storePath, console);
     if (checker != null) {
       transport = new GitHubApiTransportWithChecker(transport, new ApiChecker(checker, console));
     }
@@ -158,7 +159,8 @@ public class GitHubOptions implements Option {
     if (storePath == null) {
       storePath = "~/.git-credentials";
     }
-    GitHubApiTransport transport = newTransport(repo, storePath, console);
+    // TODO(b/491081743): Stop hardcoding "github.com" and allow for custom GHES URLs.
+    GitHubApiTransport transport = newTransport("github.com", repo, storePath, console);
     if (checker != null) {
       transport = new GitHubApiTransportWithChecker(transport, new ApiChecker(checker, console));
     }
@@ -194,16 +196,8 @@ public class GitHubOptions implements Option {
     // Accept any by default
   }
 
-  private GitHubApiTransport newTransport(GitRepository repo, String storePath, Console console) {
-    return new GitHubApiTransportImpl(
-        repo, newHttpTransport(), storePath, gitHubApiBearerAuth, console);
-  }
-
   protected GitHubApiTransport newTransport(
       String gitHubHostName, GitRepository repo, String storePath, Console console) {
-    if (gitHubHostName.equals("github.com")) {
-      return newTransport(repo, storePath, console);
-    }
     return new GitHubApiTransportImpl(
         repo, newHttpTransport(), storePath, gitHubApiBearerAuth, console, gitHubHostName);
   }
