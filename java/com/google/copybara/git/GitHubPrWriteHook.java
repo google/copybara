@@ -95,7 +95,8 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
     }
     for (Change<?> originalChange : originChanges) {
       String projectName = ghHost.getProjectNameFromUrl(repoUrl);
-      GitHubApi api = gitHubOptions.newGitHubRestApi(projectName, null, creds, console);
+      GitHubApi api =
+          gitHubOptions.newGitHubRestApi(ghHost.getHost(), projectName, null, creds, console);
 
       try {
         ImmutableList<PullRequest> pullRequests =

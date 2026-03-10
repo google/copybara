@@ -100,7 +100,7 @@ public class GitHubOptions implements Option {
       GitHubHost ghHost) {
     return (console) -> {
       String project = ghHost.getProjectNameFromUrl(url);
-      return newGitHubRestApi(project, checker, credentials, console);
+      return newGitHubRestApi(ghHost.getHost(), project, checker, credentials, console);
     };
   }
 
@@ -123,6 +123,7 @@ public class GitHubOptions implements Option {
    * <p>The project for 'https://github.com/foo/bar' is 'foo/bar'.
    */
   public GitHubApi newGitHubRestApi(
+      String gitHubHostName,
       String gitHubProject,
       @Nullable Checker checker,
       @Nullable CredentialFileHandler credentials,
@@ -133,8 +134,7 @@ public class GitHubOptions implements Option {
     if (storePath == null) {
       storePath = "~/.git-credentials";
     }
-    // TODO(b/491081743): Stop hardcoding "github.com" and allow for custom GHES URLs.
-    GitHubApiTransport transport = newTransport("github.com", repo, storePath, console);
+    GitHubApiTransport transport = newTransport(gitHubHostName, repo, storePath, console);
     if (checker != null) {
       transport = new GitHubApiTransportWithChecker(transport, new ApiChecker(checker, console));
     }

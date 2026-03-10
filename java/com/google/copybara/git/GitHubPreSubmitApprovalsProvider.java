@@ -204,7 +204,7 @@ public class GitHubPreSubmitApprovalsProvider implements ApprovalsProvider {
     try {
       reviews =
           this.githubOptions
-              .newGitHubRestApi(projectId, null, creds, console)
+              .newGitHubRestApi(githubHost.getHost(), projectId, null, creds, console)
               .getReviews(projectId, prNumber);
     } catch (RepoException | ValidationException e) {
       console.warnFmt(
