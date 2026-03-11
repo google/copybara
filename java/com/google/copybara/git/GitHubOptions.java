@@ -52,7 +52,7 @@ import javax.annotation.Nullable;
 public class GitHubOptions implements Option {
 
   protected final GeneralOptions generalOptions;
-  private final GitOptions gitOptions;
+  protected final GitOptions gitOptions;
 
   @Parameter(
       names = "--gql-commit-history-override",
