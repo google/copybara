@@ -541,6 +541,25 @@ public class GitRepository {
   }
 
   public String describeAbbrev(GitRevision rev) throws RepoException {
+    String contextRef = rev.contextReference();
+    // If the contextRef is a tag, prioritize choosing that specific tag over the `git describe`
+    // output.
+    // This is because `git describe` may not return the tag that is expected, if more than one tag
+    // points to the commit in question.
+    if (!Strings.isNullOrEmpty(contextRef)
+        && !GitRevision.COMPLETE_GIT_HASH_PATTERN.matcher(contextRef).matches()) {
+      try {
+        for (String tag : tagPointsAt(rev)) {
+          if (tag.equals(contextRef)) {
+            return tag;
+          }
+        }
+      } catch (RepoException e) {
+        logger.atWarning().withCause(e).log(
+            "Cannot get `git tag --points-at` for commit %s. Falling back to `git describe`",
+            rev.getHash());
+      }
+    }
     return describe(rev, false, "--tag", "--abbrev=0");
   }
 

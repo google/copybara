@@ -490,6 +490,19 @@ public class GitOriginTest {
   }
 
   @Test
+  public void describeAbbrevWithMultipleTags_selectsTagMatchingContextRef() throws Exception {
+    writeFile(remote, "foo.txt", "foo");
+    repo.add().all().run();
+    git("commit", "-m", "first");
+    git("tag", "release-2489");
+    git("tag", "v2.37.0");
+
+    GitRevision revision = origin().resolve("v2.37.0");
+    assertThat(revision.associatedLabel(GitRepository.GIT_DESCRIBE_ABBREV))
+        .containsExactly("v2.37.0");
+  }
+
+  @Test
   public void testGitOriginResolveToExactTag() throws Exception {
     git("tag", "-m", "This is a tag", "0.1");
     String firstSha1 = this.repo.resolveReference("HEAD").getHash();
