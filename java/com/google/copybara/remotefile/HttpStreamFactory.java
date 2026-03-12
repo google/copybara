@@ -16,7 +16,6 @@
 
 package com.google.copybara.remotefile;
 
-import com.google.common.collect.ImmutableMultimap;
 import com.google.copybara.credentials.CredentialIssuingException;
 import com.google.copybara.credentials.CredentialRetrievalException;
 import com.google.copybara.http.auth.AuthInterceptor;
@@ -36,19 +35,6 @@ public interface HttpStreamFactory {
    * @param url The URL to open.
    * @param auth The interceptor to use for authentication. If null, no authentication will be used.
    */
-  default InputStream open(URL url, @Nullable AuthInterceptor auth)
-      throws IOException, CredentialRetrievalException, CredentialIssuingException {
-    return open(url, auth, ImmutableMultimap.of());
-  }
-
-  /**
-   * Open the referenced URL and return the stream to the contents.
-   *
-   * @param url The URL to open.
-   * @param auth The interceptor to use for authentication. If null, no authentication will be used.
-   * @param headers The headers to send in the HTTP request.
-   */
-  InputStream open(
-      URL url, @Nullable AuthInterceptor auth, ImmutableMultimap<String, String> headers)
+  InputStream open(URL url, @Nullable AuthInterceptor auth)
       throws IOException, CredentialRetrievalException, CredentialIssuingException;
 }
