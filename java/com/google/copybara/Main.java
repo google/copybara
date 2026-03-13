@@ -414,11 +414,13 @@ public class Main {
   protected Path validateLocalConfig(GeneralOptions generalOptions, String configLocation)
       throws ValidationException {
     Path configPath = generalOptions.getFileSystem().getPath(configLocation).normalize();
-    String fileName = configPath.getFileName().toString();
+    Path fileName = configPath.getFileName();
+    checkCondition(fileName != null, "The configuration path '%s' is not a file.", configPath);
     checkCondition(
-        fileName.contentEquals(COPYBARA_SKYLARK_CONFIG_FILENAME),
+        fileName.toString().contentEquals(COPYBARA_SKYLARK_CONFIG_FILENAME),
         "Copybara config file filename should be '%s' but it is '%s'.",
-            COPYBARA_SKYLARK_CONFIG_FILENAME, configPath.getFileName());
+        COPYBARA_SKYLARK_CONFIG_FILENAME,
+        fileName);
 
     // Treat the top level element specially since it is passed thru the command line.
     if (!Files.exists(configPath)) {
