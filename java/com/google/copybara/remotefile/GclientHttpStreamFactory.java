@@ -37,7 +37,7 @@ import javax.annotation.Nullable;
  */
 public class GclientHttpStreamFactory implements HttpStreamFactory {
 
-  private final HttpTransport javaNet;
+  protected final HttpTransport javaNet;
   private final Duration timeout;
 
 
@@ -54,6 +54,25 @@ public class GclientHttpStreamFactory implements HttpStreamFactory {
   public InputStream open(
       URL url, @Nullable AuthInterceptor auth, ImmutableMultimap<String, String> headers)
       throws IOException, CredentialRetrievalException, CredentialIssuingException {
+    HttpRequest req = buildHttpRequest(url, auth, headers);
+    return req.execute().getContent();
+  }
+
+  /**
+   * Constructs an {@link HttpRequest} object.
+   *
+   * @param url The URL to send the request to
+   * @param auth The authentication to use
+   * @param headers The headers to set in the request
+   * @return the request
+   * @throws IOException if there is an issue obtaining the request factory, or asking it to build a
+   *     request object
+   * @throws CredentialRetrievalException if there is an issue using the auth object
+   * @throws CredentialIssuingException if there is an issue using the auth object
+   */
+  protected HttpRequest buildHttpRequest(
+      URL url, @Nullable AuthInterceptor auth, ImmutableMultimap<String, String> headers)
+      throws IOException, CredentialRetrievalException, CredentialIssuingException {
     HttpRequest req =
         javaNet
             .createRequestFactory()
@@ -65,6 +84,6 @@ public class GclientHttpStreamFactory implements HttpStreamFactory {
     if (auth != null) {
       req.setInterceptor(auth.interceptor());
     }
-    return req.execute().getContent();
+    return req;
   }
 }
