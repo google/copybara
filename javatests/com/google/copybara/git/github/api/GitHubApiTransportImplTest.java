@@ -20,6 +20,7 @@ import static com.google.copybara.git.GitRepository.newBareRepo;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
 import com.google.api.client.http.HttpHeaders;
@@ -31,6 +32,7 @@ import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.api.client.testing.http.MockLowLevelHttpResponse;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitRepository;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
@@ -51,6 +53,7 @@ public class GitHubApiTransportImplTest {
   private static final int STATUS_CODE = 400;
   private static final String ERROR_MESSAGE = "errorMessage";
   private static final String WEB_URL = "github.com";
+  private Path credentialsFile;
   private MockHttpTransport httpTransport;
 
   private GitHubApiTransport transport;
@@ -58,7 +61,7 @@ public class GitHubApiTransportImplTest {
 
   @Before
   public void setup() throws Exception {
-    Path credentialsFile = Files.createTempFile("credentials", "test");
+    credentialsFile = Files.createTempFile("credentials", "test");
     Files.write(credentialsFile, "https://user:SECRET@github.com".getBytes(UTF_8));
     repo =
         newBareRepo(Files.createTempDirectory("test_repo"), getGitEnv(), /*verbose=*/ true,
@@ -156,6 +159,41 @@ public class GitHubApiTransportImplTest {
 
     assertThat(transport.getApiUrl()).isEqualTo("https://github.enterprise.com/api/v3");
     assertThat(transport.getWebUrl()).isEqualTo("https://github.enterprise.com");
+  }
+
+  @Test
+  public void testCredentialErrorPopulatedWithCorrectUrls_gitHubCom() throws Exception {
+    // Delete the credentialsFile which is created by default in all other tests in order to
+    // simulate missing credentials.
+    Files.delete(credentialsFile);
+    httpTransport = createMockHttpTransport(new IOException());
+    GitHubApiTransportImpl transport =
+        new GitHubApiTransportImpl(
+            repo, httpTransport, "store", false, new TestingConsole(), "github.com");
+
+    ValidationException exception =
+        assertThrows(ValidationException.class, () -> transport.getCredentials());
+
+    String message = exception.getMessage();
+    assertThat(message).contains("https://github.com");
+    assertThat(message).contains("https://api.github.com");
+    assertThat(message).contains("https://USERNAME:TOKEN@github.com");
+    assertThat(message).contains("https://USERNAME:TOKEN@api.github.com");
+  }
+
+  @Test
+  public void testCredentialErrorPopulatedWithCorrectUrls_ghes() throws Exception {
+    httpTransport = createMockHttpTransport(new IOException());
+    GitHubApiTransportImpl transport =
+        new GitHubApiTransportImpl(
+            repo, httpTransport, "store", false, new TestingConsole(), "randomInstance.com");
+
+    ValidationException exception =
+        assertThrows(ValidationException.class, () -> transport.getCredentials());
+
+    String message = exception.getMessage();
+    assertThat(message).contains("https://randomInstance.com");
+    assertThat(message).contains("https://USERNAME:TOKEN@randomInstance.com/api/v3");
   }
 
   private void runTestThrowsHttpResponseException(Callable<?> c) throws Exception {

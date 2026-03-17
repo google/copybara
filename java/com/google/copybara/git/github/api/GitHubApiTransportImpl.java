@@ -235,37 +235,39 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
   }
 
   /**
-   * Gets the credentials from git credential helper. First we try
-   * to get it for the api.github.com host, just in case the user has an specific token for that
-   * url, otherwise we use the github.com host one.
+   * Gets the credentials from git credential helper. First we try to get it for the apiUrl host,
+   * just in case the user has an specific token for that url, otherwise we use the webUrl host one.
    */
-  private UserPassword getCredentials() throws RepoException, ValidationException {
+  protected UserPassword getCredentials() throws RepoException, ValidationException {
     try {
       return repo.credentialFill(apiUrl);
     } catch (ValidationException e) {
       try {
         return repo.credentialFill(webUrl);
       } catch (ValidationException e1) {
-        // TODO: Stop hardcoding "github.com" and allow for custom GHES URLs.
         // Ugly, but helpful...
         throw new ValidationException(
             String.format(
-                "Cannot get credentials for host https://api.github.com or https://github.com from"
+                "Cannot get credentials for host %s or %s from"
                     + " credentials helper. Make sure either your credential helper has the"
                     + " username and password/token or if you don't use one, that file '%s'"
                     + " contains one of the two lines: \n"
                     + "Either:\n"
-                    + "https://USERNAME:TOKEN@api.github.com\n"
+                    + "https://USERNAME:TOKEN@%s\n"
                     + "or:\n"
-                    + "https://USERNAME:TOKEN@github.com\n"
+                    + "https://USERNAME:TOKEN@%s\n"
                     + "\n"
                     + "Note that spaces or other special characters need to be escaped. For example"
                     + " ' ' should be %%20 and '@' should be %%40 (For example when using the email"
                     + " as username)",
-                storePath),
+                webUrl, apiUrl, storePath, removeHttpsPrefix(apiUrl), removeHttpsPrefix(webUrl)),
             e1);
       }
     }
+  }
+
+  private static String removeHttpsPrefix(String url) {
+    return url.replace("https://", "");
   }
 
   private static String buildWebUrl(String hostName) {
