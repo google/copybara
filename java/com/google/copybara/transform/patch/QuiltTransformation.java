@@ -57,6 +57,7 @@ public final class QuiltTransformation implements Transformation {
   private final boolean reverse;
   private final String directory;
   private final Location location;
+  private final String patchesDirName;
 
   QuiltTransformation(
       Optional<ConfigFile> series,
@@ -71,6 +72,11 @@ public final class QuiltTransformation implements Transformation {
     this.reverse = reverse;
     this.directory = checkNotNull(directory);
     this.location = checkNotNull(location);
+    this.patchesDirName =
+        series
+            .map(s -> Path.of(s.path()).getParent())
+            .map(p -> p == null ? "" : p.toString())
+            .orElse("patches");
   }
 
   @Override
@@ -159,14 +165,17 @@ public final class QuiltTransformation implements Transformation {
   private ImmutableMap<String, String> initializeQuilt(Path checkoutDir, Map<String, String> env)
       throws ValidationException, IOException {
     // Creates quiltrc file and sets up QUILTRC environment variable.
-    ImmutableMap<String, String> quiltOptions = ImmutableMap.of(
-      "QUILT_NO_DIFF_TIMESTAMPS", "1",
-      "QUILT_DIFF_OPTS", "--show-c-function",
-      // Uses the "-p ab" format in order to keep patch files' content independent of the parent
-      // directory's name.
-      "QUILT_DIFF_ARGS", "-p ab --no-index",
-      "QUILT_REFRESH_ARGS", "-p ab --no-index",
-      "QUILT_PATCHES_PREFIX", "yes");
+    ImmutableMap<String, String> quiltOptions =
+        ImmutableMap.<String, String>builder()
+            .put("QUILT_NO_DIFF_TIMESTAMPS", "1")
+            .put("QUILT_DIFF_OPTS", "--show-c-function")
+            // Uses the "-p ab" format in order to keep patch files' content independent of the
+            // parent directory's name.
+            .put("QUILT_DIFF_ARGS", "-p ab --no-index")
+            .put("QUILT_REFRESH_ARGS", "-p ab --no-index")
+            .put("QUILT_PATCHES_PREFIX", "yes")
+            .put("QUILT_PATCHES", patchesDirName)
+            .buildOrThrow();
     // It overwrites any existing copybara.quiltrc file, which is OK because it is in the
     // temporary directory and its content is always the same.
     Path quilrcPath = options.getGeneralOptions().getDirFactory().getTmpRoot().resolve(
@@ -188,22 +197,21 @@ public final class QuiltTransformation implements Transformation {
     envBuilder.put("QUILTRC", quilrcPath.toRealPath().toString());
 
     // Creates and checks for necessary directories.
-    Path patchesDir = checkoutDir.resolve("patches");
-    // Fails if "patches" already exists.
-    try {
-      Files.createDirectory(patchesDir);
-    } catch (FileAlreadyExistsException e) {
+    Path patchesDir = checkoutDir.resolve(patchesDirName);
+    if (Files.exists(patchesDir)) {
       throw new ValidationException(
           String.format(
-              "Destination already has a 'patches' directory - was the quilt transform %s run"
-                  + " twice?: %s",
-              location(), e.getMessage()));
+              "Destination already has a '%s' directory - was the quilt transform %s run"
+                  + " twice?",
+              patchesDirName, location()));
     }
+    Files.createDirectories(patchesDir);
     try {
       Files.createFile(patchesDir.resolve("series"));
     } catch (FileAlreadyExistsException e) {
       throw new ValidationException(
-          String.format("Destination already has a 'patches/series' file: %s", e.getMessage()));
+          String.format(
+              "Destination already has a '%s/series' file: %s", patchesDirName, e.getMessage()));
     }
     Path pcDir = checkoutDir.resolve(".pc");
     if (Files.exists(pcDir)) {
@@ -231,8 +239,10 @@ public final class QuiltTransformation implements Transformation {
   private void restoreSeriesAndCleanup(Path checkoutDir) throws IOException {
     // Restores the original "series" file.
     try {
-      Files.write(checkoutDir.resolve("patches").resolve("series"),
-          series.orElseThrow(() -> new CannotResolveLabel("Cannot find series file"))
+      Files.write(
+          checkoutDir.resolve(patchesDirName).resolve("series"),
+          series
+              .orElseThrow(() -> new CannotResolveLabel("Cannot find series file"))
               .readContentBytes());
     } catch (CannotResolveLabel e) {
       throw new IOException("Error reading original 'series' file", e);
