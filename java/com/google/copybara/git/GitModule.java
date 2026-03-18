@@ -3179,10 +3179,20 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         GerritEventType eventType = stringToEnum("events", event.getKey(), GerritEventType.class);
 
         check(types.add(eventType), "Repeated element %s", event);
+        if (eventType == GerritEventType.STATUS) {
+          // TODO: Consider supporting all Gerrit statuses.
+          ImmutableSet<String> allowedStatuses =
+              ImmutableSet.of("PENDING", "ABANDONED", "MERGED", "CLOSED", "REVIEWED", "OPEN");
+          for (String status : event.getValue()) {
+            check(
+                allowedStatuses.contains(status),
+                "Invalid status '%s'. Valid values are %s",
+                status,
+                allowedStatuses);
+          }
+        }
         eventBuilder.add(
-            GerritEventTrigger.create(
-                eventType,
-                ImmutableSet.copyOf(event.getValue())));
+            GerritEventTrigger.create(eventType, ImmutableSet.copyOf(event.getValue())));
       }
     }
 

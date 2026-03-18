@@ -22,5 +22,6 @@ public enum GerritEventType {
   UNKNOWN, // Used if we don't know the event type.
 
   LABELS,
-  SUBMIT_REQUIREMENTS;
+  SUBMIT_REQUIREMENTS,
+  STATUS;
 }

@@ -37,7 +37,7 @@ public class GerritTrigger implements Trigger {
   private final ImmutableSet<GerritEventTrigger> events;
   private final Console console;
   private final boolean allowSubmitChange;
-  
+
   GerritTrigger(
       LazyResourceLoader<GerritApi> apiSupplier,
       String url,
