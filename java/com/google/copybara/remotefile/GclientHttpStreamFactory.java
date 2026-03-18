@@ -37,7 +37,7 @@ import javax.annotation.Nullable;
  */
 public class GclientHttpStreamFactory implements HttpStreamFactory {
 
-  protected final HttpTransport javaNet;
+  private final HttpTransport javaNet;
   private final Duration timeout;
 
 
@@ -85,5 +85,14 @@ public class GclientHttpStreamFactory implements HttpStreamFactory {
       req.setInterceptor(auth.interceptor());
     }
     return req;
+  }
+
+  /**
+   * Returns the {@link HttpTransport} used by this factory.
+   *
+   * @return the {@link HttpTransport}
+   */
+  protected HttpTransport getHttpTransport() {
+    return javaNet;
   }
 }
