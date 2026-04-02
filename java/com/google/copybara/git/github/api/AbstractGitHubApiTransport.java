@@ -1,0 +1,283 @@
+/*
+ * Copyright (C) 2016 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.google.copybara.git.github.api;
+
+import com.google.api.client.http.GenericUrl;
+import com.google.api.client.http.HttpHeaders;
+import com.google.api.client.http.HttpRequest;
+import com.google.api.client.http.HttpRequestFactory;
+import com.google.api.client.http.HttpResponse;
+import com.google.api.client.http.HttpResponseException;
+import com.google.api.client.http.HttpTransport;
+import com.google.api.client.http.json.JsonHttpContent;
+import com.google.api.client.json.JsonFactory;
+import com.google.api.client.json.JsonObjectParser;
+import com.google.api.client.json.gson.GsonFactory;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.flogger.FluentLogger;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
+import com.google.copybara.git.GitCredential.UserPassword;
+import com.google.copybara.git.GitRepository;
+import com.google.copybara.json.GsonParserUtil;
+import com.google.copybara.util.console.Console;
+import java.io.IOException;
+import java.lang.reflect.Type;
+import java.net.URI;
+import java.time.Duration;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import javax.annotation.Nullable;
+
+/**
+ * Base implementation of {@link GitHubApiTransport} that uses Google http client and gson for doing
+ * the requests.
+ */
+public abstract class AbstractGitHubApiTransport implements GitHubApiTransport {
+
+  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
+
+  protected static final JsonFactory JSON_FACTORY = new GsonFactory();
+  private static final String GITHUB_DOT_COM_API_URL = "https://api.github.com";
+  private static final String GITHUB_DOT_COM_WEB_URL = "https://github.com";
+
+  protected final String apiUrl;
+  protected final String webUrl;
+  protected final GitRepository repo;
+  protected final HttpTransport httpTransport;
+  protected final String storePath;
+  protected final Console console;
+  protected final boolean bearerAuth;
+
+  protected AbstractGitHubApiTransport(
+      GitRepository repo,
+      HttpTransport httpTransport,
+      String storePath,
+      boolean bearerAuth,
+      Console console,
+      String webUrl) {
+    this.repo = Preconditions.checkNotNull(repo);
+    this.httpTransport = Preconditions.checkNotNull(httpTransport);
+    this.storePath = storePath;
+    this.console = Preconditions.checkNotNull(console);
+    this.bearerAuth = bearerAuth;
+    this.webUrl = buildWebUrl(Preconditions.checkNotNull(webUrl));
+    this.apiUrl = determineApiUrl(this.webUrl);
+  }
+
+  protected abstract HttpResponse executeRequest(HttpRequestFactory factory, HttpRequest request)
+      throws IOException;
+
+  @SuppressWarnings({"unchecked", "TypeParameterUnusedInFormals"})
+  @Override
+  public <T> T get(
+      String path,
+      Type responseType,
+      ImmutableListMultimap<String, String> headers,
+      String requestType)
+      throws RepoException, ValidationException {
+    HttpRequestFactory requestFactory = getHttpRequestFactory(getCredentialsIfPresent(), headers);
+    GenericUrl url = getFullEndpointUrl(path);
+    try {
+      console.verboseFmt("Executing %s", requestType);
+      HttpRequest httpRequest = requestFactory.buildGetRequest(url);
+      HttpResponse response = executeRequest(requestFactory, httpRequest);
+      Object responseObj = GsonParserUtil.parseHttpResponse(response, responseType, false);
+      if (responseObj instanceof PaginatedPayload<?> paginatedPayload) {
+        return (T) paginatedPayload.annotatePayload(apiUrl, maybeGetLinkHeader(response));
+      }
+      return (T) responseObj;
+    } catch (HttpResponseException e) {
+      throw new GitHubApiException(
+          e.getStatusCode(), parseErrorOrIgnore(e), "GET", path, null, e.getContent());
+    } catch (IOException e) {
+      throw new RepoException("Error running GitHub API operation " + path, e);
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public <T> T post(String path, Object request, Type responseType, String requestType)
+      throws RepoException, ValidationException {
+    HttpRequestFactory requestFactory =
+        getHttpRequestFactory(getCredentials(), ImmutableListMultimap.of());
+    GenericUrl url = getFullEndpointUrl(path);
+    try {
+      console.verboseFmt("Executing %s", requestType);
+      HttpRequest httpRequest =
+          requestFactory.buildPostRequest(url, new JsonHttpContent(JSON_FACTORY, request));
+      HttpResponse response = executeRequest(requestFactory, httpRequest);
+      Object responseObj = GsonParserUtil.parseHttpResponse(response, responseType, false);
+      if (responseObj instanceof PaginatedPayload<?> paginatedPayload) {
+        return (T) paginatedPayload.annotatePayload(apiUrl, maybeGetLinkHeader(response));
+      }
+      return (T) responseObj;
+
+    } catch (HttpResponseException e) {
+      try {
+        throw new GitHubApiException(
+            e.getStatusCode(),
+            parseErrorOrIgnore(e),
+            "POST",
+            path,
+            JSON_FACTORY.toPrettyString(request),
+            e.getContent());
+      } catch (IOException ioE) {
+        logger.atSevere().withCause(ioE).log("Error serializing request for error");
+        throw new GitHubApiException(
+            e.getStatusCode(),
+            parseErrorOrIgnore(e),
+            "POST",
+            path,
+            "unknown request",
+            e.getContent());
+      }
+    } catch (IOException e) {
+      throw new RepoException("Error running GitHub API operation " + path, e);
+    }
+  }
+
+  protected GenericUrl getFullEndpointUrl(String path) {
+    String maybePrefix = path.startsWith("/") ? "" : "/";
+    return new GenericUrl(URI.create(apiUrl + maybePrefix + path));
+  }
+
+  @Nullable
+  protected static ClientError parseErrorOrIgnore(HttpResponseException e) {
+    if (e.getContent() == null) {
+      return null;
+    }
+    try {
+      return JSON_FACTORY.createJsonParser(e.getContent()).parse(ClientError.class);
+    } catch (IOException ignore) {
+      logger.atWarning().withCause(ignore).log("Invalid error response");
+      return new ClientError();
+    }
+  }
+
+  @SuppressWarnings("unchecked") // safe because the key is a known header.
+  @Nullable
+  protected static String maybeGetLinkHeader(HttpResponse response) {
+    HttpHeaders headers = response.getHeaders();
+    List<String> link = (List<String>) headers.get("Link");
+    if (link == null) {
+      return null;
+    }
+    return Iterables.getFirst(link, null);
+  }
+
+  /** Credentials for API should be optional for any read operation (GET). */
+  @Nullable
+  protected UserPassword getCredentialsIfPresent() throws RepoException {
+    try {
+      return getCredentials();
+    } catch (ValidationException e) {
+      String msg =
+          String.format(
+              "GitHub credentials not found in %s. Assuming the repository is public.", storePath);
+      logger.atInfo().log("%s", msg);
+      console.info(msg);
+      return null;
+    }
+  }
+
+  /**
+   * Gets the credentials from git credential helper. First we try to get it for the apiUrl host,
+   * just in case the user has an specific token for that url, otherwise we use the webUrl host one.
+   */
+  protected UserPassword getCredentials() throws RepoException, ValidationException {
+    try {
+      return repo.credentialFill(apiUrl);
+    } catch (ValidationException e) {
+      try {
+        return repo.credentialFill(webUrl);
+      } catch (ValidationException e1) {
+        // Ugly, but helpful...
+        throw new ValidationException(
+            String.format(
+                "Cannot get credentials for host %s or %s from"
+                    + " credentials helper. Make sure either your credential helper has the"
+                    + " username and password/token or if you don't use one, that file '%s'"
+                    + " contains one of the two lines: \n"
+                    + "Either:\n"
+                    + "https://USERNAME:TOKEN@%s\n"
+                    + "or:\n"
+                    + "https://USERNAME:TOKEN@%s\n"
+                    + "\n"
+                    + "Note that spaces or other special characters need to be escaped. For example"
+                    + " ' ' should be %%20 and '@' should be %%40 (For example when using the email"
+                    + " as username)",
+                webUrl, apiUrl, storePath, removeHttpsPrefix(apiUrl), removeHttpsPrefix(webUrl)),
+            e1);
+      }
+    }
+  }
+
+  private static String removeHttpsPrefix(String url) {
+    return url.replace("https://", "");
+  }
+
+  protected HttpRequestFactory getHttpRequestFactory(
+      @Nullable UserPassword userPassword, ImmutableListMultimap<String, String> headers) {
+    return httpTransport.createRequestFactory(
+        request -> {
+          request.setConnectTimeout((int) Duration.ofMinutes(1).toMillis());
+          request.setReadTimeout((int) Duration.ofMinutes(1).toMillis());
+          HttpHeaders httpHeaders = new HttpHeaders();
+          if (userPassword != null) {
+            if (bearerAuth) {
+              httpHeaders.setAuthorization("Bearer " + userPassword.getPassword_BeCareful());
+            } else {
+              httpHeaders.setBasicAuthentication(
+                  userPassword.getUsername(), userPassword.getPassword_BeCareful());
+            }
+          }
+          for (Map.Entry<String, Collection<String>> header : headers.asMap().entrySet()) {
+            httpHeaders.put(header.getKey(), header.getValue());
+          }
+          request.setHeaders(httpHeaders);
+          request.setParser(new JsonObjectParser(JSON_FACTORY));
+        });
+  }
+
+  private static String buildWebUrl(String hostName) {
+    return "https://" + hostName;
+  }
+
+  private static String determineApiUrl(String hostName) {
+    // Github.com has a unique API URL.
+    // GitHub Enterprise instances have a specific format of API URL.
+    if (hostName.equals(GITHUB_DOT_COM_WEB_URL)) {
+      return GITHUB_DOT_COM_API_URL;
+    }
+    return hostName + "/api/v3";
+  }
+
+  @VisibleForTesting
+  public String getApiUrl() {
+    return apiUrl;
+  }
+
+  @VisibleForTesting
+  public String getWebUrl() {
+    return webUrl;
+  }
+}
