@@ -123,21 +123,21 @@ public class GerritEndpointTest {
   @Test
   public void testCheckerIsHonored() throws Exception {
     String config =
-        ""
-            + "def test_action(ctx):\n"
-            + "  ctx.destination.get_change('12_badword_34', include_results = ['LABELS'])\n"
-            + "  return ctx.success()\n"
-            + "\n"
-            + "core.feedback(\n"
-            + "    name = 'default',\n"
-            + "    origin = testing.dummy_trigger(),\n"
-            + "    destination = git.gerrit_api("
-            + "        url = 'https://test.googlesource.com/example',\n"
-            + "        checker = testing.dummy_checker(),\n"
-            + "    ),\n"
-            + "    actions = [test_action,],\n"
-            + ")\n"
-            + "\n";
+        """
+        def test_action(ctx):
+          ctx.destination.get_change('12_badword_34', include_results = ['LABELS'])
+          return ctx.success()
+
+        core.feedback(
+            name = 'default',
+            origin = testing.dummy_trigger(),
+            destination = git.gerrit_api(
+                url = 'https://test.googlesource.com/example',
+                checker = testing.dummy_checker(),
+            ),
+            actions = [test_action,],
+        )
+        """;
     ActionMigration actionMigration =
         (ActionMigration) skylark.loadConfig(config).getMigration("default");
     ValidationException expected =
@@ -885,30 +885,33 @@ public class GerritEndpointTest {
 
   private ActionMigration notifyChangeToOriginFeedback() throws IOException, ValidationException {
     return feedback(
-        ""
-            + "def test_action(ctx):\n"
-            + "  c = ctx.destination.get_change(ctx.refs[0], include_results = ['LABELS'])\n"
-            + "  if c != None and c.id != None:\n"
-            + "    ctx.origin.message('Change number ' + str(c.id))\n"
-            + "  return ctx.success()\n"
-            + "\n", false);
+        """
+        def test_action(ctx):
+          c = ctx.destination.get_change(ctx.refs[0], include_results = ['LABELS'])
+          if c != None and c.id != None:
+            ctx.origin.message('Change number ' + str(c.id))
+          return ctx.success()
+        """,
+        false);
   }
 
   private ActionMigration feedback(String actionFunction, boolean allowSubmit)
       throws IOException, ValidationException {
     String config =
-        actionFunction
-            + "\n"
-            + "core.feedback(\n"
-            + "    name = 'default',\n"
-            + "    origin = testing.dummy_trigger(),\n"
-            + "    destination = git.gerrit_api("
-            + "                      url = '" + url + "', "
-            + "                      allow_submit = " + (allowSubmit ? "True" : "False")
-            + "    ),\n"
-            + "    actions = [test_action,],\n"
-            + ")\n"
-            + "\n";
+        String.format(
+            """
+            %s
+            core.feedback(
+                name = 'default',
+                origin = testing.dummy_trigger(),
+                destination = git.gerrit_api(
+                                  url = '%s',
+                                  allow_submit = %s
+                ),
+                actions = [test_action,],
+            )
+            """,
+            actionFunction, url, (allowSubmit ? "True" : "False"));
     System.err.println(config);
     return (ActionMigration) skylark.loadConfig(config).getMigration("default");
   }

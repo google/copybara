@@ -188,14 +188,22 @@ public class GerritDestinationTest {
   }
 
   private GerritDestination destination(String... lines) throws ValidationException {
-    return skylark.eval("result", "result = "
-        + "git.gerrit_destination(\n"
-        + "    url = '" + url + "',\n"
-        + "    fetch = '" + fetch + "',\n"
-        + "    primary_branch_migration = " +  primaryBranchMigration + ",\n"
-        + (lines.length == 0 ? "" : "    " + Joiner.on(",\n    ").join(lines) + ",\n")
-        + "    " + (pushToRefsFor == null ? "" : "push_to_refs_for = '" + pushToRefsFor + "',")
-        + ")");
+    return skylark.eval(
+        "result",
+        String.format(
+            """
+            result = git.gerrit_destination(
+                url = '%s',
+                fetch = '%s',
+                primary_branch_migration = %s,
+                %s
+                %s
+            )""",
+            url,
+            fetch,
+            primaryBranchMigration,
+            (lines.length == 0 ? "" : "    " + Joiner.on(",\n    ").join(lines) + ","),
+            (pushToRefsFor == null ? "" : "push_to_refs_for = '" + pushToRefsFor + "'")));
   }
 
   private static String lastCommitChangeIdLine(String ref, GitRepository repo) throws Exception {
@@ -1740,13 +1748,17 @@ public class GerritDestinationTest {
     Path workTree = Files.createTempDirectory("populate");
     GitRepository repo = repo().withWorkTree(workTree);
 
-    writeFile(workTree, "foo.txt", ""
-        + "Base file\n"
-        + "This is the original content\n"
-        + "\n"
-        + "This is a common part\n"
-        + "That needs to be changed\n"
-        + "And this remains constant\n");
+    writeFile(
+        workTree,
+        "foo.txt",
+        """
+        Base file
+        This is the original content
+
+        This is a common part
+        That needs to be changed
+        And this remains constant
+        """);
 
     writeFile(workTree, "non_relevant.txt", "foo");
 
@@ -1754,13 +1766,15 @@ public class GerritDestinationTest {
     repo.simpleCommand("commit", "-m", "Old parent");
     GitRevision oldParent = repo.resolveReference("HEAD");
 
-    String firstChange = ""
-        + "Base file\n"
-        + "This is the original content\n"
-        + "\n"
-        + "This is a common part\n"
-        + "The content is changed\n"
-        + "And this remains constant\n";
+    String firstChange =
+        """
+        Base file
+        This is the original content
+
+        This is a common part
+        The content is changed
+        And this remains constant
+        """;
     writeFile(workdir, "foo.txt", firstChange);
 
     writeFile(workdir, "non_relevant.txt", "foo");
@@ -1782,15 +1796,19 @@ public class GerritDestinationTest {
 
     repo.forceCheckout(primaryBranch);
 
-    writeFile(workTree, "foo.txt", ""
-        + "Base file modified\n"
-        + "This is the modified content\n"
-        + "This is the modified content\n"
-        + "This is the modified content\n"
-        + "\n"
-        + "This is a common part\n"
-        + "That needs to be changed\n"
-        + "And this remains constant\n");
+    writeFile(
+        workTree,
+        "foo.txt",
+        """
+        Base file modified
+        This is the modified content
+        This is the modified content
+        This is the modified content
+
+        This is a common part
+        That needs to be changed
+        And this remains constant
+        """);
 
     writeFile(workTree, "non_relevant.txt", "bar");
 
@@ -1799,15 +1817,17 @@ public class GerritDestinationTest {
 
     GitRevision newParent = repo.resolveReference("HEAD");
 
-    String secondChange = ""
-        + "Base file modified\n"
-        + "This is the modified content\n"
-        + "This is the modified content\n"
-        + "This is the modified content\n"
-        + "\n"
-        + "This is a common part\n"
-        + "The content is changed\n"
-        + "And this remains constant\n";
+    String secondChange =
+        """
+        Base file modified
+        This is the modified content
+        This is the modified content
+        This is the modified content
+
+        This is a common part
+        The content is changed
+        And this remains constant
+        """;
 
     writeFile(workdir, "foo.txt", secondChange);
     writeFile(workdir, "non_relevant.txt", "bar");
@@ -1826,15 +1846,17 @@ public class GerritDestinationTest {
     // No push happened
     assertThat(repo().refExists("refs/for/" + primaryBranch)).isFalse();
 
-    String thirdChange = ""
-        + "Base file modified\n"
-        + "This is the modified content\n"
-        + "This is the modified content\n"
-        + "This is the modified content\n"
-        + "\n"
-        + "This is a common part--> But we are changing it now\n"
-        + "The content is changed\n"
-        + "And this remains constant\n";
+    String thirdChange =
+        """
+        Base file modified
+        This is the modified content
+        This is the modified content
+        This is the modified content
+
+        This is a common part--> But we are changing it now
+        The content is changed
+        And this remains constant
+        """;
     writeFile(workdir, "foo.txt", thirdChange);
 
     writeFile(workdir, "non_relevant.txt", "bar");

@@ -170,13 +170,15 @@ public class GitHubPrDestinationTest {
     GitHubPrDestination d =
         skylark.eval(
             "r",
-            "r = git.github_pr_destination("
-                + "    url = 'https://github.com/foo', \n"
-                + "    title = 'custom title',\n"
-                + "    body = 'custom body',\n"
-                + "    destination_ref = 'main',\n"
-                + "    assignees = ['copybara-author']"
-                + ")");
+            """
+            r = git.github_pr_destination(
+                url = 'https://github.com/foo',
+                title = 'custom title',
+                body = 'custom body',
+                destination_ref = 'main',
+                assignees = ['copybara-author']
+            )
+            """);
     WriterContext writerContext =
         new WriterContext("piper_to_github", "TEST", false, new DummyRevision("feature", "feature"),
             Glob.ALL_FILES.roots());
@@ -223,13 +225,18 @@ public class GitHubPrDestinationTest {
                 + "\"head\":\"feature\","
                 + "\"title\":\"Title first a\"}")));
 
-    GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
-        + "    url = 'https://github.com/foo', \n"
-        + "    title = 'Title ${aaa}',\n"
-        + "    body = 'Body ${aaa}',\n"
-        + "    destination_ref = 'main',\n"
-        + "    update_description = True,\n"
-        + ")");
+    GitHubPrDestination d =
+        skylark.eval(
+            "r",
+            """
+            r = git.github_pr_destination(
+                url = 'https://github.com/foo',
+                title = 'Title ${aaa}',
+                body = 'Body ${aaa}',
+                destination_ref = 'main',
+                update_description = True,
+            )
+            """);
     WriterContext writerContext =
         new WriterContext("piper_to_github", "TEST", false, new DummyRevision("feature", "feature"),
             Glob.ALL_FILES.roots());
@@ -381,10 +388,15 @@ public class GitHubPrDestinationTest {
                 "{\"base\":\"main\",\"body\":\"Internal change.\\n"
                     + "\",\"draft\":false,\"head\":\"feature\",\"title\":\"Internal change.\"}")));
 
-    GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
-        + "    url = 'https://github.com/foo',"
-        + "    destination_ref = 'main'"
-        + ")");
+    GitHubPrDestination d =
+        skylark.eval(
+            "r",
+            """
+            r = git.github_pr_destination(
+                url = 'https://github.com/foo',
+                destination_ref = 'main'
+            )
+            """);
 
     WriterContext writerContext =
         new WriterContext("piper_to_github", "test", false, new DummyRevision("feature", "feature"),
@@ -440,10 +452,15 @@ public class GitHubPrDestinationTest {
             MockRequestAssertion.equals(
                 "{\"state\":\"open\"}")));
 
-    GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
-        + "    url = 'https://github.com/foo',"
-        + "    destination_ref = 'main'"
-        + ")");
+    GitHubPrDestination d =
+        skylark.eval(
+            "r",
+            """
+            r = git.github_pr_destination(
+                url = 'https://github.com/foo',
+                destination_ref = 'main'
+            )
+            """);
 
     WriterContext writerContext =
         new WriterContext("piper_to_github", "test", false, new DummyRevision("feature", "feature"),
@@ -472,11 +489,16 @@ public class GitHubPrDestinationTest {
 
   @Test
   public void testHttpUrl() throws Exception {
-    GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
-        + "    url = 'http://github.com/foo', \n"
-        + "    title = 'custom title',\n"
-        + "    body = 'custom body',\n"
-        + ")");
+    GitHubPrDestination d =
+        skylark.eval(
+            "r",
+            """
+            r = git.github_pr_destination(
+                url = 'http://github.com/foo',
+                title = 'custom title',
+                body = 'custom body',
+            )
+            """);
     assertThat(d.describe(Glob.ALL_FILES).get("url")).contains("https://github.com/foo");
   }
 
@@ -487,10 +509,12 @@ public class GitHubPrDestinationTest {
     GitHubPrDestination d =
         skylark.eval(
             "r",
-            "r = git.github_pr_destination("
-                + "    url = 'http://github.com/foo',"
-                + "    checker = testing.dummy_checker()"
-                + ")");
+            """
+            r = git.github_pr_destination(
+                url = 'http://github.com/foo',
+                checker = testing.dummy_checker()
+            )
+            """);
     assertThat(d.describe(Glob.ALL_FILES).get("checker")).contains(DummyChecker.class.getName());
   }
 
@@ -992,18 +1016,26 @@ public class GitHubPrDestinationTest {
     options.gitDestination.committerName = "Bara Kopi";
     skylark = new SkylarkTestExecutor(options);
     options.githubDestination.destinationPrBranch = "test_feature";
-    GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
-        + "    url = 'https://github.com/foo', \n"
-        + "    title = 'Title ${aaa}',\n"
-        + "    body = 'Body ${aaa}',\n"
-        + "    allow_empty_diff = False,\n"
-        + "    destination_ref = 'main',\n"
-        + "    pr_branch = 'test_${CONTEXT_REFERENCE}',\n"
-        + (emptyDiffMergeStatus != null
-           ? "allow_empty_diff_merge_statuses = ['" + emptyDiffMergeStatus + "'],\n"
-           : "")
-        + "    primary_branch_migration = " +  primaryBranchMigration + ",\n"
-        + ")");
+    GitHubPrDestination d =
+        skylark.eval(
+            "r",
+            """
+            r = git.github_pr_destination(
+                url = 'https://github.com/foo',
+                title = 'Title ${aaa}',
+                body = 'Body ${aaa}',
+                allow_empty_diff = False,
+                destination_ref = 'main',
+                pr_branch = 'test_${CONTEXT_REFERENCE}',
+                %s
+                primary_branch_migration = %s,
+            )
+            """
+                .formatted(
+                    (emptyDiffMergeStatus != null
+                        ? "allow_empty_diff_merge_statuses = ['" + emptyDiffMergeStatus + "'],"
+                        : ""),
+                    primaryBranchMigration));
     WriterContext writerContext =
         new WriterContext("piper_to_github", "TEST", false, new DummyRevision("feature", "feature"),
             Glob.ALL_FILES.roots());
@@ -1098,10 +1130,15 @@ public class GitHubPrDestinationTest {
           }
         });
 
-    GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
-        + "    url = 'https://github.com/foo',"
-        + "    destination_ref = 'main'"
-        + ")");
+    GitHubPrDestination d =
+        skylark.eval(
+            "r",
+            """
+            r = git.github_pr_destination(
+                url = 'https://github.com/foo',
+                destination_ref = 'main'
+            )
+            """);
     WriterContext writerContext = new WriterContext("piper_to_github", "TEST", false,
         new DummyRevision("feature", "feature"), Glob.ALL_FILES.roots());
     Writer<GitRevision> writer = d.newWriter(writerContext);

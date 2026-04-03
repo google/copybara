@@ -904,8 +904,14 @@ public class GitHubPrOriginTest {
             "base",
             ImmutableMap.<String, String>builder().put("test.txt", "a").buildOrThrow());
     options.githubPrOrigin.repo = "https://github.com/random/repo " + remote.getPrimaryBranch();
-    GitOrigin origin = skylark.eval("r", "r = git.github_pr_origin("
-            + "url = 'https://github.com/google/example')");
+    GitOrigin origin =
+        skylark.eval(
+            "r",
+            """
+            r = git.github_pr_origin(
+                url = 'https://github.com/google/example'
+            )
+            """);
     origin.newReader(Glob.ALL_FILES, authoring)
             .checkout(origin.resolve("refs/heads/" + remote.getPrimaryBranch()), workdir);
     FileSubjects.assertThatPath(workdir)
@@ -946,32 +952,32 @@ public class GitHubPrOriginTest {
 
     Workflow<GitRevision, ?> workflow =
         workflow(
-            ""
-                + "def update_commit_status(ctx):\n"
-                + "    for effect in ctx.effects:\n"
-                + "        for origin_change in effect.origin_refs:\n"
-                + "            if effect.type == 'CREATED' or effect.type == 'UPDATED':\n"
-                + "                status = ctx.origin.create_status(\n"
-                + "                    sha = origin_change.ref,\n"
-                + "                    state = 'success',\n"
-                + "                    context = 'copybara/import',\n"
-                + "                    description = 'Migration success at ' "
-                + "+ effect.destination_ref.id,\n"
-                + "                )\n"
-                + "core.workflow(\n"
-                + "    name = 'default',\n"
-                + "    origin = git.github_pr_origin(\n"
-                + "        url = 'https://github.com/google/example',\n"
-                + "        branch = 'main',\n"
-                + "    ),\n"
-                + "    authoring = authoring.pass_thru('foo <foo@foo.com>'),\n"
-                + "    destination = git.destination(\n"
-                + "        url = '" + destination.getGitDir() + "'\n"
-                + "    ),\n"
-                + "    after_migration = [\n"
-                + "        update_commit_status"
-                + "    ]"
-                + ")");
+            """
+            def update_commit_status(ctx):
+                for effect in ctx.effects:
+                    for origin_change in effect.origin_refs:
+                        if effect.type == 'CREATED' or effect.type == 'UPDATED':
+                            status = ctx.origin.create_status(
+                                sha = origin_change.ref,
+                                state = 'success',
+                                context = 'copybara/import',
+                                description = 'Migration success at ' + effect.destination_ref.id,
+                            )
+            core.workflow(
+                name = 'default',
+                origin = git.github_pr_origin(
+                    url = 'https://github.com/google/example',
+                    branch = 'main',
+                ),
+                authoring = authoring.pass_thru('foo <foo@foo.com>'),
+                destination = git.destination(
+                    url = '%s'
+                ),
+                after_migration = [
+                    update_commit_status
+                ]
+            )"""
+                .formatted(destination.getGitDir()));
 
     workflow.run(workdir, ImmutableList.of("123"));
 
@@ -1549,8 +1555,13 @@ public class GitHubPrOriginTest {
   }
 
   private GitHubPrOrigin githubPrOrigin(String... lines) throws ValidationException {
-    return skylark.eval("r", "r = git.github_pr_origin("
-        + "    " + Joiner.on(",\n    ").join(lines) + ",\n)");
+    return skylark.eval(
+        "r",
+        """
+        r = git.github_pr_origin(
+            %s
+        )"""
+            .formatted(Joiner.on(",\n    ").join(lines)));
   }
 
   public static class MockPullRequest {

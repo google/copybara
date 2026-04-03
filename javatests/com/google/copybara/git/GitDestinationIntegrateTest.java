@@ -113,8 +113,14 @@ public class GitDestinationIntegrateTest {
             String.format("fetch = '%s'", primaryBranch),
             String.format("push = '%s'", primaryBranch),
             "integrates = []"),
-        "Test change\n\n"
-            + GitModule.DEFAULT_INTEGRATE_LABEL + "=http://should_not_be_used\n", "some content");
+        String.format(
+            """
+            Test change
+
+            %s=http://should_not_be_used
+            """,
+            GitModule.DEFAULT_INTEGRATE_LABEL),
+        "some content");
 
     // Make sure commit adds new text
     String showResult = git("--git-dir", repoGitDir.toString(), "show", primaryBranch);
@@ -137,10 +143,16 @@ public class GitDestinationIntegrateTest {
     migrateOriginChange(destination, "Base change\n", "not important");
     GitLogEntry previous = getLastMigratedChange(primaryBranch);
 
-    migrateOriginChange(destination, "Test change\n"
-        + "\n"
-        + GitModule.DEFAULT_INTEGRATE_LABEL + "=file://" + repo.getWorkTree().toString()
-        + " feature1\n", "some content");
+    migrateOriginChange(
+        destination,
+        String.format(
+            """
+            Test change
+
+            %s=file://%s feature1
+            """,
+            GitModule.DEFAULT_INTEGRATE_LABEL, repo.getWorkTree()),
+        "some content");
 
     GitLogEntry commit = Iterables.getOnlyElement(
         repo().log(primaryBranch).withLimit(1).run());
@@ -168,12 +180,17 @@ public class GitDestinationIntegrateTest {
     migrateOriginChange(destination, "Base change 2\n", "not important 2");
     GitLogEntry previous = getLastMigratedChange(primaryBranch);
 
-    migrateOriginChange(destination, "Test change\n"
-        + "\n"
-        + GitModule.DEFAULT_INTEGRATE_LABEL + "=file://" + repo.getWorkTree().toString()
-        + " feature1\n"
-        + GitModule.DEFAULT_INTEGRATE_LABEL + "=file://" + repo.getWorkTree().toString()
-        + " feature2\n", "some content");
+    migrateOriginChange(
+        destination,
+        String.format(
+            """
+            Test change
+
+            %1$s=file://%2$s feature1
+            %1$s=file://%2$s feature2
+            """,
+            GitModule.DEFAULT_INTEGRATE_LABEL, repo.getWorkTree()),
+        "some content");
 
     // Make sure commit adds new text
     String showResult = git("--git-dir", repoGitDir.toString(), "show", primaryBranch + "^1");
@@ -234,10 +251,18 @@ public class GitDestinationIntegrateTest {
     GitDestination destination = destination("url = 'file://" + repo.getGitDir() + "'",
         String.format("push='%s'", primaryBranch));
 
-    migrateOriginChange(destination, "Test change\n"
-        + "\n"
-        + GitModule.DEFAULT_INTEGRATE_LABEL + "=file://" + repo.getGitDir().toString()
-        + " feature1\n", "foo/a", "", "the_rev");
+    migrateOriginChange(
+        destination,
+        String.format(
+            """
+            Test change
+
+            %s=file://%s feature1
+            """,
+            GitModule.DEFAULT_INTEGRATE_LABEL, repo.getGitDir()),
+        "foo/a",
+        "",
+        "the_rev");
 
     GitLogEntry featureMerge = getLastMigratedChange(primaryBranch, repo);
 
@@ -269,12 +294,18 @@ public class GitDestinationIntegrateTest {
     migrateOriginChange(destination, "Base change\n", "not important 2");
     GitLogEntry previous = getLastMigratedChange(primaryBranch);
 
-    migrateOriginChange(destination, "Test change\n"
-        + "\n"
-        + GitModule.DEFAULT_INTEGRATE_LABEL + "=file://" + repo.getWorkTree().toString()
-        + " feature1\n"
-        + GitModule.DEFAULT_INTEGRATE_LABEL + "=file://" + repo.getWorkTree().toString()
-        + " feature2\n", "some content");
+    migrateOriginChange(
+        destination,
+        String.format(
+            """
+            Test change
+
+            %s=file://%s feature1
+            %s=file://%s feature2
+            """,
+            GitModule.DEFAULT_INTEGRATE_LABEL, repo.getWorkTree(),
+            GitModule.DEFAULT_INTEGRATE_LABEL, repo.getWorkTree()),
+        "some content");
 
     // Make sure commit adds new text
     String showResult = git("--git-dir", repoGitDir.toString(), "show", primaryBranch + "^1");
@@ -306,10 +337,11 @@ public class GitDestinationIntegrateTest {
   private GitDestination destination(Strategy strategy) throws ValidationException {
     return destination(
         "url = '" + url + "'", String.format("push='%s'", primaryBranch),
-        "integrates = [git.integrate("
-            + "         ignore_errors = False,"
-            + "         strategy = '" + strategy + "',"
-            + "    ),]"
+        """
+        integrates = [git.integrate(
+                 ignore_errors = False,
+                 strategy = '%s',
+            ),]""".formatted(strategy)
     );
   }
 
@@ -326,12 +358,18 @@ public class GitDestinationIntegrateTest {
     migrateOriginChange(destination, "Base change\n", "not important");
     GitLogEntry previous = getLastMigratedChange(primaryBranch);
 
-    migrateOriginChange(destination, "Test change\n"
-        + "\n"
-        + GitModule.DEFAULT_INTEGRATE_LABEL + "=file://" + repo.getWorkTree().toString()
-        + " feature1\n"
-        + GitModule.DEFAULT_INTEGRATE_LABEL + "=file://" + repo.getWorkTree().toString()
-        + " feature2\n", "some content");
+    migrateOriginChange(
+        destination,
+        String.format(
+            """
+            Test change
+
+            %s=file://%s feature1
+            %s=file://%s feature2
+            """,
+            GitModule.DEFAULT_INTEGRATE_LABEL, repo.getWorkTree(),
+            GitModule.DEFAULT_INTEGRATE_LABEL, repo.getWorkTree()),
+        "some content");
 
     // Make sure commit adds new text
     String showResult = git("--git-dir", repoGitDir.toString(), "show", primaryBranch);
@@ -368,10 +406,18 @@ public class GitDestinationIntegrateTest {
     migrateOriginChange(destination, "Base change\n", "test.txt", "not important", "test");
     GitLogEntry previous = getLastMigratedChange(primaryBranch);
 
-    migrateOriginChange(destination, "Test change\n"
-        + "\n"
-        + GitModule.DEFAULT_INTEGRATE_LABEL + "=file://" + repo.getGitDir().toString()
-        + " feature\n", "feature_file.txt", "feature modified", "test");
+    migrateOriginChange(
+        destination,
+        String.format(
+            """
+            Test change
+
+            %s=file://%s feature
+            """,
+            GitModule.DEFAULT_INTEGRATE_LABEL, repo.getGitDir()),
+        "feature_file.txt",
+        "feature modified",
+        "test");
 
     // Make sure commit adds new text
     String showResult = git("--git-dir", repoGitDir.toString(), "show", primaryBranch);
@@ -434,11 +480,16 @@ public class GitDestinationIntegrateTest {
                 + " from some_user:1234-foo.bar.baz%3 "
                 + secondChange.getHash());
 
-    migrateOriginChange(destination, "Test change\n"
-        + "\n"
-        + GitModule.DEFAULT_INTEGRATE_LABEL + "="
-        + label
-        + "\n", "some content");
+    migrateOriginChange(
+        destination,
+        String.format(
+            """
+            Test change
+
+            %s=%s
+            """,
+            GitModule.DEFAULT_INTEGRATE_LABEL, label),
+        "some content");
 
     // Make sure commit adds new text
     String showResult = git("--git-dir", repoGitDir.toString(), "show", primaryBranch);
@@ -482,11 +533,16 @@ public class GitDestinationIntegrateTest {
                 + firstChange.getHash());
 
     repo().withWorkTree(workTree).simpleCommand("reset", "--hard", "HEAD~1");
-    migrateOriginChange(destination, "Test change\n"
-        + "\n"
-        + GitModule.DEFAULT_INTEGRATE_LABEL + "="
-        + label
-        + "\n", "some content");
+    migrateOriginChange(
+        destination,
+        String.format(
+            """
+            Test change
+
+            %s=%s
+            """,
+            GitModule.DEFAULT_INTEGRATE_LABEL, label),
+        "some content");
 
     assertThat(
             console.getMessages().stream()
@@ -522,11 +578,16 @@ public class GitDestinationIntegrateTest {
 
     GitLogEntry previous = createBaseDestinationChange(destination);
 
-    migrateOriginChange(destination, "Test change\n"
-        + "\n"
-        + GitModule.DEFAULT_INTEGRATE_LABEL + "="
-        + label
-        + "\n", "some content");
+    migrateOriginChange(
+        destination,
+        String.format(
+            """
+            Test change
+
+            %s=%s
+            """,
+            GitModule.DEFAULT_INTEGRATE_LABEL, label),
+        "some content");
 
     // Make sure commit adds new text
     String showResult = git("--git-dir", repoGitDir.toString(), "show", primaryBranch);
@@ -575,11 +636,16 @@ public class GitDestinationIntegrateTest {
 
     GitLogEntry previous = createBaseDestinationChange(destination);
 
-    migrateOriginChange(destination, "Test change\n"
-        + "\n"
-        + GitModule.DEFAULT_INTEGRATE_LABEL + "="
-        + label
-        + "\n", "some content");
+    migrateOriginChange(
+        destination,
+        String.format(
+            """
+            Test change
+
+            %s=%s
+            """,
+            GitModule.DEFAULT_INTEGRATE_LABEL, label),
+        "some content");
 
     // Make sure commit adds new text
     String showResult = git("--git-dir", repoGitDir.toString(), "show", primaryBranch);
@@ -710,9 +776,14 @@ public class GitDestinationIntegrateTest {
   }
 
   private GitDestination destination(String... args) throws ValidationException {
-    return skylark.eval("r", "r = git.destination(\n"
-        + "    " + Joiner.on(",\n    ").join(args)
-        + "\n)");
+    return skylark.eval(
+        "r",
+        String.format(
+            """
+            r = git.destination(
+                %s
+            )""",
+            Joiner.on(",\n    ").join(args)));
   }
 
   private void migrateOriginChange(GitDestination destination, String summary, String content)

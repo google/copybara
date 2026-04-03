@@ -215,22 +215,22 @@ public class GitHubEndpointTest {
   @Test
   public void testCheckerIsHonored() throws Exception {
     String config =
-        ""
-            + "def test_action(ctx):\n"
-            + "  ctx.destination.update_reference(\n"
-            + "      'e597746de9c1704e648ddc3ffa0d2096b146d600', 'foo_badword_bar', True)\n"
-            + "  return ctx.success()\n"
-            + "\n"
-            + "core.feedback(\n"
-            + "    name = 'default',\n"
-            + "    origin = testing.dummy_trigger(),\n"
-            + "    destination = git.github_api("
-            + "        url = 'https://github.com/google/example',\n"
-            + "        checker = testing.dummy_checker(),\n"
-            + "    ),\n"
-            + "    actions = [test_action,],\n"
-            + ")\n"
-            + "\n";
+        """
+        def test_action(ctx):
+          ctx.destination.update_reference(
+              'e597746de9c1704e648ddc3ffa0d2096b146d600', 'foo_badword_bar', True)
+          return ctx.success()
+
+        core.feedback(
+            name = 'default',
+            origin = testing.dummy_trigger(),
+            destination = git.github_api(
+                url = 'https://github.com/google/example',
+                checker = testing.dummy_checker(),
+            ),
+            actions = [test_action,],
+        )
+        """;
     ActionMigration actionMigration = (ActionMigration) skylark.loadConfig(config)
         .getMigration("default");
     assertThat(actionMigration.getDestinationDescription().get("url"))
@@ -266,22 +266,22 @@ public class GitHubEndpointTest {
     dummyTrigger.addAll("Foo", "Bar");
     ActionMigration actionMigration =
         feedback(
-            ""
-                + "def test_action(ctx):\n"
-                + "    ref = 'None'\n"
-                + "    if len(ctx.refs) > 0:\n"
-                + "      ref = ctx.refs[0]\n"
-                + "    \n"
-                + "    for m in ctx.origin.get_messages:\n"
-                + "      status = ctx.destination.create_status(\n"
-                + "        sha = ref,\n"
-                + "        state = 'success',\n"
-                + "        context = 'test',\n"
-                + "        description = 'Observed ' + m,\n"
-                + "      )\n"
-                + "      ctx.console.info('Created status')\n"
-                + "    return ctx.success()\n"
-                + "\n");
+            """
+            def test_action(ctx):
+                ref = 'None'
+                if len(ctx.refs) > 0:
+                  ref = ctx.refs[0]
+
+                for m in ctx.origin.get_messages:
+                  status = ctx.destination.create_status(
+                    sha = ref,
+                    state = 'success',
+                    context = 'test',
+                    description = 'Observed ' + m,
+                  )
+                  ctx.console.info('Created status')
+                return ctx.success()
+            """);
     Iterator<String> createValues = ImmutableList.of("Observed Foo", "Observed Bar").iterator();
     gitUtil.mockApi(
         eq("POST"),
@@ -849,25 +849,31 @@ public class GitHubEndpointTest {
   }
 
   private void runFeedback(ImmutableList<String> funBody) throws Exception {
-    ActionMigration test = feedback("def test_action(ctx):\n"
-        + funBody.stream().map(s -> "  " + s).collect(Collectors.joining("\n"))
-        + "\n  return ctx.success()\n");
+    ActionMigration test =
+        feedback(
+            """
+            def test_action(ctx):
+            %s
+              return ctx.success()
+            """
+                .formatted(funBody.stream().map(s -> "  " + s).collect(Collectors.joining("\n"))));
     test.run(workdir, ImmutableList.of("e597746de9c1704e648ddc3ffa0d2096b146d600"));
   }
 
   private ActionMigration feedback(String actionFunction) throws IOException, ValidationException {
     String config =
-        actionFunction
-            + "\n"
-            + "core.feedback(\n"
-            + "    name = 'default',\n"
-            + "    origin = testing.dummy_trigger(),\n"
-            + "    destination = git.github_api(\n"
-            + "      url = 'https://github.com/google/example',\n"
-            + "    ),\n"
-            + "    actions = [test_action,],\n"
-            + ")\n"
-            + "\n";
+        """
+        %s
+        core.feedback(
+            name = 'default',
+            origin = testing.dummy_trigger(),
+            destination = git.github_api(
+              url = 'https://github.com/google/example',
+            ),
+            actions = [test_action,],
+        )
+        """
+            .formatted(actionFunction);
     System.err.println(config);
     return (ActionMigration) skylark.loadConfig(config).getMigration("default");
   }

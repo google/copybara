@@ -148,20 +148,20 @@ public class MigrateCmdTest {
   }
 
   private String getConfigInfo(String partialFetch) {
-    return
-        "core.workflow(\n"
-            + "    name = 'default',\n"
-            + "    origin = git.origin(\n"
-            + "         url = '" + url + "',\n"
-            + "         partial_fetch = " + partialFetch + ",\n"
-            + "         ref = '" + primaryBranch + "',\n"
-            + "    ),\n"
-            + "    origin_files = glob(['include/mainline-file.txt']),\n"
-            + "    destination = testing.destination(),\n"
-            + "    mode = 'ITERATIVE',\n"
-            + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
-            + ")";
-
+    return """
+        core.workflow(
+            name = 'default',
+            origin = git.origin(
+                 url = '%s',
+                 partial_fetch = %s,
+                 ref = '%s',
+            ),
+            origin_files = glob(['include/mainline-file.txt']),
+            destination = testing.destination(),
+            mode = 'ITERATIVE',
+            authoring = authoring.pass_thru('example <example@example.com>'),
+        )"""
+        .formatted(url, partialFetch, primaryBranch);
   }
 
   private MigrateCmd getMigrateCmd(String configInfo) {

@@ -110,7 +110,11 @@ public class GerritOriginTest {
     origin =
         skylark.eval(
             "result",
-            String.format("result = " + "git.gerrit_origin(" + "    url = '%s'," + ")", url));
+            """
+            result = git.gerrit_origin(
+                url = '%s',
+            )"""
+                .formatted(url));
 
     Files.write(remote.resolve("base.txt"), new byte[0]);
     repo.add().files("base.txt").run();
@@ -291,9 +295,15 @@ public class GerritOriginTest {
   @Test
   public void testBranchFiltering() throws Exception {
     mockChange(12345);
-    GerritOrigin origin = skylark.eval("g", "g = git.gerrit_origin("
-        + "  url = 'https://" + REPO_URL + "',"
-        + "  branch = 'master')");
+    GerritOrigin origin =
+        skylark.eval(
+            "g",
+            """
+            g = git.gerrit_origin(
+              url = 'https://%s',
+              branch = 'master'
+            )"""
+                .formatted(REPO_URL));
     ImmutableSetMultimap<String, String> describe = origin.describe(Glob.ALL_FILES);
 
     EmptyChangeException e =
@@ -310,12 +320,13 @@ public class GerritOriginTest {
     GerritOrigin origin =
         skylark.eval(
             "g",
-            "g = git.gerrit_origin("
-                + "  url = 'https://"
-                + REPO_URL
-                + "',"
-                + "  branch = 'my_branch',"
-                + "  import_wip_changes = False)");
+            """
+            g = git.gerrit_origin(
+              url = 'https://%s',
+              branch = 'my_branch',
+              import_wip_changes = False
+            )"""
+                .formatted(REPO_URL));
     ImmutableSetMultimap<String, String> describe = origin.describe(Glob.ALL_FILES);
 
     EmptyChangeException e =
@@ -425,12 +436,13 @@ public class GerritOriginTest {
     GerritOrigin origin =
         skylark.eval(
             "g",
-            "g = git.gerrit_origin("
-                + "  url = 'https://"
-                + REPO_URL
-                + "',"
-                + "  branch = 'my_branch',"
-                + "  ignore_gerrit_noop = True)");
+            """
+            g = git.gerrit_origin(
+              url = 'https://%s',
+              branch = 'my_branch',
+              ignore_gerrit_noop = True
+            )"""
+                .formatted(REPO_URL));
     Reader<GitRevision> reader =
         origin.newReader(Glob.createGlob(ImmutableList.of("depot/foo/bar")), AUTHORING);
     assertThat(reader
@@ -445,12 +457,13 @@ public class GerritOriginTest {
     GerritOrigin origin =
         skylark.eval(
             "g",
-            "g = git.gerrit_origin("
-                + "  url = 'https://"
-                + REPO_URL
-                + "',"
-                + "  branch = 'my_branch',"
-                + "  ignore_gerrit_noop = True)");
+            """
+            g = git.gerrit_origin(
+              url = 'https://%s',
+              branch = 'my_branch',
+              ignore_gerrit_noop = True
+            )"""
+                .formatted(REPO_URL));
     Reader<GitRevision> reader =
         origin.newReader(Glob.createGlob(ImmutableList.of("**.md")), AUTHORING);
     // noop should return empty

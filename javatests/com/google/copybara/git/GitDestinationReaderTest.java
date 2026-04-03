@@ -173,31 +173,35 @@ public class GitDestinationReaderTest {
   }
 
   private void runWorkflow(ImmutableList<String> funBody) throws Exception {
-    Workflow<?, ?> test = workflow("def _dynamicTransform(ctx):\n"
-        + funBody.stream().map(s -> "  " + s).collect(Collectors.joining("\n"))
-        + "\n");
+    Workflow<?, ?> test =
+        workflow(
+            """
+            def _dynamicTransform(ctx):
+            %s
+            """
+                .formatted(funBody.stream().map(s -> "  " + s).collect(Collectors.joining("\n"))));
     test.run(workDir, ImmutableList.of("1"));
   }
 
   private Workflow<?, ?> workflow(String dynamicTransform) throws IOException, ValidationException {
     String config =
-        dynamicTransform
-            + "\n"
-            + "core.workflow(\n"
-            + "    name = 'default',\n"
-            + "    origin = testing.origin(),\n"
-            + "    destination = git.destination(\n"
-            + "      fetch = '" + primaryBranch + "', \n"
-            + "      push = '" + primaryBranch + "', \n"
-            + "      url = 'file://" + destinationPath + "', \n"
-            + "    ),\n"
-            + "    origin_files = glob(['foo/**']),\n"
-            + "    destination_files = glob(['foo/**']),\n"
-            + "    transformations = [core.dynamic_transform(_dynamicTransform)],\n"
-            + "    authoring = authoring.overwrite('test <commiter@email.com>'),\n"
-
-        + ")\n"
-            + "\n";
+        """
+        %s
+        core.workflow(
+            name = 'default',
+            origin = testing.origin(),
+            destination = git.destination(
+              fetch = '%s',
+              push = '%s',
+              url = 'file://%s',
+            ),
+            origin_files = glob(['foo/**']),
+            destination_files = glob(['foo/**']),
+            transformations = [core.dynamic_transform(_dynamicTransform)],
+            authoring = authoring.overwrite('test <commiter@email.com>'),
+        )
+        """
+            .formatted(dynamicTransform, primaryBranch, primaryBranch, destinationPath);
     return (Workflow) skylark.loadConfig(config).getMigration("default");
   }
 

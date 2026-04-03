@@ -151,9 +151,14 @@ public class GitHubDestinationTest {
 
   @Test
   public void testHttpUrl() throws Exception {
-    GitDestination d = skylark.eval("r", "r = git.github_destination("
-        + "    url = 'http://github.com/foo', \n"
-        + ")");
+    GitDestination d =
+        skylark.eval(
+            "r",
+            """
+            r = git.github_destination(
+                url = 'http://github.com/foo',
+            )
+            """);
     assertThat(d.describe(Glob.ALL_FILES).get("url")).contains("https://github.com/foo");
   }
 
@@ -238,15 +243,14 @@ public class GitHubDestinationTest {
     GitDestination d =
         skylark.eval(
             "r",
-            "r = git.github_destination("
-                + "    url = '"
-                + url
-                + "', \n"
-                + "    push = '"
-                + primaryBranch
-                + "',\n"
-                + "    checker = testing.dummy_checker(),\n"
-                + ")");
+            """
+            r = git.github_destination(
+                url = '%s',
+                push = '%s',
+                checker = testing.dummy_checker(),
+            )
+            """
+                .formatted(url, primaryBranch));
     WriterContext writerContext =
         new WriterContext(
             "piper_to_github",

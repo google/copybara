@@ -49,9 +49,12 @@ public class GerritTriggerTest {
   public void testParsing() throws Exception {
     GerritTrigger gerritTrigger =
         skylarkTestExecutor.eval(
-            "e", "e = git.gerrit_trigger("
-                + "url = 'https://test.googlesource.com/example',"
-                + "events = ['LABELS'], allow_submit = True)");
+            "e",
+            """
+            e = git.gerrit_trigger(
+                url = 'https://test.googlesource.com/example',
+                events = ['LABELS'], allow_submit = True)
+            """);
     assertThat(gerritTrigger.describe())
         .containsExactly("type", "gerrit_trigger",
           "url", "https://test.googlesource.com/example",
@@ -68,9 +71,11 @@ public class GerritTriggerTest {
     GerritTrigger gerritTrigger =
         skylarkTestExecutor.eval(
             "e",
-            "e = git.gerrit_trigger("
-                + "url = 'https://test.googlesource.com/example',"
-                + "events = {'STATUS': ['PENDING'], 'LABELS': []}, allow_submit = True)");
+            """
+            e = git.gerrit_trigger(
+                url = 'https://test.googlesource.com/example',
+                events = {'STATUS': ['PENDING'], 'LABELS': []}, allow_submit = True)
+            """);
 
     assertThat(gerritTrigger.describe())
         .containsExactly(
@@ -93,9 +98,11 @@ public class GerritTriggerTest {
     GerritTrigger gerritTrigger =
         skylarkTestExecutor.eval(
             "e",
-            "e = git.gerrit_trigger("
-                + "url = 'https://test.googlesource.com/example',"
-                + "events = {'STATUS': ['ABANDONED']}, allow_submit = True)");
+            """
+            e = git.gerrit_trigger(
+                url = 'https://test.googlesource.com/example',
+                events = {'STATUS': ['ABANDONED']}, allow_submit = True)
+            """);
 
     assertThat(gerritTrigger.describe())
         .containsExactly(
@@ -116,9 +123,11 @@ public class GerritTriggerTest {
     GerritTrigger gerritTrigger =
         skylarkTestExecutor.eval(
             "e",
-            "e = git.gerrit_trigger(\n"
-                + "url = 'https://test.googlesource.com/example',"
-                + "events = {'STATUS': ['PENDING', 'ABANDONED']})");
+            """
+            e = git.gerrit_trigger(
+                url = 'https://test.googlesource.com/example',
+                events = {'STATUS': ['PENDING', 'ABANDONED']})
+            """);
 
     assertThat(gerritTrigger.describe())
         .containsExactly(
@@ -135,9 +144,11 @@ public class GerritTriggerTest {
     GerritTrigger gerritTrigger =
         skylarkTestExecutor.eval(
             "e",
-            "e = git.gerrit_trigger(\n"
-                + "url = 'https://test.googlesource.com/example',events = {'STATUS': ['PENDING',"
-                + " 'ABANDONED', 'MERGED', 'CLOSED', 'REVIEWED', 'OPEN']})");
+            """
+            e = git.gerrit_trigger(
+                url = 'https://test.googlesource.com/example',
+                events = {'STATUS': ['PENDING', 'ABANDONED', 'MERGED', 'CLOSED', 'REVIEWED', 'OPEN']})
+            """);
 
     assertThat(gerritTrigger.describe())
         .containsExactly(
@@ -165,10 +176,13 @@ public class GerritTriggerTest {
   public void testParsing_Dict() throws Exception {
     GerritTrigger gerritTrigger =
         skylarkTestExecutor.eval(
-            "e", "e = git.gerrit_trigger("
-                + "url = 'https://test.googlesource.com/example',"
-                + "events = {'LABELS': ['foo', 'bar']},"
-                + " allow_submit = False)");
+            "e",
+            """
+            e = git.gerrit_trigger(
+                url = 'https://test.googlesource.com/example',
+                events = {'LABELS': ['foo', 'bar']},
+                allow_submit = False)
+            """);
     assertThat(gerritTrigger.describe())
         .containsExactly("type", "gerrit_trigger",
           "url", "https://test.googlesource.com/example",
@@ -187,12 +201,14 @@ public class GerritTriggerTest {
     GerritTrigger gerritTrigger =
         skylarkTestExecutor.eval(
             "e",
-            "e = git.gerrit_trigger(\n"
-                + "url = 'https://test.googlesource.com/example', \n"
-                + "events = ['LABELS'],\n"
-                + "checker = testing.dummy_checker(),"
-                + "allow_submit = False\n"
-                + ")\n");
+            """
+            e = git.gerrit_trigger(
+                url = 'https://test.googlesource.com/example',
+                events = ['LABELS'],
+                checker = testing.dummy_checker(),
+                allow_submit = False
+            )
+            """);
 
     assertThat(gerritTrigger.describe())
         .containsExactly("type", "gerrit_trigger",

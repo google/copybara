@@ -158,9 +158,12 @@ public class GitDestinationTest {
   @Test
   public void errorIfUrlMissing() {
     skylark.evalFails(
-        "" + "git.destination(\n"
-            + String.format("    fetch = '%s',\n", primaryBranch)
-            + String.format("    push = '%s',\n", primaryBranch) + ")",
+        """
+        git.destination(
+            fetch = '%s',
+            push = '%s',
+        )"""
+            .formatted(primaryBranch, primaryBranch),
         "missing 1 required positional argument: url");
   }
 
@@ -514,9 +517,14 @@ public class GitDestinationTest {
     evalDestinationWithTag(tagMsg).newWriter(writerContext).write(TransformResults.of(
         workdir, new DummyRevision("ref2")), destinationFiles, console);
     CommandOutput commandOutput = repo().simpleCommand("tag", "-n9");
-    assertThat(commandOutput.getStdout()).matches(".*" + tagName + ".*test summary\n"
-        + ".*\n"
-        + ".*DummyOrigin-RevId: ref2\n");
+    assertThat(commandOutput.getStdout())
+        .matches(
+            """
+            .*%1$s.*test summary
+            .*
+            .*DummyOrigin-RevId: ref2
+            """
+                .formatted(tagName));
   }
 
   @Test
@@ -1891,10 +1899,13 @@ public class GitDestinationTest {
     runDescriptionChecker(new DummyChecker(ImmutableSet.of("BAD"), "Message for failures"));
     ImmutableList<GitLogEntry> head = repo().log(primaryBranch).withLimit(1).run();
     assertThat(head).isNotEmpty();
-    assertThat(head.get(0).body()).isEqualTo(""
-        + "Message for failures\n"
-        + "\n"
-        + "DummyOrigin-RevId: ref2\n");
+    assertThat(head.get(0).body())
+        .isEqualTo(
+            """
+            Message for failures
+
+            DummyOrigin-RevId: ref2
+            """);
     assertThat(head.get(0).author()).isEqualTo(new Author("Dont", "rewri@te.me"));
   }
 

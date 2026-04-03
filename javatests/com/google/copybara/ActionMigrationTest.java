@@ -572,15 +572,16 @@ public class ActionMigrationTest {
   private ActionMigration feedback(String actionsCode, String... actionNames)
       throws IOException, ValidationException {
     String config =
-        actionsCode
-            + "\n"
-            + "core.feedback(\n"
-            + "    name = 'default',\n"
-            + "    origin = testing.dummy_trigger(),\n"
-            + "    destination = testing.dummy_endpoint(),\n"
-            + "    actions = [" + Joiner.on(',').join(actionNames) + "],\n"
-            + ")\n"
-            + "\n";
+        """
+        %s
+        core.feedback(
+            name = 'default',
+            origin = testing.dummy_trigger(),
+            destination = testing.dummy_endpoint(),
+            actions = [%s],
+        )
+        """
+            .formatted(actionsCode, Joiner.on(',').join(actionNames));
     System.err.println(config);
     return (ActionMigration) loadConfig(config).getMigration("default");
   }

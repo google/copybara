@@ -180,18 +180,23 @@ public final class CoreTransformTest {
         ],ignore_noop=True),
         """;
 
-    ExplicitReversal t = skylark.eval("x", "x="
-                + "core.transform([\n"
-                + "    core.replace(\n"
-                + "        before = 'foo',\n"
-                + "        after = 'bar',\n"
-                + "    ),\n"
-                + secondLayerTransform
-                + "    core.replace(\n"
-                + "        before = 'bar',\n"
-                + "        after = 'baz',\n"
-                + "    )\n"
-                + "], ignore_noop=False)");
+    ExplicitReversal t =
+        skylark.eval(
+            "x",
+            """
+            x = core.transform([
+                core.replace(
+                    before = 'foo',
+                    after = 'bar',
+                ),
+                %s
+                core.replace(
+                    before = 'bar',
+                    after = 'baz',
+                )
+            ], ignore_noop = False)
+            """
+                .formatted(secondLayerTransform));
 
     Files.write(checkoutDir.resolve("file.txt"), "foo".getBytes(UTF_8));
     t.transform(TransformWorks.of(checkoutDir, "msg", console));
@@ -235,18 +240,22 @@ public final class CoreTransformTest {
         """;
 
     ExplicitReversal t =
-        skylark.eval("x", "x="
-                + "core.transform([\n"
-                + "    core.replace(\n"
-                + "        before = 'foo',\n"
-                + "        after = 'bar',\n"
-                + "     ),"
-                + secondLayerTransform
-                + "    core.replace(\n"
-                + "        before = 'bar',\n"
-                + "        after = 'baz',\n"
-                + "    )\n"
-                + "], ignore_noop=True)");
+        skylark.eval(
+            "x",
+            """
+            x = core.transform([
+                core.replace(
+                    before = 'foo',
+                    after = 'bar',
+                 ),
+                %s
+                core.replace(
+                    before = 'bar',
+                    after = 'baz',
+                )
+            ], ignore_noop = True)
+            """
+                .formatted(secondLayerTransform));
 
     Files.write(checkoutDir.resolve("file.txt"), "foo".getBytes(UTF_8));
     t.transform(TransformWorks.of(checkoutDir, "msg", console));
@@ -270,18 +279,22 @@ public final class CoreTransformTest {
         """;
 
     ExplicitReversal t =
-        skylark.eval("x", "x="
-            + "core.transform([\n"
-            + "    core.replace(\n"
-            + "        before = 'foo',\n"
-            + "        after = 'bar',\n"
-            + "     ),"
-            + secondLayerTransform
-            + "    core.replace(\n"
-            + "        before = 'bar',\n"
-            + "        after = 'baz',\n"
-            + "    )\n"
-            + "], ignore_noop=True)");
+        skylark.eval(
+            "x",
+            """
+            x = core.transform([
+                core.replace(
+                    before = 'foo',
+                    after = 'bar',
+                 ),
+                %s
+                core.replace(
+                    before = 'bar',
+                    after = 'baz',
+                )
+            ], ignore_noop = True)
+            """
+                .formatted(secondLayerTransform));
 
     Files.write(checkoutDir.resolve("file.txt"), "foo".getBytes(UTF_8));
 

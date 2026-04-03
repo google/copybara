@@ -126,17 +126,19 @@ public class ReadConfigFromChangeWorkflowTest {
   }
 
   private String mutatingWorkflow(String suffix) {
-    return "def _dynamicTransform(ctx):\n"
-        + "    ctx.destination_info().add_value('filename', 'file" + suffix + "')\n"
-        + "core.workflow("
-        + "    name = 'default',"
-        + "    origin = testing.origin(),"
-        + "    mode = 'ITERATIVE',"
-        + "    origin_files = glob(['file" + suffix + "']),"
-        + "    destination_files = glob(['file" + suffix + "']),"
-        + "    destination = testing.destination(),"
-        + "    transformations = [core.dynamic_transform(_dynamicTransform)],"
-        + "    authoring = authoring.pass_thru('foo <foo@foo.com>')"
-        + ")";
+    return """
+        def _dynamicTransform(ctx):
+            ctx.destination_info().add_value('filename', 'file%1$s')
+        core.workflow(
+            name = 'default',
+            origin = testing.origin(),
+            mode = 'ITERATIVE',
+            origin_files = glob(['file%1$s']),
+            destination_files = glob(['file%1$s']),
+            destination = testing.destination(),
+            transformations = [core.dynamic_transform(_dynamicTransform)],
+            authoring = authoring.pass_thru('foo <foo@foo.com>')
+        )"""
+        .formatted(suffix);
   }
 }

@@ -197,12 +197,15 @@ public class GitRepositoryTest {
     repository.simpleCommand("commit", "foo.txt", "-m", "message");
     GitLogEntry entry = Iterables.getOnlyElement(repository.log("HEAD").withLimit(1).run());
 
-    String badCommit = "tree " + entry.tree() + "\n"
-        + "parent " + entry.commit().getHash() + "\n"
-        + "author Some User <example@example.com> 1528942829 --400\n"
-        + "committer Some User <example@example.com> 1528942829 --400\n"
-        + "\n"
-        + "Allow to check and resolve symlinks";
+    String badCommit =
+        """
+        tree %s
+        parent %s
+        author Some User <example@example.com> 1528942829 --400
+        committer Some User <example@example.com> 1528942829 --400
+
+        Allow to check and resolve symlinks"""
+            .formatted(entry.tree(), entry.commit().getHash());
     Files.write(workdir.resolve("commit"), badCommit.getBytes(UTF_8));
     String commitSha1 =
         repository
@@ -510,7 +513,12 @@ public class GitRepositoryTest {
 
   @Test
   public void testListSubmodules_multipleLevels() throws Exception {
-    String gitmodules = "[submodule \"sub\"]\n" + "  path = sub\n" + "  url = ../../other/repo\n";
+    String gitmodules =
+        """
+        [submodule "sub"]
+          path = sub
+          url = ../../other/repo
+        """;
     Files.write(workdir.resolve(".gitmodules"), gitmodules.getBytes(UTF_8));
 
     repository.add().files(".gitmodules").run();
@@ -526,7 +534,12 @@ public class GitRepositoryTest {
 
   @Test
   public void testListSubmodules_oneLevel() throws Exception {
-    String gitmodules = "[submodule \"sub\"]\n" + "  path = sub\n" + "  url = ../other/repo\n";
+    String gitmodules =
+        """
+        [submodule "sub"]
+          path = sub
+          url = ../other/repo
+        """;
     Files.write(workdir.resolve(".gitmodules"), gitmodules.getBytes(UTF_8));
 
     repository.add().files(".gitmodules").run();
@@ -542,7 +555,12 @@ public class GitRepositoryTest {
 
   @Test
   public void testListSubmodules_failAboveRootLevel() throws Exception {
-    String gitmodules = "[submodule \"sub\"]\n" + "  path = sub\n" + "  url = ../../other/repo\n";
+    String gitmodules =
+        """
+        [submodule "sub"]
+          path = sub
+          url = ../../other/repo
+        """;
     Files.write(workdir.resolve(".gitmodules"), gitmodules.getBytes(UTF_8));
 
     repository.add().files(".gitmodules").run();
@@ -555,7 +573,12 @@ public class GitRepositoryTest {
 
   @Test
   public void testListSubmodules_scpLike() throws Exception {
-    String gitmodules = "[submodule \"sub\"]\n" + "  path = sub\n" + "  url = ../../other/repo\n";
+    String gitmodules =
+        """
+        [submodule "sub"]
+          path = sub
+          url = ../../other/repo
+        """;
     Files.write(workdir.resolve(".gitmodules"), gitmodules.getBytes(UTF_8));
 
     repository.add().files(".gitmodules").run();
@@ -1569,7 +1592,13 @@ public class GitRepositoryTest {
     remote.init();
     Files.createDirectories(gitDir.resolve("hooks"));
     Path hook = gitDir.resolve("hooks/pre-commit");
-    Files.write(hook, "#!/bin/bash\necho Hook run\nexit 1".getBytes(StandardCharsets.UTF_8));
+    Files.write(
+        hook,
+        """
+        #!/bin/bash
+        echo Hook run
+        exit 1"""
+            .getBytes(StandardCharsets.UTF_8));
     hook.toFile().setExecutable(true);
 
     Files.write(workdir.resolve("secret.txt"), "ya29.123456789fakeoauth".getBytes(

@@ -264,76 +264,67 @@ public class WorkflowTest {
       transformations.add("metadata.squash_notes()");
     }
     String config =
-        ""
-            + "core.workflow(\n"
-            + "    name = '"
-            + name
-            + "',\n"
-            + "    origin = testing.origin(),\n"
-            + "    destination = testing.destination(),\n"
-            + "    origin_files = "
-            + originFiles
-            + ",\n"
-            + "    destination_files = "
-            + destinationFiles
-            + ",\n"
-            + "    transformations = "
-            + transformations
-            + ",\n"
-            + "    authoring = "
-            + authoring
-            + ",\n"
-            + "    set_rev_id = "
-            + (setRevId ? "True" : "False")
-            + ",\n"
-            + "    smart_prune = "
-            + (smartPrune ? "True" : "False")
-            + ",\n"
-            + "    merge_import = "
-            + mergeImport
-            + ",\n"
-            + "    consistency_file_path = "
-            + consistencyFilePath
-            + ",\n"
-            + (!afterMigration.equals("") ? "    after_migration = " + afterMigration + ",\n" : "")
-            + (afterMergeTransformations != null
-                ? "after_merge_transformations = " + afterMergeTransformations + ","
-                : "")
-            + "::autopatch_placeholder::"
-            + "    migrate_noop_changes = "
-            + (migrateNoopChangesField ? "True" : "False")
-            + ",\n"
-            + "    mode = '"
-            + mode
-            + "',\n"
-            + (extraWorkflowFields.isEmpty()
-                ? ""
-                : "    " + Joiner.on(",\n    ").join(extraWorkflowFields) + ",\n")
-            + ")\n";
+        """
+        core.workflow(
+            name = '%s',
+            origin = testing.origin(),
+            destination = testing.destination(),
+            origin_files = %s,
+            destination_files = %s,
+            transformations = %s,
+            authoring = %s,
+            set_rev_id = %s,
+            smart_prune = %s,
+            merge_import = %s,
+            consistency_file_path = %s,
+            %s
+            %s
+            ::autopatch_placeholder::
+            migrate_noop_changes = %s,
+            mode = '%s',
+            %s
+        )
+        """
+            .formatted(
+                name,
+                originFiles,
+                destinationFiles,
+                transformations,
+                authoring,
+                (setRevId ? "True" : "False"),
+                (smartPrune ? "True" : "False"),
+                mergeImport,
+                consistencyFilePath,
+                (!afterMigration.equals("") ? "    after_migration = " + afterMigration + "," : ""),
+                (afterMergeTransformations != null
+                    ? "after_merge_transformations = " + afterMergeTransformations + ","
+                    : ""),
+                (migrateNoopChangesField ? "True" : "False"),
+                mode,
+                (extraWorkflowFields.isEmpty()
+                    ? ""
+                    : "    " + Joiner.on(",\n    ").join(extraWorkflowFields) + ","));
     if (!Strings.isNullOrEmpty(autoPatchfileContentsPrefix)) {
       config =
           config.replace(
               "::autopatch_placeholder::",
-              "    autopatch_config = core.autopatch_config(\n"
-                  + "        header = "
-                  + autoPatchfileContentsPrefix
-                  + ",\n"
-                  + "        suffix = "
-                  + autoPatchfileSuffix
-                  + ",\n"
-                  + "        directory_prefix = "
-                  + autoPatchFileDirectoryPrefix
-                  + ",\n"
-                  + "        directory = "
-                  + autoPatchfileDirectory
-                  + ",\n"
-                  + "        strip_file_names_and_line_numbers = "
-                  + (autoPatchfileStripFilenamesAndLineNumbers ? "True" : "False")
-                  + ",\n"
-                  + "        paths = "
-                  + autoPatchfileGlob
-                  + ",\n"
-                  + "    ),\n");
+              """
+                  autopatch_config = core.autopatch_config(
+                      header = %s,
+                      suffix = %s,
+                      directory_prefix = %s,
+                      directory = %s,
+                      strip_file_names_and_line_numbers = %s,
+                      paths = %s,
+                  ),
+              """
+                  .formatted(
+                      autoPatchfileContentsPrefix,
+                      autoPatchfileSuffix,
+                      autoPatchFileDirectoryPrefix,
+                      autoPatchfileDirectory,
+                      (autoPatchfileStripFilenamesAndLineNumbers ? "True" : "False"),
+                      autoPatchfileGlob));
     } else {
       config = config.replace("::autopatch_placeholder::", "");
     }
@@ -374,20 +365,22 @@ public class WorkflowTest {
   @Test
   public void testGetDefinitionStackWithLoad() throws Exception {
     String libContent =
-        ""
-            + "def git_to_third_party(name):\n"
-            + "    core.workflow(\n"
-            + "        name = name,\n"
-            + "        origin = testing.origin(),\n"
-            + "        destination = testing.destination(),\n"
-            + "        authoring = authoring.overwrite('Copybara <no-reply@google.com>'),\n"
-            + "        mode = 'SQUASH',\n"
-            + "    )\n";
+        """
+        def git_to_third_party(name):
+            core.workflow(
+                name = name,
+                origin = testing.origin(),
+                destination = testing.destination(),
+                authoring = authoring.overwrite('Copybara <no-reply@google.com>'),
+                mode = 'SQUASH',
+            )
+        """;
     String mainContent =
-        ""
-            + "load('lib', 'git_to_third_party')\n"
-            + "\n"
-            + "git_to_third_party(name = 'default')\n";
+        """
+        load('lib', 'git_to_third_party')
+
+        git_to_third_party(name = 'default')
+        """;
     Migration migration =
         skylark
             .loadConfig(
@@ -663,16 +656,19 @@ public class WorkflowTest {
 
     Workflow<?, ?> workflow =
         (Workflow<?, ?>) new SkylarkTestExecutor(options).loadConfig(
-                "core.workflow(\n"
-                    + "    name = 'foo',\n"
-                    + "    origin = git.origin(url='" + remote.getGitDir() + "',\n"
-                    + "                        ref = '" + primaryBranch + "'\n"
-                    + "    ),\n"
-                    + "    destination = folder.destination(),\n"
-                    + "    mode = 'ITERATIVE',\n"
-                    + "    authoring = " + authoring + ",\n"
-                    + "    transformations = [metadata.replace_message(''),],\n"
-                    + ")\n")
+                """
+                core.workflow(
+                    name = 'foo',
+                    origin = git.origin(url='%s',
+                                        ref = '%s'
+                    ),
+                    destination = folder.destination(),
+                    mode = 'ITERATIVE',
+                    authoring = %s,
+                    transformations = [metadata.replace_message(''),],
+                )
+                """
+                    .formatted(remote.getGitDir(), primaryBranch, authoring))
             .getMigration("foo");
     workflow.getWorkflowOptions().diffInOrigin = true;
     workflow.run(workdir, ImmutableList.of(primaryBranch));
@@ -707,14 +703,17 @@ public class WorkflowTest {
 
     Workflow<?, ?> workflow =
         (Workflow<?, ?>) new SkylarkTestExecutor(options).loadConfig(
-                "core.workflow(\n"
-                    + "    name = 'foo',\n"
-                    + "    origin = git.origin(url='" + remote.getGitDir() + "'),\n"
-                    + "    destination = folder.destination(),\n"
-                    + "    mode = 'ITERATIVE',\n"
-                    + "    authoring = " + authoring + ",\n"
-                    + "    transformations = [metadata.replace_message(''),],\n"
-                    + ")\n")
+                """
+                core.workflow(
+                    name = 'foo',
+                    origin = git.origin(url='%s'),
+                    destination = folder.destination(),
+                    mode = 'ITERATIVE',
+                    authoring = %s,
+                    transformations = [metadata.replace_message(''),],
+                )
+                """
+                    .formatted(remote.getGitDir(), authoring))
             .getMigration("foo");
     workflow.getWorkflowOptions().diffInOrigin = true;
     ChangeRejectedException e =
@@ -1725,14 +1724,17 @@ public class WorkflowTest {
 
     Workflow<?, ?> workflow =
         (Workflow<?, ?>) new SkylarkTestExecutor(options).loadConfig(
-                "core.workflow(\n"
-                    + "    name = 'foo',\n"
-                    + "    origin = testing.origin(),\n"
-                    + "    destination = testing.destination(),\n"
-                    + "    mode = 'ITERATIVE',\n"
-                    + "    authoring = " + authoring + ",\n"
-                    + "    transformations = [metadata.replace_message(''),],\n"
-                    + ")\n")
+                """
+                core.workflow(
+                    name = 'foo',
+                    origin = testing.origin(),
+                    destination = testing.destination(),
+                    mode = 'ITERATIVE',
+                    authoring = %s,
+                    transformations = [metadata.replace_message(''),],
+                )
+                """
+                    .formatted(authoring))
             .getMigration("foo");
     ValidationException e = assertThrows(ValidationException.class,
         () -> workflow.run(workdir, ImmutableList.of("HEAD")));
@@ -1817,17 +1819,19 @@ public class WorkflowTest {
   @Test
   public void testNoopGroup() throws Exception {
     options.workflowOptions.ignoreNoop = false;
-    transformations = ImmutableList.of(""
-        + "        core.transform("
-        + "            transformations = ["
-        + "                core.replace("
-        + "                    before = 'foo',"
-        + "                    after = 'bar',"
-        + "                )"
-        + "            ],"
-        + "            ignore_noop = True,"
-        + "        )"
-    );
+    transformations =
+        ImmutableList.of(
+            """
+            core.transform(
+                transformations = [
+                    core.replace(
+                        before = 'foo',
+                        after = 'bar',
+                    )
+                ],
+                ignore_noop = True,
+            )
+            """);
     workflow().run(workdir, ImmutableList.of(HEAD));
     console().assertThat().onceInLog(MessageType.WARNING,
         ".*NOOP: Transformation.*");
@@ -1836,16 +1840,18 @@ public class WorkflowTest {
   @Test
   public void testNoopGroupDefault() throws Exception {
     options.workflowOptions.ignoreNoop = false;
-    transformations = ImmutableList.of(""
-        + "        core.transform("
-        + "            transformations = ["
-        + "                core.replace("
-        + "                    before = 'foo',"
-        + "                    after = 'bar',"
-        + "                )"
-        + "            ],"
-        + "        )"
-    );
+    transformations =
+        ImmutableList.of(
+            """
+            core.transform(
+                transformations = [
+                    core.replace(
+                        before = 'foo',
+                        after = 'bar',
+                    )
+                ],
+            )
+            """);
     VoidOperationException e =
         assertThrows(
             VoidOperationException.class, () -> workflow().run(workdir, ImmutableList.of(HEAD)));

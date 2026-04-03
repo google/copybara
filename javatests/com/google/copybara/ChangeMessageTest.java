@@ -67,13 +67,14 @@ public class ChangeMessageTest {
   }
 
   private static final String CHANGE_MESSAGE_SKYLARK =
-      ""
-          + "First line\\n"
-          + "Second line\\n"
-          + "\\n"
-          + "GitOrigin-RevId: 12345\\n"
-          + "Other-label: AA\\n"
-          + "Other-label: BB\\n";
+      """
+      First line\\n\\
+      Second line\\n\\
+      \\n\\
+      GitOrigin-RevId: 12345\\n\\
+      Other-label: AA\\n\\
+      Other-label: BB\\n\\
+      """;
 
   @Test
   public void testParseMessageSkylark() throws Exception {

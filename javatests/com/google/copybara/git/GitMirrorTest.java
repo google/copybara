@@ -54,17 +54,19 @@ import org.junit.runner.RunWith;
 @RunWith(TestParameterInjector.class)
 public class GitMirrorTest {
 
-  public static final String NATIVE_MIRROR_IN_STARLARK_FUNC = "def _native_mirror(ctx):\n"
-      + "     ctx.console.info('Hello this is mirror!')\n"
-      + "     for o,d in ctx.params['refspec'].items():\n"
-      + "         ctx.origin_fetch(refspec = [o])\n"
-      + "         ctx.destination_push(refspec = [o + ':' + d], prune = ctx.params['prune'])\n"
-      + "         return ctx.success()\n"
-      + "\n"
-      + "def native_mirror(refspec = {'refs/heads/*': 'refs/heads/*'}, prune = False):\n"
-      + "    return core.action(impl = _native_mirror,"
-      + "         params = {'refspec': refspec, 'prune' : prune})\n"
-      + "\n";
+  public static final String NATIVE_MIRROR_IN_STARLARK_FUNC =
+      """
+      def _native_mirror(ctx):
+           ctx.console.info('Hello this is mirror!')
+           for o,d in ctx.params['refspec'].items():
+               ctx.origin_fetch(refspec = [o])
+               ctx.destination_push(refspec = [o + ':' + d], prune = ctx.params['prune'])
+               return ctx.success()
+
+      def native_mirror(refspec = {'refs/heads/*': 'refs/heads/*'}, prune = False):
+          return core.action(impl = _native_mirror,
+               params = {'refspec': refspec, 'prune' : prune})
+      """;
   private OptionsBuilder options;
   private SkylarkTestExecutor skylark;
   private GitRepository originRepo;
@@ -160,12 +162,14 @@ public class GitMirrorTest {
   }
 
   private Migration createMirrorObj() throws IOException, ValidationException {
-    return loadMigration(String.format(""
-            + "git.mirror("
-            + "    name = 'default',"
-            + "    origin = 'file://%s',"
-            + "    destination = 'file://%s')",
-        originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath()),
+    return loadMigration(
+        """
+        git.mirror(
+            name = 'default',
+            origin = 'file://%s',
+            destination = 'file://%s')
+        """
+            .formatted(originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath()),
         "default");
   }
 
@@ -179,17 +183,23 @@ public class GitMirrorTest {
   public void testMirrorDeletedOrigin() throws Exception {
     GitRepository destRepo1 = bareRepo(Files.createTempDirectory("dest1")).init();
 
-    String cfgContent = ""
-        + "git.mirror("
-        + "    name = 'one',"
-        + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
-        + "    destination = 'file://" + destRepo1.getGitDir().toAbsolutePath() + "',"
-        + ")\n"
-        + "git.mirror("
-        + "    name = 'two',"
-        + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
-        + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
-        + ")";
+    String cfgContent =
+        """
+        git.mirror(
+            name = 'one',
+            origin = 'file://%1$s',
+            destination = 'file://%2$s',
+        )
+        git.mirror(
+            name = 'two',
+            origin = 'file://%1$s',
+            destination = 'file://%3$s',
+        )
+        """
+            .formatted(
+                originRepo.getGitDir().toAbsolutePath(),
+                destRepo1.getGitDir().toAbsolutePath(),
+                destRepo.getGitDir().toAbsolutePath());
 
     loadMigration(cfgContent, "one").run(workdir, ImmutableList.of());
     originRepo.simpleCommand("branch", "-D", "other");
@@ -323,18 +333,19 @@ public class GitMirrorTest {
     options.git.credentialHelperStorePath = credentialsFile.toString();
 
     String cfg =
-        ""
-            + "git.mirror("
-            + "    name = 'default',\n"
-            + "    origin = 'https://origin.com/foo',\n"
-            + "    destination = 'https://destination.com/bar',\n"
-            + "    origin_credentials = credentials.username_password(\n"
-            + "      credentials.static_value('origin@example.com'),\n"
-            + "      credentials.static_secret('origin_password', 'top_secret')),\n"
-            + "    destination_credentials = credentials.username_password(\n"
-            + "      credentials.static_value('destination@example.com'),\n"
-            + "      credentials.static_secret('destination_password', 'confidential'))\n"
-            + ")\n";
+        """
+        git.mirror(
+            name = 'default',
+            origin = 'https://origin.com/foo',
+            destination = 'https://destination.com/bar',
+            origin_credentials = credentials.username_password(
+              credentials.static_value('origin@example.com'),
+              credentials.static_secret('origin_password', 'top_secret')),
+            destination_credentials = credentials.username_password(
+              credentials.static_value('destination@example.com'),
+              credentials.static_secret('destination_password', 'confidential'))
+        )
+        """;
 
     Mirror mirror = (Mirror) loadMigration(cfg, "default");
     GitRepository repository = mirror.getLocalRepo();
@@ -411,18 +422,20 @@ public class GitMirrorTest {
 
   @Test
   public void testAction() throws Exception {
-    String cfg = ""
-        + "def a1(ctx):\n"
-        + "   ctx.console.info('Hello, this is action1 ' + str(ctx.refs))\n"
-        + "   return ctx.success()\n"
-        + "\n"
-        + "git.mirror("
-        + "    name = 'default',"
-        + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
-        + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
-        + "    action = a1"
-        + ")\n"
-        + "";
+    String cfg =
+        """
+        def a1(ctx):
+           ctx.console.info('Hello, this is action1 ' + str(ctx.refs))
+           return ctx.success()
+
+        git.mirror(
+            name = 'default',
+            origin = 'file://%s',
+            destination = 'file://%s',
+            action = a1
+        )
+        """
+            .formatted(originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath());
 
     Migration migration = loadMigration(cfg, "default");
     migration.run(workdir, ImmutableList.of("my_ref"));
@@ -433,22 +446,19 @@ public class GitMirrorTest {
   @Test
   public void testActionFailure() throws Exception {
     String cfg =
-        ""
-            + "def fail_action(ctx):\n"
-            + "   ctx.console.info('Hello, this is action1')\n"
-            + "   return ctx.error('Something bad happened')\n"
-            + "\n"
-            + "git.mirror("
-            + "    name = 'default',"
-            + "    origin = 'file://"
-            + originRepo.getGitDir().toAbsolutePath()
-            + "',"
-            + "    destination = 'file://"
-            + destRepo.getGitDir().toAbsolutePath()
-            + "',"
-            + "    action = fail_action,"
-            + ")\n"
-            + "";
+        """
+        def fail_action(ctx):
+           ctx.console.info('Hello, this is action1')
+           return ctx.error('Something bad happened')
+
+        git.mirror(
+            name = 'default',
+            origin = 'file://%s',
+            destination = 'file://%s',
+            action = fail_action,
+        )
+        """
+            .formatted(originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath());
     Migration migration = loadMigration(cfg, "default");
     ValidationException ve =
         assertThrows(ValidationException.class, () -> migration.run(workdir, ImmutableList.of()));
@@ -459,19 +469,26 @@ public class GitMirrorTest {
   /** Starlark version of our native git.mirror implementation */
   @Test
   public void testDefaultMirrorInStarlark() throws Exception {
-    String cfg = ""
-        + NATIVE_MIRROR_IN_STARLARK_FUNC
-        + "git.mirror("
-        + "    name = 'default',"
-        + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
-        + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
-        + "    refspecs = ["
-        + String.format("       'refs/heads/%s:refs/heads/origin_primary'", primaryBranch)
-        + "    ],"
-        + "    action = native_mirror(refspec = {"
-        + String.format("       'refs/heads/%s':'refs/heads/origin_primary'", primaryBranch)
-        + "}),"
-        + ")";
+    String cfg =
+        """
+        %1$s
+        git.mirror(
+            name = 'default',
+            origin = 'file://%2$s',
+            destination = 'file://%3$s',
+            refspecs = [
+               'refs/heads/%4$s:refs/heads/origin_primary',
+            ],
+            action = native_mirror(refspec = {
+               'refs/heads/%4$s':'refs/heads/origin_primary'
+            }),
+        )
+        """
+            .formatted(
+                NATIVE_MIRROR_IN_STARLARK_FUNC,
+                originRepo.getGitDir().toAbsolutePath(),
+                destRepo.getGitDir().toAbsolutePath(),
+                primaryBranch);
     Migration mirror = loadMigration(cfg, "default");
     mirror.run(workdir, ImmutableList.of());
     String origPrimary = originRepo.simpleCommand("show-ref", primaryBranch, "-s").getStdout();
@@ -483,19 +500,26 @@ public class GitMirrorTest {
 
   @Test
   public void testDefaultMirrorInStarlark_invalid_origin() throws Exception {
-    String cfg = ""
-        + NATIVE_MIRROR_IN_STARLARK_FUNC
-        + "git.mirror("
-        + "    name = 'default',"
-        + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
-        + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
-        + "    refspecs = ["
-        + String.format("       'refs/heads/%s:refs/heads/origin_primary'", primaryBranch)
-        + "    ],"
-        + "    action = native_mirror(refspec = {"
-        + "       'refs/heads/INVALID':'refs/heads/origin_primary'"
-        + "}),"
-        + ")";
+    String cfg =
+        """
+        %1$s
+        git.mirror(
+            name = 'default',
+            origin = 'file://%2$s',
+            destination = 'file://%3$s',
+            refspecs = [
+               'refs/heads/%4$s:refs/heads/origin_primary',
+            ],
+            action = native_mirror(refspec = {
+               'refs/heads/INVALID':'refs/heads/origin_primary'
+            }),
+        )
+        """
+            .formatted(
+                NATIVE_MIRROR_IN_STARLARK_FUNC,
+                originRepo.getGitDir().toAbsolutePath(),
+                destRepo.getGitDir().toAbsolutePath(),
+                primaryBranch);
     Migration mirror = loadMigration(cfg, "default");
     ValidationException ve = assertThrows(ValidationException.class,
         () -> mirror.run(workdir, ImmutableList.of()));
@@ -505,19 +529,26 @@ public class GitMirrorTest {
 
   @Test
   public void testDefaultMirrorInStarlark_invalid_destination() throws Exception {
-    String cfg = ""
-        + NATIVE_MIRROR_IN_STARLARK_FUNC
-        + "git.mirror("
-        + "    name = 'default',"
-        + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
-        + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
-        + "    refspecs = ["
-        + String.format("       'refs/heads/%s:refs/heads/origin_primary'", primaryBranch)
-        + "    ],"
-        + "    action = native_mirror(refspec = {"
-        + String.format("       'refs/heads/%s':'refs/heads/INVALID'", primaryBranch)
-        + "}),"
-        + ")";
+    String cfg =
+        """
+        %1$s
+        git.mirror(
+            name = 'default',
+            origin = 'file://%2$s',
+            destination = 'file://%3$s',
+            refspecs = [
+               'refs/heads/%4$s:refs/heads/origin_primary',
+            ],
+            action = native_mirror(refspec = {
+               'refs/heads/%4$s':'refs/heads/INVALID'
+            }),
+        )
+        """
+            .formatted(
+                NATIVE_MIRROR_IN_STARLARK_FUNC,
+                originRepo.getGitDir().toAbsolutePath(),
+                destRepo.getGitDir().toAbsolutePath(),
+                primaryBranch);
     Migration mirror = loadMigration(cfg, "default");
     ValidationException ve = assertThrows(ValidationException.class,
         () -> mirror.run(workdir, ImmutableList.of()));
@@ -618,29 +649,33 @@ public class GitMirrorTest {
     options.gitDestination.committerName = "Internal System";
 
     String cfg =
-        ""
-            + "def _rebase(ctx):\n"
-            + "     ctx.destination_fetch(refspec = ['refs/heads/" + primaryBranch + "'])\n"
-            + "     exist = ctx.destination_fetch(refspec = ['refs/heads/internal'])\n"
-            + "     ctx.origin_fetch(refspec = ['refs/heads/" + primaryBranch + "'])\n"
-            + "     if exist:\n"
-            + "         result = ctx.rebase(branch = 'internal',"
-            + "               upstream = '" + primaryBranch + "')\n"
-            + "         if result.error:\n"
-            + "             return ctx.error('Conflict rebasing change')\n"
-            + "     else:\n"
-            + "         ctx.create_branch('internal', starting_point = '" + primaryBranch + "')\n"
-            + "     ctx.destination_push(refspec = ['+refs/heads/internal'])\n"
-            + "     ctx.destination_push(refspec = ['refs/heads/" + primaryBranch + "'])\n"
-            + "     return ctx.success()\n"
-            + "\n"
-            + "git.mirror("
-            + "    name = 'default',"
-            + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
-            + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
-            + "    refspecs = ['refs/heads/*:refs/heads/*'],"
-            + "    action = _rebase,"
-            + ")";
+        """
+        def _rebase(ctx):
+             ctx.destination_fetch(refspec = ['refs/heads/%1$s'])
+             exist = ctx.destination_fetch(refspec = ['refs/heads/internal'])
+             ctx.origin_fetch(refspec = ['refs/heads/%1$s'])
+             if exist:
+                 result = ctx.rebase(branch = 'internal', upstream = '%1$s')
+                 if result.error:
+                     return ctx.error('Conflict rebasing change')
+             else:
+                 ctx.create_branch('internal', starting_point = '%1$s')
+             ctx.destination_push(refspec = ['+refs/heads/internal'])
+             ctx.destination_push(refspec = ['refs/heads/%1$s'])
+             return ctx.success()
+
+        git.mirror(
+            name = 'default',
+            origin = 'file://%2$s',
+            destination = 'file://%3$s',
+            refspecs = ['refs/heads/*:refs/heads/*'],
+            action = _rebase,
+        )
+        """
+            .formatted(
+                primaryBranch,
+                originRepo.getGitDir().toAbsolutePath(),
+                destRepo.getGitDir().toAbsolutePath());
     Migration mirror1 = loadMigration(cfg, "default");
     mirror1.run(workdir, ImmutableList.of());
     GitLogEntry originChange = repoChange(originRepo, "some_other_file", "Content", "new change");
@@ -658,21 +693,23 @@ public class GitMirrorTest {
   @Test
   public void testReferences() throws Exception {
     String cfg =
-        ""
-            + "def test(ctx):\n"
-            + "     ctx.origin_fetch(refspec = ['refs/heads/*:refs/heads/origin/*'])\n"
-            + "     for k in ctx.references().keys():\n"
-            + "         ctx.console.info('REF: ' + k)\n"
-            + "     for k in ctx.references(['refs/heads/origin/fo*']).keys():\n"
-            + "         ctx.console.info('REFSPEC: ' + k)\n"
-            + "     return ctx.success()\n"
-            + "\n"
-            + "git.mirror("
-            + "    name = 'default',"
-            + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
-            + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
-            + "    action = test,"
-            + ")";
+        """
+        def test(ctx):
+             ctx.origin_fetch(refspec = ['refs/heads/*:refs/heads/origin/*'])
+             for k in ctx.references().keys():
+                 ctx.console.info('REF: ' + k)
+             for k in ctx.references(['refs/heads/origin/fo*']).keys():
+                 ctx.console.info('REFSPEC: ' + k)
+             return ctx.success()
+
+        git.mirror(
+            name = 'default',
+            origin = 'file://%s',
+            destination = 'file://%s',
+            action = test,
+        )
+        """
+            .formatted(originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath());
     Migration mirror1 = loadMigration(cfg, "default");
     originRepo.branch("foo1").run();
     originRepo.branch("foo2").run();
@@ -696,21 +733,23 @@ public class GitMirrorTest {
   @Test
   public void testCreateBranch() throws Exception {
     String cfg =
-        ""
-            + "def test(ctx):\n"
-            + "     ctx.origin_fetch(refspec = ['refs/heads/*:refs/heads/*'])\n"
-            + "     ctx.create_branch('create_head')\n"
-            + "     ctx.create_branch('create_old', 'HEAD~1')\n"
-            + "     for k,v in ctx.references(['refs/heads/create*']).items():\n"
-            + "         ctx.console.info('REF: ' + k + ':' + v)\n"
-            + "     return ctx.success()\n"
-            + "\n"
-            + "git.mirror("
-            + "    name = 'default',"
-            + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
-            + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
-            + "    action = test,"
-            + ")";
+        """
+        def test(ctx):
+             ctx.origin_fetch(refspec = ['refs/heads/*:refs/heads/*'])
+             ctx.create_branch('create_head')
+             ctx.create_branch('create_old', 'HEAD~1')
+             for k,v in ctx.references(['refs/heads/create*']).items():
+                 ctx.console.info('REF: ' + k + ':' + v)
+             return ctx.success()
+
+        git.mirror(
+            name = 'default',
+            origin = 'file://%s',
+            destination = 'file://%s',
+            action = test,
+        )
+        """
+            .formatted(originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath());
     Migration mirror1 = loadMigration(cfg, "default");
     GitLogEntry one = repoChange(originRepo, "some_other_file", "one", "new change");
     GitLogEntry two = repoChange(originRepo, "some_other_file", "two", "new change");
@@ -742,20 +781,20 @@ public class GitMirrorTest {
   @Test
   public void testPushWithAllowedPushOptionsButUnsupportedAtDestination() throws Exception {
     String cfg =
-        "def test(ctx):\n"
-            + "     ctx.origin_fetch(refspec = ['refs/heads/*:refs/heads/*'])\n"
-            + "     ctx.destination_push(['refs/heads/*:refs/heads/*'], push_options ="
-            + " ['example_push_option'])\n"
-            + "     return ctx.success()\n"
-            + "\n"
-            + "git.mirror(    name = 'default',    origin = 'file://"
-            + originRepo.getGitDir().toAbsolutePath()
-            + "',"
-            + "    destination = 'file://"
-            + destRepo.getGitDir().toAbsolutePath()
-            + "',"
-            + "    action = test,"
-            + ")";
+        """
+        def test(ctx):
+             ctx.origin_fetch(refspec = ['refs/heads/*:refs/heads/*'])
+             ctx.destination_push(['refs/heads/*:refs/heads/*'], push_options = ['example_push_option'])
+             return ctx.success()
+
+        git.mirror(
+            name = 'default',
+            origin = 'file://%s',
+            destination = 'file://%s',
+            action = test,
+        )
+        """
+            .formatted(originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath());
     Migration mirror = loadMigration(cfg, "default");
     GitLogEntry one = repoChange(originRepo, "some_other_file", "one", "new change");
     RepoException expectedException =
@@ -770,23 +809,23 @@ public class GitMirrorTest {
   @Test
   public void testMirrorWithApiHandles() throws Exception {
     String cfg =
-        "def test(ctx):\n"
-            + "    origin_api = ctx.origin_api\n"
-            + "    destination_api = ctx.destination_api\n"
-            + "    if type(origin_api) != 'gerrit_api_obj':\n"
-            + "        fail('this was not supposed to happen: expected gerrit_api_obj, but got ' +"
-            + " type(origin_api))\n"
-            + "    if type(destination_api) != 'github_api_obj':\n"
-            + "        fail('this was not supposed to happen: expected github_api_obj, but got ' +"
-            + " type(destination_api))\n"
-            + "    return ctx.success()\n"
-            + "\n"
-            + "git.mirror(\n"
-            + "    name = 'default',\n"
-            + "    origin = 'https://copybara.googlesource.com/copybara/',\n"
-            + "    destination = 'https://github.com/google/copybara',\n"
-            + "    action = test,\n"
-            + ")";
+        """
+        def test(ctx):
+            origin_api = ctx.origin_api
+            destination_api = ctx.destination_api
+            if type(origin_api) != 'gerrit_api_obj':
+                fail('this was not supposed to happen: expected gerrit_api_obj, but got ' + type(origin_api))
+            if type(destination_api) != 'github_api_obj':
+                fail('this was not supposed to happen: expected github_api_obj, but got ' + type(destination_api))
+            return ctx.success()
+
+        git.mirror(
+            name = 'default',
+            origin = 'https://copybara.googlesource.com/copybara/',
+            destination = 'https://github.com/google/copybara',
+            action = test,
+        )
+        """;
     Migration mirror = loadMigration(cfg, "default");
     mirror.run(workdir, ImmutableList.of());
   }
@@ -794,20 +833,21 @@ public class GitMirrorTest {
   @Test
   public void testMirrorWithApiHandles_noInferredApiHandle() throws Exception {
     String cfg =
-        "def test(ctx):\n"
-            + "    origin_api = ctx.origin_api\n"
-            + "    destination_api = ctx.destination_api\n"
-            + "    if type(origin_api) == 'NoneType' and type(destination_api) == 'NoneType':\n"
-            + "        return ctx.success()\n"
-            + "    fail('this was not supposed to happen: expected NoneType, but got ' +"
-            + " type(origin_api) + ' and ' + type(destination_api))\n"
-            + "\n"
-            + "git.mirror(\n"
-            + "    name = 'default',\n"
-            + "    origin = 'not.github.or.gerrit.com',\n"
-            + "    destination = 'foo.bar.baz.com',\n"
-            + "    action = test,\n"
-            + ")";
+        """
+        def test(ctx):
+            origin_api = ctx.origin_api
+            destination_api = ctx.destination_api
+            if type(origin_api) == 'NoneType' and type(destination_api) == 'NoneType':
+                return ctx.success()
+            fail('this was not supposed to happen: expected NoneType, but got ' + type(origin_api) + ' and ' + type(destination_api))
+
+        git.mirror(
+            name = 'default',
+            origin = 'not.github.or.gerrit.com',
+            destination = 'foo.bar.baz.com',
+            action = test,
+        )
+        """;
     Migration mirror = loadMigration(cfg, "default");
     mirror.run(workdir, ImmutableList.of());
   }
@@ -816,20 +856,25 @@ public class GitMirrorTest {
   public void testCherrypick() throws Exception {
     String primaryBranch = originRepo.getPrimaryBranch();
     String cfg =
-        ""
-            + "def test(ctx):\n"
-            + "     ctx.origin_fetch(refspec = ['refs/heads/*:refs/heads/*'])\n"
-            + "     ctx.create_branch('my_branch', starting_point = 'HEAD~3')\n"
-            + "     ctx.cherry_pick('my_branch', ['HEAD.." + primaryBranch + "'])\n"
-            + "     ctx.destination_push(['refs/heads/*:refs/heads/*'])\n"
-            + "     return ctx.success()\n"
-            + "\n"
-            + "git.mirror("
-            + "    name = 'default',"
-            + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
-            + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
-            + "    action = test,"
-            + ")";
+        """
+        def test(ctx):
+             ctx.origin_fetch(refspec = ['refs/heads/*:refs/heads/*'])
+             ctx.create_branch('my_branch', starting_point = 'HEAD~3')
+             ctx.cherry_pick('my_branch', ['HEAD..%s'])
+             ctx.destination_push(['refs/heads/*:refs/heads/*'])
+             return ctx.success()
+
+        git.mirror(
+            name = 'default',
+            origin = 'file://%s',
+            destination = 'file://%s',
+            action = test,
+        )
+        """
+            .formatted(
+                primaryBranch,
+                originRepo.getGitDir().toAbsolutePath(),
+                destRepo.getGitDir().toAbsolutePath());
     Migration mirror1 = loadMigration(cfg, "default");
     GitLogEntry one = repoChange(originRepo, "some_other_file", "1", "one");
     GitLogEntry two = repoChange(originRepo, "some_other_file", "2", "two");
@@ -861,18 +906,20 @@ public class GitMirrorTest {
   public void testActionForcePushFlag() throws Exception {
     String primaryBranch = originRepo.getPrimaryBranch();
     String cfg =
-        ""
-            + "def test(ctx):\n"
-            + "     ctx.origin_fetch(refspec = ['refs/heads/*:refs/heads/*'])\n"
-            + "     ctx.destination_push(['refs/heads/*:refs/heads/*'])\n"
-            + "     return ctx.success()\n"
-            + "\n"
-            + "git.mirror("
-            + "    name = 'default',"
-            + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
-            + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
-            + "    action = test,"
-            + ")";
+        """
+        def test(ctx):
+             ctx.origin_fetch(refspec = ['refs/heads/*:refs/heads/*'])
+             ctx.destination_push(['refs/heads/*:refs/heads/*'])
+             return ctx.success()
+
+        git.mirror(
+            name = 'default',
+            origin = 'file://%s',
+            destination = 'file://%s',
+            action = test,
+        )
+        """
+            .formatted(originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath());
     repoChange(originRepo, "some_other_file", "1", "one");
     GitLogEntry two = repoChange(originRepo, "some_other_file", "2", "two");
     repoChange(originRepo, "some_other_file", "3", "three");
@@ -908,61 +955,46 @@ public class GitMirrorTest {
       throws IOException, ValidationException, RepoException {
     String partialFetchString = partialFetch ? "True" : "False";
     String cfg =
-        ""
-            + ("def _merger(ctx):\n"
-                + "     ctx.console.info('Hello this is mirror!')\n"
-                + "     branch = ctx.params['branch']\n"
-                + "     oss_branch = ctx.params['oss_branch']\n"
-                + "     ctx.origin_fetch("
-                + String.format("partial_fetch=%s", partialFetchString)
-                + ", refspec = [branch +"
-                + " ':refs/heads/copybara/origin_fetch'])\n"
-                + "     exist = ctx.destination_fetch("
-                + String.format("partial_fetch=%s", partialFetchString)
-                + ", refspec = [branch +"
-                + " ':refs/heads/copybara/destination_fetch'])\n"
-                + "     if exist:\n"
-                + "         result = ctx.merge(branch = 'copybara/destination_fetch',           "
-                + "              commits = ['refs/heads/copybara/origin_fetch'],"
-                + "fast_forward = "
-                + String.format("'%s'", fastForwardOption)
-                + ")\n"
-                + "         if result.error:\n"
-                + "             return ctx.error('Conflict merging ' + branch + ' into"
-                + " destination: ' + result.error_msg)\n"
-                + "         ctx.destination_push(refspec ="
-                + " ['refs/heads/copybara/destination_fetch:' + branch])\n"
-                + "     else:\n"
-                + "         ctx.destination_push(refspec = ['refs/heads/copybara/origin_fetch:'"
-                + " + branch])\n"
-                + "     if oss_branch:\n"
-                + "         ctx.destination_push(refspec = ['refs/heads/copybara/origin_fetch:'"
-                + " + oss_branch])\n"
-                + "     return ctx.success()\n"
-                + "\n"
-                + "def merger(branch, oss_branch = None):\n"
-                + "    return core.action(impl = _merger,         params = {'branch': branch,"
-                + " 'oss_branch' : oss_branch})\n"
-                + "\n")
-            + "git.mirror("
-            + "    name = 'default',"
-            + "    origin = 'file://"
-            + originRepo.getGitDir().toAbsolutePath()
-            + "',"
-            + "    destination = 'file://"
-            + destRepo.getGitDir().toAbsolutePath()
-            + "',"
-            + "    refspecs = ["
-            + String.format(
-                ""
-                    + "       'refs/heads/%s:refs/heads/%s',"
-                    + "       'refs/heads/%s:refs/heads/oss'",
-                primaryBranch, primaryBranch, primaryBranch)
-            + "    ],"
-            + "    action = merger("
-            + String.format("'refs/heads/%s'", primaryBranch)
-            + ", oss_branch = 'refs/heads/oss'),"
-            + ")";
+        """
+        def _merger(ctx):
+             ctx.console.info('Hello this is mirror!')
+             branch = ctx.params['branch']
+             oss_branch = ctx.params['oss_branch']
+             ctx.origin_fetch(partial_fetch=%1$s, refspec = [branch + ':refs/heads/copybara/origin_fetch'])
+             exist = ctx.destination_fetch(partial_fetch=%1$s, refspec = [branch + ':refs/heads/copybara/destination_fetch'])
+             if exist:
+                 result = ctx.merge(branch = 'copybara/destination_fetch',
+                      commits = ['refs/heads/copybara/origin_fetch'],
+        fast_forward = '%2$s')
+                 if result.error:
+                     return ctx.error('Conflict merging ' + branch + ' into destination: ' + result.error_msg)
+                 ctx.destination_push(refspec = ['refs/heads/copybara/destination_fetch:' + branch])
+             else:
+                 ctx.destination_push(refspec = ['refs/heads/copybara/origin_fetch:' + branch])
+             if oss_branch:
+                 ctx.destination_push(refspec = ['refs/heads/copybara/origin_fetch:' + oss_branch])
+             return ctx.success()
+
+        def merger(branch, oss_branch = None):
+            return core.action(impl = _merger,         params = {'branch': branch, 'oss_branch' : oss_branch})
+
+        git.mirror(
+            name = 'default',
+            origin = 'file://%3$s',
+            destination = 'file://%4$s',
+            refspecs = [
+               'refs/heads/%5$s:refs/heads/%5$s',
+               'refs/heads/%5$s:refs/heads/oss',
+            ],
+            action = merger('refs/heads/%5$s', oss_branch = 'refs/heads/oss'),
+        )
+        """
+            .formatted(
+                partialFetchString,
+                fastForwardOption,
+                originRepo.getGitDir().toAbsolutePath(),
+                destRepo.getGitDir().toAbsolutePath(),
+                primaryBranch);
     Migration mirror = loadMigration(cfg, "default");
     mirror.run(workdir, ImmutableList.of());
     String origPrimary = originRepo.simpleCommand("show-ref", primaryBranch, "-s").getStdout();

@@ -81,8 +81,9 @@ public class LatestVersionSelectorForGitTest {
     }
     cliReference = null;
     checkTagsCustomSelector(
-        "refspec_format = 'refs/heads/v${s0}${n1}',"
-            + " refspec_groups = {'s0' : '[a-zA-Z]+', 'n1' : '[0-9]+'}",
+        """
+        refspec_format = 'refs/heads/v${s0}${n1}',
+        refspec_groups = {'s0' : '[a-zA-Z]+', 'n1' : '[0-9]+'}""",
         "vCharly10",
         "refs/heads/v*");
   }
@@ -94,8 +95,9 @@ public class LatestVersionSelectorForGitTest {
     }
     cliReference = "vBeta1";
     checkTagsCustomCoreSelector(
-        "format = 'refs/heads/v${s0}${n1}',"
-            + " regex_groups = {'s0' : '[a-zA-Z]+', 'n1' : '[0-9]+'}",
+        """
+        format = 'refs/heads/v${s0}${n1}',
+        regex_groups = {'s0' : '[a-zA-Z]+', 'n1' : '[0-9]+'}""",
         "vBeta1",
         "refs/heads/v*");
   }
@@ -118,13 +120,13 @@ public class LatestVersionSelectorForGitTest {
 
     assertThat(assertThrows(ValidationException.class,
         () ->
-            skylark.eval("result", "result = "
-                + "git.origin(\n"
-                + "    url = '" + url + "',\n"
-                + "    version_selector = core.latest_version("
-                + "              format = 'v${n0}',"
-                + "              regex_groups = { 'n0': '1-9'}),\n"
-                + ")")))
+            skylark.eval("result", """
+                result = git.origin(
+                    url = '%s',
+                    version_selector = core.latest_version(
+                              format = 'v${n0}',
+                              regex_groups = { 'n0': '1-9'}),
+                )""".formatted(url))))
         .hasMessageThat()
         .contains("The version selector provided doesn't start with the 'refs/' prefix");
   }
@@ -136,11 +138,15 @@ public class LatestVersionSelectorForGitTest {
   private void checkTagsCustomSelector(String fields, String expectedResult, String expectedRefspec)
       throws RepoException, com.google.copybara.exception.ValidationException {
 
-    GitOrigin origin = skylark.eval("result", "result = "
-        + "git.origin(\n"
-        + "    url = '" + url + "',\n"
-        + "    version_selector = git.latest_version(" + fields + "),\n"
-        + ")");
+    GitOrigin origin =
+        skylark.eval(
+            "result",
+            """
+            result = git.origin(
+                url = '%s',
+                version_selector = git.latest_version(%s),
+            )"""
+                .formatted(url, fields));
 
     GitRevision version = origin.resolve(/*reference=*/cliReference);
     assertThat(version.contextReference()).isEqualTo(expectedResult);
@@ -155,15 +161,12 @@ public class LatestVersionSelectorForGitTest {
     GitOrigin origin =
         skylark.eval(
             "result",
-            "result = "
-                + "git.origin(\n"
-                + "    url = '"
-                + url
-                + "',\n"
-                + "    version_selector = core.latest_version("
-                + fields
-                + "),\n"
-                + ")");
+            """
+            result = git.origin(
+                url = '%s',
+                version_selector = core.latest_version(%s),
+            )"""
+                .formatted(url, fields));
 
     GitRevision version = origin.resolve(/* reference= */ cliReference);
     assertThat(version.contextReference()).isEqualTo(expectedResult);
@@ -178,16 +181,18 @@ public class LatestVersionSelectorForGitTest {
     options.general.setForceForTest(true);
     Path workdir = Files.createTempDirectory("workdir");
     //noinspection unchecked
-    String cfg = ""
-        + "core.workflow("
-        + "   name = 'default',"
-        + "   origin = git.origin("
-        + "     url = '" + url + "',\n"
-        + "     version_selector = git.latest_version(),\n"
-        + "   ),"
-        + "   authoring = authoring.overwrite('Foo <foo@example.com>'),"
-        + "   destination = testing.destination(),"
-        + ")";
+    String cfg =
+        """
+        core.workflow(
+           name = 'default',
+           origin = git.origin(
+             url = '%s',
+             version_selector = git.latest_version(),
+           ),
+           authoring = authoring.overwrite('Foo <foo@example.com>'),
+           destination = testing.destination(),
+        )"""
+            .formatted(url);
 
     skylark.loadConfig(cfg).getMigration("default")
         .run(workdir, ImmutableList.of());

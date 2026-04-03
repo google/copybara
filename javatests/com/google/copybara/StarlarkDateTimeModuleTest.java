@@ -103,12 +103,12 @@ public final class StarlarkDateTimeModuleTest {
     StarlarkTimeDelta timeDelta =
         executor.eval(
             "timedelta",
-            String.format(
-                "my_datetime = datetime.fromtimestamp(timestamp = %s) \n"
-                    + "my_other_datetime = datetime.fromtimestamp(timestamp = %s,"
-                    + " tz = 'Australia/Broken_Hill')\n"
-                    + "timedelta = (my_datetime - my_other_datetime)",
-                leftEpoch, rightEpoch));
+            """
+            my_datetime = datetime.fromtimestamp(timestamp = %s)
+            my_other_datetime = datetime.fromtimestamp(timestamp = %s, tz = 'Australia/Broken_Hill')
+            timedelta = (my_datetime - my_other_datetime)
+            """
+                .formatted(leftEpoch, rightEpoch));
     assertThat(timeDelta.totalSeconds()).isEqualTo(expectedSeconds);
   }
 

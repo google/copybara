@@ -144,12 +144,15 @@ public class GitOriginTest {
   }
 
   private GitOrigin origin() throws ValidationException {
-    return skylark.eval("result",
-        String.format("result = git.origin(\n"
-            + "    url = '%s',\n"
-            + "    ref = '%s',\n"
-            + "    %s"
-            + ")", url, ref, moreOriginArgs));
+    return skylark.eval(
+        "result",
+        """
+        result = git.origin(
+            url = '%s',
+            ref = '%s',
+            %s
+        )"""
+            .formatted(url, ref, moreOriginArgs));
   }
 
   private String git(String... params) throws RepoException {
@@ -205,7 +208,7 @@ public class GitOriginTest {
             result = git.github_origin(
                 url = 'https://github.com/google/copybara',
                 ref = 'main',
-            )\
+            )
             """);
     assertThat(origin.getApprovalsProvider()).isInstanceOf(GitHubPostSubmitApprovalsProvider.class);
   }
@@ -220,7 +223,7 @@ public class GitOriginTest {
                 url = 'https://github.com/copybara',
                 ref = 'main',
                 enable_lfs = True,
-            )\
+            )
             """);
     ImmutableMultimap<String, String> actual = origin.describe(Glob.ALL_FILES);
 
@@ -236,7 +239,7 @@ public class GitOriginTest {
             result = git.origin(
                 url = 'http://my-server.org/copybara',
                 ref = 'master'
-            )\
+            )
             """);
     assertThat(origin.toString())
         .isEqualTo(
@@ -996,12 +999,14 @@ public class GitOriginTest {
 
   @Test
   public void testChangeMultiLabel() throws Exception {
-    String commitMessage = ""
-        + "I am a commit with a label happening twice\n"
-        + "\n"
-        + "foo: bar\n"
-        + "\n"
-        + "foo: baz\n";
+    String commitMessage =
+        """
+        I am a commit with a label happening twice
+
+        foo: bar
+
+        foo: baz
+        """;
     singleFileCommit("John Name <john@name.com>", commitMessage, "test.txt", "content");
 
     Change<GitRevision> change = newReader().change(getLastCommitRef());
@@ -1012,12 +1017,14 @@ public class GitOriginTest {
 
   @Test
   public void testChangeLabelWithSameValue() throws Exception {
-    String commitMessage = ""
-        + "I am a commit!\n"
-        + "\n"
-        + "foo: bar\n"
-        + "\n"
-        + "baz: bar\n";
+    String commitMessage =
+        """
+        I am a commit!
+
+        foo: bar
+
+        baz: bar
+        """;
     singleFileCommit("John Name <john@name.com>", commitMessage, "test.txt", "content");
 
     assertThat(newReader().change(getLastCommitRef()).getLabels())
@@ -1353,18 +1360,25 @@ public class GitOriginTest {
     git("merge", defaultBranch, "feature2");
     String headSha1 = repo.parseRef(defaultBranch);
 
-    Workflow<GitRevision, Revision> wf = (Workflow<GitRevision, Revision>) skylark.loadConfig(""
-        + "core.workflow(\n"
-        + "    name = 'default',\n"
-        + "    origin = git.origin(\n"
-        + "         url = '" + url + "',\n"
-        + "         first_parent = False,\n"
-        + "    ),\n"
-        + "    origin_files = glob(['**'], exclude = ['exclude**']),\n"
-        + "    destination = testing.destination(),\n"
-        + "    migrate_noop_changes = " + (importNoopChanges ? "True" : "False") + ",\n"
-        + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
-        + ")\n").getMigration("default");
+    Workflow<GitRevision, Revision> wf =
+        (Workflow<GitRevision, Revision>)
+            skylark
+                .loadConfig(
+                    """
+                    core.workflow(
+                        name = 'default',
+                        origin = git.origin(
+                             url = '%s',
+                             first_parent = False,
+                        ),
+                        origin_files = glob(['**'], exclude = ['exclude**']),
+                        destination = testing.destination(),
+                        migrate_noop_changes = %s,
+                        authoring = authoring.pass_thru('example <example@example.com>'),
+                    )
+                    """
+                        .formatted(url, (importNoopChanges ? "True" : "False")))
+                .getMigration("default");
 
     wf.run(checkoutDir, ImmutableList.of(defaultBranch));
 
@@ -1731,18 +1745,25 @@ public class GitOriginTest {
     options.setLastRevision(firstCommitRef);
 
     @SuppressWarnings("unchecked")
-    Workflow<GitRevision, Revision> wf = (Workflow<GitRevision, Revision>) skylark.loadConfig(""
-        + "core.workflow(\n"
-        + "    name = 'default',\n"
-        + "    origin = git.origin(\n"
-        + "         url = '" + url + "',\n"
-        + "         include_branch_commit_logs = True,\n"
-        + "         partial_fetch = True,\n"
-        + "    ),\n"
-        + "    origin_files = glob(['**']),\n"
-        + "    destination = testing.destination(),\n"
-        + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
-        + ")\n").getMigration("default");
+    Workflow<GitRevision, Revision> wf =
+        (Workflow<GitRevision, Revision>)
+            skylark
+                .loadConfig(
+                    """
+                    core.workflow(
+                        name = 'default',
+                        origin = git.origin(
+                             url = '%s',
+                             include_branch_commit_logs = True,
+                             partial_fetch = True,
+                        ),
+                        origin_files = glob(['**']),
+                        destination = testing.destination(),
+                        authoring = authoring.pass_thru('example <example@example.com>'),
+                    )
+                    """
+                        .formatted(url))
+                .getMigration("default");
 
     ValidationException repoException =
         assertThrows(ValidationException.class,
@@ -1773,21 +1794,20 @@ public class GitOriginTest {
         (Workflow<GitRevision, Revision>)
             skylark
                 .loadConfig(
-                    ""
-                        + "core.workflow(\n"
-                        + "    name = 'default',\n"
-                        + "    origin = git.origin(\n"
-                        + "         url = '"
-                        + url
-                        + "',\n"
-                        + "         include_branch_commit_logs = True,\n"
-                        + "         partial_fetch = True,\n"
-                        + "    ),\n"
-                        + "    origin_files = glob("
-                        + "['directory/**', 'file.txt', 'directory/subdir/file_in_subdir.txt']),\n"
-                        + "    destination = testing.destination(),\n"
-                        + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
-                        + ")\n")
+                    """
+                    core.workflow(
+                        name = 'default',
+                        origin = git.origin(
+                             url = '%s',
+                             include_branch_commit_logs = True,
+                             partial_fetch = True,
+                        ),
+                        origin_files = glob(['directory/**', 'file.txt', 'directory/subdir/file_in_subdir.txt']),
+                        destination = testing.destination(),
+                        authoring = authoring.pass_thru('example <example@example.com>'),
+                    )
+                    """
+                        .formatted(url))
                 .getMigration("default");
 
     wf.run(Files.createTempDirectory("foo"), ImmutableList.of("HEAD"));
@@ -1822,21 +1842,20 @@ public class GitOriginTest {
         (Workflow<GitRevision, Revision>)
             skylark
                 .loadConfig(
-                    ""
-                        + "core.workflow(\n"
-                        + "    name = 'default',\n"
-                        + "    origin = git.origin(\n"
-                        + "         url = '"
-                        + url
-                        + "',\n"
-                        + "         include_branch_commit_logs = True,\n"
-                        + "         partial_fetch = True,\n"
-                        + "    ),\n"
-                        + "    origin_files = glob("
-                        + "['directory/**', 'file.txt', 'directory/subdir/file_in_subdir.txt']),\n"
-                        + "    destination = testing.destination(),\n"
-                        + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
-                        + ")\n")
+                    """
+                    core.workflow(
+                        name = 'default',
+                        origin = git.origin(
+                             url = '%s',
+                             include_branch_commit_logs = True,
+                             partial_fetch = True,
+                        ),
+                        origin_files = glob(['directory/**', 'file.txt', 'directory/subdir/file_in_subdir.txt']),
+                        destination = testing.destination(),
+                        authoring = authoring.pass_thru('example <example@example.com>'),
+                    )
+                    """
+                        .formatted(url))
                 .getMigration("default");
 
     wf.run(Files.createTempDirectory("foo"), ImmutableList.of("HEAD"));
@@ -1874,22 +1893,21 @@ public class GitOriginTest {
         (Workflow<GitRevision, Revision>)
             skylark
                 .loadConfig(
-                    ""
-                        + "core.workflow(\n"
-                        + "    name = 'default',\n"
-                        + "    mode = 'ITERATIVE',\n"
-                        + "    origin = git.origin(\n"
-                        + "         url = '"
-                        + url
-                        + "',\n"
-                        + "         include_branch_commit_logs = True,\n"
-                        + "         partial_fetch = True,\n"
-                        + "    ),\n"
-                        + "    origin_files = glob("
-                        + "['directory/**', 'file.txt', 'directory/subdir/file_in_subdir.txt']),\n"
-                        + "    destination = testing.destination(),\n"
-                        + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
-                        + ")\n")
+                    """
+                    core.workflow(
+                        name = 'default',
+                        mode = 'ITERATIVE',
+                        origin = git.origin(
+                             url = '%s',
+                             include_branch_commit_logs = True,
+                             partial_fetch = True,
+                        ),
+                        origin_files = glob(['directory/**', 'file.txt', 'directory/subdir/file_in_subdir.txt']),
+                        destination = testing.destination(),
+                        authoring = authoring.pass_thru('example <example@example.com>'),
+                    )
+                    """
+                        .formatted(url))
                 .getMigration("default");
 
     wf.run(Files.createTempDirectory("foo"), ImmutableList.of("HEAD"));
@@ -1920,19 +1938,26 @@ public class GitOriginTest {
     options.testingOptions.destination = destination;
     options.setLastRevision(firstCommitRef);
     @SuppressWarnings("unchecked")
-    Workflow<GitRevision, Revision> wf = (Workflow<GitRevision, Revision>) skylark.loadConfig(""
-        + "core.workflow(\n"
-        + "    name = 'default',\n"
-        + "    origin = git.origin(\n"
-        + "         url = '" + url + "',\n"
-        + "         include_branch_commit_logs = True,\n"
-        + "         partial_fetch = True,\n"
-        + "    ),\n"
-        + "    origin_files = glob(['include/mainline-file.txt']),\n"
-        + "    destination = testing.destination(),\n"
-        + "    mode = 'ITERATIVE',\n"
-        + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
-        + ")\n").getMigration("default");
+    Workflow<GitRevision, Revision> wf =
+        (Workflow<GitRevision, Revision>)
+            skylark
+                .loadConfig(
+                    """
+                    core.workflow(
+                        name = 'default',
+                        origin = git.origin(
+                             url = '%s',
+                             include_branch_commit_logs = True,
+                             partial_fetch = True,
+                        ),
+                        origin_files = glob(['include/mainline-file.txt']),
+                        destination = testing.destination(),
+                        mode = 'ITERATIVE',
+                        authoring = authoring.pass_thru('example <example@example.com>'),
+                    )
+                    """
+                        .formatted(url))
+                .getMigration("default");
 
     wf.run(Files.createTempDirectory("foo"), ImmutableList.of("HEAD"));
     List<ProcessedChange> changes = destination.processed;
@@ -1960,20 +1985,26 @@ public class GitOriginTest {
     options.testingOptions.destination = destination;
     options.setLastRevision(firstCommitRef);
     @SuppressWarnings("unchecked")
-    Workflow<GitRevision, Revision> wf = (Workflow<GitRevision, Revision>) skylark.loadConfig(""
-        + "core.workflow(\n"
-        + "    name = 'default',\n"
-        + "    origin = git.origin(\n"
-        // Intentionally pick the "wrong" ref.
-        + "         ref = '" + (defaultBranch.equals("master") ? "main" : "master") + "',\n"
-        + "         url = '" + url + "',\n"
-        + "         primary_branch_migration = True,\n"
-        + "    ),\n"
-        + "    origin_files = glob(['include/mainline-file.txt']),\n"
-        + "    destination = testing.destination(),\n"
-        + "    mode = 'ITERATIVE',\n"
-        + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
-        + ")\n").getMigration("default");
+    Workflow<GitRevision, Revision> wf =
+        (Workflow<GitRevision, Revision>)
+            skylark
+                .loadConfig(
+                    """
+                    core.workflow(
+                        name = 'default',
+                        origin = git.origin(
+                             ref = '%s',
+                             url = '%s',
+                             primary_branch_migration = True,
+                        ),
+                        origin_files = glob(['include/mainline-file.txt']),
+                        destination = testing.destination(),
+                        mode = 'ITERATIVE',
+                        authoring = authoring.pass_thru('example <example@example.com>'),
+                    )
+                    """
+                        .formatted((defaultBranch.equals("master") ? "main" : "master"), url))
+                .getMigration("default");
 
     wf.run(Files.createTempDirectory("foo"), ImmutableList.of("HEAD"));
     List<ProcessedChange> changes = destination.processed;
@@ -1982,11 +2013,15 @@ public class GitOriginTest {
 
   @Test
   public void testPartialfetchSet() throws Exception {
-    origin = skylark.eval("result",
-        "result = git.origin(\n"
-            + "    url = 'https://my-server.org/copybara',\n"
-            + "    partial_fetch = True"
-            + ")");
+    origin =
+        skylark.eval(
+            "result",
+            """
+            result = git.origin(
+                url = 'https://my-server.org/copybara',
+                partial_fetch = True
+            )
+            """);
     ImmutableMultimap<String, String> actual = origin.describe(Glob.ALL_FILES);
 
     assertThat(actual.get("partialFetch")).containsExactly("true");
