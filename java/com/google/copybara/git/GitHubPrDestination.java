@@ -349,8 +349,9 @@ public class GitHubPrDestination implements Destination<GitRevision> {
     };
   }
 
-  private String asHttpsUrl() throws ValidationException {
-    return "https://github.com/" + getProjectName();
+  @VisibleForTesting
+  String asHttpsUrl() throws ValidationException {
+    return ghHost.projectAsUrl(getProjectName());
   }
 
   @VisibleForTesting
