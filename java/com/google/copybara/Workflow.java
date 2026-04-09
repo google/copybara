@@ -130,6 +130,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   @Nullable private final String expectedFixedRef;
   @Nullable private final String pinnedFixedRef;
   private final ImmutableList<StarlarkThread.CallStackEntry> definitionStack;
+  private final ImmutableList<ImmutableMap<String, String>> definitionStackLocals;
 
   public Workflow(
       String name,
@@ -166,7 +167,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       @Nullable String consistencyFilePath,
       @Nullable String expectedFixedRef,
       @Nullable String pinnedFixedRef,
-      ImmutableList<StarlarkThread.CallStackEntry> definitionStack) {
+      ImmutableList<StarlarkThread.CallStackEntry> definitionStack,
+      ImmutableList<ImmutableMap<String, String>> definitionStackLocals) {
     this.name = Preconditions.checkNotNull(name);
     this.description = description;
     this.origin = Preconditions.checkNotNull(origin);
@@ -206,6 +208,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     this.expectedFixedRef = expectedFixedRef;
     this.pinnedFixedRef = pinnedFixedRef;
     this.definitionStack = definitionStack;
+    this.definitionStackLocals = definitionStackLocals;
   }
 
   @Override
@@ -815,5 +818,18 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   @Override
   public ImmutableList<StarlarkThread.CallStackEntry> getDefinitionStack() {
     return definitionStack;
+  }
+
+  /**
+   * Returns the Starlark call stack's captured local variables for each level.
+   *
+   * <p>These are only filled if the capture-definition-stack-locals option is set on the workflow.
+   * The outer list aligns to the definition stack's order. The inner map is a mapping of local
+   * variable names to string representations of the variable values, for each level of the stack. A
+   * special variable __line_in_parent_file is also added to allow uniquely identifying each level's
+   * workflow, even if the same workflow type is used multiple times within the same config.
+   */
+  public ImmutableList<ImmutableMap<String, String>> getDefinitionStackLocals() {
+    return definitionStackLocals;
   }
 }

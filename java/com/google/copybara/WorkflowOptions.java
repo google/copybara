@@ -199,6 +199,12 @@ public class WorkflowOptions implements Option {
               + " change an existing workflow to use folder.destination")
   boolean toFolder = false;
 
+  @Parameter(
+      names = "--capture-definition-stack-locals",
+      description = "Captures local variables at each level of the Starlark definition stack.",
+      hidden = true)
+  public boolean captureDefinitionStackLocals = false;
+
   public WorkflowOptions(WorkflowOptions other) {
     this.changeBaseline = other.changeBaseline;
     this.lastRevision = other.lastRevision;

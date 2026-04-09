@@ -93,6 +93,7 @@ import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.Debug;
 import net.starlark.java.eval.Dict;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Module;
@@ -669,6 +670,23 @@ public class CoreModule implements LabelsAwareModule, StarlarkValue {
     WorkflowMode effectiveMode =
         generalOptions.squash || workflowOptions.importSameVersion ? WorkflowMode.SQUASH : mode;
 
+    ImmutableList.Builder<ImmutableMap<String, String>> localsBuilder = ImmutableList.builder();
+    if (workflowOptions.captureDefinitionStackLocals) {
+      ImmutableList<Debug.Frame> stack = Debug.getCallStack(thread);
+      for (int i = 0; i < stack.size(); i++) {
+        Debug.Frame frame = stack.get(i);
+        ImmutableMap.Builder<String, String> mapBuilder = ImmutableMap.builder();
+        for (Map.Entry<String, Object> entry : frame.getLocals().entrySet()) {
+          mapBuilder.put(entry.getKey(), String.valueOf(entry.getValue()));
+        }
+        if (i > 0) {
+          mapBuilder.put(
+              "__line_in_parent_file", String.valueOf(stack.get(i - 1).getLocation().line()));
+        }
+        localsBuilder.add(mapBuilder.buildOrThrow());
+      }
+    }
+
     Workflow<Revision, ?> workflow =
         new Workflow<>(
             workflowName,
@@ -705,7 +723,8 @@ public class CoreModule implements LabelsAwareModule, StarlarkValue {
             consistencyFilePath,
             workflowOptions.expectedFixedRef,
             workflowOptions.pinnedFixedRef,
-            thread.getCallStack());
+            thread.getCallStack(),
+            localsBuilder.build());
     Module module = Module.ofInnermostEnclosingStarlarkFunction(thread);
     registerGlobalMigration(workflowName, workflow, module);
   }
