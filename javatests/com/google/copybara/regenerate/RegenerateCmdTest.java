@@ -567,6 +567,26 @@ public class RegenerateCmdTest {
   }
 
   @Test
+  public void testConsistencyFile_generatesFile_nonMerge() throws Exception {
+    setupTarget("bar");
+    String testfile = "asdf.txt";
+    origin.singleFileChange(0, "foo description", testfile, "foo");
+    when(patchRegenerator.inferImportBaseline(any(), any()))
+        .thenReturn(Optional.of(origin.getLatestChange().asString()));
+    writeDestination("bar", testfile, "bar");
+    RegenerateCmd cmd = getCmd(getNonMergeConsistencyFileConfigString());
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()), cmd);
+
+    ExitCode exitCode = cmd.run(commandEnv);
+
+    ArgumentCaptor<Path> pathArg = ArgumentCaptor.forClass(Path.class);
+    verify(patchRegenerator).updateChange(any(), pathArg.capture(), eq(Glob.ALL_FILES), eq("bar"));
+    assertThatPath(pathArg.getValue()).containsFiles(CONSISTENCY_FILE_PATH);
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
+  }
+
+  @Test
   public void testConsistencyFile_capturesDiff() throws Exception {
     setupBaseline("foo");
     setupTarget("bar");
@@ -928,6 +948,27 @@ public class RegenerateCmdTest {
         .formatted(CONSISTENCY_FILE_PATH);
   }
 
+  private String getNonMergeConsistencyFileConfigString() {
+    return """
+    core.workflow(
+        name = 'default',
+        origin = testing.origin(),
+        origin_files = glob(['**']),
+        destination = testing.destination(),
+        mode = 'SQUASH',
+        authoring = authoring.pass_thru('example <example@example.com>'),
+        consistency_file_path = "%s",
+        autopatch_config = core.autopatch_config(
+          header = '# header',
+          directory_prefix = '',
+          directory = 'AUTOPATCH',
+          suffix = '.patch'
+        ),
+    )\
+    """
+        .formatted(CONSISTENCY_FILE_PATH);
+  }
+
   private void clearDir(Path dir) throws IOException {
     FileUtil.deleteRecursively(dir);
     Files.createDirectories(dir);
@@ -949,48 +990,6 @@ public class RegenerateCmdTest {
     return destinationRoot.resolve(name);
   }
 
-  @Test
-  public void testRegenerate_nonMergeImport_preservesConsistencyFile() throws Exception {
-    setupFooOriginImport(); // This creates "foo.txt" in origin
-    when(patchRegenerator.inferImportBaseline(any(), any()))
-        .thenReturn(Optional.of(origin.getLatestChange().asString()));
-    String destRef = "target";
-    setupTarget(destRef);
-    // Initial state with a consistency file
-    String consistencyContent = "===BASELINE===";
-    // Path relative to destination root for this test
-    String consistencyFilePath = CONSISTENCY_FILE_PATH;
-    writeDestination(destRef, consistencyFilePath, consistencyContent);
-    // Simulate foo.txt being in the destination from a previous import
-    writeDestination(destRef, "foo.txt", "foo");
-    String config =
-        """
-        core.workflow(
-            name = 'default',
-            origin = testing.origin(),
-            origin_files = glob(['**']),
-            destination = testing.destination(),
-            mode = 'SQUASH',
-            authoring = authoring.pass_thru('example <example@example.com>'),
-            consistency_file_path = '%s'
-        )
-        """
-            .formatted(consistencyFilePath);
-    RegenerateCmd cmd = getCmd(config);
-    CommandEnv commandEnv =
-        prepAndGetCommandEnv(ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()), cmd);
-
-    ExitCode exitCode = cmd.run(commandEnv);
-
-    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
-    // Verify the consistency file was copied into the workdir passed to updateChange
-    ArgumentCaptor<Path> pathArg = ArgumentCaptor.forClass(Path.class);
-    verify(patchRegenerator).updateChange(any(), pathArg.capture(), any(), eq(destRef));
-    // Assert content in the workdir
-    assertThat(Files.readString(pathArg.getValue().resolve(consistencyFilePath)))
-        .isEqualTo(consistencyContent);
-    assertThat(Files.readString(pathArg.getValue().resolve("foo.txt"))).isEqualTo("foo");
-  }
 
   @Test
   public void testAbsoluteConfigPathTruncation() throws Exception {
