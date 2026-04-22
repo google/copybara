@@ -57,6 +57,7 @@ import com.google.copybara.util.CommandRunner;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.RepositoryUtil;
+import com.google.copybara.util.ScpUtil;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.copybara.shell.Command;
@@ -114,9 +115,7 @@ public class GitRepository {
   private static final Pattern DEFAULT_BRANCH_PATTERN =
       Pattern.compile("(?s)ref: (refs/heads/(\\w+)).*");
 
-  // Pattern for matching SCP-like URLs, such as [user@]host:path.
-  private static final Pattern SCP_URI_PATTERN =
-      Pattern.compile("^(?:([a-z][a-z0-9+-]+)@)?([a-zA-Z0-9_.-]+):([^/].*|/|/[^/].*)$");
+
 
   // Pattern for matching URLs with a scheme, such as http:// or rpc://.
   private static final Pattern URL_WITH_SCHEME_PATTERN =
@@ -1702,12 +1701,12 @@ public class GitRepository {
   private String resolveRelativeUrl(
       String currentRemoteUrl, String submoduleName, String relativeUrl) throws RepoException {
     // Check if the remote URL is an SCP-like URL (e.g., git@github.com:foo/bar.git).
-    Matcher scpMatcher = SCP_URI_PATTERN.matcher(currentRemoteUrl);
-    if (scpMatcher.matches()) {
+    Optional<ScpUtil.ScpUrl> scpUrl = ScpUtil.parseScpUrl(currentRemoteUrl);
+    if (scpUrl.isPresent()) {
       return resolveRelativeScpUrl(
-          /* user= */ scpMatcher.group(1), // can be null
-          /* host= */ scpMatcher.group(2),
-          /* path= */ scpMatcher.group(3),
+          /* user= */ scpUrl.get().user(), // can be null
+          /* host= */ scpUrl.get().host(),
+          /* path= */ scpUrl.get().path(),
           submoduleName,
           relativeUrl);
     } else {
