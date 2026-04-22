@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Google Inc.
+ * Copyright (C) 2023 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -92,7 +92,7 @@ public class GoProxyVersionResolver implements VersionResolver {
                             "Failed to assemble url template with provided assembly strategy."
                                 + " Provided ref = '%s' and resolved version = '%s'.",
                             ref, version)));
-    RemoteArchiveVersion remoteArchiveVersion = new RemoteArchiveVersion(fullUrl, ref);
+    RemoteArchiveVersion remoteArchiveVersion = new RemoteArchiveVersion(fullUrl, version);
     return new RemoteArchiveRevision(remoteArchiveVersion);
   }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Google Inc.
+ * Copyright (C) 2023 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -221,7 +221,7 @@ public class GoProxyVersioningTest {
             String.format(
                 "https://proxy.golang.org/github.com/google/example/@v/%s.zip",
                 expectedUrlVersion));
-    assertThat(revision.asString()).isEqualTo(ref);
+    assertThat(revision.asString()).isEqualTo(expectedUrlVersion);
   }
 
   @Test
