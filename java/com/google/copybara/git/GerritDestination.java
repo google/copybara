@@ -270,23 +270,51 @@ public final class GerritDestination implements Destination<GitRevision> {
     }
 
     @Nullable
-    private  ChangeInfo findChange(String changeId) throws ValidationException, RepoException {
-      List<ChangeInfo> changes =
-          findChanges(
-              changeId,
-              ImmutableList.of(IncludeResult.CURRENT_REVISION, IncludeResult.SUBMITTABLE));
-      if (changes.isEmpty()) {
-        return null;
+    private ChangeInfo findChange(String changeId) throws ValidationException, RepoException {
+      return findChange(changeId, 1);
+    }
+
+    @Nullable
+    private ChangeInfo findChange(String changeId, int attempts)
+        throws ValidationException, RepoException {
+      int currentAttempt = 0;
+      long delayMs = 1000;
+      while (currentAttempt < attempts) {
+        List<ChangeInfo> changes =
+            findChanges(
+                changeId,
+                ImmutableList.of(IncludeResult.CURRENT_REVISION, IncludeResult.SUBMITTABLE));
+        if (!changes.isEmpty()) {
+          return changes.get(0);
+        }
+
+        currentAttempt++;
+        if (currentAttempt < attempts) {
+          console.warnFmt(
+              "Gerrit change %s not found (Attempt %d/%d). Retrying in %d ms... See b/472404588"
+                  + " for context.",
+              changeId, currentAttempt, attempts, delayMs);
+          try {
+            Thread.sleep(delayMs);
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RepoException("Interrupted during retry", e);
+          }
+          delayMs *= 2;
+        }
       }
-      ChangeInfo changeInfo = changes.get(0);
-      return changeInfo;
+      return null;
     }
 
     private void submitChange(String changeId)
         throws RepoException, ValidationException {
       try (ProfilerTask ignore = generalOptions.profiler().start("submit_gerrit_change")) {
-        ChangeInfo changeInfo = findChange(changeId);
+        int attempts = 3;
+        ChangeInfo changeInfo = findChange(changeId, attempts);
         if (changeInfo == null) {
+          console.warnFmt(
+              "Gerrit change %s still not found after %d attempts. Skipping submit.",
+              changeId, attempts);
           return;
         }
         GerritApi gerritApi = gerritOptions.newGerritApi(repoUrl);

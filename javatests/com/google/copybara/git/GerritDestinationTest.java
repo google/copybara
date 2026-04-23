@@ -198,7 +198,8 @@ public class GerritDestinationTest {
                 primary_branch_migration = %s,
                 %s
                 %s
-            )""",
+            )\
+            """,
             url,
             fetch,
             primaryBranchMigration,
@@ -1036,6 +1037,98 @@ public class GerritDestinationTest {
     assertThat(result.get(0).getErrors()).isEmpty();
     assertThat(submitCalled.get()).isFalse();
     assertThat(reviewCalled.get()).isFalse();
+
+    boolean retry1 =
+        console.getMessages().stream()
+            .anyMatch(m -> m.getText().contains("(Attempt 1/3). Retrying in 1000 ms..."));
+    boolean retry2 =
+        console.getMessages().stream()
+            .anyMatch(m -> m.getText().contains("(Attempt 2/3). Retrying in 2000 ms..."));
+    boolean fail =
+        console.getMessages().stream()
+            .anyMatch(
+                m -> m.getText().contains("still not found after 3 attempts. Skipping submit."));
+
+    assertThat(retry1).isTrue();
+    assertThat(retry2).isTrue();
+    assertThat(fail).isTrue();
+  }
+
+  @Test
+  public void gerritSubmit_retrySuccess() throws Exception {
+    options.gerrit.gerritChangeId = null;
+    fetch = "master";
+    writeFile(workdir, "file", "some content");
+    url = BASE_URL + "/foo/bar";
+    repoGitDir = gitUtil.mockRemoteRepo("user:SECRET@copybara-not-real.com/foo/bar").getGitDir();
+
+    gitUtil.mockApi(
+        eq("GET"),
+        startsWith(BASE_URL + "/changes/"),
+        mockResponse("[]"),
+        mockResponse("[]"),
+        mockResponse(
+            "["
+                + "{"
+                + "  \"change_id\" : \"Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd\","
+                + "  \"status\" : \"NEW\""
+                + "}]"));
+
+    AtomicBoolean submitCalled = new AtomicBoolean(false);
+    AtomicBoolean reviewCalled = new AtomicBoolean(false);
+    gitUtil.mockApi(
+        eq("POST"),
+        matches(BASE_URL + "/changes/.*/revisions/.*/review"),
+        mockResponseAndValidateRequest(
+            "{\"labels\": { \"Code-Review\": 2}}",
+            new MockRequestAssertion(
+                "Always true with side-effect",
+                s -> {
+                  reviewCalled.set(true);
+                  return true;
+                })));
+
+    gitUtil.mockApi(
+        eq("POST"),
+        matches(BASE_URL + "/changes/.*/submit"),
+        mockResponseAndValidateRequest(
+            "{"
+                + "  \"change_id\" : \"Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd\","
+                + "  \"status\" : \"submitted\""
+                + "}",
+            new MockRequestAssertion(
+                "Always true with side-effect",
+                s -> {
+                  submitCalled.set(true);
+                  return true;
+                })));
+
+    options.setForce(true);
+    DummyRevision originRef = new DummyRevision("origin_ref");
+    GerritDestination destination = destination("submit = True", "gerrit_submit = True");
+    Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
+    WriterContext writerContext =
+        new WriterContext(
+            "GerritDestinationTest", "test", false, originRef, Glob.ALL_FILES.roots());
+    List<DestinationEffect> result =
+        destination
+            .newWriter(writerContext)
+            .write(
+                TransformResults.of(workdir, originRef)
+                    .withSummary("Test message")
+                    .withIdentity(originRef.asString()),
+                glob,
+                console);
+
+    assertThat(reviewCalled.get()).isTrue();
+    assertThat(submitCalled.get()).isTrue();
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getErrors()).isEmpty();
+
+    boolean retry1 =
+        console.getMessages().stream()
+            .anyMatch(m -> m.getText().contains("(Attempt 1/3). Retrying in 1000 ms..."));
+    assertThat(retry1).isTrue();
   }
 
   @Test
