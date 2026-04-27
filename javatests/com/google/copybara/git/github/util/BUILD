@@ -23,6 +23,7 @@ all_tests(
     name = "all_tests",
     tests = [
         "GitHubHostTest.java",
+        "GitHubIdentifierTest.java",
         "GitHubUtilTest.java",
     ],
     deps = [
