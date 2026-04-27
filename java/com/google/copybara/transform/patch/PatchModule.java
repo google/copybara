@@ -176,9 +176,8 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
               + " `series` file in order. Currently, all patch files and the `series` file must"
               + " reside in a \"patches\" sub-directory under the directory where the"
               + " patches are applied (the root directory by default, or the directory"
-              + " specified by the `directory` parameter). This means it has the"
-              + " limitation that the migrated code itself cannot contain a directory"
-              + " with the name \"patches\" in that location.",
+              + " specified by the `directory` parameter). If a \"patches\" directory already"
+              + " exists, Copybara will log a warning and overwrite conflicting files.",
       parameters = {
         @Param(
             name = "series",

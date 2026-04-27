@@ -181,9 +181,8 @@ public final class QuiltTransformationTest {
         .containsNoMoreFiles();
   }
 
-  /** Running quilt twice is currently not possible, but should have a readable error message. */
   @Test
-  public void transformationUpdatePatchTest_twiceThrowsException() throws Exception {
+  public void transformationUpdatePatchTest_twiceWarnsAndSucceeds() throws Exception {
     Files.write(checkoutDir.resolve("file1.txt"), "new line\n\nline1\nfoo\nline3".getBytes(UTF_8));
     Files.write(checkoutDir.resolve("file2.txt"), "bar\n".getBytes(UTF_8));
     QuiltTransformation transform =
@@ -195,11 +194,65 @@ public final class QuiltTransformationTest {
             /* directory= */ "",
             Location.BUILTIN);
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
-    ValidationException e =
-        assertThrows(
-            ValidationException.class,
-            () -> transform.transform(TransformWorks.of(checkoutDir, "testmsg", console)));
-    assertThat(e).hasMessageThat().contains("Destination already has a 'patches' directory");
+
+    // Reset files before second run to allow patches to apply again.
+    Files.write(checkoutDir.resolve("file1.txt"), "new line\n\nline1\nfoo\nline3".getBytes(UTF_8));
+    Files.write(checkoutDir.resolve("file2.txt"), "bar\n".getBytes(UTF_8));
+
+    // Second run
+    transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
+
+    console
+        .assertThat()
+        .onceInLog(
+            com.google.copybara.util.console.Message.MessageType.WARNING,
+            ".*Destination already has a 'patches' directory.*");
+  }
+
+  @Test
+  public void transformationWarnsAndReplacesDestinationPatches() throws Exception {
+    Files.write(checkoutDir.resolve("file1.txt"), "new line\n\nline1\nfoo\nline3".getBytes(UTF_8));
+    Files.write(checkoutDir.resolve("file2.txt"), "bar\n".getBytes(UTF_8));
+
+    Path patchesDir = checkoutDir.resolve("patches");
+    Files.createDirectories(patchesDir);
+    Files.write(patchesDir.resolve("series"), "stale_series".getBytes(UTF_8));
+    Files.write(patchesDir.resolve("stale.patch"), "stale_content".getBytes(UTF_8));
+    Files.write(patchesDir.resolve("diff.patch"), "old_diff_content".getBytes(UTF_8));
+
+    QuiltTransformation transform =
+        new QuiltTransformation(
+            Optional.of(seriesFile),
+            ImmutableList.of(patchFile),
+            patchingOptions,
+            /* reverse= */ false,
+            /* directory= */ "",
+            Location.BUILTIN);
+    transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
+
+    console
+        .assertThat()
+        .onceInLog(
+            com.google.copybara.util.console.Message.MessageType.WARNING,
+            ".*Destination already has a 'patches' directory.*");
+
+    // Verify that stale files are NOT deleted
+    assertThat(Files.exists(patchesDir.resolve("stale.patch"))).isTrue();
+    assertThat(new String(Files.readAllBytes(patchesDir.resolve("stale.patch")), UTF_8))
+        .isEqualTo("stale_content");
+
+    // Verify that new files are written
+    assertThat(Files.exists(patchesDir.resolve("series"))).isTrue();
+    String seriesContent = new String(Files.readAllBytes(patchesDir.resolve("series")), UTF_8);
+    assertThat(seriesContent).contains("diff.patch");
+    assertThat(seriesContent).doesNotContain("stale_series");
+    assertThat(seriesContent).isEqualTo(SERIES);
+
+    // Verify that diff.patch is replaced with a new version
+    assertThat(new String(Files.readAllBytes(patchesDir.resolve("diff.patch")), UTF_8))
+        .isNotEqualTo("old_diff_content");
+    assertThat(new String(Files.readAllBytes(patchesDir.resolve("diff.patch")), UTF_8))
+        .contains("file1.txt");
   }
 
   @Test

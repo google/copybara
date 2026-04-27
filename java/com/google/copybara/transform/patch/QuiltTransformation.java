@@ -33,7 +33,6 @@ import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -79,6 +78,12 @@ public final class QuiltTransformation implements Transformation {
     boolean verbose = options.getGeneralOptions().isVerbose();
     Path checkoutDir = work.getCheckoutDir().resolve(directory);
     work.getConsole().infoFmt("Applying and updating patches with quilt.");
+
+    Path patchesDir = checkoutDir.resolve("patches");
+    if (Files.exists(patchesDir)) {
+      work.getConsole().warnFmt("Destination already has a 'patches' directory. Replacing files.");
+    }
+
     // "quilt import <patch_path>" only works for a local path, so we copy the patch config files
     // to a local temp directory first.
     ImmutableList<Path> patches = copyPatchConfigsToTmpDir();
@@ -189,22 +194,8 @@ public final class QuiltTransformation implements Transformation {
 
     // Creates and checks for necessary directories.
     Path patchesDir = checkoutDir.resolve("patches");
-    // Fails if "patches" already exists.
-    try {
-      Files.createDirectory(patchesDir);
-    } catch (FileAlreadyExistsException e) {
-      throw new ValidationException(
-          String.format(
-              "Destination already has a 'patches' directory - was the quilt transform %s run"
-                  + " twice?: %s",
-              location(), e.getMessage()));
-    }
-    try {
-      Files.createFile(patchesDir.resolve("series"));
-    } catch (FileAlreadyExistsException e) {
-      throw new ValidationException(
-          String.format("Destination already has a 'patches/series' file: %s", e.getMessage()));
-    }
+    Files.createDirectories(patchesDir);
+    Files.write(patchesDir.resolve("series"), new byte[0]);
     Path pcDir = checkoutDir.resolve(".pc");
     if (Files.exists(pcDir)) {
       try {
@@ -222,6 +213,8 @@ public final class QuiltTransformation implements Transformation {
       Path checkoutDir, ImmutableList<Path> patches, Map<String, String> env, boolean verbose)
       throws IOException, ValidationException {
     for (Path patch : patches) {
+      Path targetPatch = checkoutDir.resolve("patches").resolve(patch.getFileName());
+      Files.deleteIfExists(targetPatch);
       runQuiltCommand(checkoutDir, env, verbose, "import", patch.toString());
       runQuiltCommand(checkoutDir, env, verbose, "push");
       runQuiltCommand(checkoutDir, env, verbose, "refresh");
