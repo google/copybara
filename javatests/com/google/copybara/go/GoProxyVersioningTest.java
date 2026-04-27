@@ -38,7 +38,8 @@ import com.google.testing.junit.testparameterinjector.TestParameterInjector;
 import com.google.testing.junit.testparameterinjector.TestParameters;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.Before;
@@ -61,9 +62,12 @@ public class GoProxyVersioningTest {
   public GoProxyVersioningTest() {}
 
   private void setUpMockTransportForSkylarkExecutor(Map<String, String> urlToContent)
-      throws IOException, CredentialRetrievalException, CredentialIssuingException {
+      throws IOException,
+          CredentialRetrievalException,
+          CredentialIssuingException,
+          URISyntaxException {
     for (Map.Entry<String, String> pair : urlToContent.entrySet()) {
-      when(transport.open(new URL(pair.getKey()), null))
+      when(transport.open(new URI(pair.getKey()).toURL(), null))
           .thenReturn(new ByteArrayInputStream(pair.getValue().getBytes(UTF_8)));
     }
     options.transport = () -> transport;
@@ -158,7 +162,8 @@ public class GoProxyVersioningTest {
             """
             {"Version":"v0.5.9","Time":"2022-10-02T22:41:56Z","Origin":{"VCS":"git",
             "URL":"https://github.com/google/example","Ref":"refs/tags/v0.5.9",
-            "Hash":"a97318bf6562f1ed2632c5f985db51b1ac5bdcd0"}}"""));
+            "Hash":"a97318bf6562f1ed2632c5f985db51b1ac5bdcd0"}}\
+            """));
     VersionList versionList =
         skylark.eval(
             "version_list",
@@ -179,7 +184,8 @@ public class GoProxyVersioningTest {
             """
             {"Version":"v0.5.9","Time":"2022-10-02T22:41:56Z","Origin":{"VCS":"git",
             "URL":"https://github.com/google/example","Ref":"refs/tags/v0.5.9",
-            "Hash":"a97318bf6562f1ed2632c5f985db51b1ac5bdcd0"}}"""));
+            "Hash":"a97318bf6562f1ed2632c5f985db51b1ac5bdcd0"}}\
+            """));
     VersionResolver versionResolver =
         skylark.eval(
             "version_resolver",
@@ -225,6 +231,44 @@ public class GoProxyVersioningTest {
   }
 
   @Test
+  public void testGoProxyVersionResolver_resolvePseudoVersionWithoutV() throws Exception {
+    String pseudoVersion = "1.2.7-0.20230323103634-1ea6034796e9";
+    String prefixedPseudoVersion = "v" + pseudoVersion;
+    String infoUrl =
+        "https://proxy.golang.org/github.com/google/example/@v/" + pseudoVersion + ".info";
+    String prefixedInfoUrl =
+        "https://proxy.golang.org/github.com/google/example/@v/" + prefixedPseudoVersion + ".info";
+
+    // Mock the first .info call to fail (e.g. 404)
+    when(transport.open(new URI(infoUrl).toURL(), null)).thenThrow(new IOException("Not Found"));
+
+    setUpMockTransportForSkylarkExecutor(
+        ImmutableMap.of(
+            "https://proxy.golang.org/github.com/google/example/@v/list",
+            "",
+            "https://proxy.golang.org/github.com/google/example/@latest",
+            "",
+            prefixedInfoUrl,
+            String.format(
+                "{\"Version\":\"%s\",\"Time\":\"2023-03-23T10:36:34Z\"}", prefixedPseudoVersion)));
+
+    VersionResolver versionResolver =
+        skylark.eval(
+            "version_resolver",
+            "version_resolver = go.go_proxy_resolver(module='github.com/google/example')");
+
+    Revision revision =
+        versionResolver.resolve(
+            pseudoVersion,
+            (version) ->
+                Optional.of(
+                    String.format(
+                        "https://proxy.golang.org/github.com/google/example/@v/%s.zip", version)));
+
+    assertThat(revision.asString()).isEqualTo(prefixedPseudoVersion);
+  }
+
+  @Test
   public void testGoProxyVersionList_getInfoQuery_withRef() throws Exception {
     setUpMockTransportForSkylarkExecutor(
         ImmutableMap.of(
@@ -236,7 +280,8 @@ public class GoProxyVersioningTest {
             """
             {"Version":"v0.5.9","Time":"2022-10-02T22:41:56Z","Origin":{"VCS":"git",
             "URL":"https://github.com/google/example","Ref":"refs/tags/v0.5.9",
-            "Hash":"a97318bf6562f1ed2632c5f985db51b1ac5bdcd0"}}"""));
+            "Hash":"a97318bf6562f1ed2632c5f985db51b1ac5bdcd0"}}\
+            """));
     GoVersionObject versionObj =
         skylark.eval(
             "version_object",
@@ -259,7 +304,8 @@ public class GoProxyVersioningTest {
             """
             {"Version":"v0.5.9","Time":"2022-10-02T22:41:56Z","Origin":{"VCS":"git",
             "URL":"https://github.com/google/example","Ref":"refs/tags/v0.5.9",
-            "Hash":"a97318bf6562f1ed2632c5f985db51b1ac5bdcd0"}}"""));
+            "Hash":"a97318bf6562f1ed2632c5f985db51b1ac5bdcd0"}}\
+            """));
     // Since we don't have a ref defined, we query latest.
     GoVersionObject versionObject =
         skylark.eval(
@@ -283,7 +329,8 @@ public class GoProxyVersioningTest {
             """
             {"Version":"v0.5.9","Time":"2022-10-02T22:41:56Z","Origin":{"VCS":"git",
             "URL":"https://github.com/google/example","Ref":"refs/tags/v0.5.9",
-            "Hash":"a97318bf6562f1ed2632c5f985db51b1ac5bdcd0"}}"""));
+            "Hash":"a97318bf6562f1ed2632c5f985db51b1ac5bdcd0"}}\
+            """));
     // We query using the ref passed into get_info.
     GoVersionObject versionObject =
         skylark.eval(

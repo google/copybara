@@ -45,6 +45,25 @@ public class GoProxyVersionResolver implements VersionResolver {
     this.auth = auth;
   }
 
+  private String resolveFromVersionList(String ref) throws ValidationException {
+    ImmutableSet<String> versions =
+        GoProxyVersionList.forVersion(module, remoteFileOptions, auth).list();
+    // Go proxy list endpoint only returns versions with a "v" prefix.
+    // Optimistically add "v" to ref if absent and before trying resolve it as a version.
+    String proxyRef = ref.startsWith("v") ? ref : "v" + ref;
+    if (versions.contains(proxyRef)) {
+      return proxyRef;
+    }
+    throw new CannotResolveRevisionException(
+        String.format(
+            "Failed to resolve ref '%s' as a version. Available versions: %s", ref, versions));
+  }
+
+  private String resolveFromInfo(String ref) throws ValidationException {
+    return Iterables.getOnlyElement(
+        GoProxyVersionList.forInfo(module, ref, remoteFileOptions, auth).list());
+  }
+
   /**
    * Will try to load go proxy version that the {@code ref} points to in go proxy. First with ref as
    * a version literal and if that does not work then try to resolve it as a .info reference.
@@ -53,21 +72,19 @@ public class GoProxyVersionResolver implements VersionResolver {
    */
   private String resolve(String ref) throws ValidationException {
     try {
-      // try to resolve as version.
-      ImmutableSet<String> version =
-          GoProxyVersionList.forVersion(module, remoteFileOptions, auth).list();
-      // Go proxy expects a "v" prefix for versions. Optimistically add "v" to ref if absent and try
-      // to resolve it as a version.
-      String proxyRef = ref.startsWith("v") ? ref : "v" + ref;
-      if (!version.contains(proxyRef)) {
-        throw new CannotResolveRevisionException(
-            String.format("Could not locate version with ref '%s' as a version.", ref));
-      }
-      return proxyRef;
+      return resolveFromVersionList(ref);
     } catch (ValidationException e) {
-      // Darn, it failed, try to resolve as .info
-      return Iterables.getOnlyElement(
-          GoProxyVersionList.forInfo(module, ref, remoteFileOptions, auth).list());
+      // Failed to resolve ref as a version. Ref could be a pseudo-version or branch/commit hash.
+      // trying to resolve via .info.
+    }
+    try {
+      return resolveFromInfo(ref);
+    } catch (ValidationException e) {
+      // Failed to resolve ref as a .info reference. Check for missing "v" prefix and try again.
+      if (!ref.startsWith("v")) {
+        return resolveFromInfo("v" + ref);
+      }
+      throw e;
     }
   }
 
