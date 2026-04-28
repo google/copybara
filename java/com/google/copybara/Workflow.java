@@ -763,11 +763,11 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     return smartPrune;
   }
 
-  boolean isMergeImport() {
+  public boolean isMergeImport() {
     return mergeImport != null;
   }
 
-  MergeImportConfiguration getMergeImport() {
+  public MergeImportConfiguration getMergeImport() {
     return mergeImport;
   }
 
