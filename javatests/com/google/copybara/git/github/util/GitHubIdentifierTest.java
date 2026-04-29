@@ -28,6 +28,24 @@ import org.junit.runners.JUnit4;
 public final class GitHubIdentifierTest {
 
   @Test
+  public void testApiUrl_githubDotCom() {
+    String githubDotComUrl = "https://github.com/ownername/reponame";
+
+    GitHubIdentifier identifier = GitHubIdentifier.create(githubDotComUrl);
+
+    assertThat(identifier.getApiUrl()).isEqualTo("https://api.github.com");
+  }
+
+  @Test
+  public void testApiUrl_githubEnterprise() {
+    String ghesUrl = "https://depot.code.corp.goog/ownername/reponame";
+
+    GitHubIdentifier identifier = GitHubIdentifier.create(ghesUrl);
+
+    assertThat(identifier.getApiUrl()).isEqualTo("https://depot.code.corp.goog/api/v3");
+  }
+
+  @Test
   public void testValidUrl() {
     String url = "https://github.com/ownername/reponame";
 

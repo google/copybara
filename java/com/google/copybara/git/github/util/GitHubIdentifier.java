@@ -35,11 +35,18 @@ import java.util.List;
  * representation.
  */
 public final class GitHubIdentifier {
+
+  private static final String GITHUB_DOT_COM_API_URL = "https://api.github.com";
+  private static final String GITHUB_DOT_COM_HOST_NAME = "github.com";
+
+  private final String apiUrl;
   private final String hostName;
   private final String ownerOrOrganizationName;
   private final String repoName;
 
-  private GitHubIdentifier(String hostName, String ownerOrOrganizationName, String repoName) {
+  private GitHubIdentifier(
+      String apiUrl, String hostName, String ownerOrOrganizationName, String repoName) {
+    this.apiUrl = apiUrl;
     this.hostName = hostName;
     this.ownerOrOrganizationName = ownerOrOrganizationName;
     this.repoName = repoName;
@@ -82,10 +89,11 @@ public final class GitHubIdentifier {
         path,
         url);
 
+    String apiUrl = determineApiUrl(hostName);
     String ownerOrOrganizationName = pathParts.get(0);
     String repoName = pathParts.get(1);
 
-    return new GitHubIdentifier(hostName, ownerOrOrganizationName, repoName);
+    return new GitHubIdentifier(apiUrl, hostName, ownerOrOrganizationName, repoName);
   }
 
   private static final ImmutableList<String> LEGACY_PREFIXES =
@@ -104,6 +112,10 @@ public final class GitHubIdentifier {
       }
     }
     return url;
+  }
+
+  public String getApiUrl() {
+    return apiUrl;
   }
 
   /**
@@ -138,5 +150,14 @@ public final class GitHubIdentifier {
   /** Returns the path in the format "owner/repo". */
   public String getPath() {
     return ownerOrOrganizationName + "/" + repoName;
+  }
+
+  private static String determineApiUrl(String hostName) {
+    // GitHub.com has a unique API URL.
+    // GitHub Enterprise instances have a specific format of API URL.
+    if (hostName.equals(GITHUB_DOT_COM_HOST_NAME)) {
+      return GITHUB_DOT_COM_API_URL;
+    }
+    return "https://" + hostName + "/api/v3";
   }
 }
