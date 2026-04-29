@@ -34,6 +34,9 @@ import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import static org.junit.Assert.assertThrows;
+
+import com.google.copybara.exception.ValidationException;
 import net.starlark.java.syntax.Location;
 import org.junit.Before;
 import org.junit.Test;
@@ -306,5 +309,36 @@ public class PatchTransformationTest {
             /* directory= */ "",
             Location.BUILTIN);
     assertThat(transform.describe()).isEqualTo("Patch.apply: diff.patch, diff.patch");
+  }
+
+  @Test
+  public void testGetPatchesDirPath() throws Exception {
+    // Valid cases
+    assertThat(PatchModule.getPatchesDirPath("series")).isEqualTo("");
+    assertThat(PatchModule.getPatchesDirPath("foo/series")).isEqualTo("foo");
+    assertThat(PatchModule.getPatchesDirPath("foo/bar/series")).isEqualTo("foo/bar");
+
+    // Absolute path
+    ValidationException e1 =
+        assertThrows(ValidationException.class, () -> PatchModule.getPatchesDirPath("/foo/series"));
+    assertThat(e1).hasMessageThat().contains("path must be relative");
+
+    // Dot component
+    ValidationException e2 =
+        assertThrows(ValidationException.class, () -> PatchModule.getPatchesDirPath("./foo"));
+    assertThat(e2).hasMessageThat().contains("path has unexpected . or .. components");
+
+    ValidationException e3 =
+        assertThrows(ValidationException.class, () -> PatchModule.getPatchesDirPath("foo/./bar"));
+    assertThat(e3).hasMessageThat().contains("path has unexpected . or .. components");
+
+    // Dot dot component
+    ValidationException e4 =
+        assertThrows(ValidationException.class, () -> PatchModule.getPatchesDirPath("../foo"));
+    assertThat(e4).hasMessageThat().contains("path has unexpected . or .. components");
+
+    ValidationException e5 =
+        assertThrows(ValidationException.class, () -> PatchModule.getPatchesDirPath("foo/../bar"));
+    assertThat(e5).hasMessageThat().contains("path has unexpected . or .. components");
   }
 }

@@ -56,6 +56,7 @@ public final class QuiltTransformation implements Transformation {
   private final boolean reverse;
   private final String directory;
   private final Location location;
+  private final String patchesDirName;
 
   QuiltTransformation(
       Optional<ConfigFile> series,
@@ -63,13 +64,15 @@ public final class QuiltTransformation implements Transformation {
       PatchingOptions options,
       boolean reverse,
       String directory,
-      Location location) {
+      Location location,
+      String patchesDirName) {
     this.series = series;
     this.patchConfigs = patches;
     this.options = options;
     this.reverse = reverse;
     this.directory = checkNotNull(directory);
     this.location = checkNotNull(location);
+    this.patchesDirName = checkNotNull(patchesDirName);
   }
 
   @Override
@@ -78,12 +81,11 @@ public final class QuiltTransformation implements Transformation {
     boolean verbose = options.getGeneralOptions().isVerbose();
     Path checkoutDir = work.getCheckoutDir().resolve(directory);
     work.getConsole().infoFmt("Applying and updating patches with quilt.");
-
-    Path patchesDir = checkoutDir.resolve("patches");
+    Path patchesDir = checkoutDir.resolve(patchesDirName);
     if (Files.exists(patchesDir)) {
-      work.getConsole().warnFmt("Destination already has a 'patches' directory. Replacing files.");
+      work.getConsole()
+          .warnFmt("Destination already has a '%s' directory. Replacing files.", patchesDirName);
     }
-
     // "quilt import <patch_path>" only works for a local path, so we copy the patch config files
     // to a local temp directory first.
     ImmutableList<Path> patches = copyPatchConfigsToTmpDir();
@@ -96,7 +98,8 @@ public final class QuiltTransformation implements Transformation {
 
   @Override
   public Transformation reverse() {
-    return new QuiltTransformation(series, patchConfigs, options, !reverse, directory, location);
+    return new QuiltTransformation(
+        series, patchConfigs, options, !reverse, directory, location, patchesDirName);
   }
 
   @Override
@@ -164,14 +167,17 @@ public final class QuiltTransformation implements Transformation {
   private ImmutableMap<String, String> initializeQuilt(Path checkoutDir, Map<String, String> env)
       throws ValidationException, IOException {
     // Creates quiltrc file and sets up QUILTRC environment variable.
-    ImmutableMap<String, String> quiltOptions = ImmutableMap.of(
-      "QUILT_NO_DIFF_TIMESTAMPS", "1",
-      "QUILT_DIFF_OPTS", "--show-c-function",
-      // Uses the "-p ab" format in order to keep patch files' content independent of the parent
-      // directory's name.
-      "QUILT_DIFF_ARGS", "-p ab --no-index",
-      "QUILT_REFRESH_ARGS", "-p ab --no-index",
-      "QUILT_PATCHES_PREFIX", "yes");
+    ImmutableMap<String, String> quiltOptions =
+        ImmutableMap.<String, String>builder()
+            .put("QUILT_NO_DIFF_TIMESTAMPS", "1")
+            .put("QUILT_DIFF_OPTS", "--show-c-function")
+            // Uses the "-p ab" format in order to keep patch files' content independent of the
+            // parent directory's name.
+            .put("QUILT_DIFF_ARGS", "-p ab --no-index")
+            .put("QUILT_REFRESH_ARGS", "-p ab --no-index")
+            .put("QUILT_PATCHES_PREFIX", "yes")
+            .put("QUILT_PATCHES", patchesDirName)
+            .buildOrThrow();
     // It overwrites any existing copybara.quiltrc file, which is OK because it is in the
     // temporary directory and its content is always the same.
     Path quilrcPath = options.getGeneralOptions().getDirFactory().getTmpRoot().resolve(
@@ -193,7 +199,7 @@ public final class QuiltTransformation implements Transformation {
     envBuilder.put("QUILTRC", quilrcPath.toRealPath().toString());
 
     // Creates and checks for necessary directories.
-    Path patchesDir = checkoutDir.resolve("patches");
+    Path patchesDir = checkoutDir.resolve(patchesDirName);
     Files.createDirectories(patchesDir);
     Files.write(patchesDir.resolve("series"), new byte[0]);
     Path pcDir = checkoutDir.resolve(".pc");
@@ -213,7 +219,7 @@ public final class QuiltTransformation implements Transformation {
       Path checkoutDir, ImmutableList<Path> patches, Map<String, String> env, boolean verbose)
       throws IOException, ValidationException {
     for (Path patch : patches) {
-      Path targetPatch = checkoutDir.resolve("patches").resolve(patch.getFileName());
+      Path targetPatch = checkoutDir.resolve(patchesDirName).resolve(patch.getFileName());
       Files.deleteIfExists(targetPatch);
       runQuiltCommand(checkoutDir, env, verbose, "import", patch.toString());
       runQuiltCommand(checkoutDir, env, verbose, "push");
@@ -224,8 +230,10 @@ public final class QuiltTransformation implements Transformation {
   private void restoreSeriesAndCleanup(Path checkoutDir) throws IOException {
     // Restores the original "series" file.
     try {
-      Files.write(checkoutDir.resolve("patches").resolve("series"),
-          series.orElseThrow(() -> new CannotResolveLabel("Cannot find series file"))
+      Files.write(
+          checkoutDir.resolve(patchesDirName).resolve("series"),
+          series
+              .orElseThrow(() -> new CannotResolveLabel("Cannot find series file"))
               .readContentBytes());
     } catch (CannotResolveLabel e) {
       throw new IOException("Error reading original 'series' file", e);

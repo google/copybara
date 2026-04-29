@@ -29,6 +29,7 @@ import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.exception.CannotResolveLabel;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.util.FileUtil;
 import java.io.IOException;
 import java.util.Optional;
 import net.starlark.java.annot.Param;
@@ -173,11 +174,12 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
               + " if they can be successfully applied with fuzz. The patch files must be included"
               + " in the destination_files glob in order to get updated. Underneath, Copybara"
               + " runs `quilt import; quilt push; quilt refresh` for each patch file in the"
-              + " `series` file in order. Currently, all patch files and the `series` file must"
-              + " reside in a \"patches\" sub-directory under the directory where the"
-              + " patches are applied (the root directory by default, or the directory"
-              + " specified by the `directory` parameter). If a \"patches\" directory already"
-              + " exists, Copybara will log a warning and overwrite conflicting files.",
+              + " `series` file in order. All patch files and the `series` file must reside in a"
+              + " sub-directory under the directory where the patches are applied (the root"
+              + " directory by default, or the directory specified by the `directory` parameter)."
+              + " All patch files should reside in the same directory as the `series` file. If the"
+              + " sub-directory already exists, Copybara will log a warning and overwrite"
+              + " conflicting files.",
       parameters = {
         @Param(
             name = "series",
@@ -187,9 +189,9 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
                 "A file which contains a list of patches to apply. It is similar to the `series`"
                     + " parameter in `patch.apply` transformation, and is required for Quilt."
                     + " Patches listed in this file will be applied relative to the checkout dir,"
-                    + " and the leading path component is stripped via the `-p1` flag. Currently"
-                    + " this file should be the `patches/series` file in the directory where"
-                    + " the patches are applied."),
+                    + " and the leading path component is stripped via the `-p ab` flag. The"
+                    + " parent directory of this file is used as the output directory for Quilt"
+                    + " modified patch files."),
         @Param(
             name = "directory",
             named = true,
@@ -231,8 +233,9 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
     ImmutableList.Builder<ConfigFile> builder = ImmutableList.builder();
     Optional<ConfigFile> seriesFile = parseSeries(series, builder);
     if (patchingOptions.validateOnLoad) {
-      checkCondition(!builder.build().isEmpty(),
-            String.format("Quilt patch Series %s is empty.", seriesFile.get().path()));
+      checkCondition(
+          !builder.build().isEmpty(),
+          String.format("Quilt patch Series %s is empty.", seriesFile.orElseThrow().path()));
     }
     return new QuiltTransformation(
         seriesFile,
@@ -240,7 +243,18 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
         patchingOptions,
         /* reverse= */ false,
         directory,
-        thread.getCallerLocation());
+        thread.getCallerLocation(),
+        getPatchesDirPath(series));
+  }
+
+  static String getPatchesDirPath(String series) throws ValidationException {
+    try {
+      FileUtil.checkNormalizedRelative(series);
+    } catch (IllegalArgumentException e) {
+      throw new ValidationException(e.getMessage(), e);
+    }
+    int lastSlash = series.lastIndexOf('/');
+    return lastSlash == -1 ? "" : series.substring(0, lastSlash);
   }
 
   private ConfigFile resolve(String path) throws EvalException {

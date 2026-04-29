@@ -132,7 +132,8 @@ public final class QuiltTransformationTest {
             patchingOptions,
             /* reverse= */ false,
             /* directory= */ "",
-            Location.BUILTIN);
+            Location.BUILTIN,
+            "patches");
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
     assertThatPath(checkoutDir)
         .containsFile("file1.txt", "line1\nbar\nline3")
@@ -171,7 +172,8 @@ public final class QuiltTransformationTest {
             patchingOptions,
             /* reverse= */ false,
             /* directory= */ "",
-            Location.BUILTIN);
+            Location.BUILTIN,
+            "patches");
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
     assertThatPath(checkoutDir)
         .containsFile("file1.txt", "new line\n\nline1\nbar\nline3")
@@ -179,34 +181,6 @@ public final class QuiltTransformationTest {
         .containsFile("patches/diff.patch", expectedNewDiff)
         .containsFile("patches/series", SERIES)
         .containsNoMoreFiles();
-  }
-
-  @Test
-  public void transformationUpdatePatchTest_twiceWarnsAndSucceeds() throws Exception {
-    Files.write(checkoutDir.resolve("file1.txt"), "new line\n\nline1\nfoo\nline3".getBytes(UTF_8));
-    Files.write(checkoutDir.resolve("file2.txt"), "bar\n".getBytes(UTF_8));
-    QuiltTransformation transform =
-        new QuiltTransformation(
-            Optional.of(seriesFile),
-            ImmutableList.of(patchFile),
-            patchingOptions,
-            /* reverse= */ false,
-            /* directory= */ "",
-            Location.BUILTIN);
-    transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
-
-    // Reset files before second run to allow patches to apply again.
-    Files.write(checkoutDir.resolve("file1.txt"), "new line\n\nline1\nfoo\nline3".getBytes(UTF_8));
-    Files.write(checkoutDir.resolve("file2.txt"), "bar\n".getBytes(UTF_8));
-
-    // Second run
-    transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
-
-    console
-        .assertThat()
-        .onceInLog(
-            com.google.copybara.util.console.Message.MessageType.WARNING,
-            ".*Destination already has a 'patches' directory.*");
   }
 
   @Test
@@ -227,7 +201,8 @@ public final class QuiltTransformationTest {
             patchingOptions,
             /* reverse= */ false,
             /* directory= */ "",
-            Location.BUILTIN);
+            Location.BUILTIN,
+            "patches");
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
 
     console
@@ -279,7 +254,8 @@ public final class QuiltTransformationTest {
             patchingOptions,
             /* reverse= */ false,
             /* directory= */ "",
-            Location.BUILTIN);
+            Location.BUILTIN,
+            "patches");
     ValidationException e =
         assertThrows(
             ValidationException.class,
@@ -359,6 +335,28 @@ public final class QuiltTransformationTest {
   }
 
   @Test
+  public void quiltApplyAbsoluteSeriesPathFails() throws Exception {
+    skylark.evalFails(
+        """
+        patch.quilt_apply(
+          series = '/tmp/series',
+        )
+        """,
+        "path must be relative");
+  }
+
+  @Test
+  public void quiltApplyNonNormalizedSeriesPathFails() throws Exception {
+    skylark.evalFails(
+        """
+        patch.quilt_apply(
+          series = 'patches/../series',
+        )
+        """,
+        "unexpected . or .. components");
+  }
+
+  @Test
   public void quiltApplyIgnoresUserQuiltConfigurationViaEnvironmentVariableTest() throws Exception {
     Files.write(checkoutDir.resolve("file1.txt"), "line1\nfoo\nline3".getBytes(UTF_8));
     Files.write(checkoutDir.resolve("file2.txt"), "bar\n".getBytes(UTF_8));
@@ -420,7 +418,8 @@ public final class QuiltTransformationTest {
             patchingOptions,
             /* reverse= */ false,
             /* directory= */ "sub/dir",
-            Location.BUILTIN);
+            Location.BUILTIN,
+            "patches");
 
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
 
@@ -433,6 +432,217 @@ public final class QuiltTransformationTest {
   }
 
   @Test
+  public void quiltApplyWithDirectoryAndUpdatedPatchTest() throws Exception {
+    Path subdir = Files.createDirectories(checkoutDir.resolve("sub/dir"));
+    Files.write(subdir.resolve("file1.txt"), "new line\n\nline1\nfoo\nline3".getBytes(UTF_8));
+    Files.write(subdir.resolve("file2.txt"), "bar\n".getBytes(UTF_8));
+
+    String expectedNewDiff =
+        """
+        --- a/file1.txt
+        +++ b/file1.txt
+        @@ -1,5 +1,5 @@
+         new line
+        \s
+         line1
+        -foo
+        +bar
+         line3
+        \\ No newline at end of file
+        --- a/file2.txt
+        +++ b/file2.txt
+        @@ -1 +1 @@
+        -bar
+        +new bar
+        """;
+
+    ImmutableMap<String, byte[]> configFiles =
+        ImmutableMap.of(
+            "patches/diff.patch", OLDDIFF.getBytes(UTF_8),
+            "patches/series", SERIES.getBytes(UTF_8));
+    ConfigFile subPatchFile = new MapConfigFile(configFiles, "patches/diff.patch");
+    ConfigFile subSeriesFile = new MapConfigFile(configFiles, "patches/series");
+
+    QuiltTransformation transform =
+        new QuiltTransformation(
+            Optional.of(subSeriesFile),
+            ImmutableList.of(subPatchFile),
+            patchingOptions,
+            /* reverse= */ false,
+            /* directory= */ "sub/dir",
+            Location.BUILTIN,
+            "patches");
+
+    transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
+
+    assertThatPath(checkoutDir)
+        .containsFile("sub/dir/file1.txt", "new line\n\nline1\nbar\nline3")
+        .containsFile("sub/dir/file2.txt", "new bar\n")
+        .containsFile("sub/dir/patches/diff.patch", expectedNewDiff)
+        .containsFile("sub/dir/patches/series", SERIES)
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void transformationCustomPatchesDirTest() throws Exception {
+    String expectedNewDiff =
+        """
+        --- a/file1.txt
+        +++ b/file1.txt
+        @@ -1,5 +1,5 @@
+         new line
+        \s
+         line1
+        -foo
+        +bar
+         line3
+        \\ No newline at end of file
+        --- a/file2.txt
+        +++ b/file2.txt
+        @@ -1 +1 @@
+        -bar
+        +new bar
+        """;
+    Files.write(checkoutDir.resolve("file1.txt"), "new line\n\nline1\nfoo\nline3".getBytes(UTF_8));
+    Files.write(checkoutDir.resolve("file2.txt"), "bar\n".getBytes(UTF_8));
+
+    ImmutableMap<String, byte[]> configFiles =
+        ImmutableMap.of(
+            "_GOOGLE_PATCHES/diff.patch", OLDDIFF.getBytes(UTF_8),
+            "_GOOGLE_PATCHES/series", "diff.patch\n".getBytes(UTF_8));
+    ConfigFile customPatchFile = new MapConfigFile(configFiles, "_GOOGLE_PATCHES/diff.patch");
+    ConfigFile customSeriesFile = new MapConfigFile(configFiles, "_GOOGLE_PATCHES/series");
+
+    QuiltTransformation transform =
+        new QuiltTransformation(
+            Optional.of(customSeriesFile),
+            ImmutableList.of(customPatchFile),
+            patchingOptions,
+            /* reverse= */ false,
+            /* directory= */ "",
+            Location.BUILTIN,
+            "_GOOGLE_PATCHES");
+
+    transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
+
+    assertThatPath(checkoutDir)
+        .containsFile("file1.txt", "new line\n\nline1\nbar\nline3")
+        .containsFile("file2.txt", "new bar\n")
+        .containsFile("_GOOGLE_PATCHES/diff.patch", expectedNewDiff)
+        .containsFile("_GOOGLE_PATCHES/series", "diff.patch\n")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void quiltApplyWithDirectoryWarnsAndReplacesDestinationPatches() throws Exception {
+    Path subdir = Files.createDirectories(checkoutDir.resolve("sub/dir"));
+    Files.write(subdir.resolve("file1.txt"), "new line\n\nline1\nfoo\nline3".getBytes(UTF_8));
+    Files.write(subdir.resolve("file2.txt"), "bar\n".getBytes(UTF_8));
+
+    Path patchesDir = subdir.resolve("patches");
+    Files.createDirectories(patchesDir);
+    Files.write(patchesDir.resolve("series"), "stale_series".getBytes(UTF_8));
+    Files.write(patchesDir.resolve("stale.patch"), "stale_content".getBytes(UTF_8));
+    Files.write(patchesDir.resolve("diff.patch"), "old_diff_content".getBytes(UTF_8));
+
+    ImmutableMap<String, byte[]> configFiles =
+        ImmutableMap.of(
+            "patches/diff.patch", OLDDIFF.getBytes(UTF_8),
+            "patches/series", SERIES.getBytes(UTF_8));
+    ConfigFile subPatchFile = new MapConfigFile(configFiles, "patches/diff.patch");
+    ConfigFile subSeriesFile = new MapConfigFile(configFiles, "patches/series");
+
+    QuiltTransformation transform =
+        new QuiltTransformation(
+            Optional.of(subSeriesFile),
+            ImmutableList.of(subPatchFile),
+            patchingOptions,
+            /* reverse= */ false,
+            /* directory= */ "sub/dir",
+            Location.BUILTIN,
+            "patches");
+    transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
+
+    console
+        .assertThat()
+        .onceInLog(
+            com.google.copybara.util.console.Message.MessageType.WARNING,
+            ".*Destination already has a 'patches' directory.*");
+
+    // Verify that stale files are NOT deleted
+    assertThat(Files.exists(patchesDir.resolve("stale.patch"))).isTrue();
+    assertThat(new String(Files.readAllBytes(patchesDir.resolve("stale.patch")), UTF_8))
+        .isEqualTo("stale_content");
+
+    // Verify that new files are written
+    assertThat(Files.exists(patchesDir.resolve("series"))).isTrue();
+    String seriesContent = new String(Files.readAllBytes(patchesDir.resolve("series")), UTF_8);
+    assertThat(seriesContent).contains("diff.patch");
+    assertThat(seriesContent).doesNotContain("stale_series");
+    assertThat(seriesContent).isEqualTo(SERIES);
+
+    // Verify that diff.patch is replaced with a new version
+    assertThat(new String(Files.readAllBytes(patchesDir.resolve("diff.patch")), UTF_8))
+        .isNotEqualTo("old_diff_content");
+    assertThat(new String(Files.readAllBytes(patchesDir.resolve("diff.patch")), UTF_8))
+        .contains("file1.txt");
+  }
+
+  @Test
+  public void transformationCustomPatchesDirWarnsAndReplacesDestinationPatches() throws Exception {
+    Files.write(checkoutDir.resolve("file1.txt"), "new line\n\nline1\nfoo\nline3".getBytes(UTF_8));
+    Files.write(checkoutDir.resolve("file2.txt"), "bar\n".getBytes(UTF_8));
+
+    Path patchesDir = checkoutDir.resolve("_GOOGLE_PATCHES");
+    Files.createDirectories(patchesDir);
+    Files.write(patchesDir.resolve("series"), "stale_series".getBytes(UTF_8));
+    Files.write(patchesDir.resolve("stale.patch"), "stale_content".getBytes(UTF_8));
+    Files.write(patchesDir.resolve("diff.patch"), "old_diff_content".getBytes(UTF_8));
+
+    ImmutableMap<String, byte[]> configFiles =
+        ImmutableMap.of(
+            "_GOOGLE_PATCHES/diff.patch", OLDDIFF.getBytes(UTF_8),
+            "_GOOGLE_PATCHES/series", SERIES.getBytes(UTF_8));
+    ConfigFile customPatchFile = new MapConfigFile(configFiles, "_GOOGLE_PATCHES/diff.patch");
+    ConfigFile customSeriesFile = new MapConfigFile(configFiles, "_GOOGLE_PATCHES/series");
+
+    QuiltTransformation transform =
+        new QuiltTransformation(
+            Optional.of(customSeriesFile),
+            ImmutableList.of(customPatchFile),
+            patchingOptions,
+            /* reverse= */ false,
+            /* directory= */ "",
+            Location.BUILTIN,
+            "_GOOGLE_PATCHES");
+    transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
+
+    console
+        .assertThat()
+        .onceInLog(
+            com.google.copybara.util.console.Message.MessageType.WARNING,
+            ".*Destination already has a '_GOOGLE_PATCHES' directory.*");
+
+    // Verify that stale files are NOT deleted
+    assertThat(Files.exists(patchesDir.resolve("stale.patch"))).isTrue();
+    assertThat(new String(Files.readAllBytes(patchesDir.resolve("stale.patch")), UTF_8))
+        .isEqualTo("stale_content");
+
+    // Verify that new files are written
+    assertThat(Files.exists(patchesDir.resolve("series"))).isTrue();
+    String seriesContent = new String(Files.readAllBytes(patchesDir.resolve("series")), UTF_8);
+    assertThat(seriesContent).contains("diff.patch");
+    assertThat(seriesContent).doesNotContain("stale_series");
+    assertThat(seriesContent).isEqualTo(SERIES);
+
+    // Verify that diff.patch is replaced with a new version
+    assertThat(new String(Files.readAllBytes(patchesDir.resolve("diff.patch")), UTF_8))
+        .isNotEqualTo("old_diff_content");
+    assertThat(new String(Files.readAllBytes(patchesDir.resolve("diff.patch")), UTF_8))
+        .contains("file1.txt");
+  }
+
+  @Test
   public void describeTest() {
     QuiltTransformation transform =
         new QuiltTransformation(
@@ -441,8 +651,10 @@ public final class QuiltTransformationTest {
             patchingOptions,
             /* reverse= */ false,
             "",
-            Location.BUILTIN);
-    assertThat(transform.describe()).isEqualTo(
-        "Patch.quilt_apply: using quilt to apply and update patches: patches/diff.patch");
+            Location.BUILTIN,
+            "patches");
+    assertThat(transform.describe())
+        .isEqualTo(
+            "Patch.quilt_apply: using quilt to apply and update patches: patches/diff.patch");
   }
 }
