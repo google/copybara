@@ -215,13 +215,15 @@ public class GitMirrorTest {
 
   @Test
   public void testMirrorDescription() throws Exception {
-    String cfgContent = ""
-        + "git.mirror("
-        + "    name = 'one',"
-        + "    description = 'Do foo with bar',"
-        + "    origin = 'https://example.com/foo',"
-        + "    destination = 'https://example.com/bar',"
-        + ")";
+    String cfgContent =
+        """
+        git.mirror(
+            name = 'one',
+            description = 'Do foo with bar',
+            origin = 'https://example.com/foo',
+            destination = 'https://example.com/bar',
+        )
+        """;
 
     assertThat(loadMigration(cfgContent, "one").getDescription())
         .isEqualTo("Do foo with bar");
@@ -237,13 +239,15 @@ public class GitMirrorTest {
     GitRepository destRepo1 = bareRepo(Files.createTempDirectory("dest1"));
     destRepo1.init();
 
-    String cfg = ""
-        + "git.mirror("
-        + "    name = 'default',"
-        + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
-        + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
-        + ")\n"
-        + "";
+    String cfg =
+        """
+        git.mirror(
+            name = 'default',
+            origin = 'file://%s',
+            destination = 'file://%s',
+        )
+        """
+            .formatted(originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath());
 
     String other = originRepo.simpleCommand("show-ref", "refs/heads/other", "-s").getStdout();
     Migration migration = loadMigration(cfg, "default");
@@ -259,14 +263,16 @@ public class GitMirrorTest {
     GitRepository destRepo1 = bareRepo(Files.createTempDirectory("dest1"));
     destRepo1.init();
 
-    String cfg = ""
-        + "git.mirror("
-        + "    name = 'default',"
-        + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
-        + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
-        + "    prune = True,"
-        + ")\n"
-        + "";
+    String cfg =
+        """
+        git.mirror(
+            name = 'default',
+            origin = 'file://%s',
+            destination = 'file://%s',
+            prune = True,
+        )
+        """
+            .formatted(originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath());
 
     Migration migration = loadMigration(cfg, "default");
     migration.run(workdir, ImmutableList.of());
@@ -284,15 +290,21 @@ public class GitMirrorTest {
 
   @Test
   public void testMirrorCustomRefspec() throws Exception {
-    String cfg = ""
-        + "git.mirror("
-        + "    name = 'default',"
-        + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
-        + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
-        + "    refspecs = ["
-        + String.format("        'refs/heads/%s:refs/heads/origin_primary'", primaryBranch)
-        + "    ]"
-        + ")";
+    String cfg =
+        """
+        git.mirror(
+            name = 'default',
+            origin = 'file://%s',
+            destination = 'file://%s',
+            refspecs = [
+                'refs/heads/%s:refs/heads/origin_primary'
+            ]
+        )
+        """
+            .formatted(
+                originRepo.getGitDir().toAbsolutePath(),
+                destRepo.getGitDir().toAbsolutePath(),
+                primaryBranch);
     Migration mirror = loadMigration(cfg, "default");
     mirror.run(workdir, ImmutableList.of());
     String origPrimary = originRepo.simpleCommand("show-ref", primaryBranch, "-s").getStdout();
@@ -308,13 +320,15 @@ public class GitMirrorTest {
     Files.write(credentialsFile, "https://user:SECRET@somehost.com".getBytes(UTF_8));
     options.git.credentialHelperStorePath = credentialsFile.toString();
 
-    String cfg = ""
-        + "git.mirror("
-        + "    name = 'default',"
-        + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
-        + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
-        + ")\n"
-        + "";
+    String cfg =
+        """
+        git.mirror(
+            name = 'default',
+            origin = 'file://%s',
+            destination = 'file://%s',
+        )
+        """
+            .formatted(originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath());
 
     GitRepository repository = ((Mirror) loadMigration(cfg, "default")).getLocalRepo();
 
@@ -380,12 +394,15 @@ public class GitMirrorTest {
   }
 
   private Migration prepareForConflict() throws IOException, ValidationException, RepoException {
-    String cfg = ""
-        + "git.mirror("
-        + "    name = 'default',"
-        + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
-        + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
-        + ")";
+    String cfg =
+        """
+        git.mirror(
+            name = 'default',
+            origin = 'file://%s',
+            destination = 'file://%s',
+        )
+        """
+            .formatted(originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath());
     Path otherRepoPath = Files.createTempDirectory("other_repo");
     GitRepository other =
         GitRepository.newRepo(
@@ -407,16 +424,14 @@ public class GitMirrorTest {
   @Test
   public void testInvalidMigrationName() {
     skylark.evalFails(
-        ""
-            + "git.mirror(\n"
-            + "    name = 'foo| bad;name',\n"
-            + "    origin = 'file://"
-            + originRepo.getGitDir().toAbsolutePath()
-            + "',"
-            + "    destination = 'file://"
-            + destRepo.getGitDir().toAbsolutePath()
-            + "',"
-            + ")\n",
+        """
+        git.mirror(
+            name = 'foo| bad;name',
+            origin = 'file://%s',
+            destination = 'file://%s',
+        )
+        """
+            .formatted(originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath()),
         ".*Migration name 'foo[|] bad;name' doesn't conform to expected pattern.*");
   }
 

@@ -619,13 +619,18 @@ public class WorkflowTest {
     options
         .setWorkdirToRealTempDir()
         .setHomeDir(StandardSystemProperty.USER_HOME.value());
-    new SkylarkTestExecutor(options).loadConfig("core.workflow(\n"
-            + "    name = 'foo',\n"
-            + "    origin = testing.origin(),\n"
-            + "    destination = folder.destination(),\n"
-            + "    authoring = " + authoring + ",\n"
-            + "    transformations = [metadata.replace_message(''),],\n"
-            + ")\n")
+    new SkylarkTestExecutor(options)
+        .loadConfig(
+            """
+            core.workflow(
+                name = 'foo',
+                origin = testing.origin(),
+                destination = folder.destination(),
+                authoring = %s,
+                transformations = [metadata.replace_message(''),],
+            )
+            """
+                .formatted(authoring))
         .getMigration("foo")
         .run(workdir, ImmutableList.of());
   }
@@ -1537,15 +1542,17 @@ public class WorkflowTest {
 
     Workflow<?, ?> workflow =
         (Workflow<?, ?>) new SkylarkTestExecutor(options).loadConfig(
-                "core.workflow(\n"
-                    + "    name = 'foo',\n"
-                    + String.format("    origin = git.origin(url='%s', ref='%s'),\n",
-                    remote.getGitDir(), primaryBranch)
-                    + "    destination = folder.destination(),\n"
-                    + "    mode = 'ITERATIVE',\n"
-                    + "    authoring = " + authoring + ",\n"
-                    + "    transformations = [metadata.replace_message(''),],\n"
-                    + ")\n")
+                """
+                core.workflow(
+                    name = 'foo',
+                    origin = git.origin(url='%s', ref='%s'),
+                    destination = folder.destination(),
+                    mode = 'ITERATIVE',
+                    authoring = %s,
+                    transformations = [metadata.replace_message(''),],
+                )
+                """
+                    .formatted(remote.getGitDir(), primaryBranch, authoring))
             .getMigration("foo");
     workflow.getWorkflowOptions().diffInOrigin = true;
     workflow.run(workdir, ImmutableList.of(primaryBranch));
@@ -1591,18 +1598,17 @@ public class WorkflowTest {
         (Workflow<?, ?>)
             new SkylarkTestExecutor(options)
                 .loadConfig(
-                    "core.workflow(\n"
-                        + "    name = 'foo',\n"
-                        + String.format(
-                            "    origin = git.origin(url='%s', ref='%s'),\n",
-                            remote.getGitDir(), primaryBranch)
-                        + "    destination = folder.destination(),\n"
-                        + "    mode = 'ITERATIVE',\n"
-                        + "    authoring = "
-                        + authoring
-                        + ",\n"
-                        + "    transformations = [metadata.replace_message(''),],\n"
-                        + ")\n")
+                    """
+                    core.workflow(
+                        name = 'foo',
+                        origin = git.origin(url='%s', ref='%s'),
+                        destination = folder.destination(),
+                        mode = 'ITERATIVE',
+                        authoring = %s,
+                        transformations = [metadata.replace_message(''),],
+                    )
+                    """
+                        .formatted(remote.getGitDir(), primaryBranch, authoring))
                 .getMigration("foo");
 
     ImmutableList<String> tags =

@@ -148,18 +148,22 @@ public class TransformDebugTest {
   }
 
   private void runWorkflow() throws Exception {
-    Workflow<?, ?> wf = (Workflow<?, ?>) skylark.loadConfig(""
-        + "core.workflow(\n"
-        + "    name = 'default',\n"
-        + "    origin = testing.origin(),\n"
-        + "    destination = testing.destination(),\n"
-        + "    authoring = " + "authoring.overwrite('foo <foo@example.com>'),\n"
-        + "    transformations = ["
-        + "       core.replace('foo1', 'bar1', paths = glob(['test1.txt'])),"
-        + "       metadata.add_header('AAAA'),"
-        + "       core.replace('foo2', 'bar2', paths = glob(['test2.txt'])),"
-        + "    ],\n"
-        + ")")
+    Workflow<?, ?> wf =
+        (Workflow<?, ?>)
+            skylark.loadConfig(
+                """
+                core.workflow(
+                    name = 'default',
+                    origin = testing.origin(),
+                    destination = testing.destination(),
+                    authoring = authoring.overwrite('foo <foo@example.com>'),
+                    transformations = [
+                       core.replace('foo1', 'bar1', paths = glob(['test1.txt'])),
+                       metadata.add_header('AAAA'),
+                       core.replace('foo2', 'bar2', paths = glob(['test2.txt'])),
+                    ],
+                )
+                """)
         .getMigration("default");
 
     Files.write(workdir.resolve("test1.txt"), "foo1\n".getBytes(UTF_8));

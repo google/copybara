@@ -114,15 +114,18 @@ public class MetadataModuleTest {
 
   @Test
   public void testMessageTransformerForSquashCompact() throws Exception {
-    runWorkflow(WorkflowMode.SQUASH, ""
-        + "metadata.map_author({"
-        + "    'Foo Bar': 'Public Foo Bar <public@foobar.com>',"
-        + "    'Foo Baz': 'Public Foo Baz <public@foobaz.com>',"
-        + "}),"
-        + "metadata.squash_notes("
-        + "  prefix = 'Importing foo project:\\n\\n',"
-        + "  oldest_first = True,"
-        + ")");
+    runWorkflow(
+        WorkflowMode.SQUASH,
+        """
+        metadata.map_author({
+            'Foo Bar': 'Public Foo Bar <public@foobar.com>',
+            'Foo Baz': 'Public Foo Baz <public@foobaz.com>',
+        }),
+        metadata.squash_notes(
+          prefix = 'Importing foo project:\\n\\n',
+          oldest_first = True,
+        )
+        """);
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
     assertThat(change.getChangesSummary())
         .isEqualTo(
@@ -137,14 +140,17 @@ public class MetadataModuleTest {
 
   @Test
   public void testSquashNotesWithTemplatePrefix() throws Exception {
-    runWorkflow(WorkflowMode.SQUASH, ""
-        + "metadata.map_author({"
-        + "    'Foo Bar': 'Public Foo Bar <public@foobar.com>',"
-        + "    'Foo Baz': 'Public Foo Baz <public@foobaz.com>',"
-        + "}),"
-        + "metadata.squash_notes("
-        + "  prefix = 'Importing foo version ${COPYBARA_CURRENT_REV}:\\n\\n'"
-        + ")");
+    runWorkflow(
+        WorkflowMode.SQUASH,
+        """
+        metadata.map_author({
+            'Foo Bar': 'Public Foo Bar <public@foobar.com>',
+            'Foo Baz': 'Public Foo Baz <public@foobaz.com>',
+        }),
+        metadata.squash_notes(
+          prefix = 'Importing foo version ${COPYBARA_CURRENT_REV}:\\n\\n'
+        )
+        """);
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
     assertThat(change.getChangesSummary())
         .isEqualTo(
@@ -165,14 +171,15 @@ public class MetadataModuleTest {
             () ->
                 runWorkflow(
                     WorkflowMode.SQUASH,
-                    ""
-                        + "metadata.map_author({"
-                        + "    'Foo Bar': 'Public Foo Bar <public@foobar.com>',"
-                        + "    'Foo Baz': 'Public Foo Baz <public@foobaz.com>',"
-                        + "}),"
-                        + "metadata.squash_notes("
-                        + "  prefix = 'Importing foo version ${NOTFOUND}:\\n\\n'"
-                        + ")"));
+                    """
+                    metadata.map_author({
+                        'Foo Bar': 'Public Foo Bar <public@foobar.com>',
+                        'Foo Baz': 'Public Foo Baz <public@foobaz.com>',
+                    }),
+                    metadata.squash_notes(
+                      prefix = 'Importing foo version ${NOTFOUND}:\\n\\n'
+                    )
+                    """));
     assertThat(e).hasMessageThat().contains("NOTFOUND");
   }
 
@@ -260,16 +267,19 @@ public class MetadataModuleTest {
 
   @Test
   public void testSquashWithMapAuthor() throws Exception {
-    runWorkflow(WorkflowMode.SQUASH, ""
-        + "metadata.map_author({"
-        + "    'Foo Bar': 'Public Foo Bar <public@foobar.com>',"
-        + "    'Foo Baz': 'Public Foo Baz <public@foobaz.com>',"
-        + "},"
-        + "  map_all_changes = True),"
-        + "metadata.squash_notes("
-        + "  prefix = 'Importing foo project:\\n\\n',"
-        + "  oldest_first = True,"
-        + ")");
+    runWorkflow(
+        WorkflowMode.SQUASH,
+        """
+        metadata.map_author({
+            'Foo Bar': 'Public Foo Bar <public@foobar.com>',
+            'Foo Baz': 'Public Foo Baz <public@foobaz.com>',
+        },
+          map_all_changes = True),
+        metadata.squash_notes(
+          prefix = 'Importing foo project:\\n\\n',
+          oldest_first = True,
+        )
+        """);
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
     assertThat(change.getChangesSummary())
         .isEqualTo(
@@ -284,13 +294,16 @@ public class MetadataModuleTest {
 
   @Test
   public void testMessageTransformerForSquashCompactNoRefOrAuthor() throws Exception {
-    runWorkflow(WorkflowMode.SQUASH, ""
-        + "metadata.squash_notes("
-        + "  prefix = 'Importing foo project:\\n\\n',"
-        + "  oldest_first = True,"
-        + "  show_ref = False,"
-        + "  show_author = False,"
-        + ")");
+    runWorkflow(
+        WorkflowMode.SQUASH,
+        """
+        metadata.squash_notes(
+          prefix = 'Importing foo project:\\n\\n',
+          oldest_first = True,
+          show_ref = False,
+          show_author = False,
+        )
+        """);
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
     assertThat(change.getChangesSummary())
         .isEqualTo(
@@ -305,10 +318,13 @@ public class MetadataModuleTest {
 
   @Test
   public void testMessageTransformerForSquashReverse() throws Exception {
-    runWorkflow(WorkflowMode.SQUASH, ""
-        + "metadata.squash_notes("
-        + "  prefix = 'Importing foo project:\\n\\n'"
-        + ")");
+    runWorkflow(
+        WorkflowMode.SQUASH,
+        """
+        metadata.squash_notes(
+          prefix = 'Importing foo project:\\n\\n'
+        )
+        """);
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
     assertThat(change.getChangesSummary())
         .isEqualTo(
@@ -323,11 +339,14 @@ public class MetadataModuleTest {
 
   @Test
   public void testMessageTransformerForNoDescription() throws Exception {
-    runWorkflow(WorkflowMode.SQUASH, ""
-        + "metadata.squash_notes("
-        + "  prefix = 'Importing foo project:\\n\\n',"
-        + "  show_description = False,"
-        + ")");
+    runWorkflow(
+        WorkflowMode.SQUASH,
+        """
+        metadata.squash_notes(
+          prefix = 'Importing foo project:\\n\\n',
+          show_description = False,
+        )
+        """);
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
     assertThat(change.getChangesSummary())
         .isEqualTo(
@@ -342,11 +361,14 @@ public class MetadataModuleTest {
 
   @Test
   public void testMessageTransformerForSquashExtended() throws Exception {
-    runWorkflow(WorkflowMode.SQUASH, ""
-        + "metadata.squash_notes("
-        + "  prefix = 'Importing foo project:\\n',"
-        + "  compact = False\n"
-        + ")");
+    runWorkflow(
+        WorkflowMode.SQUASH,
+        """
+        metadata.squash_notes(
+          prefix = 'Importing foo project:\\n',
+          compact = False
+        )
+        """);
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
     assertThat(change.getChangesSummary())
         .isEqualTo(
@@ -370,12 +392,15 @@ public class MetadataModuleTest {
 
   @Test
   public void testMessageTransformerForSquashExtendedNoDescription() throws Exception {
-    runWorkflow(WorkflowMode.SQUASH, ""
-        + "metadata.squash_notes("
-        + "  prefix = 'Importing foo project:\\n',"
-        + "  show_description = False,"
-        + "  compact = False\n"
-        + ")");
+    runWorkflow(
+        WorkflowMode.SQUASH,
+        """
+        metadata.squash_notes(
+          prefix = 'Importing foo project:\\n',
+          show_description = False,
+          compact = False
+        )
+        """);
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
     assertThat(change.getChangesSummary())
         .isEqualTo(
@@ -910,18 +935,22 @@ public class MetadataModuleTest {
     options.setLastRevision(origin.resolve("HEAD").asString());
     origin.singleFileChange(42, "test", "excluded", "");
     DummyRevision expectedRev = origin.resolve("HEAD");
-    Config config = loadConfig(""
-        + "core.workflow(\n"
-        + "    name = 'default',\n"
-        + "    origin =  testing.origin(),\n"
-        + "    origin_files =  glob(['**'], exclude = ['excluded']),\n"
-        + "    authoring = " + authoring + "\n,"
-        + "    destination = testing.destination(),\n"
-        + "    mode = '" + WorkflowMode.SQUASH + "',\n"
-        + "    transformations = ["
-        + "        metadata.replace_message('${COPYBARA_CURRENT_REV}'),"
-        + "    ]\n"
-        + ")\n");
+    Config config =
+        loadConfig(
+            """
+            core.workflow(
+                name = 'default',
+                origin =  testing.origin(),
+                origin_files =  glob(['**'], exclude = ['excluded']),
+                authoring = %s,
+                destination = testing.destination(),
+                mode = '%s',
+                transformations = [
+                    metadata.replace_message('${COPYBARA_CURRENT_REV}'),
+                ]
+            )
+            """
+                .formatted(authoring, WorkflowMode.SQUASH));
 
     config.getMigration("default").run(workdir, ImmutableList.of());
 
@@ -1047,13 +1076,15 @@ public class MetadataModuleTest {
             () ->
                 checkScrubber(
                     "Automated g4 rollback of changelist",
-                    "metadata.scrubber("
-                        + "    '^Automated g4 rollback of changelist*$',\n"
-                        + "    replacement =\n"
-                        + "        \"\"\"BEGIN_PUBLIC\\n"
-                        + "Automated rollback of changelist $1\\n"
-                        + "END_PUBLIC\"\"\",\n"
-                        + ")",
+                    """
+                    metadata.scrubber(
+                        '^Automated g4 rollback of changelist*$',
+                        replacement =
+                            \"\"\"BEGIN_PUBLIC
+                    Automated rollback of changelist $1
+                    END_PUBLIC\"\"\",
+                    )
+                    """,
                     "not important"));
     assertThat(e)
         .hasMessageThat()
