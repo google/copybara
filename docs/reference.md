@@ -1018,7 +1018,7 @@ Parameter | Description
 
 Defines a migration that is more flexible/less-opinionated migration than `core.workflow`. Most of the users should not use this migration and instead use `core.workflow` for moving code. In particular `core.workflow` provides many helping functionality like version handling, ITERATIVE/SQUASH/CHANGE_REQUEST modes, --read-config-from-change dynamic config, etc.
 
-These are the features that raw_migration provides:<ul>
+These are the features that action_migration provides:<ul>
 <li>Support for migrations that don't move source code (similar to feedback)</li>
 <li>Support for migrations that talk to more than one origin/destination endpoits (Feature still in progress)</li>
 <li>Custom management of versioning: For example moving non-linear/multiple  versions (Instead of `core.workflow`, that moves source code in relation to the previous migrated code and is able to only track one branch).</li>

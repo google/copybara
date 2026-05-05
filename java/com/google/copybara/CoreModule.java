@@ -2143,7 +2143,7 @@ public class CoreModule implements LabelsAwareModule, StarlarkValue {
           + " many helping functionality like version handling, ITERATIVE/SQUASH/CHANGE_REQUEST"
           + " modes, --read-config-from-change dynamic config, etc.\n"
           + "\n"
-          + "These are the features that raw_migration provides:<ul>\n"
+          + "These are the features that action_migration provides:<ul>\n"
           + "   <li>Support for migrations that don't move source code (similar to feedback)</li>\n"
           + "   <li>Support for migrations that talk to more than one origin/destination endpoits"
           + " (Feature still in progress)</li>\n"
