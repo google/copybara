@@ -21,10 +21,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableList;
+import com.google.copybara.util.ScpUtil.ScpUrl;
+import com.google.copybara.util.ScpUtil;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Represents an identifier for a GitHub repository, extracting and storing its host, owner (or
@@ -55,23 +57,20 @@ public final class GitHubIdentifier {
   /**
    * Creates a {@link GitHubIdentifier} from a string identifier.
    *
-   * @throws IllegalArgumentException if the URL is invalid or does not conform to the expected
+   * @throws IllegalArgumentException if the URI is invalid or does not conform to the expected
    *     GitHub repository URL format.
    */
   public static GitHubIdentifier create(String identifier) {
     checkNotNull(identifier, "identifier must not be null");
-
-    String url = possiblyReformatIdentifierToUrlForLegacyCompatibility(identifier);
-
     URI uri;
     try {
-      uri = new URI(url);
+      uri = new URI(possiblyReformatIdentifierForCompatibility(identifier));
     } catch (URISyntaxException e) {
-      throw new IllegalArgumentException("Invalid URL: " + url, e);
+      throw new IllegalArgumentException("Invalid URI: " + identifier, e);
     }
 
     String hostName = uri.getHost();
-    checkArgument(!Strings.isNullOrEmpty(hostName), "URL must have a host: %s", url);
+    checkArgument(!Strings.isNullOrEmpty(hostName), "URI must have a host: %s", identifier);
 
     String path = uri.getPath();
     if (path.startsWith("/")) {
@@ -84,37 +83,30 @@ public final class GitHubIdentifier {
     List<String> pathParts = Splitter.on('/').splitToList(path);
     checkArgument(
         pathParts.size() == 2,
-        "URL path must contain exactly one '/' separating the owner or organization and the repo "
+        "URI path must contain exactly one '/' separating the owner or organization and the repo "
             + "name. Found path: '%s' in URL: %s",
         path,
-        url);
+        identifier);
 
     String apiUrl = determineApiUrl(hostName);
     String ownerOrOrganizationName = pathParts.get(0);
     String repoName = pathParts.get(1);
-    if (repoName.endsWith(".git")) {
-      repoName = repoName.substring(0, repoName.length() - 4);
-    }
 
     return new GitHubIdentifier(apiUrl, hostName, ownerOrOrganizationName, repoName);
   }
 
-  private static final ImmutableList<String> LEGACY_PREFIXES =
-      ImmutableList.of(
-          "ssh://git@github.com/",
-          "sso://git@github.com/",
-          "git://github.com/",
-          "rpc://github.com/",
-          "git@github.com/",
-          "git@github.com:");
-
-  private static String possiblyReformatIdentifierToUrlForLegacyCompatibility(String url) {
-    for (String legacyPrefix : LEGACY_PREFIXES) {
-      if (url.startsWith(legacyPrefix)) {
-        return "https://github.com/" + url.substring(legacyPrefix.length());
-      }
+  private static String possiblyReformatIdentifierForCompatibility(String identifier) {
+    // ".git" suffix on repoName causes errors when passed to the GitHub API
+    if (identifier.endsWith(".git")) {
+      identifier = identifier.substring(0, identifier.length() - 4);
     }
-    return url;
+
+    // GitHub accepts SCP URLs so Copybara does too but for simplicity we reformat to an SSH URL.
+    Optional<ScpUrl> scpUrl = ScpUtil.parseScpUrl(identifier);
+    if (scpUrl.isPresent()) {
+      identifier = "ssh://git@" + scpUrl.get().host() + "/" + scpUrl.get().path();
+    }
+    return identifier;
   }
 
   public String getApiUrl() {

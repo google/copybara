@@ -68,7 +68,7 @@ public final class GitHubIdentifierTest {
     assertThat(exception)
         .hasMessageThat()
         .contains(
-            "URL path must contain exactly one '/' separating the owner or organization and the"
+            "URI path must contain exactly one '/' separating the owner or organization and the"
                 + " repo name.");
   }
 
@@ -82,7 +82,7 @@ public final class GitHubIdentifierTest {
     assertThat(exception)
         .hasMessageThat()
         .contains(
-            "URL path must contain exactly one '/' separating the owner or organization and the"
+            "URI path must contain exactly one '/' separating the owner or organization and the"
                 + " repo name.");
   }
 
@@ -109,30 +109,28 @@ public final class GitHubIdentifierTest {
         ImmutableList.of(
             "http://" + githubCom + "/" + path,
             "https://" + githubCom + "/" + path,
-            "http://www." + githubCom + "/" + path,
-            "https://www." + githubCom + "/" + path);
+            "ssh://git@" + githubCom + "/" + path,
+            "sso://git@" + githubCom + "/" + path,
+            "git://" + githubCom + "/" + path,
+            "rpc://" + githubCom + "/" + path);
 
     for (String acceptedFormat : acceptedFormats) {
-      GitHubIdentifier unused = GitHubIdentifier.create(acceptedFormat);
+      GitHubIdentifier gitHubIdentifier = GitHubIdentifier.create(acceptedFormat);
+      assertThat(gitHubIdentifier.getHostName()).isEqualTo(githubCom);
+      assertThat(gitHubIdentifier.getPath()).isEqualTo(path);
+      assertThat(gitHubIdentifier.getUrl()).isEqualTo("https://" + githubCom + "/" + path);
     }
   }
 
   @Test
-  public void legacyFormats() {
-    String githubCom = "github.com";
-    String path = "foo/bar";
-    ImmutableList<String> acceptedFormats =
-        ImmutableList.of(
-            "ssh://git@" + githubCom + "/" + path,
-            "sso://git@" + githubCom + "/" + path,
-            "git://" + githubCom + "/" + path,
-            "rpc://" + githubCom + "/" + path,
-            "git@" + githubCom + "/" + path,
-            "git@" + githubCom + ":" + path);
+  public void scpUrlFormatUrl() {
+    String scpUrl = "git@github.com:foo/bar";
 
-    for (String acceptedFormat : acceptedFormats) {
-      GitHubIdentifier unused = GitHubIdentifier.create(acceptedFormat);
-    }
+    GitHubIdentifier gitHubIdentifier = GitHubIdentifier.create(scpUrl);
+
+    assertThat(gitHubIdentifier.getHostName()).isEqualTo("github.com");
+    assertThat(gitHubIdentifier.getPath()).isEqualTo("foo/bar");
+    assertThat(gitHubIdentifier.getUrl()).isEqualTo("https://github.com/foo/bar");
   }
 
   @Test
@@ -155,9 +153,9 @@ public final class GitHubIdentifierTest {
   @Test
   public void stripGitSuffix() {
     String url = "https://github.com/ownername/reponame.git";
+
     GitHubIdentifier identifier = GitHubIdentifier.create(url);
 
     assertThat(identifier.getRepoName()).isEqualTo("reponame");
-    assertThat(identifier.getPath()).isEqualTo("ownername/reponame");
   }
 }

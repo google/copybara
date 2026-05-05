@@ -30,6 +30,7 @@ java_library(
     javacopts = JAVACOPTS,
     deps = [
         "//java/com/google/copybara/exception",
+        "//java/com/google/copybara/util",
         "//third_party:guava",
         "//third_party:re2j",
     ],
