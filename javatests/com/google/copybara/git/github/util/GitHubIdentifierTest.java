@@ -151,4 +151,13 @@ public final class GitHubIdentifierTest {
       GitHubIdentifier unused = GitHubIdentifier.create(acceptedFormat);
     }
   }
+
+  @Test
+  public void stripGitSuffix() {
+    String url = "https://github.com/ownername/reponame.git";
+    GitHubIdentifier identifier = GitHubIdentifier.create(url);
+
+    assertThat(identifier.getRepoName()).isEqualTo("reponame");
+    assertThat(identifier.getPath()).isEqualTo("ownername/reponame");
+  }
 }

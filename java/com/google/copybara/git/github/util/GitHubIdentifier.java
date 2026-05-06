@@ -92,6 +92,9 @@ public final class GitHubIdentifier {
     String apiUrl = determineApiUrl(hostName);
     String ownerOrOrganizationName = pathParts.get(0);
     String repoName = pathParts.get(1);
+    if (repoName.endsWith(".git")) {
+      repoName = repoName.substring(0, repoName.length() - 4);
+    }
 
     return new GitHubIdentifier(apiUrl, hostName, ownerOrOrganizationName, repoName);
   }
