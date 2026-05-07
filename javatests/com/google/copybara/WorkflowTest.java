@@ -660,21 +660,23 @@ public class WorkflowTest {
         .setHomeDir(StandardSystemProperty.USER_HOME.value());
 
     Workflow<?, ?> workflow =
-        (Workflow<?, ?>) new SkylarkTestExecutor(options).loadConfig(
-                """
-                core.workflow(
-                    name = 'foo',
-                    origin = git.origin(url='%s',
-                                        ref = '%s'
-                    ),
-                    destination = folder.destination(),
-                    mode = 'ITERATIVE',
-                    authoring = %s,
-                    transformations = [metadata.replace_message(''),],
-                )
-                """
-                    .formatted(remote.getGitDir(), primaryBranch, authoring))
-            .getMigration("foo");
+        (Workflow<?, ?>)
+            new SkylarkTestExecutor(options)
+                .loadConfig(
+                    """
+                    core.workflow(
+                        name = 'foo',
+                        origin = git.origin(url='%s',
+                                            ref = '%s'
+                        ),
+                        destination = folder.destination(),
+                        mode = 'ITERATIVE',
+                        authoring = %s,
+                        transformations = [metadata.replace_message(''),],
+                    )
+                    """
+                        .formatted(remote.getGitDir(), primaryBranch, authoring))
+                .getMigration("foo");
     workflow.getWorkflowOptions().diffInOrigin = true;
     workflow.run(workdir, ImmutableList.of(primaryBranch));
     testingConsole.assertThat()
@@ -707,19 +709,21 @@ public class WorkflowTest {
         .setHomeDir(StandardSystemProperty.USER_HOME.value());
 
     Workflow<?, ?> workflow =
-        (Workflow<?, ?>) new SkylarkTestExecutor(options).loadConfig(
-                """
-                core.workflow(
-                    name = 'foo',
-                    origin = git.origin(url='%s'),
-                    destination = folder.destination(),
-                    mode = 'ITERATIVE',
-                    authoring = %s,
-                    transformations = [metadata.replace_message(''),],
-                )
-                """
-                    .formatted(remote.getGitDir(), authoring))
-            .getMigration("foo");
+        (Workflow<?, ?>)
+            new SkylarkTestExecutor(options)
+                .loadConfig(
+                    """
+                    core.workflow(
+                        name = 'foo',
+                        origin = git.origin(url='%s'),
+                        destination = folder.destination(),
+                        mode = 'ITERATIVE',
+                        authoring = %s,
+                        transformations = [metadata.replace_message(''),],
+                    )
+                    """
+                        .formatted(remote.getGitDir(), authoring))
+                .getMigration("foo");
     workflow.getWorkflowOptions().diffInOrigin = true;
     ChangeRejectedException e =
         assertThrows(ChangeRejectedException.class,
@@ -1541,19 +1545,21 @@ public class WorkflowTest {
         .setHomeDir(StandardSystemProperty.USER_HOME.value());
 
     Workflow<?, ?> workflow =
-        (Workflow<?, ?>) new SkylarkTestExecutor(options).loadConfig(
-                """
-                core.workflow(
-                    name = 'foo',
-                    origin = git.origin(url='%s', ref='%s'),
-                    destination = folder.destination(),
-                    mode = 'ITERATIVE',
-                    authoring = %s,
-                    transformations = [metadata.replace_message(''),],
-                )
-                """
-                    .formatted(remote.getGitDir(), primaryBranch, authoring))
-            .getMigration("foo");
+        (Workflow<?, ?>)
+            new SkylarkTestExecutor(options)
+                .loadConfig(
+                    """
+                    core.workflow(
+                        name = 'foo',
+                        origin = git.origin(url='%s', ref='%s'),
+                        destination = folder.destination(),
+                        mode = 'ITERATIVE',
+                        authoring = %s,
+                        transformations = [metadata.replace_message(''),],
+                    )
+                    """
+                        .formatted(remote.getGitDir(), primaryBranch, authoring))
+                .getMigration("foo");
     workflow.getWorkflowOptions().diffInOrigin = true;
     workflow.run(workdir, ImmutableList.of(primaryBranch));
 
@@ -1729,19 +1735,21 @@ public class WorkflowTest {
     options.workflowOptions.diffInOrigin = true;
 
     Workflow<?, ?> workflow =
-        (Workflow<?, ?>) new SkylarkTestExecutor(options).loadConfig(
-                """
-                core.workflow(
-                    name = 'foo',
-                    origin = testing.origin(),
-                    destination = testing.destination(),
-                    mode = 'ITERATIVE',
-                    authoring = %s,
-                    transformations = [metadata.replace_message(''),],
-                )
-                """
-                    .formatted(authoring))
-            .getMigration("foo");
+        (Workflow<?, ?>)
+            new SkylarkTestExecutor(options)
+                .loadConfig(
+                    """
+                    core.workflow(
+                        name = 'foo',
+                        origin = testing.origin(),
+                        destination = testing.destination(),
+                        mode = 'ITERATIVE',
+                        authoring = %s,
+                        transformations = [metadata.replace_message(''),],
+                    )
+                    """
+                        .formatted(authoring))
+                .getMigration("foo");
     ValidationException e = assertThrows(ValidationException.class,
         () -> workflow.run(workdir, ImmutableList.of("HEAD")));
 
@@ -2544,7 +2552,7 @@ public class WorkflowTest {
     assertThat(ve)
         .hasMessageThat()
         .contains(
-            "error: consistency_file_path set and merge import is enabled, but use_consistency_file"
+            "error: consistency_file.path set and merge import is enabled, but use_consistency_file"
                 + " in merge_import is false");
   }
 
@@ -2596,7 +2604,7 @@ public class WorkflowTest {
             ValidationException.class, () -> skylarkWorkflowInDirectory("default", SQUASH, "dir/"));
     assertThat(ve)
         .hasMessageThat()
-        .contains("error: use_consistency_file set but consistency_file_path is null");
+        .contains("error: use_consistency_file set but consistency_file.path is null");
   }
 
   @Test
@@ -5641,5 +5649,115 @@ public class WorkflowTest {
     origin.addSimpleChange(/*timestamp*/ 0);
     extraWorkflowFields = ImmutableList.of("custom_rev_id = \"CUSTOM_RevId\"");
     skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of(HEAD));
+  }
+
+  @Test
+  public void mergeImport_consistencyFileConfig_validateUsesConsistencyFileSet() throws Exception {
+    // use_consistency_file is set to False by default, but setting it here for readability
+    mergeImport =
+        """
+        core.merge_import_config(
+          package_path = "",
+          use_consistency_file = False,
+        )\
+        """;
+    extraWorkflowFields = ImmutableList.of("consistency_file = True");
+
+    ValidationException ve =
+        assertThrows(
+            ValidationException.class, () -> skylarkWorkflowInDirectory("default", SQUASH, "dir/"));
+    assertThat(ve)
+        .hasMessageThat()
+        .contains(
+            "error: consistency_file.path set and merge import is enabled, but use_consistency_file"
+                + " in merge_import is false");
+  }
+
+  @Test
+  public void workflow_mutualExclusivity_failsIfBothConsistencyFileParamsSet() throws Exception {
+    consistencyFilePath = "\"old.bara.consistency\"";
+    extraWorkflowFields = ImmutableList.of("consistency_file = True");
+
+    ValidationException ve =
+        assertThrows(
+            ValidationException.class, () -> skylarkWorkflowInDirectory("default", SQUASH, "dir/"));
+    assertThat(ve)
+        .hasMessageThat()
+        .contains(
+            "Cannot use both 'consistency_file_path' and 'consistency_file' parameters in"
+                + " workflow");
+  }
+
+  @Test
+  public void workflow_coexistence_consistencyFileAndMergeImportSet_configParses()
+      throws Exception {
+    mergeImport =
+        """
+        core.merge_import_config(
+          package_path = "",
+          use_consistency_file = True,
+        )\
+        """;
+    extraWorkflowFields = ImmutableList.of("consistency_file = True");
+
+    Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
+    assertThat(workflow.getConsistencyFilePath()).isEqualTo("do-not-edit.bara.consistency");
+  }
+
+  @Test
+  public void workflow_consistencyFile_booleanTrue_usesDefaultPath() throws Exception {
+    extraWorkflowFields = ImmutableList.of("consistency_file = True");
+
+    Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
+
+    assertThat(workflow.getConsistencyFilePath()).isEqualTo("do-not-edit.bara.consistency");
+  }
+
+  @Test
+  public void workflow_consistencyFileConfig_respectsExcludeBuildFiles() throws Exception {
+    extraWorkflowFields =
+        ImmutableList.of(
+            "consistency_file = core.consistency_file_config(path = 'some.bara.consistency',"
+                + " exclude_build_files = True)");
+
+    Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
+
+    assertThat(workflow.getConsistencyFileConfig().excludeBuildFiles()).isTrue();
+    assertThat(workflow.getConsistencyFilePath()).isEqualTo("some.bara.consistency");
+
+    // Set up origin changes containing standard file and BUILD file
+    Path tempDir = Files.createTempDirectory("exclude_build_files_test");
+    Path baseDir = Files.createDirectories(tempDir.resolve("base"));
+    writeFile(baseDir, "dir/foo.txt", "42\n");
+    writeFile(baseDir, "dir/BUILD", "java_library(name = 'foo')");
+
+    origin.addChange(
+        0,
+        baseDir,
+        String.format("Initial import\n\n%s=1", destination.getLabelNameWhenOrigin()),
+        /* matchesGlob= */ true);
+
+    // Run migration
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+
+    // Retrieve processed change and read generated consistency file
+    ProcessedChange change = Iterables.getOnlyElement(destination.processed);
+    String consistencyFile = change.getContent("some.bara.consistency");
+
+    // Verify destination hashes exclude BUILD file but include foo.txt
+    assertThat(consistencyFile).contains("foo.txt");
+    assertThat(consistencyFile).doesNotContain("BUILD");
+  }
+
+  @Test
+  public void workflow_consistencyFileConfig_defaultPath() throws Exception {
+    extraWorkflowFields =
+        ImmutableList.of(
+            "consistency_file = core.consistency_file_config(exclude_build_files = True)");
+
+    Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
+
+    assertThat(workflow.getConsistencyFileConfig().excludeBuildFiles()).isTrue();
+    assertThat(workflow.getConsistencyFilePath()).isEqualTo("do-not-edit.bara.consistency");
   }
 }

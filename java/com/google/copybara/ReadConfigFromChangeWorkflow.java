@@ -97,7 +97,7 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
         workflow.isMigrateNoopChanges(),
         workflow.customRevId(),
         workflow.isCheckout(),
-        workflow.getConsistencyFilePath(),
+        workflow.getConsistencyFileConfig(),
         workflow.getExpectedFixedRef(),
         workflow.getPinnedFixedRef(),
         workflow.getDefinitionStack(),

@@ -71,6 +71,7 @@ import com.google.copybara.transform.TodoReplace.Mode;
 import com.google.copybara.transform.VerifyMatch;
 import com.google.copybara.transform.debug.DebugOptions;
 import com.google.copybara.util.Glob;
+import com.google.copybara.version.CustomVersionSelector;
 import com.google.copybara.version.LatestVersionSelector;
 import com.google.copybara.version.LatestVersionSelector.VersionElementType;
 import com.google.copybara.version.OrderedVersionSelector;
@@ -108,7 +109,6 @@ import net.starlark.java.eval.StarlarkThread.PrintHandler;
 import net.starlark.java.eval.StarlarkValue;
 import net.starlark.java.eval.Structure;
 import net.starlark.java.syntax.Location;
-import com.google.copybara.version.CustomVersionSelector;
 
 /**
  * Main configuration class for creating migrations.
@@ -526,6 +526,20 @@ public class CoreModule implements LabelsAwareModule, StarlarkValue {
             doc = "Under development. Must end with .bara.consistency",
             defaultValue = "None",
             positional = false),
+        @Param(
+            name = "consistency_file",
+            named = true,
+            allowedTypes = {
+              @ParamType(type = Boolean.class),
+              @ParamType(type = ConsistencyFileConfiguration.class),
+              @ParamType(type = NoneType.class),
+            },
+            doc =
+                "Consistency file configuration. Can be a boolean or a consistency_file_config"
+                    + " object. If set to True, consistency file path defaults to"
+                    + " \"do-not-edit.bara.consistency\".",
+            defaultValue = "None",
+            positional = false),
       },
       useStarlarkThread = true)
   @UsesFlags({WorkflowOptions.class})
@@ -561,6 +575,7 @@ public class CoreModule implements LabelsAwareModule, StarlarkValue {
       Boolean checkout,
       Object reversibleCheckIgnoreFiles,
       Object consistencyFilePathObj,
+      Object consistencyFileObj,
       StarlarkThread thread)
       throws EvalException {
     WorkflowMode mode = stringToEnum("mode", modeStr, WorkflowMode.class);
@@ -653,19 +668,25 @@ public class CoreModule implements LabelsAwareModule, StarlarkValue {
       mergeImport = convertFromNoneable(mergeImportObj, null);
     }
 
+    ConsistencyFileConfiguration consistencyConfig =
+        resolveConsistencyFileConfig(consistencyFileObj, consistencyFilePath);
+
+    if (mergeImport != null && mergeImport.useConsistencyFile()) {
+      check(
+          consistencyConfig != null,
+          "error: use_consistency_file set but consistency_file.path is null");
+    }
+
+    if (consistencyConfig != null && mergeImport != null) {
+      check(
+          mergeImport.useConsistencyFile(),
+          "error: consistency_file.path set and merge import is enabled, but use_consistency_file"
+              + " in merge_import is false");
+    }
+
     @Nullable
     AutoPatchfileConfiguration autoPatchfileConfiguration =
         convertFromNoneable(autoPatchFileConfigurationObj, null);
-
-    check(
-        mergeImport == null || !mergeImport.useConsistencyFile() || (consistencyFilePath != null),
-        "error: use_consistency_file set but consistency_file_path is null");
-    if (consistencyFilePath != null && mergeImport != null) {
-      check(
-          mergeImport.useConsistencyFile(),
-          "error: consistency_file_path set and merge import is enabled, but use_consistency_file"
-              + " in merge_import is false");
-    }
 
     WorkflowMode effectiveMode =
         generalOptions.squash || workflowOptions.importSameVersion ? WorkflowMode.SQUASH : mode;
@@ -720,7 +741,7 @@ public class CoreModule implements LabelsAwareModule, StarlarkValue {
             workflowOptions.migrateNoopChanges || migrateNoopChanges,
             customRevId,
             checkout,
-            consistencyFilePath,
+            consistencyConfig,
             workflowOptions.expectedFixedRef,
             workflowOptions.pinnedFixedRef,
             thread.getCallStack(),
@@ -2510,9 +2531,10 @@ public class CoreModule implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "use_consistency_file",
             doc =
-                "When merging, if a consistency file exists, use it to construct the center of the"
-                    + " 3-way merge. This can result in a more accurate merge in some cases, such"
-                    + " as when the config file has changed since the last import.",
+                "Deprecated. Use consistency_file in core.workflow instead. When merging, if a"
+                    + " consistency file exists, use it to construct the center of the 3-way merge."
+                    + " This can result in a more accurate merge in some cases, such as when the"
+                    + " config file has changed since the last import.",
             defaultValue = "False",
             named = true,
             positional = false),
@@ -2531,11 +2553,43 @@ public class CoreModule implements LabelsAwareModule, StarlarkValue {
       String packagePath, Object pathsObj, boolean useConsistencyFile, String mergeStrategy)
       throws EvalException {
     Glob paths = wrapGlob(pathsObj, Glob.ALL_FILES);
+
     return MergeImportConfiguration.create(
         packagePath,
         paths,
         useConsistencyFile,
         MergeImportConfiguration.MergeStrategy.valueOf(mergeStrategy));
+  }
+
+  @SuppressWarnings("unused")
+  @StarlarkMethod(
+      name = "consistency_file_config",
+      doc = "Describes the configuration for consistency file options",
+      parameters = {
+        @Param(
+            name = "path",
+            doc = "The path to the consistency file. Must end with .bara.consistency.",
+            allowedTypes = {@ParamType(type = String.class)},
+            defaultValue = "\"do-not-edit.bara.consistency\"",
+            named = true,
+            positional = false),
+        @Param(
+            name = "exclude_build_files",
+            doc = "Exclude BUILD files from being hashed in consistency files.",
+            defaultValue = "False",
+            named = true,
+            positional = false)
+      })
+  public ConsistencyFileConfiguration consistencyFileConfig(String path, boolean excludeBuildFiles)
+      throws EvalException {
+    try {
+      checkCondition(
+          path.endsWith(".bara.consistency"),
+          "Consistency file path must end with .bara.consistency");
+    } catch (ValidationException e) {
+      throw new EvalException(e.getMessage());
+    }
+    return ConsistencyFileConfiguration.create(path, excludeBuildFiles);
   }
 
   @SuppressWarnings("unused")
@@ -2646,4 +2700,33 @@ public class CoreModule implements LabelsAwareModule, StarlarkValue {
         glob);
   }
 
+  private ConsistencyFileConfiguration resolveConsistencyFileConfig(
+      Object consistencyFileObj, @Nullable String consistencyFilePath) throws EvalException {
+    ConsistencyFileConfiguration consistencyConfig = null;
+    Object consistencyFileVal = convertFromNoneable(consistencyFileObj, null);
+    if (consistencyFileVal instanceof Boolean b) {
+      boolean val = b;
+      if (val) {
+        consistencyConfig =
+            ConsistencyFileConfiguration.create("do-not-edit.bara.consistency", false);
+      } else {
+        consistencyConfig = null;
+      }
+    } else if (consistencyFileVal
+        instanceof ConsistencyFileConfiguration consistencyFileConfiguration) {
+      consistencyConfig = consistencyFileConfiguration;
+    }
+
+    // Validation for mutual exclusivity
+    if (consistencyFilePath != null && consistencyFileVal != null) {
+      throw Starlark.errorf(
+          "Cannot use both 'consistency_file_path' and 'consistency_file' parameters in"
+              + " workflow.");
+    }
+
+    if (consistencyFilePath != null) {
+      consistencyConfig = ConsistencyFileConfiguration.create(consistencyFilePath, false);
+    }
+    return consistencyConfig;
+  }
 }

@@ -126,7 +126,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   @Nullable private final String customRevId;
   private final boolean checkout;
 
-  @Nullable String consistencyFilePath;
+  @Nullable private final ConsistencyFileConfiguration consistencyFileConfig;
   @Nullable private final String expectedFixedRef;
   @Nullable private final String pinnedFixedRef;
   private final ImmutableList<StarlarkThread.CallStackEntry> definitionStack;
@@ -164,7 +164,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       boolean migrateNoopChanges,
       @Nullable String customRevId,
       boolean checkout,
-      @Nullable String consistencyFilePath,
+      @Nullable ConsistencyFileConfiguration consistencyFileConfig,
       @Nullable String expectedFixedRef,
       @Nullable String pinnedFixedRef,
       ImmutableList<StarlarkThread.CallStackEntry> definitionStack,
@@ -204,7 +204,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     this.autoPatchfileConfiguration = autoPatchfileConfiguration;
     this.afterMergeTransformations = afterMergeTransformations;
     this.migrateNoopChanges = migrateNoopChanges;
-    this.consistencyFilePath = consistencyFilePath;
+    this.consistencyFileConfig = consistencyFileConfig;
     this.expectedFixedRef = expectedFixedRef;
     this.pinnedFixedRef = pinnedFixedRef;
     this.definitionStack = definitionStack;
@@ -784,7 +784,15 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
   @Nullable
   public String getConsistencyFilePath() {
-    return consistencyFilePath;
+    if (consistencyFileConfig == null) {
+      return null;
+    }
+    return consistencyFileConfig.path();
+  }
+
+  @Nullable
+  public ConsistencyFileConfiguration getConsistencyFileConfig() {
+    return consistencyFileConfig;
   }
 
   @Nullable

@@ -125,11 +125,44 @@ public class ConsistencyFile {
       HashFunction hashFunction,
       Map<String, String> environment,
       boolean verbose,
+      String configPath,
+      String workflowName,
+      boolean excludeBuildFiles)
+      throws IOException, InsideGitDirException, ValidationException {
+    return generate(
+        baseline,
+        destination,
+        hashFunction,
+        environment,
+        verbose,
+        extractWorkflowInfo(configPath, workflowName),
+        excludeBuildFiles);
+  }
+
+  public static ConsistencyFile generate(
+      Path baseline,
+      Path destination,
+      HashFunction hashFunction,
+      Map<String, String> environment,
+      boolean verbose,
       @Nullable String workflowInfo)
       throws IOException, InsideGitDirException, ValidationException {
+    return generate(baseline, destination, hashFunction, environment, verbose, workflowInfo, false);
+  }
+
+  public static ConsistencyFile generate(
+      Path baseline,
+      Path destination,
+      HashFunction hashFunction,
+      Map<String, String> environment,
+      boolean verbose,
+      @Nullable String workflowInfo,
+      boolean excludeBuildFiles)
+      throws IOException, InsideGitDirException, ValidationException {
     byte[] diff = DiffUtil.diffWithIgnoreCrAtEol(baseline, destination, verbose, environment);
-    ImmutableMap<String, String> destinationHashes = computeFileHashes(destination, hashFunction);
-    ImmutableList<String> baselineFileNames = getFileNames(baseline);
+    ImmutableMap<String, String> destinationHashes =
+        computeFileHashes(destination, hashFunction, excludeBuildFiles);
+    ImmutableList<String> baselineFileNames = getFileNames(baseline, excludeBuildFiles);
 
     FileSetDiff filesetDiff = calculateFileSetDiff(destinationHashes, baselineFileNames);
 
@@ -182,18 +215,39 @@ public class ConsistencyFile {
   public static ConsistencyFile generateNoDiff(
       Path contents, HashFunction hashFunction, String configPath, String workflowName)
       throws IOException {
+    return generateNoDiff(contents, hashFunction, configPath, workflowName, false);
+  }
+
+  public static ConsistencyFile generateNoDiff(
+      Path contents,
+      HashFunction hashFunction,
+      String configPath,
+      String workflowName,
+      boolean excludeBuildFiles)
+      throws IOException {
     return new ConsistencyFile(
-        computeFileHashes(contents, hashFunction),
+        computeFileHashes(contents, hashFunction, excludeBuildFiles),
         new byte[0],
         extractWorkflowInfo(configPath, workflowName));
   }
 
   public static ConsistencyFile generateNoDiff(Path contents, HashFunction hashFunction)
       throws IOException {
-    return new ConsistencyFile(computeFileHashes(contents, hashFunction), new byte[0]);
+    return generateNoDiff(contents, hashFunction, false);
+  }
+
+  public static ConsistencyFile generateNoDiff(
+      Path contents, HashFunction hashFunction, boolean excludeBuildFiles) throws IOException {
+    return new ConsistencyFile(
+        computeFileHashes(contents, hashFunction, excludeBuildFiles), new byte[0]);
   }
 
   private static ImmutableList<String> getFileNames(Path directory) throws IOException {
+    return getFileNames(directory, false);
+  }
+
+  private static ImmutableList<String> getFileNames(Path directory, boolean excludeBuildFiles)
+      throws IOException {
     ImmutableList.Builder<String> namesBuilder = ImmutableList.builder();
     Files.walkFileTree(
         directory,
@@ -202,6 +256,9 @@ public class ConsistencyFile {
           public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
             if (Files.isSymbolicLink(file)) {
               // skip symbolic links
+              return FileVisitResult.CONTINUE;
+            }
+            if (excludeBuildFiles && file.getFileName().toString().equals("BUILD")) {
               return FileVisitResult.CONTINUE;
             }
             namesBuilder.add(directory.relativize(file).toString());
@@ -213,6 +270,11 @@ public class ConsistencyFile {
 
   private static ImmutableMap<String, String> computeFileHashes(
       Path directory, HashFunction hashFunction) throws IOException {
+    return computeFileHashes(directory, hashFunction, false);
+  }
+
+  private static ImmutableMap<String, String> computeFileHashes(
+      Path directory, HashFunction hashFunction, boolean excludeBuildFiles) throws IOException {
     ImmutableMap.Builder<String, String> hashesBuilder = ImmutableMap.builder();
     Files.walkFileTree(
         directory,
@@ -224,6 +286,9 @@ public class ConsistencyFile {
               // skip symbolic links
               // if they are materialized, then they will be hashed elsewhere
               // the symbolic link itself will not be hashed
+              return FileVisitResult.CONTINUE;
+            }
+            if (excludeBuildFiles && file.getFileName().toString().equals("BUILD")) {
               return FileVisitResult.CONTINUE;
             }
             HashCode hashCode = MoreFiles.asByteSource(file).hash(hashFunction);

@@ -491,4 +491,36 @@ public class ConsistencyFileTest {
             () -> ConsistencyFile.generate(baseline, destination, Hashing.sha256(), env, false));
     assertThat(t).hasMessageThat().contains("dot files may not be tracked");
   }
+
+  @Test
+  public void testGenerateConsistencyFile_excludeBuildFiles() throws Exception {
+    String testPath = "test/foo";
+    String buildPath = "test/BUILD";
+
+    write(destination, testPath, "hello");
+    write(baseline, testPath, "hello");
+    write(destination, buildPath, "load(...)");
+    write(baseline, buildPath, "load(...)");
+
+    ConsistencyFile consistencyFile =
+        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), env, false, null, true);
+
+    assertThat(consistencyFile.getFileHashes().keySet()).containsExactly(testPath);
+  }
+
+  @Test
+  public void testGenerateConsistencyFile_includeBuildFilesByDefault() throws Exception {
+    String testPath = "test/foo";
+    String buildPath = "test/BUILD";
+
+    write(destination, testPath, "hello");
+    write(baseline, testPath, "hello");
+    write(destination, buildPath, "load(...)");
+    write(baseline, buildPath, "load(...)");
+
+    ConsistencyFile consistencyFile =
+        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), env, false);
+
+    assertThat(consistencyFile.getFileHashes().keySet()).containsExactly(testPath, buildPath);
+  }
 }

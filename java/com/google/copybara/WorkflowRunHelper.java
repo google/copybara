@@ -784,12 +784,17 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       if (mergeErrorPaths == null) {
         mergeErrorPaths = ImmutableList.of();
         if (workflow.getConsistencyFilePath() != null) {
+          boolean excludeBuildFiles = false;
+          if (workflow.getConsistencyFileConfig() != null) {
+            excludeBuildFiles = workflow.getConsistencyFileConfig().excludeBuildFiles();
+          }
           byte[] consistencyFileContents =
               ConsistencyFile.generateNoDiff(
                       checkoutDir,
                       workflow.getDestination().getHashFunction(),
                       workflow.getMainConfigFile().getIdentifier(),
-                      workflow.getName())
+                      workflow.getName(),
+                      excludeBuildFiles)
                   .toBytes();
           Files.createDirectories(
               checkoutDir.resolve(workflow.getConsistencyFilePath()).getParent());
@@ -993,6 +998,10 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       Optional<byte[]> consistencyFile = Optional.empty();
       if (workflow.isConsistencyFileMergeImport()) {
         try {
+          boolean excludeBuildFiles = false;
+          if (workflow.getConsistencyFileConfig() != null) {
+            excludeBuildFiles = workflow.getConsistencyFileConfig().excludeBuildFiles();
+          }
           consistencyFile =
               Optional.of(
                   ConsistencyFile.generate(
@@ -1002,7 +1011,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                           workflow.getGeneralOptions().getEnvironment(),
                           workflow.isVerbose(),
                           workflow.getMainConfigFile().getIdentifier(),
-                          workflow.getName())
+                          workflow.getName(),
+                          excludeBuildFiles)
                       .toBytes());
         } catch (InsideGitDirException e) {
           throw new ValidationException("Error generating consistency file", e);

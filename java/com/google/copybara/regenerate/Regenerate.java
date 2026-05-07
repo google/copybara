@@ -172,6 +172,10 @@ public class Regenerate<O extends Revision, D extends Revision> {
     Optional<byte[]> consistencyFile = Optional.empty();
     if (workflow.getConsistencyFilePath() != null) {
       try {
+        boolean excludeBuildFiles = false;
+        if (workflow.getConsistencyFileConfig() != null) {
+          excludeBuildFiles = workflow.getConsistencyFileConfig().excludeBuildFiles();
+        }
         consistencyFile =
             Optional.of(
                 ConsistencyFile.generate(
@@ -181,7 +185,8 @@ public class Regenerate<O extends Revision, D extends Revision> {
                         workflow.getGeneralOptions().getEnvironment(),
                         workflow.isVerbose(),
                         workflow.getMainConfigFile().getIdentifier(),
-                        workflow.getName())
+                        workflow.getName(),
+                        excludeBuildFiles)
                     .toBytes());
       } catch (InsideGitDirException e) {
         throw new ValidationException("Error generating consistency file", e);
