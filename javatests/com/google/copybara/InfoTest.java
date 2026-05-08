@@ -253,6 +253,64 @@ public class InfoTest {
         .onceInLog(MessageType.INFO, ".*N/A.*Third change.*Foo <Bar>.*");
   }
 
+  @Test
+  public void testInfoIncludeDefinitionAndListOnly() throws Exception {
+    configInfo =
+        """
+        def outer_func(name):
+            create_mig(name)
+
+        def create_mig(name):
+            core.workflow(
+                name = name,
+                origin = git.origin(url = 'https://example.com/orig'),
+                destination = git.destination(url = 'https://example.com/dest'),
+                authoring = authoring.overwrite('Foo <foo@example.com>'),
+            )
+        outer_func('workflow')
+        """;
+    optionsBuilder.general.infoIncludeDefinition = true;
+    optionsBuilder.general.infoListOnly = true;
+    CommandEnv commandEnv = prepAndGetCommandEnv(info, ImmutableList.of("copy.bara.sky"));
+    ExitCode code = info.run(commandEnv);
+
+    assertThat(code).isEqualTo(SUCCESS);
+    console
+        .assertThat()
+        .onceInLog(
+            MessageType.INFO,
+            ".*MIGRATIONS\\+DEFINITIONSTACK: workflow:outer_func@11->create_mig@2.*");
+  }
+
+  @Test
+  public void testInfoIncludeDefinition() throws Exception {
+    configInfo =
+        """
+        def outer_func(name):
+            create_mig_table(name)
+
+        def create_mig_table(name):
+            core.workflow(
+                name = name,
+                description = 'test description',
+                origin = git.origin(url = 'https://example.com/orig'),
+                destination = git.destination(url = 'https://example.com/dest'),
+                authoring = authoring.overwrite('Foo <foo@example.com>'),
+            )
+        outer_func('action_mig')
+        """;
+    optionsBuilder.general.infoIncludeDefinition = true;
+    CommandEnv commandEnv = prepAndGetCommandEnv(info, ImmutableList.of("copy.bara.sky"));
+    ExitCode code = info.run(commandEnv);
+
+    assertThat(code).isEqualTo(SUCCESS);
+    console.assertThat().onceInLog(MessageType.INFO, ".*Name.*Definition.*Description.*");
+    console
+        .assertThat()
+        .onceInLog(MessageType.INFO, ".*action_mig.*outer_func@12.*test description.*")
+        .onceInLog(MessageType.INFO, ".*↳ create_mig_table@2.*");
+  }
+
   private CommandEnv prepAndGetCommandEnv(InfoCmd cmd, ImmutableList<String> args)
       throws Exception {
     CommandEnv commandEnv = new CommandEnv(temp, optionsBuilder.build(), args);

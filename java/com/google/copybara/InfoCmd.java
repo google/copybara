@@ -41,7 +41,10 @@ import com.google.copybara.util.TablePrinter;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
+import net.starlark.java.eval.StarlarkThread.CallStackEntry;
 
 /**
  * Reads the last migrated revision in the origin and destination.
@@ -69,11 +72,13 @@ public class InfoCmd implements CopybaraCmd {
       throws ValidationException, IOException, RepoException {
     ConfigFileArgs configFileArgs = commandEnv.getConfigFileArgs();
     Console console = commandEnv.getOptions().get(GeneralOptions.class).console();
+    boolean includeDefinitions =
+        commandEnv.getOptions().get(GeneralOptions.class).infoIncludeDefinition;
     ConfigWithDependencies config = configLoaderProvider
         .newLoader(configFileArgs.getConfigPath(), configFileArgs.getSourceRef())
         .loadWithDependencies(console);
     if (commandEnv.getOptions().get(GeneralOptions.class).infoListOnly) {
-      listMigrations(commandEnv, config.getConfig());
+      listMigrations(commandEnv, config.getConfig(), includeDefinitions);
       return ExitCode.SUCCESS;
     }
     if (configFileArgs.hasWorkflowName()) {
@@ -88,30 +93,93 @@ public class InfoCmd implements CopybaraCmd {
 
       return hasAvailableChanges ? ExitCode.SUCCESS : ExitCode.NO_OP;
     } else {
-      showAllMigrations(commandEnv, config.getConfig());
+      showAllMigrations(commandEnv, config.getConfig(), includeDefinitions);
       return ExitCode.SUCCESS;
     }
   }
 
-  private static void listMigrations(CommandEnv commandEnv, Config config) {
-    Console console = commandEnv.getOptions().get(GeneralOptions.class).console();
-    console.infoFmt("MIGRATIONS: %s",
-        Joiner.on(',').join(ImmutableSortedSet.copyOf(config.getMigrations().keySet())));
+  private static String getShortFileName(String path) {
+    if (Strings.isNullOrEmpty(path)) {
+      return "";
+    }
+    int idx = path.lastIndexOf('/');
+    return idx >= 0 ? path.substring(idx + 1) : path;
   }
 
-  private static void showAllMigrations(CommandEnv commandEnv, Config config) {
-    TablePrinter table = new TablePrinter("Name", "Origin", "Destination", "Mode", "Description");
-    for (Migration m :
-        config.getMigrations().values().stream()
-            .sorted(Comparator.comparing(Migration::getName))
-            .collect(ImmutableList.toImmutableList())) {
-      table.addRow(
-          m.getName(),
-          prettyOriginDestination(m.getOriginDescription()),
-          prettyOriginDestination(m.getDestinationDescription()),
-          m.getModeString(),
-          Strings.nullToEmpty(m.getDescription()));
+  private static String formatStackEntry(
+      ImmutableList<CallStackEntry> callStack, int stackIndex, boolean extraSpacing) {
+    Preconditions.checkArgument(stackIndex > 0, "Index must be greater than 0");
+    String definitionName = callStack.get(stackIndex).name;
+    int line = callStack.get(stackIndex - 1).location.line();
+    if (line != 0) {
+      String callerFile = getShortFileName(callStack.get(stackIndex - 1).location.file());
+      String mainFile = getShortFileName(callStack.get(0).location.file());
+      if (!callerFile.equals(mainFile)) {
+        String spacing = extraSpacing ? " " : "";
+        return String.format("%s@%d%s[%s]", definitionName, line, spacing, callerFile);
+      }
+      return String.format("%s@%d", definitionName, line);
     }
+    return definitionName;
+  }
+
+  private static void listMigrations(
+      CommandEnv commandEnv, Config config, boolean includeDefinitions) throws ValidationException {
+    Console console = commandEnv.getOptions().get(GeneralOptions.class).console();
+    if (includeDefinitions) {
+      List<String> entries = new ArrayList<>();
+      for (String name : ImmutableSortedSet.copyOf(config.getMigrations().keySet())) {
+        Migration m = config.getMigration(name);
+        ImmutableList<CallStackEntry> callStack = m.getDefinitionStack();
+        if (callStack != null && callStack.size() > 1) {
+          StringBuilder fullStack = new StringBuilder(formatStackEntry(callStack, 1, false));
+          for (int i = 2; i < callStack.size(); i++) {
+            fullStack.append("->").append(formatStackEntry(callStack, i, false));
+          }
+          entries.add(name + ":" + fullStack);
+        }
+      }
+      console.infoFmt("MIGRATIONS+DEFINITIONSTACK: %s", Joiner.on(',').join(entries));
+    } else {
+      console.infoFmt(
+          "MIGRATIONS: %s",
+          Joiner.on(',').join(ImmutableSortedSet.copyOf(config.getMigrations().keySet())));
+    }
+  }
+
+  private static void showAllMigrations(
+      CommandEnv commandEnv, Config config, boolean includeDefinitions) {
+    TablePrinter table;
+    ImmutableList<Migration> sortedMigrations =
+        ImmutableList.sortedCopyOf(
+            Comparator.comparing(Migration::getName), config.getMigrations().values());
+
+    if (includeDefinitions) {
+      table = new TablePrinter("Name", "Definition", "Description");
+      for (Migration m : sortedMigrations) {
+        ImmutableList<CallStackEntry> callStack = m.getDefinitionStack();
+        if (callStack != null && callStack.size() > 1) {
+          table.addRow(
+              m.getName(),
+              formatStackEntry(callStack, 1, true),
+              Strings.nullToEmpty(m.getDescription()));
+          for (int i = 2; i < callStack.size(); i++) {
+            table.addRow("", "↳ " + formatStackEntry(callStack, i, true), "");
+          }
+        }
+      }
+    } else {
+      table = new TablePrinter("Name", "Origin", "Destination", "Mode", "Description");
+      for (Migration m : sortedMigrations) {
+        table.addRow(
+            m.getName(),
+            prettyOriginDestination(m.getOriginDescription()),
+            prettyOriginDestination(m.getDestinationDescription()),
+            m.getModeString(),
+            Strings.nullToEmpty(m.getDescription()));
+      }
+    }
+
     Console console = commandEnv.getOptions().get(GeneralOptions.class).console();
     for (String line : table.build()) {
       console.info(line);

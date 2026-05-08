@@ -551,7 +551,14 @@ public final class GeneralOptions implements Option {
       names = "--info-list-only",
       description =
           "When set, the INFO command will print a list of workflows defined in the file.")
-  boolean infoListOnly = false;
+  public boolean infoListOnly = false;
+
+  @Parameter(
+      names = "--info-include-definition",
+      description =
+          "When set, the INFO command will include the migrations' definition stack info in the"
+              + " table or list output. In table, leaves out origin, destination and mode.")
+  public boolean infoIncludeDefinition = false;
 
   @Parameter(
       names = {"--event-monitor"},
