@@ -172,4 +172,18 @@ public class MainTest {
     assertThat(new Main(envWithHome).run(/*no arguments*/ new String[] {"--force-author='fdsfds'"}))
         .isEqualTo(ExitCode.COMMAND_LINE_ERROR);
   }
+
+  @Test
+  public void testFindFlagValue() {
+    String[] args = {"--foo", "bar", "--baz=qux", "--flag_with_empty=", "--flag_at_end=val"};
+
+    assertThat(Main.findFlagValue(args, "--foo").orElse(null)).isEqualTo("bar");
+    assertThat(Main.findFlagValue(args, "--baz").orElse(null)).isEqualTo("qux");
+    assertThat(Main.findFlagValue(args, "--flag_with_empty").orElse(null)).isEqualTo("");
+    assertThat(Main.findFlagValue(args, "--flag_at_end").orElse(null)).isEqualTo("val");
+    assertThat(Main.findFlagValue(args, "--missing").isPresent()).isFalse();
+
+    assertThat(Main.findFlagValue(new String[] {"--foo"}, "--foo").isPresent()).isFalse();
+    assertThat(Main.findFlagValue(new String[] {"--foo", "--bar"}, "--foo").isPresent()).isFalse();
+  }
 }

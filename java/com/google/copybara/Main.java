@@ -164,15 +164,19 @@ public class Main {
 
   /**
    * Finds a flag value before JCommander is initialized. Returns {@code Optional.empty()} if the
-   * flag is not present.
+   * flag is not present or has no value ('=' and ' ' accepted as separators). Does not support
+   * arity 0 flags.
    */
   protected static Optional<String> findFlagValue(String[] args, String flagName) {
-    for (int index = 0; index < args.length - 1; index++) {
+    for (int index = 0; index < args.length; index++) {
       if (args[index].equals(flagName)) {
-        if (!args[index + 1].startsWith("-")) {
+        if (index < args.length - 1 && !args[index + 1].startsWith("-")) {
           return Optional.of(args[index + 1]);
         }
         return Optional.empty();
+      }
+      if (args[index].startsWith(flagName + "=")) {
+        return Optional.of(args[index].substring(flagName.length() + 1));
       }
     }
     return Optional.empty();
