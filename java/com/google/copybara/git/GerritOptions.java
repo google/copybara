@@ -37,6 +37,7 @@ import com.google.copybara.git.gerritapi.GerritApi;
 import com.google.copybara.git.gerritapi.GerritApiTransport;
 import com.google.copybara.git.gerritapi.GerritApiTransportImpl;
 import com.google.copybara.git.gerritapi.GerritApiTransportWithChecker;
+import com.google.copybara.util.TestSleeper;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.regex.Pattern;
@@ -49,10 +50,20 @@ public class GerritOptions implements Option {
   private static final Pattern CHANGE_ID_PATTERN = Pattern.compile("I[0-9a-f]{40}");
   protected final GeneralOptions generalOptions;
   protected GitOptions gitOptions;
+  private TestSleeper sleeper = TestSleeper.SYSTEM;
 
   public GerritOptions(GeneralOptions generalOptions, GitOptions gitOptions) {
     this.generalOptions = generalOptions;
     this.gitOptions = gitOptions;
+  }
+
+  public TestSleeper getSleeper() {
+    return sleeper;
+  }
+
+  @VisibleForTesting
+  public void setSleeper(TestSleeper sleeper) {
+    this.sleeper = sleeper;
   }
 
   /** Validate that the argument is a valid Gerrit Change-id */

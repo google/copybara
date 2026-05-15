@@ -80,6 +80,7 @@ public final class GerritDestination implements Destination<GitRevision> {
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   static final int MAX_FIND_ATTEMPTS = 150;
+  private static final int SUBMIT_MAX_RETRY_DELAY_MS = 30000;
 
   static final String CHANGE_ID_LABEL = "Change-Id";
 
@@ -271,15 +272,15 @@ public final class GerritDestination implements Destination<GitRevision> {
 
     @Nullable
     private ChangeInfo findChange(String changeId) throws ValidationException, RepoException {
-      return findChange(changeId, 1);
+      return findChange(changeId, 0);
     }
 
     @Nullable
-    private ChangeInfo findChange(String changeId, int attempts)
+    private ChangeInfo findChange(String changeId, int maxDelay)
         throws ValidationException, RepoException {
       int currentAttempt = 0;
-      long delayMs = 1000;
-      while (currentAttempt < attempts) {
+      long delayMs;
+      do {
         List<ChangeInfo> changes =
             findChanges(
                 changeId,
@@ -288,33 +289,32 @@ public final class GerritDestination implements Destination<GitRevision> {
           return changes.get(0);
         }
 
-        currentAttempt++;
-        if (currentAttempt < attempts) {
+        delayMs = 1000 * (long) Math.pow(2, currentAttempt);
+        if (delayMs <= maxDelay) {
+          currentAttempt++;
           console.warnFmt(
-              "Gerrit change %s not found (Attempt %d/%d). Retrying in %d ms... See b/472404588"
-                  + " for context.",
-              changeId, currentAttempt, attempts, delayMs);
+              "Gerrit change %s not found (attempt %d). Retrying in %d ms...",
+              changeId, currentAttempt, delayMs);
           try {
-            Thread.sleep(delayMs);
+            gerritOptions.getSleeper().sleep(delayMs);
           } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RepoException("Interrupted during retry", e);
           }
-          delayMs *= 2;
         }
-      }
+      } while (delayMs <= maxDelay);
+
       return null;
     }
 
     private void submitChange(String changeId)
         throws RepoException, ValidationException {
       try (ProfilerTask ignore = generalOptions.profiler().start("submit_gerrit_change")) {
-        int attempts = 3;
-        ChangeInfo changeInfo = findChange(changeId, attempts);
+        ChangeInfo changeInfo = findChange(changeId, SUBMIT_MAX_RETRY_DELAY_MS);
         if (changeInfo == null) {
           console.warnFmt(
-              "Gerrit change %s still not found after %d attempts. Skipping submit.",
-              changeId, attempts);
+              "Gerrit change %s still not found after waiting %d milliseconds. Skipping submit.",
+              changeId, SUBMIT_MAX_RETRY_DELAY_MS);
           return;
         }
         GerritApi gerritApi = gerritOptions.newGerritApi(repoUrl);

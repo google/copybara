@@ -385,6 +385,7 @@ public class GerritDestinationTest {
     options = new OptionsBuilder()
         .setConsole(console)
         .setOutputRootToTmpDir();
+    options.gerrit.setSleeper(millis -> {});
 
     gitUtil = new GitTestUtil(options);
     Path credentialsFile = Files.createTempFile("credentials", "test");
@@ -1040,14 +1041,17 @@ public class GerritDestinationTest {
 
     boolean retry1 =
         console.getMessages().stream()
-            .anyMatch(m -> m.getText().contains("(Attempt 1/3). Retrying in 1000 ms..."));
+            .anyMatch(m -> m.getText().contains("(attempt 1). Retrying in 1000 ms..."));
     boolean retry2 =
         console.getMessages().stream()
-            .anyMatch(m -> m.getText().contains("(Attempt 2/3). Retrying in 2000 ms..."));
+            .anyMatch(m -> m.getText().contains("(attempt 2). Retrying in 2000 ms..."));
     boolean fail =
         console.getMessages().stream()
             .anyMatch(
-                m -> m.getText().contains("still not found after 3 attempts. Skipping submit."));
+                m ->
+                    m.getText()
+                        .contains(
+                            "still not found after waiting 30000 milliseconds. Skipping submit."));
 
     assertThat(retry1).isTrue();
     assertThat(retry2).isTrue();
@@ -1127,7 +1131,7 @@ public class GerritDestinationTest {
 
     boolean retry1 =
         console.getMessages().stream()
-            .anyMatch(m -> m.getText().contains("(Attempt 1/3). Retrying in 1000 ms..."));
+            .anyMatch(m -> m.getText().contains("(attempt 1). Retrying in 1000 ms..."));
     assertThat(retry1).isTrue();
   }
 
