@@ -29,6 +29,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.flogger.FluentLogger;
@@ -533,9 +534,10 @@ public enum WorkflowMode {
 
     // For all the changes that should be included based on skipChange, find the ones that
     // should be added unconditionally
-    List<Change<O>> unconditionalChanges = includedChanges.stream()
-        .filter(e -> !conditionalChanges.keySet().contains(e))
-        .collect(Collectors.toList());
+    ImmutableSet<Change<O>> unconditionalChanges =
+        includedChanges.stream()
+            .filter(e -> !conditionalChanges.containsKey(e))
+            .collect(ImmutableSet.toImmutableSet());
 
     // Only include unconditional changes or conditional changes that its dependant change is
     // included
