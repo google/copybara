@@ -60,8 +60,8 @@ public class PatchingOptions implements Option {
   @Parameter(
       names = "--patch-validate-on-load",
       arity = 1,
-      description = "Enable or disable extended patch series validation")
-  public boolean validateOnLoad = true;
+      description = "Override transform's validation level and force full or no validation")
+  public Boolean validateOnLoad = null;
 
   @Parameter(names = SKIP_VERSION_CHECK_FLAG, description =
       "Skip checking the version of patch and assume it is fine")

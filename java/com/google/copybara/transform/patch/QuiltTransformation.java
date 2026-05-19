@@ -29,6 +29,7 @@ import com.google.copybara.exception.CannotResolveLabel;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.FileUtil;
+import com.google.copybara.util.console.Console;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
 import java.io.BufferedWriter;
@@ -48,7 +49,7 @@ import net.starlark.java.syntax.Location;
 
 public final class QuiltTransformation implements Transformation {
   private final Optional<ConfigFile> series;
-  private final ImmutableList<ConfigFile> patchConfigs;
+  private final ImmutableList<ConfigFile> patchFiles;
   private final PatchingOptions options;
   // TODO(copybara-team): Add support for reverse=True.
   // We could possibly implement it without using quilt. Assuming reversal does not require updating
@@ -60,14 +61,14 @@ public final class QuiltTransformation implements Transformation {
 
   QuiltTransformation(
       Optional<ConfigFile> series,
-      ImmutableList<ConfigFile> patches,
+      ImmutableList<ConfigFile> patchFiles,
       PatchingOptions options,
       boolean reverse,
       String directory,
       Location location,
       String patchesDirName) {
     this.series = series;
-    this.patchConfigs = patches;
+    this.patchFiles = patchFiles;
     this.options = options;
     this.reverse = reverse;
     this.directory = checkNotNull(directory);
@@ -78,34 +79,43 @@ public final class QuiltTransformation implements Transformation {
   @Override
   public TransformationStatus transform(TransformWork work)
       throws IOException, ValidationException {
-    boolean verbose = options.getGeneralOptions().isVerbose();
-    Path checkoutDir = work.getCheckoutDir().resolve(directory);
-    work.getConsole().infoFmt("Applying and updating patches with quilt.");
-    Path patchesDir = checkoutDir.resolve(patchesDirName);
-    if (Files.exists(patchesDir)) {
-      work.getConsole()
-          .warnFmt("Destination already has a '%s' directory. Replacing files.", patchesDirName);
+    if (this.series.isEmpty()) {
+      return TransformationStatus.success();
     }
-    // "quilt import <patch_path>" only works for a local path, so we copy the patch config files
-    // to a local temp directory first.
-    ImmutableList<Path> patches = copyPatchConfigsToTmpDir();
+
+    Path checkoutDir = work.getCheckoutDir().resolve(directory);
+    createPatchDirectory(checkoutDir, work.getConsole());
+
+    // avoid setting up and cleaning up quilt if not needed
+    if (this.patchFiles.isEmpty()) {
+      copySeriesFile(checkoutDir);
+      return TransformationStatus.success();
+    }
+
+    boolean verbose = options.getGeneralOptions().isVerbose();
+    work.getConsole().infoFmt("Applying and updating patches with quilt.");
+    // "quilt import <patch_path>" only works for a local path, so we copy the patch files to a
+    // local temp directory first and setup a fresh empty series file using these tmp paths
+    ImmutableList<Path> patches = copyPatchFilesToTmpDir();
     Map<String, String> env = options.getGeneralOptions().getEnvironment();
     env = initializeQuilt(checkoutDir, env);
     importPatches(checkoutDir, patches, env, verbose);
-    restoreSeriesAndCleanup(checkoutDir);
+    // restore the original series file with real paths
+    copySeriesFile(checkoutDir);
+    cleanupQuilt(checkoutDir);
     return TransformationStatus.success();
   }
 
   @Override
   public Transformation reverse() {
     return new QuiltTransformation(
-        series, patchConfigs, options, !reverse, directory, location, patchesDirName);
+        series, patchFiles, options, !reverse, directory, location, patchesDirName);
   }
 
   @Override
   public String describe() {
     return "Patch.quilt_apply: using quilt to apply and update patches: "
-        + patchConfigs.stream().map(ConfigFile::path).collect(joining(", "));
+        + patchFiles.stream().map(ConfigFile::path).collect(joining(", "));
   }
 
   @Override
@@ -146,10 +156,10 @@ public final class QuiltTransformation implements Transformation {
     }
   }
 
-  private ImmutableList<Path> copyPatchConfigsToTmpDir() throws IOException {
+  private ImmutableList<Path> copyPatchFilesToTmpDir() throws IOException {
     ImmutableList.Builder<Path> builder = ImmutableList.builder();
     Path patchDir = options.getGeneralOptions().getDirFactory().newTempDir("inputpatches");
-    for (ConfigFile patch : patchConfigs) {
+    for (ConfigFile patch : patchFiles) {
       // Uses String instead of Path for baseName, because patchDir's FileSystem may not match
       // the default FileSystem from Paths.get().
       String baseName = Paths.get(patch.path()).getFileName().toString();
@@ -162,6 +172,27 @@ public final class QuiltTransformation implements Transformation {
       }
     }
     return builder.build();
+  }
+
+  private void createPatchDirectory(Path checkoutDir, Console console) throws IOException {
+    Path patchesDir = checkoutDir.resolve(patchesDirName);
+    if (Files.exists(patchesDir)) {
+      console.warnFmt("Destination already has a '%s' directory. Replacing files.", patchesDirName);
+    }
+    Files.createDirectories(patchesDir);
+  }
+
+  private void copySeriesFile(Path checkoutDir) throws IOException {
+    Path patchesDir = checkoutDir.resolve(patchesDirName);
+    try {
+      Files.write(
+          patchesDir.resolve("series"),
+          series
+              .orElseThrow(() -> new CannotResolveLabel("Cannot find series file"))
+              .readContentBytes());
+    } catch (CannotResolveLabel e) {
+      throw new IOException("Error reading original 'series' file", e);
+    }
   }
 
   private ImmutableMap<String, String> initializeQuilt(Path checkoutDir, Map<String, String> env)
@@ -199,9 +230,6 @@ public final class QuiltTransformation implements Transformation {
     envBuilder.put("QUILTRC", quilrcPath.toRealPath().toString());
 
     // Creates and checks for necessary directories.
-    Path patchesDir = checkoutDir.resolve(patchesDirName);
-    Files.createDirectories(patchesDir);
-    Files.write(patchesDir.resolve("series"), new byte[0]);
     Path pcDir = checkoutDir.resolve(".pc");
     if (Files.exists(pcDir)) {
       try {
@@ -227,17 +255,7 @@ public final class QuiltTransformation implements Transformation {
     }
   }
 
-  private void restoreSeriesAndCleanup(Path checkoutDir) throws IOException {
-    // Restores the original "series" file.
-    try {
-      Files.write(
-          checkoutDir.resolve(patchesDirName).resolve("series"),
-          series
-              .orElseThrow(() -> new CannotResolveLabel("Cannot find series file"))
-              .readContentBytes());
-    } catch (CannotResolveLabel e) {
-      throw new IOException("Error reading original 'series' file", e);
-    }
+  private void cleanupQuilt(Path checkoutDir) throws IOException {
     // Deletes ".pc" directory.
     FileUtil.deleteRecursively(checkoutDir.resolve(".pc"));
   }

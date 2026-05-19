@@ -19,11 +19,13 @@ package com.google.copybara.transform.patch;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.MapConfigFile;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitRepository;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
@@ -34,9 +36,6 @@ import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import static org.junit.Assert.assertThrows;
-
-import com.google.copybara.exception.ValidationException;
 import net.starlark.java.syntax.Location;
 import org.junit.Before;
 import org.junit.Test;
@@ -66,7 +65,8 @@ public class PatchTransformationTest {
       -bar
       \\ No newline at end of file
       +new bar
-      \\ No newline at end of file""";
+      \\ No newline at end of file\
+      """;
 
   private OptionsBuilder options;
   private PatchingOptions patchingOptions;
@@ -109,7 +109,9 @@ public class PatchTransformationTest {
             /* strip= */ 1,
             /* directory= */ "",
             Location.BUILTIN);
+
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
+
     assertThatPath(checkoutDir)
         .containsFile("test.txt", "bar\n")
         .containsNoMoreFiles();
@@ -118,7 +120,6 @@ public class PatchTransformationTest {
   @Test
   public void insideGitFolderTest() throws Exception {
     GitRepository.newRepo(/*verbose*/ false, checkoutDir, GitTestUtil.getGitEnv()).init();
-
     Path foo = Files.createDirectories(checkoutDir.resolve("foo"));
     Files.write(foo.resolve("test.txt"), "foo\n".getBytes(UTF_8));
     PatchTransformation transform =
@@ -130,7 +131,9 @@ public class PatchTransformationTest {
             /* strip= */ 1,
             /* directory= */ "",
             Location.BUILTIN);
+
     transform.transform(TransformWorks.of(foo, "testmsg", console));
+
     assertThatPath(foo)
             .containsFile("test.txt", "bar\n")
             .containsNoMoreFiles();
@@ -148,7 +151,9 @@ public class PatchTransformationTest {
             /* strip= */ 1,
             /* directory= */ "",
             Location.BUILTIN);
+
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
+
     assertThatPath(checkoutDir)
         .containsFile("test.txt", "foo\n")
         .containsNoMoreFiles();
@@ -167,7 +172,9 @@ public class PatchTransformationTest {
               excluded_patch_paths = ['excluded/*'],
             )
             """);
+
     transformation.transform(TransformWorks.of(checkoutDir, "testmsg", console));
+
     assertThatPath(checkoutDir)
         .containsFile("test.txt", "bar\n")
         .containsNoMoreFiles();
@@ -177,7 +184,9 @@ public class PatchTransformationTest {
   public void testPathStrip() throws Exception {
     patchingOptions.skipVersionCheck = true;
     Files.write(checkoutDir.resolve("test.txt"), "foo\n".getBytes(UTF_8));
-    skylark.addConfigFile("diff.patch",       """
+    skylark.addConfigFile(
+        "diff.patch",
+        """
         diff --git test.txt test.txt
         index 257cc56..5716ca5 100644
         --- test.txt
@@ -195,7 +204,9 @@ public class PatchTransformationTest {
               strip = 0,
             )
             """);
+
     transformation.transform(TransformWorks.of(checkoutDir, "testmsg", console));
+
     assertThatPath(checkoutDir)
         .containsFile("test.txt", "bar\n")
         .containsNoMoreFiles();
@@ -209,14 +220,14 @@ public class PatchTransformationTest {
     skylark.addConfigFile(
         "diff.patch",
         """
-            diff --git dir/test.txt dir/test.txt
-            index 257cc56..5716ca5 100644
-            --- dir/test.txt
-            +++ dir/test.txt
-            @@ -1 +1 @@
-            -foo
-            +bar
-            """);
+        diff --git dir/test.txt dir/test.txt
+        index 257cc56..5716ca5 100644
+        --- dir/test.txt
+        +++ dir/test.txt
+        @@ -1 +1 @@
+        -foo
+        +bar
+        """);
     PatchTransformation transformation =
         skylark.eval(
             "r",
@@ -227,7 +238,9 @@ public class PatchTransformationTest {
               directory = 'sub/',
             )
             """);
+
     transformation.transform(TransformWorks.of(checkoutDir, "testmsg", console));
+
     assertThatPath(checkoutDir).containsFile("sub/dir/test.txt", "bar\n").containsNoMoreFiles();
   }
 
@@ -245,7 +258,9 @@ public class PatchTransformationTest {
               excluded_patch_paths = ['excluded/*'],
             )
             """);
+
     transformation.transform(TransformWorks.of(checkoutDir, "testmsg", console));
+
     assertThatPath(checkoutDir)
         .containsFile("test.txt", "bar\n")
         .containsNoMoreFiles();
@@ -256,7 +271,8 @@ public class PatchTransformationTest {
     patchingOptions.validateOnLoad = false;
     Files.write(checkoutDir.resolve("test.txt"), "foo\n".getBytes(UTF_8));
     skylark.addConfigFile("series", seriesFile.readContent());
-    PatchTransformation ignore =
+
+    PatchTransformation transformation =
         skylark.eval(
             "r",
             """
@@ -265,12 +281,15 @@ public class PatchTransformationTest {
               excluded_patch_paths = ['excluded/*'],
             )
             """);
+
+    assertThat(transformation).isNotNull();
   }
 
   @Test
   public void testParseSkylarkRelaxedCheck() throws Exception {
     patchingOptions.validateOnLoad = false;
     Files.write(checkoutDir.resolve("test.txt"), "foo\n".getBytes(UTF_8));
+
     PatchTransformation transformation =
         skylark.eval(
             "r",
@@ -280,21 +299,111 @@ public class PatchTransformationTest {
               excluded_patch_paths = ['excluded/*'],
             )
             """);
-    console.assertThat().onceInLog(MessageType.ERROR, "Cannot load.*");
+
+    console.assertThat().onceInLog(MessageType.INFO, "Cannot load.*");
+    assertThat(transformation).isNotNull();
   }
 
   @Test
-  public void testParseSkylarkSeries_empty() throws Exception {
+  public void testValidationLevelFull_emptySeriesThrows() throws Exception {
     skylark.addConfigFile("series", "");
+
+    skylark.evalFails(
+        """
+        patch.apply(
+          series = 'series',
+          excluded_patch_paths = ['excluded/*'],
+          validation_level = 'FULL',
+        )
+        """,
+        ".*series cannot be empty.*");
+  }
+
+  @Test
+  public void testValidationLevelFull_missingSeriesThrows() throws Exception {
+    skylark.evalFails(
+        """
+        patch.apply(
+          series = 'missing_series',
+          validation_level = 'FULL',
+        )
+        """,
+        "Cannot resolve.*");
+  }
+
+  @Test
+  public void testValidationLevelDefaultIsOptionalSeries_missingSeriesLoads() throws Exception {
     PatchTransformation transformation =
         skylark.eval(
             "r",
             """
             r = patch.apply(
-              series = 'series',
-              excluded_patch_paths = ['excluded/*'],
+              series = 'missing_series',
             )
             """);
+
+    assertThat(transformation.describe()).isEqualTo("Patch.apply: ");
+  }
+
+  @Test
+  public void testValidationLevelOptionalSeries_missingSeriesLoads() throws Exception {
+    PatchTransformation transformation =
+        skylark.eval(
+            "r",
+            """
+            r = patch.apply(
+              series = 'missing_series',
+              validation_level = 'OPTIONAL_SERIES',
+            )
+            """);
+
+    assertThat(transformation.describe()).isEqualTo("Patch.apply: ");
+  }
+
+  @Test
+  public void testValidationLevelOptionalSeries_missingPatchThrows() throws Exception {
+    skylark.evalFails(
+        """
+        patch.apply(
+          patches = ['missing.patch'],
+          validation_level = 'OPTIONAL_SERIES',
+        )
+        """,
+        "Failed to resolve patch: missing.patch");
+  }
+
+  @Test
+  public void testValidationLevelNone_missingPatchLogs() throws Exception {
+    PatchTransformation transformation =
+        skylark.eval(
+            "r",
+            """
+            r = patch.apply(
+              patches = ['missing.patch'],
+              validation_level = 'NONE',
+            )
+            """);
+
+    console.assertThat().onceInLog(MessageType.INFO, "Cannot load: missing.patch");
+    assertThat(transformation).isNotNull();
+  }
+
+  @Test
+  public void testValidateOnLoadOverride() throws Exception {
+    patchingOptions.validateOnLoad = false;
+
+    PatchTransformation transformation =
+        skylark.eval(
+            "r",
+            """
+            r = patch.apply(
+              patches = ['missing.patch'],
+              validation_level = 'FULL',
+            )
+            """);
+
+    console.assertThat().onceInLog(MessageType.INFO, "Cannot load: missing.patch");
+    assertThat(transformation).isNotNull();
   }
 
   @Test
@@ -308,6 +417,7 @@ public class PatchTransformationTest {
             /* strip= */ 1,
             /* directory= */ "",
             Location.BUILTIN);
+
     assertThat(transform.describe()).isEqualTo("Patch.apply: diff.patch, diff.patch");
   }
 

@@ -134,7 +134,9 @@ public final class QuiltTransformationTest {
             /* directory= */ "",
             Location.BUILTIN,
             "patches");
+
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
+
     assertThatPath(checkoutDir)
         .containsFile("file1.txt", "line1\nbar\nline3")
         .containsFile("file2.txt", "new bar\n")
@@ -174,7 +176,9 @@ public final class QuiltTransformationTest {
             /* directory= */ "",
             Location.BUILTIN,
             "patches");
+
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
+
     assertThatPath(checkoutDir)
         .containsFile("file1.txt", "new line\n\nline1\nbar\nline3")
         .containsFile("file2.txt", "new bar\n")
@@ -256,10 +260,12 @@ public final class QuiltTransformationTest {
             /* directory= */ "",
             Location.BUILTIN,
             "patches");
+
     ValidationException e =
         assertThrows(
             ValidationException.class,
             () -> transform.transform(TransformWorks.of(checkoutDir, "testmsg", console)));
+
     assertThat(e).hasMessageThat().contains("Patch file does not apply.");
   }
 
@@ -277,7 +283,9 @@ public final class QuiltTransformationTest {
               series = 'patches/series',
             )
             """);
+
     transformation.transform(TransformWorks.of(checkoutDir, "testmsg", console));
+
     assertThatPath(checkoutDir)
         .containsFile("file1.txt", "line1\nbar\nline3")
         .containsFile("file2.txt", "new bar\n")
@@ -292,6 +300,7 @@ public final class QuiltTransformationTest {
     Files.write(checkoutDir.resolve("file1.txt"), "line1\nfoo\nline3".getBytes(UTF_8));
     Files.write(checkoutDir.resolve("file2.txt"), "bar\n".getBytes(UTF_8));
     skylark.addConfigFile("patches/series", seriesFile.readContent());
+
     QuiltTransformation transformation =
         skylark.eval(
             "r",
@@ -300,6 +309,8 @@ public final class QuiltTransformationTest {
               series = 'patches/series',
             )
             """);
+
+    assertThat(transformation).isNotNull();
   }
 
   @Test
@@ -324,14 +335,16 @@ public final class QuiltTransformationTest {
     skylark.addConfigFile("patches/series", "");
     assertThrows(
         ValidationException.class,
-        () ->
-            skylark.eval(
-                "r",
-                """
-                r = patch.quilt_apply(
-                  series = 'patches/series',
-                )
-                """));
+        () -> {
+          QuiltTransformation unused =
+              skylark.eval(
+                  "r",
+                  """
+                  r = patch.quilt_apply(
+                    series = 'patches/series',
+                  )
+                  """);
+        });
   }
 
   @Test
@@ -429,6 +442,47 @@ public final class QuiltTransformationTest {
         .containsFile("sub/dir/patches/diff.patch", subDiff)
         .containsFile("sub/dir/patches/series", SERIES)
         .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testValidationLevelDefaultIsFull_missingSeriesThrows() throws Exception {
+    skylark.evalFails(
+        """
+        patch.quilt_apply(
+          series = 'patches/missing_series',
+        )
+        """,
+        "Cannot resolve 'patches/missing_series'");
+  }
+
+  @Test
+  public void testValidationLevelOptionalSeries_missingSeriesNoop() throws Exception {
+    QuiltTransformation transformation =
+        skylark.eval(
+            "r",
+            """
+            r = patch.quilt_apply(
+              series = 'patches/missing_series',
+              validation_level = 'OPTIONAL_SERIES',
+            )
+            """);
+
+    assertThat(transformation.describe())
+        .isEqualTo("Patch.quilt_apply: using quilt to apply and update patches: ");
+  }
+
+  @Test
+  public void testValidationLevelOptionalSeries_missingPatchThrows() throws Exception {
+    skylark.addConfigFile("patches/series", "missing.patch\n");
+
+    skylark.evalFails(
+        """
+        patch.quilt_apply(
+          series = 'patches/series',
+          validation_level = 'OPTIONAL_SERIES',
+        )
+        """,
+        "Cannot resolve 'patches/missing.patch'");
   }
 
   @Test
@@ -656,5 +710,69 @@ public final class QuiltTransformationTest {
     assertThat(transform.describe())
         .isEqualTo(
             "Patch.quilt_apply: using quilt to apply and update patches: patches/diff.patch");
+  }
+
+  @Test
+  public void transformationEmptySeriesNoopTest() throws Exception {
+    Files.write(checkoutDir.resolve("file1.txt"), "line1\n".getBytes(UTF_8));
+    QuiltTransformation transform =
+        new QuiltTransformation(
+            Optional.empty(),
+            ImmutableList.of(),
+            patchingOptions,
+            /* reverse= */ false,
+            /* directory= */ "",
+            Location.BUILTIN,
+            "patches");
+
+    transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
+
+    assertThatPath(checkoutDir).containsFile("file1.txt", "line1\n").containsNoMoreFiles();
+    console
+        .assertThat()
+        .timesInLog(
+            0,
+            com.google.copybara.util.console.Message.MessageType.INFO,
+            ".*Applying and updating patches with quilt.*");
+  }
+
+  @Test
+  public void transformationEmptyPatchesCopiesSeriesTest() throws Exception {
+    Files.write(checkoutDir.resolve("file1.txt"), "line1\n".getBytes(UTF_8));
+    QuiltTransformation transform =
+        new QuiltTransformation(
+            Optional.of(seriesFile),
+            ImmutableList.of(),
+            patchingOptions,
+            /* reverse= */ false,
+            /* directory= */ "",
+            Location.BUILTIN,
+            "patches");
+
+    transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
+
+    assertThatPath(checkoutDir)
+        .containsFile("file1.txt", "line1\n")
+        .containsFile("patches/series", SERIES)
+        .containsNoMoreFiles();
+    console
+        .assertThat()
+        .timesInLog(
+            0,
+            com.google.copybara.util.console.Message.MessageType.INFO,
+            ".*Applying and updating patches with quilt.*");
+  }
+
+  @Test
+  public void parseSkylarkTest_validateOnLoadOverridesValidationLevelNone() throws Exception {
+    patchingOptions.validateOnLoad = true;
+    skylark.evalFails(
+        """
+        patch.quilt_apply(
+          series = 'patches/missing_series',
+          validation_level = 'NONE',
+        )
+        """,
+        "Cannot resolve 'patches/missing_series'");
   }
 }

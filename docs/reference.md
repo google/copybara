@@ -6863,7 +6863,7 @@ Module for applying patches.
 
 A transformation that applies the given patch files. If a path does not exist in a patch, it will be ignored.
 
-<code><a href="#transformation">transformation</a></code> <code>patch.apply(<a href=#patch.apply.patches>patches</a>=[], <a href=#patch.apply.excluded_patch_paths>excluded_patch_paths</a>=[], <a href=#patch.apply.series>series</a>=None, <a href=#patch.apply.strip>strip</a>=1, <a href=#patch.apply.directory>directory</a>='')</code>
+<code><a href="#transformation">transformation</a></code> <code>patch.apply(<a href=#patch.apply.patches>patches</a>=[], <a href=#patch.apply.excluded_patch_paths>excluded_patch_paths</a>=[], <a href=#patch.apply.series>series</a>=None, <a href=#patch.apply.strip>strip</a>=1, <a href=#patch.apply.directory>directory</a>='', <a href=#patch.apply.validation_level>validation_level</a>="OPTIONAL_SERIES")</code>
 
 
 <h4 id="parameters.patch.apply">Parameters:</h4>
@@ -6875,6 +6875,7 @@ Parameter | Description
 <span id=patch.apply.series href=#patch.apply.series>series</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>A file which contains a list of patches to apply. The patch files to apply are interpreted relative to this file and must be written one per line. The patches listed in this file will be applied relative to the checkout dir and the leading path component will be stripped (via the `-p1` flag).<br><br>You can generate a file which matches this format by running 'find . -name *.patch &#124; sort > series'.<br><br>If `patches` is also specified, those patches will be applied before these ones.</p>
 <span id=patch.apply.strip href=#patch.apply.strip>strip</span> | <code><a href="#int">int</a></code><br><p>Number of segments to strip. (This sets the `-pX` flag, for example `-p0`, `-p1`, etc.) By default it uses `-p1`.</p>
 <span id=patch.apply.directory href=#patch.apply.directory>directory</span> | <code><a href="#string">string</a></code><br><p>Path relative to the working directory from which to apply patches. This supports patches that specify relative paths in their file diffs but use a different relative path base than the working directory. (This sets the `-d` flag, for example `-d sub/dir/`). By default, it uses the current directory.</p>
+<span id=patch.apply.validation_level href=#patch.apply.validation_level>validation_level</span> | <code><a href="#string">string</a></code><br><p>The validation level to use for patch files and series:<br>'FULL': if series is provided, series file must exist in the filesystem, be not empty, and all patch files mentioned within must also exist. Patch files used directly must also exist in the filesystem.<br>'OPTIONAL_SERIES': not an error if series does not exist or is empty. If series exists, patch files mentioned within must still exist.<br>'NONE': no validation, series or patches within might not exist or be empty.</p>
 
 
 
@@ -6884,7 +6885,7 @@ Name | Type | Description
 ---- | ---- | -----------
 <span style="white-space: nowrap;">`--patch-skip-version-check`</span> | *boolean* | Skip checking the version of patch and assume it is fine
 <span style="white-space: nowrap;">`--patch-use-git-apply`</span> | *boolean* | Don't use GNU Patch and instead use 'git apply'
-<span style="white-space: nowrap;">`--patch-validate-on-load`</span> | *boolean* | Enable or disable extended patch series validation
+<span style="white-space: nowrap;">`--patch-validate-on-load`</span> | *boolean* | Override transform's validation level and force full or no validation
 <span style="white-space: nowrap;">`--quilt-bin`</span> | *string* | Path to quilt command
 
 <a id="patch.quilt_apply" aria-hidden="true"></a>
@@ -6892,7 +6893,7 @@ Name | Type | Description
 
 A transformation that applies and updates patch files using Quilt. Compared to `patch.apply`, this transformation supports updating the content of patch files if they can be successfully applied with fuzz. The patch files must be included in the destination_files glob in order to get updated. Underneath, Copybara runs `quilt import; quilt push; quilt refresh` for each patch file in the `series` file in order. All patch files and the `series` file must reside in a sub-directory under the directory where the patches are applied (the root directory by default, or the directory specified by the `directory` parameter). All patch files should reside in the same directory as the `series` file. If the sub-directory already exists, Copybara will log a warning and overwrite conflicting files.
 
-<code><a href="#transformation">transformation</a></code> <code>patch.quilt_apply(<a href=#patch.quilt_apply.series>series</a>, <a href=#patch.quilt_apply.directory>directory</a>='')</code>
+<code><a href="#transformation">transformation</a></code> <code>patch.quilt_apply(<a href=#patch.quilt_apply.series>series</a>, <a href=#patch.quilt_apply.directory>directory</a>='', <a href=#patch.quilt_apply.validation_level>validation_level</a>="FULL")</code>
 
 
 <h4 id="parameters.patch.quilt_apply">Parameters:</h4>
@@ -6901,6 +6902,7 @@ Parameter | Description
 --------- | -----------
 <span id=patch.quilt_apply.series href=#patch.quilt_apply.series>series</span> | <code><a href="#string">string</a></code><br><p>A file which contains a list of patches to apply. It is similar to the `series` parameter in `patch.apply` transformation, and is required for Quilt. Patches listed in this file will be applied relative to the checkout dir, and the leading path component is stripped via the `-p ab` flag. The parent directory of this file is used as the output directory for Quilt modified patch files.</p>
 <span id=patch.quilt_apply.directory href=#patch.quilt_apply.directory>directory</span> | <code><a href="#string">string</a></code><br><p>Path relative to the working directory from which to apply patches. This supports patches that specify relative paths in their file diffs but use a different relative path base than the working directory. Checks out the given directory and runs Quilt commands in it. By default, it uses the current directory.</p>
+<span id=patch.quilt_apply.validation_level href=#patch.quilt_apply.validation_level>validation_level</span> | <code><a href="#string">string</a></code><br><p>The validation level to use for patch files and series:<br>'FULL': series must exist in the filesystem, be not empty, and all patch files mentioned within must also exist.<br>'OPTIONAL_SERIES': not an error if series does not exist or is empty. If series exists, patch files mentioned within must still exist.<br>'NONE': no validation, series or patches within might not exist or be empty.</p>
 
 
 <h4 id="example.patch.quilt_apply">Example:</h4>
@@ -6937,7 +6939,7 @@ Name | Type | Description
 ---- | ---- | -----------
 <span style="white-space: nowrap;">`--patch-skip-version-check`</span> | *boolean* | Skip checking the version of patch and assume it is fine
 <span style="white-space: nowrap;">`--patch-use-git-apply`</span> | *boolean* | Don't use GNU Patch and instead use 'git apply'
-<span style="white-space: nowrap;">`--patch-validate-on-load`</span> | *boolean* | Enable or disable extended patch series validation
+<span style="white-space: nowrap;">`--patch-validate-on-load`</span> | *boolean* | Override transform's validation level and force full or no validation
 <span style="white-space: nowrap;">`--quilt-bin`</span> | *string* | Path to quilt command
 
 
