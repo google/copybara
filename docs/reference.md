@@ -4282,7 +4282,7 @@ Get autenticated user info, return null if not found
 <a id="github_api_obj.get_check_runs" aria-hidden="true"></a>
 ### github_api_obj.get_check_runs
 
-Get the list of check runs for a sha. https://developer.github.com/v3/checks/runs/#check-runs
+Get the list of check runs for a sha. https://developer.github.com/v3/checks/runs/#check-runs. This returns a maximum of 1000 check runs.
 
 <code>list of github_check_run_obj</code> <code>github_api_obj.get_check_runs(<a href=#github_api_obj.get_check_runs.sha>sha</a>)</code>
 

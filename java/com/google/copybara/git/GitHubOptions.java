@@ -138,7 +138,7 @@ public class GitHubOptions implements Option {
     if (checker != null) {
       transport = new GitHubApiTransportWithChecker(transport, new ApiChecker(checker, console));
     }
-    return new GitHubApi(transport, generalOptions.profiler());
+    return new GitHubApi(transport, generalOptions.profiler(), console);
   }
 
   /**

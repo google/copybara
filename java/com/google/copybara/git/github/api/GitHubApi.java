@@ -33,6 +33,7 @@ import com.google.copybara.git.github.api.GitHubApiException.ResponseCode;
 import com.google.copybara.git.github.api.Issue.CreateIssueRequest;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
+import com.google.copybara.util.console.Console;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.errorprone.annotations.FormatMethod;
 import com.google.errorprone.annotations.FormatString;
@@ -49,13 +50,19 @@ public class GitHubApi {
 
   private final GitHubApiTransport transport;
   private final Profiler profiler;
+  @Nullable private final Console console;
 
   public static final int MAX_PER_PAGE = 100;
-  private static final int MAX_PAGES = 5;
+  private static final int MAX_PAGES = 10;
 
   public GitHubApi(GitHubApiTransport transport, Profiler profiler) {
+    this(transport, profiler, null);
+  }
+
+  public GitHubApi(GitHubApiTransport transport, Profiler profiler, Console console) {
     this.transport = Preconditions.checkNotNull(transport);
     this.profiler = Preconditions.checkNotNull(profiler);
+    this.console = console;
   }
 
   /**
@@ -301,6 +308,13 @@ public class GitHubApi {
       } catch (GitHubApiException e) {
         throw treatGitHubException(e, entity);
       }
+    }
+    if (pages == MAX_PAGES && console != null && path != null) {
+      console.warnFmt(
+          "Copybara ran a paginated GET request %s to GitHub for %s pages, and that is the maximum"
+              + " number of pages Copybara will read. It is possible that additional pages were not"
+              + " read.",
+          path, MAX_PAGES);
     }
     return builder.build();
   }

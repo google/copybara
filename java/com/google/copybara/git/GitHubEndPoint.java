@@ -169,7 +169,8 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       name = "get_check_runs",
       doc =
           "Get the list of check runs for a sha. "
-              + "https://developer.github.com/v3/checks/runs/#check-runs",
+              + "https://developer.github.com/v3/checks/runs/#check-runs. This returns a maximum of"
+              + " 1000 check runs.",
       parameters = {
         @Param(
             name = "sha",
