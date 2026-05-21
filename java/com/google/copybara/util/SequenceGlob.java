@@ -71,4 +71,13 @@ public class SequenceGlob extends Glob {
     }
     return new SequenceGlob(atoms.build());
   }
+
+  /** Creates a {@link SequenceGlob} from an {@link Iterable} of paths. */
+  public static SequenceGlob ofIterable(Iterable<String> paths) {
+    ImmutableList.Builder<GlobAtom> atoms = ImmutableList.builder();
+    for (String path : paths) {
+      atoms.add(GlobAtom.of(path, AtomType.SINGLE_FILE));
+    }
+    return new SequenceGlob(atoms.build());
+  }
 }

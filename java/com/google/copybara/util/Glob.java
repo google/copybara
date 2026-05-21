@@ -224,10 +224,7 @@ public class Glob implements StarlarkValue, HasBinary {
    * @param singleFilePaths list of paths to the files to match
    */
   public static Glob createSingleFilesGlob(Iterable<String> singleFilePaths) {
-    return new Glob(
-        ImmutableList.copyOf(GlobAtom.ofIterable(singleFilePaths, GlobAtom.AtomType.SINGLE_FILE)),
-        ImmutableList.of(),
-        null);
+    return SequenceGlob.ofIterable(singleFilePaths);
   }
 
    /**
