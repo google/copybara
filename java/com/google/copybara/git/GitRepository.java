@@ -424,8 +424,9 @@ public class GitRepository {
           + " contain local ref path locations or wildcards is not supported. Invalid ref: " + ref);
     }
     // This is not strictly necessary for some Git repos that allow fetching from any sha1 ref, like
-    // servers configured with 'git config uploadpack.allowReachableSHA1InWant true'. Unfortunately,
-    // Github doesn't support it. So what we do is fetch the default refspec (see the comment
+    // servers configured with 'git config uploadpack.allowReachableSHA1InWant true' (such as
+    // GitHub).
+    // To support servers which are not, what we do is fetch the default refspec (see the comment
     // below) and hope the sha1 is reachable from heads.
     // If we fail to find the SHA-1 with that fetch we fetch the SHA-1 directly and hope the server
     // allows to download it.
