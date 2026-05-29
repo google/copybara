@@ -19,6 +19,7 @@ package com.google.copybara.transform.patch;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.stream.Collectors.joining;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.TransformWork;
@@ -83,12 +84,12 @@ public final class QuiltTransformation implements Transformation {
       return TransformationStatus.success();
     }
 
-    Path checkoutDir = work.getCheckoutDir().resolve(directory);
-    createPatchDirectory(checkoutDir, work.getConsole());
+    Path quiltRunDir = work.getCheckoutDir().resolve(directory);
+    createPatchDirectory(quiltRunDir, work.getConsole());
 
     // avoid setting up and cleaning up quilt if not needed
     if (this.patchFiles.isEmpty()) {
-      copySeriesFile(checkoutDir);
+      copySeriesFile(quiltRunDir);
       return TransformationStatus.success();
     }
 
@@ -98,11 +99,11 @@ public final class QuiltTransformation implements Transformation {
     // local temp directory first and setup a fresh empty series file using these tmp paths
     ImmutableList<Path> patches = copyPatchFilesToTmpDir();
     Map<String, String> env = options.getGeneralOptions().getEnvironment();
-    env = initializeQuilt(checkoutDir, env);
-    importPatches(checkoutDir, patches, env, verbose);
+    env = initializeQuilt(quiltRunDir, env);
+    importPatches(quiltRunDir, patches, env, verbose);
     // restore the original series file with real paths
-    copySeriesFile(checkoutDir);
-    cleanupQuilt(checkoutDir);
+    copySeriesFile(quiltRunDir);
+    cleanupQuilt(quiltRunDir);
     return TransformationStatus.success();
   }
 
@@ -123,15 +124,19 @@ public final class QuiltTransformation implements Transformation {
     return location;
   }
 
+  @VisibleForTesting
+  String getPatchesDirName() {
+    return patchesDirName;
+  }
+
   private void runQuiltCommand(
-      Path checkoutDir, Map<String, String> env, boolean verbose, String... args)
+      Path quiltRunDir, Map<String, String> env, boolean verbose, String... args)
       throws IOException, ValidationException {
     ImmutableList.Builder<String> params = ImmutableList.builder();
     params.add(options.quiltBin);
     params.add(args);
     ImmutableList<String> paramsList = params.build();
-    Command cmd =
-          new Command(paramsList.toArray(new String[0]), env, checkoutDir.toFile());
+    Command cmd = new Command(paramsList.toArray(new String[0]), env, quiltRunDir.toFile());
     try {
       options.getGeneralOptions().newCommandRunner(cmd)
           .withVerbose(verbose)
@@ -174,16 +179,16 @@ public final class QuiltTransformation implements Transformation {
     return builder.build();
   }
 
-  private void createPatchDirectory(Path checkoutDir, Console console) throws IOException {
-    Path patchesDir = checkoutDir.resolve(patchesDirName);
+  private void createPatchDirectory(Path quiltRunDir, Console console) throws IOException {
+    Path patchesDir = quiltRunDir.resolve(patchesDirName);
     if (Files.exists(patchesDir)) {
       console.warnFmt("Destination already has a '%s' directory. Replacing files.", patchesDirName);
     }
     Files.createDirectories(patchesDir);
   }
 
-  private void copySeriesFile(Path checkoutDir) throws IOException {
-    Path patchesDir = checkoutDir.resolve(patchesDirName);
+  private void copySeriesFile(Path quiltRunDir) throws IOException {
+    Path patchesDir = quiltRunDir.resolve(patchesDirName);
     try {
       Files.write(
           patchesDir.resolve("series"),
@@ -195,7 +200,7 @@ public final class QuiltTransformation implements Transformation {
     }
   }
 
-  private ImmutableMap<String, String> initializeQuilt(Path checkoutDir, Map<String, String> env)
+  private ImmutableMap<String, String> initializeQuilt(Path quiltRunDir, Map<String, String> env)
       throws ValidationException, IOException {
     // Creates quiltrc file and sets up QUILTRC environment variable.
     ImmutableMap<String, String> quiltOptions =
@@ -230,7 +235,7 @@ public final class QuiltTransformation implements Transformation {
     envBuilder.put("QUILTRC", quilrcPath.toRealPath().toString());
 
     // Creates and checks for necessary directories.
-    Path pcDir = checkoutDir.resolve(".pc");
+    Path pcDir = quiltRunDir.resolve(".pc");
     if (Files.exists(pcDir)) {
       try {
         throw new ValidationException(
@@ -244,19 +249,19 @@ public final class QuiltTransformation implements Transformation {
   }
 
   private void importPatches(
-      Path checkoutDir, ImmutableList<Path> patches, Map<String, String> env, boolean verbose)
+      Path quiltRunDir, ImmutableList<Path> patches, Map<String, String> env, boolean verbose)
       throws IOException, ValidationException {
     for (Path patch : patches) {
-      Path targetPatch = checkoutDir.resolve(patchesDirName).resolve(patch.getFileName());
+      Path targetPatch = quiltRunDir.resolve(patchesDirName).resolve(patch.getFileName());
       Files.deleteIfExists(targetPatch);
-      runQuiltCommand(checkoutDir, env, verbose, "import", patch.toString());
-      runQuiltCommand(checkoutDir, env, verbose, "push");
-      runQuiltCommand(checkoutDir, env, verbose, "refresh");
+      runQuiltCommand(quiltRunDir, env, verbose, "import", patch.toString());
+      runQuiltCommand(quiltRunDir, env, verbose, "push");
+      runQuiltCommand(quiltRunDir, env, verbose, "refresh");
     }
   }
 
-  private void cleanupQuilt(Path checkoutDir) throws IOException {
+  private void cleanupQuilt(Path quiltRunDir) throws IOException {
     // Deletes ".pc" directory.
-    FileUtil.deleteRecursively(checkoutDir.resolve(".pc"));
+    FileUtil.deleteRecursively(quiltRunDir.resolve(".pc"));
   }
 }

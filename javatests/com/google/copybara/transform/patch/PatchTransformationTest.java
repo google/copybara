@@ -19,13 +19,11 @@ package com.google.copybara.transform.patch;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.MapConfigFile;
-import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitRepository;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
@@ -419,36 +417,5 @@ public class PatchTransformationTest {
             Location.BUILTIN);
 
     assertThat(transform.describe()).isEqualTo("Patch.apply: diff.patch, diff.patch");
-  }
-
-  @Test
-  public void testGetPatchesDirPath() throws Exception {
-    // Valid cases
-    assertThat(PatchModule.getPatchesDirPath("series")).isEqualTo("");
-    assertThat(PatchModule.getPatchesDirPath("foo/series")).isEqualTo("foo");
-    assertThat(PatchModule.getPatchesDirPath("foo/bar/series")).isEqualTo("foo/bar");
-
-    // Absolute path
-    ValidationException e1 =
-        assertThrows(ValidationException.class, () -> PatchModule.getPatchesDirPath("/foo/series"));
-    assertThat(e1).hasMessageThat().contains("path must be relative");
-
-    // Dot component
-    ValidationException e2 =
-        assertThrows(ValidationException.class, () -> PatchModule.getPatchesDirPath("./foo"));
-    assertThat(e2).hasMessageThat().contains("path has unexpected . or .. components");
-
-    ValidationException e3 =
-        assertThrows(ValidationException.class, () -> PatchModule.getPatchesDirPath("foo/./bar"));
-    assertThat(e3).hasMessageThat().contains("path has unexpected . or .. components");
-
-    // Dot dot component
-    ValidationException e4 =
-        assertThrows(ValidationException.class, () -> PatchModule.getPatchesDirPath("../foo"));
-    assertThat(e4).hasMessageThat().contains("path has unexpected . or .. components");
-
-    ValidationException e5 =
-        assertThrows(ValidationException.class, () -> PatchModule.getPatchesDirPath("foo/../bar"));
-    assertThat(e5).hasMessageThat().contains("path has unexpected . or .. components");
   }
 }

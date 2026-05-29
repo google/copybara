@@ -370,6 +370,17 @@ public final class QuiltTransformationTest {
   }
 
   @Test
+  public void quiltApplyWrongSeriesFileNameFails() throws Exception {
+    skylark.evalFails(
+        """
+        patch.quilt_apply(
+          series = 'patches/wrong_series_name',
+        )
+        """,
+        "Custom patch series file names besides `series` are not supported.*");
+  }
+
+  @Test
   public void quiltApplyIgnoresUserQuiltConfigurationViaEnvironmentVariableTest() throws Exception {
     Files.write(checkoutDir.resolve("file1.txt"), "line1\nfoo\nline3".getBytes(UTF_8));
     Files.write(checkoutDir.resolve("file2.txt"), "bar\n".getBytes(UTF_8));
@@ -449,10 +460,10 @@ public final class QuiltTransformationTest {
     skylark.evalFails(
         """
         patch.quilt_apply(
-          series = 'patches/missing_series',
+          series = 'patches/missing/series',
         )
         """,
-        "Cannot resolve 'patches/missing_series'");
+        "Cannot resolve 'patches/missing/series'");
   }
 
   @Test
@@ -462,7 +473,7 @@ public final class QuiltTransformationTest {
             "r",
             """
             r = patch.quilt_apply(
-              series = 'patches/missing_series',
+              series = 'patches/missing/series',
               validation_level = 'OPTIONAL_SERIES',
             )
             """);
@@ -769,10 +780,74 @@ public final class QuiltTransformationTest {
     skylark.evalFails(
         """
         patch.quilt_apply(
-          series = 'patches/missing_series',
+          series = 'patches/missing/series',
           validation_level = 'NONE',
         )
         """,
-        "Cannot resolve 'patches/missing_series'");
+        "Cannot resolve 'patches/missing/series'");
+  }
+
+  @Test
+  public void testQuiltApply_validSeries() throws Exception {
+    QuiltTransformation r1 =
+        skylark.eval("r", "r = patch.quilt_apply(series = 'series', validation_level = 'NONE')");
+    assertThat(r1.getPatchesDirName()).isEqualTo(".");
+
+    QuiltTransformation r2 =
+        skylark.eval(
+            "r", "r = patch.quilt_apply(series = 'foo/series', validation_level = 'NONE')");
+    assertThat(r2.getPatchesDirName()).isEqualTo("foo");
+
+    QuiltTransformation r3 =
+        skylark.eval(
+            "r", "r = patch.quilt_apply(series = 'foo/bar/series', validation_level = 'NONE')");
+    assertThat(r3.getPatchesDirName()).isEqualTo("bar");
+
+    QuiltTransformation r4 =
+        skylark.eval(
+            "r", "r = patch.quilt_apply(series = 'foo/foo/bar/series', validation_level = 'NONE')");
+    assertThat(r4.getPatchesDirName()).isEqualTo("bar");
+  }
+
+  @Test
+  public void testQuiltApply_emptySeriesArgThrows() throws Exception {
+    skylark.evalFails(
+        "patch.quilt_apply(series = '', validation_level = 'NONE')",
+        "Series parameter is required and cannot be empty\\.");
+  }
+
+  @Test
+  public void testQuiltApply_absolutePathThrows() throws Exception {
+    skylark.evalFails(
+        "patch.quilt_apply(series = '/foo/series', validation_level = 'NONE')",
+        "path must be relative");
+  }
+
+  @Test
+  public void testQuiltApply_dotComponentThrows() throws Exception {
+    skylark.evalFails(
+        "patch.quilt_apply(series = './foo', validation_level = 'NONE')",
+        "path has unexpected \\. or \\.\\. components");
+  }
+
+  @Test
+  public void testQuiltApply_dotInMiddleThrows() throws Exception {
+    skylark.evalFails(
+        "patch.quilt_apply(series = 'foo/./bar', validation_level = 'NONE')",
+        "path has unexpected \\. or \\.\\. components");
+  }
+
+  @Test
+  public void testQuiltApply_dotDotComponentThrows() throws Exception {
+    skylark.evalFails(
+        "patch.quilt_apply(series = '../foo', validation_level = 'NONE')",
+        "path has unexpected \\. or \\.\\. components");
+  }
+
+  @Test
+  public void testQuiltApply_dotDotInMiddleThrows() throws Exception {
+    skylark.evalFails(
+        "patch.quilt_apply(series = 'foo/../bar', validation_level = 'NONE')",
+        "path has unexpected \\. or \\.\\. components");
   }
 }

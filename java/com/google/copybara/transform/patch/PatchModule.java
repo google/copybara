@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.config.ConfigFile;
@@ -32,6 +33,8 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.FileUtil;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Optional;
 import net.starlark.java.annot.Param;
@@ -208,15 +211,19 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
           """
           A transformation that applies and updates patch files using Quilt. Compared to \
           `patch.apply`, this transformation supports updating the content of patch files \
-          if they can be successfully applied with fuzz. The patch files must be included \
-          in the destination_files glob in order to get updated. Underneath, Copybara \
-          runs `quilt import; quilt push; quilt refresh` for each patch file in the \
-          `series` file in order. All patch files and the `series` file must reside in a \
-          sub-directory under the directory where the patches are applied (the root \
-          directory by default, or the directory specified by the `directory` parameter). \
-          All patch files should reside in the same directory as the `series` file. If the \
-          sub-directory already exists, Copybara will log a warning and overwrite \
-          conflicting files.\
+          if they can be successfully applied with fuzz.
+
+          The series and patch files must be included in the destination_files glob in order to \
+          get updated. The updated files end up in workingDirectory/`directory`/`patchesDirectory`.\
+           `patchesDirectory` is the directory name from `series` in which the series file is \
+          placed. If a directory with the same name already exists in the output, a warning is \
+          logged and its content overridden.
+
+          Underneath, Copybara runs quilt in the `directory` parameter's location and then calls \
+          `quilt import; quilt push; quilt refresh` for each patch file in the `series` file in \
+          order. Copybara also uses the `-p ab` flag to strip out the leading `a/` and `b/` path \
+          components and then applies the patch files relative to the `directory` parameter's \
+          location.\
           """,
       parameters = {
         @Param(
@@ -225,12 +232,16 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
             positional = false,
             doc =
                 """
-                A file which contains a list of patches to apply. It is similar to the `series` \
-                parameter in `patch.apply` transformation, and is required for Quilt. \
-                Patches listed in this file will be applied relative to the checkout dir, \
-                and the leading path component is stripped via the `-p ab` flag. The \
-                parent directory of this file is used as the output directory for Quilt \
-                modified patch files.\
+                A path to a series file to apply using Quilt, relative to the Copybara config \
+                directory.
+
+                This parameter must represent a simple non-empty relative path. `.` or `..` or \
+                absolute paths are not supported.
+
+                Quilt's standard path is `patches/series`, but overriding Quilt's patches \
+                directory name is supported by specifying a different directory name here or no \
+                directory. A different name for the series file is currently not supported, so \
+                this parameter must end in `series`.\
                 """),
         @Param(
             name = "directory",
@@ -239,10 +250,14 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "''",
             doc =
                 """
-                Path relative to the working directory from which to apply patches. This supports \
-                patches that specify relative paths in their file diffs but use a different \
-                relative path base than the working directory. Checks out the given \
-                directory and runs Quilt commands in it. By default, it uses the current directory.\
+                Path relative to the working directory from which to run quilt and apply patches. \
+                This supports patches that specify relative paths in their file diffs but use a \
+                different relative path base than the working directory.
+
+                This is also the output directory in which the updated patches directory, \
+                series and patch files get returned.
+
+                By default, it uses the root of the working directory.\
                 """),
         @Param(
             name = "validation_level",
@@ -256,7 +271,9 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
                 mentioned within must also exist.
                 'OPTIONAL_SERIES': not an error if series does not exist or is empty. If series \
                 exists, patch files mentioned within must still exist.
-                'NONE': no validation, series or patches within might not exist or be empty.\
+                'NONE': no file system or content validation. Series or patches within might not \
+                exist or be empty files. The series parameter must still be specified and \
+                represent a simple relative path.\
                 """),
       },
       useStarlarkThread = true)
@@ -292,8 +309,9 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
   public QuiltTransformation quiltApply(
       String series, String directory, String validationLevelString, StarlarkThread thread)
       throws EvalException, ValidationException {
-    ValidationLevel validationLevel = getValidationLevel(validationLevelString);
+    validateQuiltSeriesParameter(series);
 
+    ValidationLevel validationLevel = getValidationLevel(validationLevelString);
     ImmutableList.Builder<ConfigFile> patchFiles = ImmutableList.builder();
     Optional<ConfigFile> seriesFile = parseSeries(series, patchFiles, validationLevel);
     return new QuiltTransformation(
@@ -303,7 +321,30 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
         /* reverse= */ false,
         directory,
         thread.getCallerLocation(),
-        getPatchesDirPath(series));
+        getPatchesDirName(series));
+  }
+
+  private static void validateQuiltSeriesParameter(String series) throws ValidationException {
+    if (Strings.isNullOrEmpty(series) || series.trim().isEmpty()) {
+      throw new ValidationException("Series parameter is required and cannot be empty.");
+    }
+
+    try {
+      FileUtil.checkNormalizedRelative(series);
+    } catch (IllegalArgumentException e) {
+      throw new ValidationException(e.getMessage(), e);
+    }
+
+    try {
+      checkCondition(
+          series != null && Path.of(series).getFileName().toString().equals("series"),
+          String.format(
+              "Custom patch series file names besides `series` are not supported. "
+                  + "Please update your series parameter %s to end in `series`.",
+              series));
+    } catch (InvalidPathException e) {
+      throw new ValidationException("Series parameter must represent a filesystem path.", e);
+    }
   }
 
   private ValidationLevel getValidationLevel(String validationLevelString) throws EvalException {
@@ -317,14 +358,12 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
     return validationLevel;
   }
 
-  static String getPatchesDirPath(String series) throws ValidationException {
-    try {
-      FileUtil.checkNormalizedRelative(series);
-    } catch (IllegalArgumentException e) {
-      throw new ValidationException(e.getMessage(), e);
+  private String getPatchesDirName(String series) {
+    Path parentFolder = Path.of(series).getParent();
+    if (parentFolder != null) {
+      return parentFolder.getFileName().toString();
     }
-    int lastSlash = series.lastIndexOf('/');
-    return lastSlash == -1 ? "" : series.substring(0, lastSlash);
+    return ".";
   }
 
   private Optional<ConfigFile> resolve(String path, ValidationLevel validationLevel)
@@ -386,8 +425,8 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
       ImmutableList<ConfigFile> patches = patchesBuilder.build();
       outputBuilder.addAll(patches);
     } catch (CannotResolveLabel | IOException e) {
-      throw Starlark.errorf("Error reading patch series file: %s. Caused by: %s",
-          series, e.toString());
+      throw Starlark.errorf(
+          "Error reading patch series file: %s. Caused by: %s", series, e.toString());
     }
     if (validationLevel == ValidationLevel.FULL) {
       checkCondition(
