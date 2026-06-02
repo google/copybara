@@ -1046,4 +1046,53 @@ public class RegenerateCmdTest {
     String consistencyFile = Files.readString(pathArg.getValue().resolve(CONSISTENCY_FILE_PATH));
     assertThat(consistencyFile).contains("# Workflow: subdir/copy.bara.sky:default");
   }
+
+  @Test
+  public void testConsistencyFile_excludeBuildFiles() throws Exception {
+    setupTarget("bar");
+
+    String testfile = "asdf.txt";
+    String buildfile = "BUILD";
+    writeDestination("bar", testfile, "bar");
+    writeDestination("bar", buildfile, "java_library(name = 'foo')");
+
+    origin.singleFileChange(0, "foo description", testfile, "foo");
+    when(patchRegenerator.inferImportBaseline(any(), any()))
+        .thenReturn(Optional.of(origin.getLatestChange().asString()));
+
+    String config =
+        """
+        core.workflow(
+            name = 'default',
+            origin = testing.origin(),
+            origin_files = glob(['**']),
+            destination = testing.destination(),
+            mode = 'SQUASH',
+            authoring = authoring.pass_thru('example <example@example.com>'),
+            consistency_file = core.consistency_file_config(
+                path = "%s",
+                exclude_build_files = True
+            ),
+        )\
+        """
+            .formatted(CONSISTENCY_FILE_PATH);
+
+    RegenerateCmd cmd = getCmd(config);
+
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()), cmd);
+
+    ExitCode exitCode = cmd.run(commandEnv);
+
+    ArgumentCaptor<Path> pathArg = ArgumentCaptor.forClass(Path.class);
+    verify(patchRegenerator).updateChange(any(), pathArg.capture(), eq(Glob.ALL_FILES), eq("bar"));
+
+    Path consistencyFilePath = pathArg.getValue().resolve(CONSISTENCY_FILE_PATH);
+    assertThatPath(pathArg.getValue()).containsFiles(CONSISTENCY_FILE_PATH);
+
+    String consistencyFileContent = Files.readString(consistencyFilePath);
+    assertThat(consistencyFileContent).contains("asdf.txt");
+    assertThat(consistencyFileContent).doesNotContain("BUILD");
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
+  }
 }

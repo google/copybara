@@ -160,6 +160,9 @@ public class ConsistencyFile {
       boolean excludeBuildFiles)
       throws IOException, InsideGitDirException, ValidationException {
     byte[] diff = DiffUtil.diffWithIgnoreCrAtEol(baseline, destination, verbose, environment);
+    if (excludeBuildFiles) {
+      diff = DiffUtil.filterDiff(diff, path -> !path.endsWith("BUILD")).getBytes(UTF_8);
+    }
     ImmutableMap<String, String> destinationHashes =
         computeFileHashes(destination, hashFunction, excludeBuildFiles);
     ImmutableList<String> baselineFileNames = getFileNames(baseline, excludeBuildFiles);
