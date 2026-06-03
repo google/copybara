@@ -39,13 +39,18 @@ import java.util.Set;
 import java.util.function.Supplier;
 import net.starlark.java.annot.StarlarkAnnotations;
 import net.starlark.java.annot.StarlarkBuiltin;
+import net.starlark.java.eval.Dict;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Module;
 import net.starlark.java.eval.Mutability;
+import net.starlark.java.eval.Printer;
 import net.starlark.java.eval.Starlark;
+import net.starlark.java.eval.StarlarkCallable;
 import net.starlark.java.eval.StarlarkSemantics;
 import net.starlark.java.eval.StarlarkThread;
+import net.starlark.java.eval.Tuple;
 import net.starlark.java.syntax.FileOptions;
+import net.starlark.java.syntax.Location;
 import net.starlark.java.syntax.ParserInput;
 import net.starlark.java.syntax.Program;
 import net.starlark.java.syntax.StarlarkFile;
@@ -57,7 +62,10 @@ import net.starlark.java.syntax.SyntaxError;
 public class SkylarkParser {
 
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
-  private static final String BARA_SKY = ".bara.sky";
+  private static final String DEFAULT_EXTENSION = ".bara.sky";
+  private static final ImmutableSet<String> ALLOWED_LOAD_EXTENSIONS =
+      ImmutableSet.of(DEFAULT_EXTENSION, ".scl");
+  private static final Object VISIBILITY_FUNC = new VisibilityFunction();
   // For now all the modules are namespaces. We don't use variables except for 'core'.
   private final Iterable<Class<?>> modules;
   private final StarlarkMode validation;
@@ -230,10 +238,15 @@ public class SkylarkParser {
 
       // process loads
       Map<String, Module> loadedModules = new HashMap<>();
-      ImmutableMap<String, String> fileToLoad = prog.getLoads().stream()
+      ImmutableMap<String, String> fileToLoad =
+          prog.getLoads().stream()
               .distinct()
-              .collect(toImmutableMap(
-                      l -> l + BARA_SKY,
+              .collect(
+                  toImmutableMap(
+                      l ->
+                          ALLOWED_LOAD_EXTENSIONS.stream().anyMatch(l::endsWith)
+                              ? l
+                              : l + DEFAULT_EXTENSION,
                       l -> l));
 
       for (Entry<String, ConfigFile> entry :
@@ -355,10 +368,33 @@ public class SkylarkParser {
             .setAllConfigResources(configFilesSupplier);
       }
     }
+    env.put("visibility", VISIBILITY_FUNC);
     return ImmutableMap.copyOf(env);
   }
 
   private static String getModuleName(Class<?> cls) {
     return cls.getAnnotation(StarlarkBuiltin.class).name();
+  }
+
+  private static final class VisibilityFunction implements StarlarkCallable {
+    @Override
+    public Object call(StarlarkThread thread, Tuple args, Dict<String, Object> kwargs) {
+      return Starlark.NONE;
+    }
+
+    @Override
+    public String getName() {
+      return "visibility";
+    }
+
+    @Override
+    public void repr(Printer printer, StarlarkSemantics semantics) {
+      printer.append("<built-in function visibility>");
+    }
+
+    @Override
+    public Location getLocation() {
+      return Location.BUILTIN;
+    }
   }
 }

@@ -57,6 +57,7 @@ import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.NoneType;
 import net.starlark.java.eval.StarlarkInt;
 import net.starlark.java.eval.StarlarkValue;
+import net.starlark.java.eval.Structure;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -400,6 +401,105 @@ other += [4, 5]
     // The += operation is statically OK because of FileOptions.allowToplevelRebinding,
     // but it fails during execution because the value is frozen.
     parser.evalProgramFails(content, ".*trying to mutate a frozen list.*");
+  }
+
+  @Test
+  public void testLoadScl() throws Exception {
+    parser.addConfigFile(
+        "foo/helper.scl",
+        """
+        def get_val():
+          return struct(a = 1, b = 2)
+        """);
+
+    String content =
+        """
+        load('//foo/helper.scl', 'get_val')
+        val = get_val()
+        """
+            + NON_IMPORTANT_WORKFLOW;
+
+    Structure val = parser.eval("val", content);
+    assertThat(val.getValue("a")).isEqualTo(StarlarkInt.of(1));
+    assertThat(val.getValue("b")).isEqualTo(StarlarkInt.of(2));
+  }
+
+  @Test
+  public void testLoadSclVisibility() throws Exception {
+    parser.addConfigFile(
+        "foo/helper.scl",
+        """
+        visibility(default = ["//..."])
+        def get_val():
+          return 42
+        """);
+
+    String content =
+        """
+        load('//foo/helper.scl', 'get_val')
+        val = get_val()
+        """
+            + NON_IMPORTANT_WORKFLOW;
+
+    StarlarkInt val = parser.eval("val", content);
+    assertThat(val).isEqualTo(StarlarkInt.of(42));
+  }
+
+  @Test
+  public void testLoadSclWithCopybaraBuiltins() throws Exception {
+    parser.addConfigFile(
+        "foo/helper.scl",
+        """
+        def get_author():
+          return authoring.overwrite('Copybara <no-reply@google.com>')
+        """);
+
+    String content =
+        """
+        load('//foo/helper.scl', 'get_author')
+
+        core.workflow(
+            name = "default",
+            origin = mock.origin(
+                url = 'some_url',
+                branch = "master",
+            ),
+            destination = mock.destination(
+                folder = "some folder"
+            ),
+            authoring = get_author(),
+        )
+        """;
+
+    Config config = parser.loadConfig(content);
+    Workflow<?, ?> workflow = getWorkflow(config, "default");
+    assertThat(workflow).isNotNull();
+  }
+
+  @Test
+  public void testLoadSclFromScl() throws Exception {
+    parser.addConfigFile(
+        "foo/dep.scl",
+        """
+        val = 42
+        """);
+    parser.addConfigFile(
+        "foo/helper.scl",
+        """
+        load('//foo/dep.scl', 'val')
+        def get_val():
+          return val
+        """);
+
+    String content =
+        """
+        load('//foo/helper.scl', 'get_val')
+        val = get_val()
+        """
+            + NON_IMPORTANT_WORKFLOW;
+
+    StarlarkInt val = parser.eval("val", content);
+    assertThat(val).isEqualTo(StarlarkInt.of(42));
   }
 
   @StarlarkBuiltin(
