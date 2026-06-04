@@ -134,6 +134,17 @@ public final class GitHubIdentifierTest {
   }
 
   @Test
+  public void noSchemeGitUrlFormat() {
+    String url = "git@github.com/foo/bar";
+
+    GitHubIdentifier gitHubIdentifier = GitHubIdentifier.create(url);
+
+    assertThat(gitHubIdentifier.getHostName()).isEqualTo("github.com");
+    assertThat(gitHubIdentifier.getPath()).isEqualTo("foo/bar");
+    assertThat(gitHubIdentifier.getUrl()).isEqualTo("https://github.com/foo/bar");
+  }
+
+  @Test
   public void standardFormats_ghes() {
     String ghes = "depot.code.corp.goog";
     String path = "foo/bar";

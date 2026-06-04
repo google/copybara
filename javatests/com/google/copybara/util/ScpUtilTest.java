@@ -45,24 +45,49 @@ public final class ScpUtilTest {
     assertThat(parsed).isPresent();
   }
 
+  // SCP URLs with '/' separator (e.g., user@host/path) are technically invalid for Git/SSH.
+  // However, Copybara historically accepted them due to a lenient parser workaround in GitHubHost.
+  // We continue to support them to maintain backward compatibility with existing configs and tests.
+  @Test
+  public void parseScpUrl_lenient(
+      @TestParameter({"user@host/path", "user@host/path/with/slashes"}) String url) {
+    Optional<ScpUrl> parsed = ScpUtil.parseScpUrl(url);
+    assertThat(parsed).isPresent();
+  }
+
   @Test
   public void parseScpUrl_invalid(
-      @TestParameter({"host://path", "host", "user@host", "http://host/path"}) String url) {
+      @TestParameter({"host://path", "host", "user@host", "http://host/path", "host/path"})
+          String url) {
     Optional<ScpUrl> parsed = ScpUtil.parseScpUrl(url);
     assertThat(parsed).isEmpty();
   }
 
   @Test
-  public void parseScpUrl_specifics() {
+  public void parseScpUrl_components_standardWithUser() {
     Optional<ScpUrl> parsed = ScpUtil.parseScpUrl("user@host:path");
     assertThat(parsed).isPresent();
     assertThat(parsed.get().user()).isEqualTo("user");
     assertThat(parsed.get().host()).isEqualTo("host");
     assertThat(parsed.get().path()).isEqualTo("path");
+  }
 
-    parsed = ScpUtil.parseScpUrl("host:path");
+  @Test
+  public void parseScpUrl_components_standardNoUser() {
+    Optional<ScpUrl> parsed = ScpUtil.parseScpUrl("host:path");
     assertThat(parsed).isPresent();
     assertThat(parsed.get().user()).isNull();
+    assertThat(parsed.get().host()).isEqualTo("host");
+    assertThat(parsed.get().path()).isEqualTo("path");
+  }
+
+  // Verify components for lenient parsing format.
+  // This format is technically invalid but supported for backward compatibility.
+  @Test
+  public void parseScpUrl_components_lenient() {
+    Optional<ScpUrl> parsed = ScpUtil.parseScpUrl("user@host/path");
+    assertThat(parsed).isPresent();
+    assertThat(parsed.get().user()).isEqualTo("user");
     assertThat(parsed.get().host()).isEqualTo("host");
     assertThat(parsed.get().path()).isEqualTo("path");
   }

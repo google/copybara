@@ -41,7 +41,7 @@ public final class ScpUtil {
   public record ScpUrl(@Nullable String user, String host, String path) {
 
     private static final Pattern SCP_URI_PATTERN =
-        Pattern.compile("^(?:([a-z][a-z0-9+-]+)@)?([a-zA-Z0-9_.-]+):([^/].*|/|/[^/].*)$");
+        Pattern.compile("^(?:([a-z][a-z0-9+-]+)@)?([a-zA-Z0-9_.-]+)([:/])([^/].*|/|/[^/].*)$");
 
     /**
      * Attempts to parse the given URL as an SCP-like URL.
@@ -52,11 +52,14 @@ public final class ScpUtil {
     public static Optional<ScpUrl> parse(String url) {
       Matcher matcher = SCP_URI_PATTERN.matcher(url);
       if (matcher.matches()) {
-        return Optional.of(
-            new ScpUrl(
-                /* user= */ matcher.group(1),
-                /* host= */ matcher.group(2),
-                /* path= */ matcher.group(3)));
+        String user = matcher.group(1);
+        String host = matcher.group(2);
+        String separator = matcher.group(3);
+        String path = matcher.group(4);
+        if (separator.equals("/") && user == null) {
+          return Optional.empty();
+        }
+        return Optional.of(new ScpUrl(user, host, path));
       }
       return Optional.empty();
     }
