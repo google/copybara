@@ -38,12 +38,19 @@ import java.util.List;
 public final class RenameDetector<I> {
   private final boolean ignoreCarriageReturn;
   private final boolean ignoreWhitespace;
+  private final boolean skipNewlinesInHash;
 
   private final List<PriorFile<I>> priorFiles = new ArrayList<>();
 
   public RenameDetector(boolean ignoreCarriageReturn, boolean ignoreWhitespace) {
+    this(ignoreCarriageReturn, ignoreWhitespace, false);
+  }
+
+  public RenameDetector(
+      boolean ignoreCarriageReturn, boolean ignoreWhitespace, boolean skipNewlinesInHash) {
     this.ignoreCarriageReturn = ignoreCarriageReturn;
     this.ignoreWhitespace = ignoreWhitespace;
+    this.skipNewlinesInHash = skipNewlinesInHash;
   }
 
   private static final class PriorFile<I> {
@@ -66,11 +73,15 @@ public final class RenameDetector<I> {
     int hash;
     final boolean ignoreCarriageReturn;
     final boolean ignoreWhitespace;
+    final boolean skipNewlinesInHash;
     final HashSet<Integer> hashes = new HashSet<>();
+    boolean hasPendingContent = false;
 
-    HashingByteProcessor(boolean ignoreCarriageReturn, boolean ignoreWhitespace) {
+    HashingByteProcessor(
+        boolean ignoreCarriageReturn, boolean ignoreWhitespace, boolean skipNewlinesInHash) {
       this.ignoreCarriageReturn = ignoreCarriageReturn;
       this.ignoreWhitespace = ignoreWhitespace;
+      this.skipNewlinesInHash = skipNewlinesInHash;
     }
 
     @Override
@@ -84,12 +95,20 @@ public final class RenameDetector<I> {
         if (ignoreWhitespace && (b == ' ' || b == '\t')) {
           continue;
         }
-
-        hash *= 31;
-        hash += b;
         if (b == '\n') {
-          hashes.add(hash);
+          if (!skipNewlinesInHash) {
+            hash *= 31;
+            hash += b;
+            hashes.add(hash);
+          } else if (hasPendingContent) {
+            hashes.add(hash);
+          }
           hash = 0;
+          hasPendingContent = false;
+        } else {
+          hash *= 31;
+          hash += b;
+          hasPendingContent = true;
         }
       }
       return true;
@@ -97,7 +116,9 @@ public final class RenameDetector<I> {
 
     @Override
     public int[] getResult() {
-      hashes.add(hash);
+      if (!skipNewlinesInHash || hasPendingContent) {
+        hashes.add(hash);
+      }
       int[] hashesArray = Ints.toArray(hashes);
       Arrays.sort(hashesArray);
       return hashesArray;
@@ -110,7 +131,8 @@ public final class RenameDetector<I> {
   private int[] hashes(InputStream input) throws IOException {
     try {
       return ByteStreams.readBytes(
-          input, new HashingByteProcessor(ignoreCarriageReturn, ignoreWhitespace));
+          input,
+          new HashingByteProcessor(ignoreCarriageReturn, ignoreWhitespace, skipNewlinesInHash));
     } finally {
       input.close();
     }

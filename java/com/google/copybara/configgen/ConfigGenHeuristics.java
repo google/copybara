@@ -589,7 +589,8 @@ public class ConfigGenHeuristics {
         boolean ignoreWhitespace)
         throws IOException {
       RenameDetector<Path> similarLines =
-          new RenameDetector<>(ignoreCarriageReturn, ignoreWhitespace);
+          new RenameDetector<>(
+              ignoreCarriageReturn, ignoreWhitespace, /* skipNewlinesInHash= */ true);
       HashMultimap<String, Path> hashes = HashMultimap.create(files.size(), 1);
       for (Path file : files) {
         byte[] bytes = Files.readAllBytes(parent.resolve(file));

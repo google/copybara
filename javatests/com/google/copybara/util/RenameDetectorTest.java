@@ -19,6 +19,7 @@ package com.google.copybara.util;
 import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import com.google.common.collect.ImmutableList;
 import com.google.copybara.util.RenameDetector.Score;
 import java.io.ByteArrayInputStream;
 import java.io.FilterInputStream;
@@ -334,5 +335,63 @@ public final class RenameDetectorTest {
     // foo should have the highest score, if we ignore tabs.
     assertThat(result.get(0).getKey()).isEqualTo("foo");
     assertThat(result.get(0).getScore()).isGreaterThan(0);
+  }
+
+  @Test
+  public void detectsRenamingBetweenOneLineFiles() throws Exception {
+    // Two files with no common content should not be detected as renames, even if they both consist
+    // of a single line with a trailing newline.
+    String content1 = "include $(call all-subdir-makefiles)\n";
+    String content2 = "release-2.32.8-0-g98d1f3a45\n";
+
+    RenameDetector<String> detector =
+        new RenameDetector<>(
+            /* ignoreCarriageReturn= */ true,
+            /* ignoreWhitespace= */ true,
+            /* skipNewlinesInHash= */ true);
+    detector.addPriorFile("foo", new Bytes(content1));
+    ImmutableList<Score<String>> result = detector.scoresForLaterFile(new Bytes(content2));
+    assertThat(result).isEmpty();
+
+    detector = new RenameDetector<>(true, true, true);
+    detector.addPriorFile("foo", new Bytes(content2));
+    result = detector.scoresForLaterFile(new Bytes(content1));
+    assertThat(result).isEmpty();
+  }
+
+  @Test
+  public void unrelatedFilesAreNotRenames() throws Exception {
+    // Completely unrelated files should not be detected as renames, even if they share empty lines.
+    String content1 =
+        """
+        Acknowledgements: package
+
+        Copyright (C) 2008-2024, Person One <person.one@gmail.com>
+
+
+        """;
+    String content2 =
+        """
+        #include "base/logging.h"
+        #include "testing/base/public/gunit.h"
+
+        extern "C" {
+        }
+
+        """;
+
+    RenameDetector<String> detector =
+        new RenameDetector<>(
+            /* ignoreCarriageReturn= */ true,
+            /* ignoreWhitespace= */ true,
+            /* skipNewlinesInHash= */ true);
+    detector.addPriorFile("foo", new Bytes(content1));
+    ImmutableList<Score<String>> result = detector.scoresForLaterFile(new Bytes(content2));
+    assertThat(result).isEmpty();
+
+    detector = new RenameDetector<>(true, true, true);
+    detector.addPriorFile("foo", new Bytes(content2));
+    result = detector.scoresForLaterFile(new Bytes(content1));
+    assertThat(result).isEmpty();
   }
 }
