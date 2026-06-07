@@ -18,6 +18,7 @@ package com.google.copybara.util;
 
 import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.util.RenameDetector.Score;
@@ -335,6 +336,85 @@ public final class RenameDetectorTest {
     // foo should have the highest score, if we ignore tabs.
     assertThat(result.get(0).getKey()).isEqualTo("foo");
     assertThat(result.get(0).getScore()).isGreaterThan(0);
+  }
+
+  @Test
+  public void considerFilenames_ignoresPaths() throws Exception {
+    RenameDetector<String> detector =
+        new RenameDetector<>(
+            /* ignoreCarriageReturn= */ false,
+            /* ignoreWhitespace= */ false,
+            /* skipNewlinesInHash= */ false,
+            /* considerFilenames= */ true);
+    detector.addPriorFile("foo/bar.txt", new Bytes("xyz"));
+
+    // "baz/bar.txt" -> filename is "bar.txt", should match "foo/bar.txt" (filename "bar.txt")
+    ImmutableList<Score<String>> result =
+        detector.scoresForLaterFile("baz/bar.txt", new Bytes("xyz"));
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getKey()).isEqualTo("foo/bar.txt");
+  }
+
+  @Test
+  public void considerFilenames_tooFar() throws Exception {
+    RenameDetector<String> detector =
+        new RenameDetector<>(
+            /* ignoreCarriageReturn= */ false,
+            /* ignoreWhitespace= */ false,
+            /* skipNewlinesInHash= */ false,
+            /* considerFilenames= */ true);
+    detector.addPriorFile("abc", new Bytes("xyz"));
+
+    // "xyz" vs "abc" -> distance 3, max len 3. 3*2 = 6 > 3. Too far.
+    ImmutableList<Score<String>> result = detector.scoresForLaterFile("xyz", new Bytes("xyz"));
+    assertThat(result).isEmpty();
+  }
+
+  @Test
+  public void considerFilenames_closeEnough() throws Exception {
+    RenameDetector<String> detector =
+        new RenameDetector<>(
+            /* ignoreCarriageReturn= */ false,
+            /* ignoreWhitespace= */ false,
+            /* skipNewlinesInHash= */ false,
+            /* considerFilenames= */ true);
+    detector.addPriorFile("abc", new Bytes("xyz"));
+
+    // "abd" vs "abc" -> distance 1, max len 3. 1*2 = 2 <= 3. Close enough.
+    ImmutableList<Score<String>> result = detector.scoresForLaterFile("abd", new Bytes("xyz"));
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getKey()).isEqualTo("abc");
+  }
+
+  @Test
+  public void considerFilenames_throwsIfKeyMissing() throws Exception {
+    RenameDetector<String> detector =
+        new RenameDetector<>(
+            /* ignoreCarriageReturn= */ false,
+            /* ignoreWhitespace= */ false,
+            /* skipNewlinesInHash= */ false,
+            /* considerFilenames= */ true);
+
+    Bytes input = new Bytes("xyz");
+    IllegalStateException e =
+        assertThrows(IllegalStateException.class, () -> detector.scoresForLaterFile(input));
+    assertThat(e).hasMessageThat().contains("Cannot call scoresForLaterFile without laterKey");
+  }
+
+  @Test
+  public void overloadedMethodWorksWhenConsiderFilenamesIsFalse() throws Exception {
+    RenameDetector<String> detector =
+        new RenameDetector<>(
+            /* ignoreCarriageReturn= */ false,
+            /* ignoreWhitespace= */ false,
+            /* skipNewlinesInHash= */ false,
+            /* considerFilenames= */ false);
+    detector.addPriorFile("abc", new Bytes("xyz"));
+
+    // Key is passed but ignored because considerFilenames is false. Should match.
+    ImmutableList<Score<String>> result = detector.scoresForLaterFile("xyz", new Bytes("xyz"));
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getKey()).isEqualTo("abc");
   }
 
   @Test

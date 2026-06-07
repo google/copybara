@@ -39,6 +39,7 @@ public final class RenameDetector<I> {
   private final boolean ignoreCarriageReturn;
   private final boolean ignoreWhitespace;
   private final boolean skipNewlinesInHash;
+  private final boolean considerFilenames;
 
   private final List<PriorFile<I>> priorFiles = new ArrayList<>();
 
@@ -48,9 +49,18 @@ public final class RenameDetector<I> {
 
   public RenameDetector(
       boolean ignoreCarriageReturn, boolean ignoreWhitespace, boolean skipNewlinesInHash) {
+    this(ignoreCarriageReturn, ignoreWhitespace, skipNewlinesInHash, false);
+  }
+
+  public RenameDetector(
+      boolean ignoreCarriageReturn,
+      boolean ignoreWhitespace,
+      boolean skipNewlinesInHash,
+      boolean considerFilenames) {
     this.ignoreCarriageReturn = ignoreCarriageReturn;
     this.ignoreWhitespace = ignoreWhitespace;
     this.skipNewlinesInHash = skipNewlinesInHash;
+    this.considerFilenames = considerFilenames;
   }
 
   private static final class PriorFile<I> {
@@ -175,12 +185,29 @@ public final class RenameDetector<I> {
    * files with a score greater than 0 are returned.
    */
   public ImmutableList<Score<I>> scoresForLaterFile(InputStream input) throws IOException {
+    if (considerFilenames) {
+      throw new IllegalStateException(
+          "Cannot call scoresForLaterFile without laterKey when considerFilenames is true");
+    }
+    return scoresForLaterFile(null, input);
+  }
+
+  public ImmutableList<Score<I>> scoresForLaterFile(I laterKey, InputStream input)
+      throws IOException {
     List<Score<I>> results = new ArrayList<>();
     int[] laterHashes = hashes(input);
     if (isEmpty(laterHashes)) {
       return ImmutableList.of();
     }
+    String laterFilename = considerFilenames ? getFilename(laterKey) : null;
+
     for (PriorFile<I> priorFile : priorFiles) {
+      if (considerFilenames) {
+        String priorFilename = getFilename(priorFile.key);
+        if (isTooFar(priorFilename, laterFilename)) {
+          continue;
+        }
+      }
       // Determine the number of hashes that priorFile.hashes and laterHashes have in common.
       int matchCount = 0;
       int priorIndex = 0;
@@ -213,6 +240,50 @@ public final class RenameDetector<I> {
 
   private static boolean isEmpty(int[] hashes) {
     return hashes.length == 0 || (hashes.length == 1 && hashes[0] == 0);
+  }
+
+  private boolean isTooFar(String name1, String name2) {
+    int maxLen = Math.max(name1.length(), name2.length());
+    if (maxLen == 0) {
+      return false;
+    }
+    int distance = levenshteinDistance(name1, name2);
+    return distance * 2 > maxLen;
+  }
+
+  private static int levenshteinDistance(String s, String t) {
+    int[][] distance = new int[s.length() + 1][t.length() + 1];
+
+    for (int i = 0; i <= s.length(); i++) {
+      distance[i][0] = i;
+    }
+    for (int j = 1; j <= t.length(); j++) {
+      distance[0][j] = j;
+    }
+
+    for (int i = 1; i <= s.length(); i++) {
+      for (int j = 1; j <= t.length(); j++) {
+        distance[i][j] =
+            Ints.min(
+                distance[i - 1][j] + 1,
+                distance[i][j - 1] + 1,
+                distance[i - 1][j - 1] + ((s.charAt(i - 1) == t.charAt(j - 1)) ? 0 : 1));
+      }
+    }
+
+    return distance[s.length()][t.length()];
+  }
+
+  private static String getFilename(Object key) {
+    if (key == null) {
+      return "";
+    }
+    String s = key.toString();
+    int lastSlash = s.lastIndexOf('/');
+    if (lastSlash >= 0) {
+      return s.substring(lastSlash + 1);
+    }
+    return s;
   }
 
   public static final class Score<I> {
