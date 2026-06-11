@@ -167,7 +167,10 @@ public class CredentialFileHandler {
             lines.set(i, entry);
             missing = false;
           } else {
-            logger.atWarning().log("%s\n%s", line, pattern);
+            logger.atInfo().log(
+                "Credential line '%s' does not match target pattern '%s'. This is expected if it"
+                    + " belongs to a different repository.",
+                scrubCredential(line), pattern);
           }
         }
         if (missing) {
@@ -203,14 +206,17 @@ public class CredentialFileHandler {
       return "<does not exist>";
     }
     try {
-      String username = getUsername();
       String fileContent = Files.readString(file);
-      return fileContent.replaceAll(Pattern.quote(username) + ":[^@]+@", username + ":<scrubbed>@");
+      return scrubCredential(fileContent);
     } catch (IOException e) {
       return "<IOException: " + e + ">";
-    } catch (CredentialIssuingException | CredentialRetrievalException e) {
-      return "<CredentialException: " + e + ">";
     }
+  }
+
+  private static String scrubCredential(String line) {
+    // Replaces the password in credential lines with <scrubbed>.
+    // e.g. "https://user:pass@host" -> "https://user:<scrubbed>@host"
+    return line.replaceAll("([^:\\n]+://[^:\\n]+):[^@\\n]+(@[^\\n]*)", "$1:<scrubbed>$2");
   }
 
   @Override

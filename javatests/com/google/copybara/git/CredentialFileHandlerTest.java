@@ -155,4 +155,45 @@ public class CredentialFileHandlerTest {
     assertThat(underTest1.getScrubbedFileContentForDebug(file))
         .contains("x-access-token:<scrubbed>@");
   }
+
+  @Test
+  public void testScrubbingDifferentUsernames() throws Exception {
+    CredentialIssuer password1 =
+        ConstantCredentialIssuer.createConstantSecret("password", "token1");
+    CredentialIssuer password2 =
+        ConstantCredentialIssuer.createConstantSecret("password", "token2");
+
+    CredentialFileHandler underTest1 =
+        new CredentialFileHandler(
+            "github.com",
+            "google/copybara",
+            ConstantCredentialIssuer.createConstantOpenValue("user1"),
+            password1);
+    CredentialFileHandler underTest2 =
+        new CredentialFileHandler(
+            "github.com",
+            "copybara/google",
+            ConstantCredentialIssuer.createConstantOpenValue("user2"),
+            password2);
+
+    Path path = Files.createTempDirectory(name.getMethodName());
+    Path file = path.resolve("creds");
+    Path repoPath = path.resolve("repo");
+    Path workPath = path.resolve("work");
+    Files.createDirectories(workPath);
+    Files.createDirectories(repoPath);
+    GitRepository repo =
+        GitRepository.newBareRepo(
+                repoPath, getGitEnv(), /* verbose= */ true, DEFAULT_TIMEOUT, /* noVerify= */ false)
+            .withWorkTree(workPath)
+            .init();
+    underTest1.install(repo, file);
+    underTest2.install(repo, file);
+
+    String scrubbed = underTest1.getScrubbedFileContentForDebug(file);
+    assertThat(scrubbed).doesNotContain("token1");
+    assertThat(scrubbed).doesNotContain("token2");
+    assertThat(scrubbed).contains("user1:<scrubbed>@");
+    assertThat(scrubbed).contains("user2:<scrubbed>@");
+  }
 }
