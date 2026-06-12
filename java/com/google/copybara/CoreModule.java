@@ -649,8 +649,8 @@ public class CoreModule implements LabelsAwareModule, StarlarkValue {
     Authoring resolvedAuthoring = authoring;
     Author defaultAuthorFlag = workflowOptions.getDefaultAuthorFlag();
     if (defaultAuthorFlag != null) {
-      resolvedAuthoring = new Authoring(defaultAuthorFlag, authoring.getMode(),
-          authoring.getAllowlist());
+      resolvedAuthoring =
+          new Authoring(defaultAuthorFlag, authoring.getMode(), authoring.getAllowPredicate());
     }
 
     @Nullable String consistencyFilePath = convertFromNoneable(consistencyFilePathObj, null);
@@ -1719,9 +1719,9 @@ public class CoreModule implements LabelsAwareModule, StarlarkValue {
             name = "regex",
             named = true,
             doc =
-                "The regex pattern to verify. To satisfy the validation, there has to be at"
+                "The regex pattern to verify. To satisfy the validation, there has to be at "
                     + "least one (or no matches if verify_no_match) match in each of the files "
-                    + "included in paths. The re2j pattern will be applied in multiline mode, i.e."
+                    + "included in paths. The re2j pattern will be applied in multiline mode, i.e. "
                     + " '^' refers to the beginning of a file and '$' to its end. "
                     + "Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax."),
         @Param(
@@ -2378,7 +2378,7 @@ public class CoreModule implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "format",
             doc =
-                "The format of the version. If using it for git, it has to use the complete"
+                "The format of the version. If using it for git, it has to use the complete "
                     + "refspec (e.g. 'refs/tags/${n0}.${n1}.${n2}')",
             named = true),
         @Param(

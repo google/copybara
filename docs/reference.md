@@ -512,7 +512,7 @@ The authors mapping between an origin and a destination
 
 Create a list for an individual or team contributing code.
 
-<code><a href="#authoring_class">authoring_class</a></code> <code>authoring.allowed(<a href=#authoring.allowed.default>default</a>, <a href=#authoring.allowed.allowlist>allowlist</a>)</code>
+<code><a href="#authoring_class">authoring_class</a></code> <code>authoring.allowed(<a href=#authoring.allowed.default>default</a>, <a href=#authoring.allowed.allowlist>allowlist</a>=None, <a href=#authoring.allowed.allow_predicate>allow_predicate</a>=None)</code>
 
 
 <h4 id="parameters.authoring.allowed">Parameters:</h4>
@@ -521,6 +521,7 @@ Parameter | Description
 --------- | -----------
 <span id=authoring.allowed.default href=#authoring.allowed.default>default</span> | <code><a href="#string">string</a></code><br><p>The default author for commits in the destination. This is used in squash mode workflows or when users are not on the list.</p>
 <span id=authoring.allowed.allowlist href=#authoring.allowed.allowlist>allowlist</span> | <code>sequence of <a href="#string">string</a></code><br><p>List of  authors in the origin that are allowed to contribute code. The authors must be unique</p>
+<span id=authoring.allowed.allow_predicate href=#authoring.allowed.allow_predicate>allow_predicate</span> | <code>unknown</code><br><p>Starlark function to use to check if an author is allowed to contribute code. The function should take a single argument (the author) and return true if the author is allowed, false otherwise. Allowlist is ignored if this is set.</p>
 
 
 <h4 id="example.authoring.allowed">Examples:</h4>
@@ -555,6 +556,19 @@ authoring.allowed(
        "another",
     ],
 )
+```
+
+
+##### Only pass thru some domains:
+
+Only pass thru authors from a specific domain.
+
+```python
+authoring.allowed(
+    default = "Foo Bar <noreply@foobar.com>",
+    allow_predicate = lambda author: author.endswith("@myorg.com"),
+)
+
 ```
 
 
@@ -1394,7 +1408,7 @@ Selects the latest version that matches the format.  Using --force in the CLI wi
 
 Parameter | Description
 --------- | -----------
-<span id=core.latest_version.format href=#core.latest_version.format>format</span> | <code><a href="#string">string</a></code><br><p>The format of the version. If using it for git, it has to use the completerefspec (e.g. 'refs/tags/${n0}.${n1}.${n2}')</p>
+<span id=core.latest_version.format href=#core.latest_version.format>format</span> | <code><a href="#string">string</a></code><br><p>The format of the version. If using it for git, it has to use the complete refspec (e.g. 'refs/tags/${n0}.${n1}.${n2}')</p>
 <span id=core.latest_version.regex_groups href=#core.latest_version.regex_groups>regex_groups</span> | <code><a href="#dict">dict</a></code><br><p>A set of named regexes that can be used to match part of the versions. Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. Use the following nomenclature n0, n1, n2 for the version part (will use numeric sorting) or s0, s1, s2 (alphabetic sorting). Note that there can be mixed but the numbers cannot be repeated. In other words n0, s1, n2 is valid but not n0, s0, n1. n0 has more priority than n1. If there are fields where order is not important, use s(N+1) where N ist he latest sorted field. Example {"n0": "[0-9]+", "s1": "[a-z]+"}</p>
 
 
@@ -1912,7 +1926,7 @@ Verifies that a RegEx matches (or not matches) the specified files. Does not tra
 
 Parameter | Description
 --------- | -----------
-<span id=core.verify_match.regex href=#core.verify_match.regex>regex</span> | <code><a href="#string">string</a></code><br><p>The regex pattern to verify. To satisfy the validation, there has to be atleast one (or no matches if verify_no_match) match in each of the files included in paths. The re2j pattern will be applied in multiline mode, i.e. '^' refers to the beginning of a file and '$' to its end. Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax.</p>
+<span id=core.verify_match.regex href=#core.verify_match.regex>regex</span> | <code><a href="#string">string</a></code><br><p>The regex pattern to verify. To satisfy the validation, there has to be at least one (or no matches if verify_no_match) match in each of the files included in paths. The re2j pattern will be applied in multiline mode, i.e.  '^' refers to the beginning of a file and '$' to its end. Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax.</p>
 <span id=core.verify_match.paths href=#core.verify_match.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
 <span id=core.verify_match.verify_no_match href=#core.verify_match.verify_no_match>verify_no_match</span> | <code><a href="#bool">bool</a></code><br><p>If true, the transformation will verify that the RegEx does not match.</p>
 <span id=core.verify_match.also_on_reversal href=#core.verify_match.also_on_reversal>also_on_reversal</span> | <code><a href="#bool">bool</a></code><br><p>If true, the check will also apply on the reversal. The default behavior is to not verify the pattern on reversal.</p>

@@ -20,6 +20,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
+import com.google.copybara.authoring.Authoring.RejectAllPredicate;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -49,8 +50,11 @@ public class AuthoringTest {
     Authoring authoring = skylark.eval("result",
         "result = authoring.overwrite('foo bar <baz@bar.com>')");
     assertThat(authoring)
-        .isEqualTo(new Authoring(new Author("foo bar", "baz@bar.com"),
-        AuthoringMappingMode.OVERWRITE, ImmutableSet.of()));
+        .isEqualTo(
+            new Authoring(
+                new Author("foo bar", "baz@bar.com"),
+                AuthoringMappingMode.OVERWRITE,
+                new RejectAllPredicate()));
   }
 
   @Test
@@ -58,28 +62,51 @@ public class AuthoringTest {
     Authoring authoring = skylark.eval("result",
         "result = authoring.pass_thru('foo bar <baz@bar.com>')");
     assertThat(authoring)
-        .isEqualTo(new Authoring(new Author("foo bar", "baz@bar.com"),
-        AuthoringMappingMode.PASS_THRU, ImmutableSet.of()));
+        .isEqualTo(
+            new Authoring(
+                new Author("foo bar", "baz@bar.com"),
+                AuthoringMappingMode.PASS_THRU,
+                new RejectAllPredicate()));
   }
 
   @Test
   public void allowedTest() throws Exception {
-    Authoring authoring = skylark.eval("result", """
-        result = authoring.allowed(
-            default = 'foo bar <baz@bar.com>',
-            allowlist = ['foo', 'bar'])""");
+    Authoring authoring =
+        skylark.eval(
+            "result",
+            """
+            result = authoring.allowed(
+                default = 'foo bar <baz@bar.com>',
+                allowlist = ['foo', 'bar'])\
+            """);
     assertThat(authoring)
         .isEqualTo(new Authoring(new Author("foo bar", "baz@bar.com"),
         AuthoringMappingMode.ALLOWED, ImmutableSet.of("foo", "bar")));
   }
 
   @Test
+  public void allowedTest_allowPredicate() throws Exception {
+    Authoring authoring =
+        skylark.eval(
+            "result",
+            """
+            result = authoring.allowed(
+                default = 'foo bar <baz@bar.com>',
+                allow_predicate = lambda author: author.endswith('@myorg.com'))\
+            """);
+    assertThat(authoring.useAuthor("foo@myorg.com")).isTrue();
+    assertThat(authoring.useAuthor("foo@other.com")).isFalse();
+  }
+
+  @Test
   public void testAllowlistMappingDuplicates() throws Exception {
-    skylark.evalFails("""
-            authoring.allowed(
-              default = 'Copybara <no-reply@google.com>',
-              allowlist = ['foo', 'foo']
-            )""",
+    skylark.evalFails(
+        """
+        authoring.allowed(
+          default = 'Copybara <no-reply@google.com>',
+          allowlist = ['foo', 'foo']
+        )\
+        """,
         "Duplicated allowlist entry 'foo'");
   }
 
@@ -91,19 +118,23 @@ public class AuthoringTest {
 
   @Test
   public void testInvalidDefaultAuthor() throws Exception {
-    skylark.evalFails("""
-            authoring.overwrite(
-                default = 'invalid')""",
+    skylark.evalFails(
+        """
+        authoring.overwrite(
+            default = 'invalid')\
+        """,
         "Author 'invalid' doesn't match the expected format 'name <mail@example.com>");
   }
 
   @Test
   public void testAllowlistNotEmpty() throws Exception {
-    skylark.evalFails("""
-            authoring.allowed(
-              default = 'Copybara <no-reply@google.com>',
-              allowlist = []
-            )""",
+    skylark.evalFails(
+        """
+        authoring.allowed(
+          default = 'Copybara <no-reply@google.com>',
+          allowlist = []
+        )\
+        """,
         "'allowed' function requires a non-empty 'allowlist' field. "
             + "For default mapping, use 'overwrite\\(...\\)' mode instead.");
   }

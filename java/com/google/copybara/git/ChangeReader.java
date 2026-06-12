@@ -18,7 +18,6 @@ package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -35,8 +34,8 @@ import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.List;
-import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import net.starlark.java.eval.EvalException;
 
 /**
  * Utility class to introspect the log of a Git repository.
@@ -158,28 +157,27 @@ class ChangeReader {
     // Remove the merge commit. Since we already have that in the body.
     entries = entries.subList(1, entries.size());
 
-    return "\n"
-        + BRANCH_COMMIT_LOG_HEADING
-        + "\n"
-        + Joiner.on("\n")
-            .join(
-                entries.stream()
-                    .map(
-                        e ->
-                            ""
-                                + "commit "
-                                + e.commit().getHash()
-                                + "\n"
-                                + "Author:  "
-                                + filterAuthor(e.author())
-                                + "\n"
-                                + "Date:    "
-                                + e.authorDate()
-                                + "\n"
-                                + "\n"
-                                + "    "
-                                + e.body().replace("\n", "    \n"))
-                    .collect(Collectors.toList()));
+    StringBuilder sb = new StringBuilder("\n").append(BRANCH_COMMIT_LOG_HEADING).append("\n");
+    boolean first = true;
+    for (GitLogEntry e : entries) {
+      if (!first) {
+        sb.append("\n");
+      }
+      sb.append("commit ")
+          .append(e.commit().getHash())
+          .append("\n")
+          .append("Author:  ")
+          .append(filterAuthor(e.author()))
+          .append("\n")
+          .append("Date:    ")
+          .append(e.authorDate())
+          .append("\n")
+          .append("\n")
+          .append("    ")
+          .append(e.body().replace("\n", "    \n"));
+      first = false;
+    }
+    return sb.toString();
   }
 
   private ImmutableList<Change<GitRevision>> parseChanges(
@@ -215,10 +213,14 @@ class ChangeReader {
     return result.build().reverse();
   }
 
-  private Author filterAuthor(Author author) {
-    return authoring == null || authoring.useAuthor(author.getEmail())
-        ? author
-        : authoring.getDefaultAuthor();
+  private Author filterAuthor(Author author) throws RepoException {
+    try {
+      return authoring == null || authoring.useAuthor(author.getEmail())
+          ? author
+          : authoring.getDefaultAuthor();
+    } catch (EvalException e) {
+      throw new RepoException(String.format("Error checking authoring for author: %s", author), e);
+    }
   }
 
   /**

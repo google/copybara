@@ -32,6 +32,8 @@ import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Sequence;
 import net.starlark.java.eval.Starlark;
+import net.starlark.java.eval.StarlarkCallable;
+import net.starlark.java.eval.StarlarkThread;
 import net.starlark.java.eval.StarlarkValue;
 
 /**
@@ -46,13 +48,19 @@ public final class Authoring implements StarlarkValue {
 
   private final Author defaultAuthor;
   private final AuthoringMappingMode mode;
-  private final ImmutableSet<String> allowlist;
+  private final EvalThrowingPredicate<String> allowPredicate;
 
   public Authoring(
-      Author defaultAuthor, AuthoringMappingMode mode, ImmutableSet<String> allowlist) {
+      Author defaultAuthor,
+      AuthoringMappingMode mode,
+      EvalThrowingPredicate<String> allowPredicate) {
     this.defaultAuthor = checkNotNull(defaultAuthor);
     this.mode = checkNotNull(mode);
-    this.allowlist = checkNotNull(allowlist);
+    this.allowPredicate = checkNotNull(allowPredicate);
+  }
+
+  public Authoring(Author defaultAuthor, AuthoringMappingMode mode, ImmutableSet<String> list) {
+    this(defaultAuthor, mode, new AllowlistPredicate(checkNotNull(list)));
   }
 
   /**
@@ -76,24 +84,17 @@ public final class Authoring implements StarlarkValue {
    * <p>An identifier is typically an email but might have different representations depending on
    * the origin.
    */
-  public ImmutableSet<String> getAllowlist() {
-    return allowlist;
+  public EvalThrowingPredicate<String> getAllowPredicate() {
+    return allowPredicate;
   }
 
-  /**
-   * Returns true if the user can be safely used.
-   */
-  public boolean useAuthor(String userId) {
-    switch (mode) {
-      case PASS_THRU:
-        return true;
-      case OVERWRITE:
-        return false;
-      case ALLOWED:
-        return allowlist.contains(userId);
-      default:
-        throw new IllegalStateException(String.format("Mode '%s' not implemented.", mode));
-    }
+  /** Returns true if the user can be safely used. */
+  public boolean useAuthor(String userId) throws EvalException {
+    return switch (mode) {
+      case PASS_THRU -> true;
+      case OVERWRITE -> false;
+      case ALLOWED -> allowPredicate.test(userId);
+    };
   }
 
   /** Starlark Module for authoring. */
@@ -122,7 +123,7 @@ public final class Authoring implements StarlarkValue {
         code = "authoring.overwrite(\"Foo Bar <noreply@foobar.com>\")")
     public Authoring overwrite(String defaultAuthor) throws EvalException {
       return new Authoring(
-          Author.parse(defaultAuthor), AuthoringMappingMode.OVERWRITE, ImmutableSet.of());
+          Author.parse(defaultAuthor), AuthoringMappingMode.OVERWRITE, new RejectAllPredicate());
     }
 
     @Example(
@@ -142,12 +143,13 @@ public final class Authoring implements StarlarkValue {
         })
     public Authoring passThru(String defaultAuthor) throws EvalException {
       return new Authoring(
-          Author.parse(defaultAuthor), AuthoringMappingMode.PASS_THRU, ImmutableSet.of());
-      }
+          Author.parse(defaultAuthor), AuthoringMappingMode.PASS_THRU, new RejectAllPredicate());
+    }
 
     @StarlarkMethod(
         name = "allowed",
         doc = "Create a list for an individual or team contributing code.",
+        useStarlarkThread = true,
         parameters = {
           @Param(
               name = "default",
@@ -159,22 +161,34 @@ public final class Authoring implements StarlarkValue {
               name = "allowlist",
               allowedTypes = {@ParamType(type = Sequence.class, generic1 = String.class)},
               named = true,
+              defaultValue = "None",
               doc =
                   "List of  authors in the origin that are allowed to contribute code. The "
                       + "authors must be unique"),
+          @Param(
+              name = "allow_predicate",
+              named = true,
+              defaultValue = "None",
+              doc =
+                  "Starlark function to use to check if an author is allowed to contribute code."
+                      + " The function should take a single argument (the author) and return"
+                      + " true if the author is allowed, false otherwise. Allowlist is ignored if"
+                      + " this is set."),
         })
     @Example(
         title = "Only pass thru allowed users",
         before = "",
         code =
-            "authoring.allowed(\n"
-                + "    default = \"Foo Bar <noreply@foobar.com>\",\n"
-                + "    allowlist = [\n"
-                + "       \"someuser@myorg.com\",\n"
-                + "       \"other@myorg.com\",\n"
-                + "       \"another@myorg.com\",\n"
-                + "    ],\n"
-                + ")")
+            """
+            authoring.allowed(
+                default = "Foo Bar <noreply@foobar.com>",
+                allowlist = [
+                   "someuser@myorg.com",
+                   "other@myorg.com",
+                   "another@myorg.com",
+                ],
+            )\
+            """)
     @Example(
         title = "Only pass thru allowed LDAPs/usernames",
         before =
@@ -182,21 +196,49 @@ public final class Authoring implements StarlarkValue {
                 + " supported since it is up to the origin how to check whether two authors are"
                 + " the same.",
         code =
-            "authoring.allowed(\n"
-                + "    default = \"Foo Bar <noreply@foobar.com>\",\n"
-                + "    allowlist = [\n"
-                + "       \"someuser\",\n"
-                + "       \"other\",\n"
-                + "       \"another\",\n"
-                + "    ],\n"
-                + ")")
-    public Authoring allowed(String defaultAuthor, Sequence<?> allowlist // <String>
-        ) throws EvalException {
+            """
+            authoring.allowed(
+                default = "Foo Bar <noreply@foobar.com>",
+                allowlist = [
+                   "someuser",
+                   "other",
+                   "another",
+                ],
+            )\
+            """)
+    @Example(
+        title = "Only pass thru some domains",
+        before = "Only pass thru authors from a specific domain.",
+        code =
+            """
+            authoring.allowed(
+                default = "Foo Bar <noreply@foobar.com>",
+                allow_predicate = lambda author: author.endswith("@myorg.com"),
+            )
+            """)
+    public Authoring allowed(
+        String defaultAuthor,
+        Object allowlist, // Sequence<String>,
+        Object allowPred, // StarlarkCallable
+        StarlarkThread thread)
+        throws EvalException {
+      EvalThrowingPredicate<String> allowPredicate;
+      if (Starlark.isNullOrNone(allowPred) && Starlark.isNullOrNone(allowlist)) {
+        throw Starlark.errorf(
+            "'allowed' function requires either an 'allowlist' or an 'allow_predicate' parameter.");
+      }
+      if (!Starlark.isNullOrNone(allowPred)) {
+
+        allowPredicate = new AllowPredicate((StarlarkCallable) allowPred, thread);
+      } else {
+        ImmutableSet<String> allowedAuthors =
+            createAllowlist(Sequence.cast(allowlist, String.class, "allowlist"));
+        allowPredicate = new AllowlistPredicate(allowedAuthors);
+      }
       return new Authoring(
-          Author.parse(defaultAuthor),
-          AuthoringMappingMode.ALLOWED,
-          createAllowlist(Sequence.cast(allowlist, String.class, "allowed")));
+          Author.parse(defaultAuthor), AuthoringMappingMode.ALLOWED, allowPredicate);
     }
+
 
     private static ImmutableSet<String> createAllowlist(List<String> list)
         throws EvalException {
@@ -245,14 +287,14 @@ public final class Authoring implements StarlarkValue {
       return false;
     }
     Authoring authoring = (Authoring) o;
-    return Objects.equals(defaultAuthor, authoring.defaultAuthor) &&
-        mode == authoring.mode &&
-        Objects.equals(allowlist, authoring.allowlist);
+    return Objects.equals(defaultAuthor, authoring.defaultAuthor)
+        && mode == authoring.mode
+        && Objects.equals(allowPredicate, authoring.allowPredicate);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(defaultAuthor, mode, allowlist);
+    return Objects.hash(defaultAuthor, mode, allowPredicate);
   }
 
   @Override
@@ -260,7 +302,64 @@ public final class Authoring implements StarlarkValue {
     return MoreObjects.toStringHelper(this)
         .add("defaultAuthor", defaultAuthor)
         .add("mode", mode)
-        .add("allowlist", allowlist)
+        .add("allowPredicate", allowPredicate)
         .toString();
+  }
+
+  /** A predicate that can throw EvalException. */
+  public interface EvalThrowingPredicate<T> {
+    boolean test(T input) throws EvalException;
+  }
+
+  /**
+   * A predicate that uses a Starlark function to check if an author is allowed to be attributed for
+   * code.
+   */
+  record AllowPredicate(StarlarkCallable allowPred, StarlarkThread thread)
+      implements EvalThrowingPredicate<String> {
+    @Override
+    public boolean test(String author) throws EvalException {
+      try {
+        return Starlark.truth(Starlark.positionalOnlyCall(thread, allowPred, author));
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new EvalException(
+            String.format(
+                "Unable to evaluate allow predicate for author '%s': %s", author, e.getMessage()),
+            e);
+      }
+    }
+  }
+
+  /**
+   * A predicate that uses a list of allowed authors to check if an author is allowed to be
+   * attributed for code.
+   */
+  record AllowlistPredicate(ImmutableSet<String> allowedAuthors)
+      implements EvalThrowingPredicate<String> {
+
+    @Override
+    public boolean test(String author) {
+      return allowedAuthors.contains(author);
+    }
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(this).add("allowedAuthors", allowedAuthors).toString();
+    }
+  }
+
+  /** A predicate that always returns false for attribution. */
+  record RejectAllPredicate() implements EvalThrowingPredicate<String> {
+
+    @Override
+    public boolean test(String author) {
+      return false;
+    }
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(this).toString();
+    }
   }
 }

@@ -30,6 +30,7 @@ import com.google.copybara.Origin;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.exception.RepoException;
+import net.starlark.java.eval.EvalException;
 import com.google.copybara.revision.Change;
 import com.google.copybara.revision.Revision;
 import java.io.IOException;
@@ -300,9 +301,13 @@ public class DummyRevision implements Revision {
   }
 
   public Change<DummyRevision> toChange(Authoring authoring) {
-    Author safeAuthor = authoring.useAuthor(this.author.getEmail())
-        ? this.author
-        : authoring.getDefaultAuthor();
+    Author safeAuthor;
+    try {
+      safeAuthor =
+          authoring.useAuthor(this.author.getEmail()) ? this.author : authoring.getDefaultAuthor();
+    } catch (EvalException e) {
+      throw new RuntimeException(e);
+    }
     return new Change<>(this, safeAuthor, message,
                         timestamp, descriptionLabels,
                         computeChangedFiles());
