@@ -518,17 +518,63 @@ public class GitHubApi {
     }
   }
 
-  /** https://developer.github.com/v3/checks/runs/#list-check-runs-for-a-specific-ref
-   * WIP */
+  /**
+   * Calls the GitHub API REST endpoint to list check runs for a specific ref.
+   *
+   * <p>If {@code checkName} is provided, only check runs with that name are returned.
+   *
+   * @param projectId the project ID, for example {@code "google/copybara"}
+   * @param ref the ref to get the check runs for
+   * @param checkName the name of the check run to filter by, or {@code null} to get all check runs
+   * @return a list of check runs for the given ref and check name (if provided)
+   * @see <a
+   *     href="https://docs.github.com/en/rest/checks/runs?apiVersion=2026-03-10#list-check-runs-for-a-git-reference">GitHub
+   *     API: List check runs for a Git reference</a>
+   */
+  public ImmutableList<CheckRun> getCheckRuns(
+      String projectId, String ref, @Nullable String checkName)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("github_api_get_check_runs")) {
+      if (Strings.isNullOrEmpty(checkName)) {
+        return paginatedGet(
+            "github_api_get_check_runs_get",
+            new TypeToken<CheckRuns>() {}.getType(),
+            "Check Run",
+            ImmutableListMultimap.of("Accept", "application/vnd.github.antiope-preview+json"),
+            "repos/%s/commits/%s/check-runs?per_page=%d",
+            projectId,
+            ref,
+            MAX_PER_PAGE);
+      } else {
+        return paginatedGet(
+            "github_api_get_check_runs_get",
+            new TypeToken<CheckRuns>() {}.getType(),
+            "Check Run",
+            ImmutableListMultimap.of("Accept", "application/vnd.github.antiope-preview+json"),
+            "repos/%s/commits/%s/check-runs?per_page=%d&check_name=%s",
+            projectId,
+            ref,
+            MAX_PER_PAGE,
+            checkName);
+      }
+    }
+  }
+
+  /**
+   * Calls the GitHub API REST endpoint to list check runs for a specific ref.
+   *
+   * <p>If {@code checkName} is provided, only check runs with that name are returned.
+   *
+   * @param projectId the project ID, for example {@code "google/copybara"}
+   * @param ref the ref to get the check runs for
+   * @return a list of check runs for the given ref and check name (if provided)
+   * @see <a
+   *     href="https://docs.github.com/en/rest/checks/runs?apiVersion=2026-03-10#list-check-runs-for-a-git-reference">GitHub
+   *     API: List check runs for a Git reference</a>
+   */
   public ImmutableList<CheckRun> getCheckRuns(String projectId, String ref)
       throws RepoException, ValidationException {
-
-    try (ProfilerTask ignore = profiler.start("github_api_get_check_runs")) {
-      return paginatedGet("github_api_get_check_runs_get",
-          new TypeToken<CheckRuns>() {}.getType(), "Check Run",
-          ImmutableListMultimap.of("Accept", "application/vnd.github.antiope-preview+json"),
-          "repos/%s/commits/%s/check-runs?per_page=%d", projectId, ref, MAX_PER_PAGE);
-    }
+    return getCheckRuns(projectId, ref, /* checkName= */ null);
   }
 
   /**

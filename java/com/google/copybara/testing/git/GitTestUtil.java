@@ -52,6 +52,7 @@ import com.google.copybara.git.GitRepository.PushCmd;
 import com.google.copybara.git.InvalidRefspecException;
 import com.google.copybara.git.Refspec;
 import com.google.copybara.testing.OptionsBuilder;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -264,6 +265,7 @@ public class GitTestUtil {
    * @param requestAnswer The Answer to respond with.
    * @return a {@link OngoingStubbing} object.
    */
+  @CanIgnoreReturnValue
   public OngoingStubbing<LowLevelHttpRequest> mockApi(
       String method, String url, Answer<LowLevelHttpRequest> requestAnswer) {
     OngoingStubbing<LowLevelHttpRequest> when;

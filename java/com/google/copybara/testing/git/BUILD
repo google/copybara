@@ -1,4 +1,4 @@
-# Copyright 2017 Google Inc.
+# Copyright 2017 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ java_library(
         "//java/com/google/copybara/git:creds",
         "//java/com/google/copybara/testing",
         "//java/com/google/copybara/util",
+        "//third_party:error_prone",
         "//third_party:google_http_client",
         "//third_party:google_http_client_test",
         "//third_party:guava",

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Google Inc.
+ * Copyright (C) 2017 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -90,6 +90,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 @RunWith(JUnit4.class)
 public class GitHubPrOriginTest {
@@ -450,6 +452,114 @@ public class GitHubPrOriginTest {
             "required_check_runs = ['foo/one', 'foo/two']"),
         sha,
         125);
+  }
+
+  @Test
+  public void testGitResolve_thresholdExceeded_requiredCheckRunsPass() throws Exception {
+    MockPullRequest.create(gitUtil)
+        .setState("open")
+        .setPrNumber(125)
+        .addLabels("bar: yes")
+        .addCheckRun("foo/one", "success")
+        .addCheckRun("foo/two", "success")
+        .addCheckRun("foo/three", "success")
+        .addCheckRun("foo/four", "success")
+        .addCheckRun("foo/five", "success")
+        .addCheckRun("foo/six", "success")
+        .mock();
+
+    checkResolve(
+        githubPrOrigin(
+            "url = 'https://github.com/google/example'",
+            "required_check_runs = "
+                + "['foo/one', 'foo/two', 'foo/three', 'foo/four', 'foo/five', 'foo/six']"),
+        sha,
+        125);
+
+    verify(gitUtil.httpTransport(), times(1))
+        .buildRequest(
+            "GET",
+            "https://api.github.com/repos/google/example/commits/"
+                + sha
+                + "/check-runs?per_page=100");
+  }
+
+  @Test
+  public void testGitResolve_thresholdExceeded_requiredCheckRunsFail() throws Exception {
+    MockPullRequest.create(gitUtil)
+        .setState("open")
+        .setPrNumber(125)
+        .addLabels("bar: yes")
+        .addCheckRun("foo/one", "success")
+        .addCheckRun("foo/two", "success")
+        .addCheckRun("foo/three", "success")
+        .addCheckRun("foo/four", "success")
+        .addCheckRun("foo/five", "success")
+        .addCheckRun("foo/six", "failure")
+        .mock();
+
+    GitHubPrOrigin origin =
+        githubPrOrigin(
+            "url = 'https://github.com/google/example'",
+            "required_check_runs = ['foo/one', 'foo/two', 'foo/three', 'foo/four',"
+                + " 'foo/five', 'foo/six']");
+    EmptyChangeException thrown =
+        assertThrows(EmptyChangeException.class, () -> checkResolve(origin, sha, 125));
+
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains(
+            "Cannot migrate http://github.com/google/example/pull/125 because the following check"
+                + " runs have not been passed: [foo/six]");
+  }
+
+  @Test
+  public void testGitResolve_requiredCheckRuns_warnsOnAmbiguity() throws Exception {
+    MockPullRequest.create(gitUtil).setState("open").setPrNumber(125).addLabels("bar: yes").mock();
+    JsonObject response = new JsonObject();
+    JsonArray testStatuses = new JsonArray();
+    JsonObject status1 = new JsonObject();
+    status1.addProperty("name", "foo/warn");
+    status1.addProperty("conclusion", "success");
+    testStatuses.add(status1);
+    JsonObject status2 = new JsonObject();
+    status2.addProperty("name", "foo/warn");
+    status2.addProperty("conclusion", "success");
+    testStatuses.add(status2);
+    response.add("check_runs", testStatuses);
+    gitUtil.mockApi(
+        "GET",
+        "https://api.github.com/repos/google/example/commits/" + sha + "/check-runs?per_page=100",
+        mockResponse(response.toString()));
+    gitUtil.mockApi(
+        "GET",
+        "https://api.github.com/repos/google/example/commits/"
+            + sha
+            + "/check-runs?per_page=100&check_name=foo/warn",
+        mockResponse(response.toString()));
+
+    checkResolve(
+        githubPrOrigin(
+            "url = 'https://github.com/google/example'", "required_check_runs = ['foo/warn']"),
+        sha,
+        125);
+
+    assertThat(
+            console.getMessages().stream()
+                .anyMatch(
+                    message ->
+                        message.getText().contains("Matching check run with name 'foo/warn' seen 2")
+                            && message
+                                .getText()
+                                .contains(
+                                    "Consider using a more specific name to avoid ambiguity")))
+        .isTrue();
+    verify(gitUtil.httpTransport(), times(1))
+        .buildRequest(
+            "GET",
+            "https://api.github.com/repos/google/example/commits/"
+                + sha
+                + "/check-runs?per_page=100&check_name=foo/warn");
   }
 
   @Test
@@ -976,7 +1086,8 @@ public class GitHubPrOriginTest {
                 after_migration = [
                     update_commit_status
                 ]
-            )"""
+            )\
+            """
                 .formatted(destination.getGitDir()));
 
     workflow.run(workdir, ImmutableList.of("123"));
@@ -1560,7 +1671,8 @@ public class GitHubPrOriginTest {
         """
         r = git.github_pr_origin(
             %s
-        )"""
+        )\
+        """
             .formatted(Joiner.on(",\n    ").join(lines)));
   }
 
@@ -1778,6 +1890,35 @@ public class GitHubPrOriginTest {
           "https://api.github.com/repos/google/example/commits/"
               + sha + "/check-runs?per_page=100",
           mockResponse(response.toString()));
+
+      gitUtil.mockApi(
+          eq("GET"),
+          startsWith(
+              "https://api.github.com/repos/google/example/commits/"
+                  + sha
+                  + "/check-runs?per_page=100&check_name="),
+          new Answer<LowLevelHttpRequest>() {
+            @Override
+            public LowLevelHttpRequest answer(InvocationOnMock invocation) {
+              String url = invocation.getArgument(1, String.class);
+              String checkNameParam = "check_name=";
+              int idx = url.indexOf(checkNameParam);
+              if (idx != -1) {
+                String queryCheckName = url.substring(idx + checkNameParam.length());
+                JsonObject specResponse = new JsonObject();
+                JsonArray specTestStatuses = new JsonArray();
+                if (checkRuns.containsKey(queryCheckName)) {
+                  JsonObject status = new JsonObject();
+                  status.addProperty("name", queryCheckName);
+                  status.addProperty("conclusion", checkRuns.get(queryCheckName));
+                  specTestStatuses.add(status);
+                }
+                specResponse.add("check_runs", specTestStatuses);
+                return mockResponse(specResponse.toString());
+              }
+              return mockResponse("{\"check_runs\": []}");
+            }
+          });
     }
   }
 }

@@ -618,6 +618,18 @@ public abstract class AbstractGitHubApiTest {
   }
 
   @Test
+  public void test_getCheckRunsWithCheckName_success() throws Exception {
+    trainMockGet(
+        "/repos/example/project/commits/12345/check-runs?per_page=100&check_name=mighty_readme",
+        getResource("get_check_runs_testdata.json"));
+    ImmutableList<CheckRun> checkRuns =
+        api.getCheckRuns("example/project", "12345", "mighty_readme");
+    assertThat(checkRuns).hasSize(1);
+    assertThat(checkRuns.get(0).getStatus()).isEqualTo("completed");
+    assertThat(checkRuns.get(0).getConclusion()).isEqualTo("neutral");
+  }
+
+  @Test
   public void test_getCheckRuns_pagination() throws Exception {
 
     trainMockGetWithHeaders("/repos/example/project/commits/12345/check-runs?per_page=100",

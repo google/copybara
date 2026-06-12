@@ -18,6 +18,7 @@ package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableList.toImmutableList;
+import static com.google.common.collect.ImmutableListMultimap.toImmutableListMultimap;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.git.github.util.GitHubUtil.asHeadRef;
 import static com.google.copybara.git.github.util.GitHubUtil.asMergeRef;
@@ -93,6 +94,12 @@ import javax.annotation.Nullable;
 public class GitHubPrOrigin implements Origin<GitRevision> {
 
   static final int RETRY_COUNT = 3;
+
+  /**
+   * The threshold for the number of check runs to use the manual lookup. Anything more than this,
+   * we are better off using a wildcard query.
+   */
+  private static final int MANUAL_CHECK_RUN_LOOKUP_THRESHOLD = 5;
 
   public static final String GITHUB_PR_NUMBER_LABEL = "GITHUB_PR_NUMBER";
   public static final String GITHUB_BASE_BRANCH = "GITHUB_BASE_BRANCH";
@@ -547,23 +554,70 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
     if (forceImport() || requiredCheckRuns.isEmpty()) {
       return;
     }
-    try (ProfilerTask ignore = generalOptions.profiler()
-        .start("github_api_get_combined_status")) {
-      ImmutableList<CheckRun> checkRuns =
-          api.getCheckRuns(project, prData.getHead().getSha());
-      Set<String> requiredButNotPresent = Sets.newHashSet(requiredCheckRuns);
-      List<CheckRun> passedCheckRuns =
-          checkRuns.stream()
-              .filter(e -> e.getConclusion().equals("success"))
-              .collect(Collectors.toList());
-      requiredButNotPresent.removeAll(Collections2.transform(passedCheckRuns, CheckRun::getName));
-      if (!requiredButNotPresent.isEmpty()) {
+
+    try (ProfilerTask ignore = generalOptions.profiler().start("github_api_get_combined_status")) {
+      // If there is a small number of required check runs, we can just use the API to filter by
+      // name.
+      ImmutableListMultimap<String, CheckRun> observedCheckRuns =
+          requiredCheckRuns.size() <= MANUAL_CHECK_RUN_LOOKUP_THRESHOLD
+              ? getCheckRunsByName(api, project, prData, requiredCheckRuns)
+              : getCheckRuns(api, project, prData);
+
+      ImmutableSet.Builder<String> missingCheckRunsAggregator = ImmutableSet.builder();
+
+      for (String requiredCheckRun : requiredCheckRuns) {
+        if (!observedCheckRuns.containsKey(requiredCheckRun)) {
+          missingCheckRunsAggregator.add(requiredCheckRun);
+          continue;
+        }
+        ImmutableList<CheckRun> matchingCheckRuns = observedCheckRuns.get(requiredCheckRun);
+        console.warnFmtIf(
+            matchingCheckRuns.size() > 1,
+            "Matching check run with name '%s' seen %s times. Consider using a"
+                + " more specific name to avoid ambiguity. The instances of this check run are: %s",
+            requiredCheckRun,
+            matchingCheckRuns.size(),
+            matchingCheckRuns);
+        boolean hasMatch =
+            Iterables.any(matchingCheckRuns, e -> e.getConclusion().equals("success"));
+        if (!hasMatch) {
+          missingCheckRunsAggregator.add(requiredCheckRun);
+        }
+      }
+
+      if (!missingCheckRunsAggregator.build().isEmpty()) {
         throw new EmptyChangeException(
             String.format(
                 "Cannot migrate http://github.com/%s/pull/%d because the following check runs "
                     + "have not been passed: %s",
-                project, prData.getNumber(), requiredButNotPresent));
+                project, prData.getNumber(), missingCheckRunsAggregator.build()));
       }
+    }
+  }
+
+  private ImmutableListMultimap<String, CheckRun> getCheckRunsByName(
+      GitHubApi api, String project, PullRequest prData, Set<String> requiredCheckRuns)
+      throws ValidationException, RepoException {
+    ImmutableListMultimap.Builder<String, CheckRun> checkRunAggregator =
+        ImmutableListMultimap.builder();
+    try (ProfilerTask ignore =
+        generalOptions.profiler().start("github_api_get_check_runs_by_name")) {
+      for (String requiredCheckRun : requiredCheckRuns) {
+        ImmutableList<CheckRun> specificCheckRuns =
+            api.getCheckRuns(project, prData.getHead().getSha(), requiredCheckRun);
+        checkRunAggregator.putAll(requiredCheckRun, specificCheckRuns);
+      }
+    }
+    return checkRunAggregator.build();
+  }
+
+  private ImmutableListMultimap<String, CheckRun> getCheckRuns(
+      GitHubApi api, String project, PullRequest prData) throws ValidationException, RepoException {
+    try (ProfilerTask ignore = generalOptions.profiler().start("github_api_get_check_runs")) {
+      ImmutableList<CheckRun> allCheckRuns =
+          api.getCheckRuns(project, prData.getHead().getSha(), /* checkName= */ null);
+      return allCheckRuns.stream()
+          .collect(toImmutableListMultimap(CheckRun::getName, value -> value));
     }
   }
 
