@@ -2809,6 +2809,135 @@ public class WorkflowTest {
   }
 
   @Test
+  public void mergeImport_iterativeMode() throws Exception {
+    options.general.setTemporaryFeaturesForTest(
+        ImmutableMap.of("experimental_iterative_merge_import", "true"));
+    skylark = new SkylarkTestExecutor(options);
+    transformations = ImmutableList.of();
+    mergeImport =
+        """
+        core.merge_import_config(
+          package_path = "",
+          use_consistency_file = True,
+        )\
+        """;
+    consistencyFilePath = "\"foo.bara.consistency\"";
+
+    Path testDir = Files.createTempDirectory("merge_import_iterative");
+    Path base1 = Files.createDirectories(testDir.resolve("base1"));
+    writeFile(base1, "foo.txt", "a\nb\nc\n");
+    origin.addChange(0, base1, "base change", true);
+
+    Path base2 = Files.createDirectories(testDir.resolve("base2"));
+    FileUtil.copyFilesRecursively(base1, base2, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
+    writeFile(base2, "foo.txt", "a\nb\nMODIFIED\nc\n");
+    origin.addChange(1, base2, "change 1", true);
+
+    Path base3 = Files.createDirectories(testDir.resolve("base3"));
+    FileUtil.copyFilesRecursively(base2, base3, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
+    writeFile(base3, "bar.txt", "new file");
+    origin.addChange(2, base3, "change 2", true);
+
+    options.workflowOptions.lastRevision = origin.changes.get(0).asString();
+
+    Workflow<?, ?> workflow = skylarkWorkflow("default", WorkflowMode.ITERATIVE);
+    workflow.run(workdir, ImmutableList.of(origin.changes.get(2).asString()));
+
+    assertThat(destination.processed).hasSize(2);
+    assertThat(destination.processed.get(0).getChangesSummary()).contains("change 1");
+    assertThat(destination.processed.get(1).getChangesSummary()).contains("change 2");
+    console().assertThat().onceInLog(MessageType.WARNING, "Iterative Merge Import is experimental");
+  }
+
+  @Test
+  public void mergeImport_iterativeMode_experimentDisabled() throws Exception {
+    options.general.setTemporaryFeaturesForTest(
+        ImmutableMap.of("experimental_iterative_merge_import", "false"));
+    skylark = new SkylarkTestExecutor(options);
+    transformations = ImmutableList.of();
+    mergeImport =
+        """
+        core.merge_import_config(
+          package_path = "",
+          use_consistency_file = True,
+        )\
+        """;
+    consistencyFilePath = "\"foo.bara.consistency\"";
+
+    Path testDir = Files.createTempDirectory("merge_import_iterative_disabled");
+    Path base1 = Files.createDirectories(testDir.resolve("base1"));
+    writeFile(base1, "foo.txt", "a\nb\nc\n");
+    origin.addChange(0, base1, "base change", true);
+
+    Path base2 = Files.createDirectories(testDir.resolve("base2"));
+    FileUtil.copyFilesRecursively(base1, base2, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
+    writeFile(base2, "foo.txt", "a\nb\nMODIFIED\nc\n");
+    origin.addChange(1, base2, "change 1", true);
+
+    Path base3 = Files.createDirectories(testDir.resolve("base3"));
+    FileUtil.copyFilesRecursively(base2, base3, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
+    writeFile(base3, "bar.txt", "new file");
+    origin.addChange(2, base3, "change 2", true);
+
+    options.workflowOptions.lastRevision = origin.changes.get(0).asString();
+
+    Workflow<?, ?> workflow = skylarkWorkflow("default", WorkflowMode.ITERATIVE);
+    workflow.run(workdir, ImmutableList.of(origin.changes.get(2).asString()));
+
+    console()
+        .assertThat()
+        .onceInLog(MessageType.WARNING, "Unable to determine a baseline; disabling merge import");
+  }
+
+  @Test
+  public void mergeImport_iterativeMode_withSkippedChanges() throws Exception {
+    options.general.setTemporaryFeaturesForTest(
+        ImmutableMap.of("experimental_iterative_merge_import", "true"));
+    skylark = new SkylarkTestExecutor(options);
+    transformations = ImmutableList.of();
+    mergeImport =
+        """
+        core.merge_import_config(
+          package_path = "",
+          use_consistency_file = True,
+        )\
+        """;
+    consistencyFilePath = "\"foo.bara.consistency\"";
+
+    Path testDir = Files.createTempDirectory("merge_import_iterative_skipped");
+    Path base1 = Files.createDirectories(testDir.resolve("base1"));
+    writeFile(base1, "foo.txt", "a\nb\nc\n");
+    origin.addChange(0, base1, "base change", true);
+
+    Path base2 = Files.createDirectories(testDir.resolve("base2"));
+    FileUtil.copyFilesRecursively(base1, base2, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
+    writeFile(base2, "foo.txt", "a\nb\nMODIFIED_1\nc\n");
+    origin.addChange(1, base2, "change 1", true);
+
+    Path base3 = Files.createDirectories(testDir.resolve("base3"));
+    FileUtil.copyFilesRecursively(base2, base3, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
+    writeFile(base3, "excluded/bar.txt", "excluded file change");
+    origin.addChange(2, base3, "change 2 - skipped", false);
+
+    Path base4 = Files.createDirectories(testDir.resolve("base4"));
+    FileUtil.copyFilesRecursively(base3, base4, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
+    writeFile(base4, "foo.txt", "a\nb\nMODIFIED_1\nc\nEXTRA\n");
+    origin.addChange(3, base4, "change 3", true);
+
+    options.workflowOptions.lastRevision = origin.changes.get(0).asString();
+
+    Workflow<?, ?> workflow = skylarkWorkflow("default", WorkflowMode.ITERATIVE);
+    workflow.run(workdir, ImmutableList.of(origin.changes.get(3).asString()));
+
+    assertThat(destination.processed).hasSize(2);
+    assertThat(destination.processed.get(0).getChangesSummary()).contains("change 1");
+    assertThat(destination.processed.get(0).getChangesSummary()).doesNotContain("change 2");
+    assertThat(destination.processed.get(1).getChangesSummary()).contains("change 3");
+    assertThat(destination.processed.get(1).getChangesSummary()).doesNotContain("change 2");
+    console().assertThat().onceInLog(MessageType.WARNING, "Iterative Merge Import is experimental");
+  }
+
+  @Test
   public void mergeImport_consistencyFile_validatesAgainstVersionOfConsistencyFileEdit()
       throws Exception {
     // options setup

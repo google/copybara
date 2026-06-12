@@ -190,8 +190,23 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     return workflow.getWorkflowOptions();
   }
 
+  GeneralOptions getGeneralOptions() {
+    return workflow.getGeneralOptions();
+  }
+
+  @Nullable
+  O getOriginBaselineForMergeImport(@Nullable O lastRev) throws RepoException, ValidationException {
+    return workflowOptions().baselineForMergeImport == null
+        ? lastRev
+        : originResolveLastRev(workflowOptions().baselineForMergeImport);
+  }
+
   boolean isForce() {
     return workflow.isForce();
+  }
+
+  boolean isMergeImport() {
+    return workflow.isMergeImport();
   }
 
   private boolean isInitHistory() {

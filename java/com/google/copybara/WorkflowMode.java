@@ -137,11 +137,9 @@ public enum WorkflowMode {
           metadata,
           // Squash notes an Skylark API expect last commit to be the first one.
           new Changes(changes.reverse(), ImmutableList.of()),
-          /*destinationBaseline=*/ null,
+          /* destinationBaseline= */ null,
           runHelper.getResolvedRef(),
-          runHelper.workflowOptions().baselineForMergeImport == null
-            ? lastRev
-            : runHelper.originResolveLastRev(runHelper.workflowOptions().baselineForMergeImport));
+          runHelper.getOriginBaselineForMergeImport(lastRev));
     }
   },
 
@@ -175,6 +173,21 @@ public enum WorkflowMode {
 
       runHelper.maybeValidateRepoInLastRevState(/*metadata=*/null);
 
+      boolean useIterativeMergeImport =
+          runHelper
+              .getGeneralOptions()
+              .isTemporaryFeature("experimental_iterative_merge_import", false);
+      O originBaseline =
+          useIterativeMergeImport ? runHelper.getOriginBaselineForMergeImport(lastRev) : null;
+
+      if (useIterativeMergeImport && runHelper.isMergeImport()) {
+        runHelper
+            .getConsole()
+            .warn(
+                "Iterative Merge Import is experimental. Please monitor the generated"
+                    + " changelists.");
+      }
+
       Deque<Change<O>> migrated = new ArrayDeque<>();
       int migratedChanges = 0;
       while (changesIterator.hasNext() && migratedChanges < limit) {
@@ -201,12 +214,12 @@ public enum WorkflowMode {
                       runHelper.getFinalAuthor(change.getAuthor()),
                       ImmutableSetMultimap.of()),
                   new Changes(current, migrated),
-                  /*destinationBaseline=*/ null,
+                  /* destinationBaseline= */ null,
                   // Use the current change since we might want to create different
                   // reviews in the destination. Will not work if we want to group
                   // all the changes in the same Github PR
                   change.getRevision(),
-                  null);
+                  originBaseline);
           migratedChanges++;
           for (DestinationEffect effect : result) {
             if (effect.getType() != Type.NOOP) {
@@ -231,6 +244,10 @@ public enum WorkflowMode {
             runHelper.getConsole().warn(message);
             throw new ChangeRejectedException(message);
           }
+        }
+        if (useIterativeMergeImport) {
+          lastRev = change.getRevision();
+          originBaseline = change.getRevision();
         }
         changeNumber++;
       }
