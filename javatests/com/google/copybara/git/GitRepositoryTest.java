@@ -1947,6 +1947,16 @@ public class GitRepositoryTest {
   }
 
   @Test
+  public void testFindRemotePrimaryBranch_specialCharacters() throws Exception {
+    repository.simpleCommand("symbolic-ref", "HEAD", "refs/heads/test-branch.1.x");
+    Files.write(workdir.resolve("foo.txt"), new byte[] {});
+    repository.add().files("foo.txt").run();
+    repository.simpleCommand("commit", "foo.txt", "-m", "message");
+    assertThat(repository.getPrimaryBranch("file://" + repository.getGitDir()))
+        .isEqualTo("test-branch.1.x");
+  }
+
+  @Test
   public void testFindRemotePrimaryBranch_noHead() throws Exception {
     Files.write(workdir.resolve("foo.txt"), new byte[]{});
     repository.add().files("foo.txt").run();

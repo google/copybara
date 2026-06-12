@@ -108,14 +108,12 @@ public class GitRepository {
       "([0-9]{6}) (commit|tag|tree|blob) ([a-f0-9]{40})\t(.*)");
 
   private static final Pattern LS_REMOTE_OUTPUT_LINE =
-      Pattern.compile("([a-f0-9]{40}|ref: refs/heads/\\w+)\t(.+)");
+      Pattern.compile("([a-f0-9]{40}|ref: refs/heads/\\S+)\t(.+)");
 
   private static final Pattern SHA1_PATTERN = Pattern.compile("[a-f0-9]{6,40}");
 
   private static final Pattern DEFAULT_BRANCH_PATTERN =
-      Pattern.compile("(?s)ref: (refs/heads/(\\w+)).*");
-
-
+      Pattern.compile("(?s)ref: (refs/heads/(\\S+)).*");
 
   // Pattern for matching URLs with a scheme, such as http:// or rpc://.
   private static final Pattern URL_WITH_SCHEME_PATTERN =
