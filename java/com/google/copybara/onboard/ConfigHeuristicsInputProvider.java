@@ -17,6 +17,7 @@
 package com.google.copybara.onboard;
 
 import static com.google.common.collect.ImmutableList.toImmutableList;
+import static com.google.common.collect.ImmutableSet.toImmutableSet;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -106,6 +107,17 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
     }
     if (input == Inputs.DESTINATION_EXCLUDE_PATHS) {
       DestinationExcludePaths destinationExcludePaths = result.get().getDestinationExcludePaths();
+      boolean optimizeGlobs = generatorOptions.optimizeGlobs;
+      if (optimizeGlobs) {
+        // We filter out paths containing "AUTOPATCHES" unconditionally here. This optimizes the
+        // generated globs by excluding autopatch paths, which are intended to be managed by
+        // Copybara rather than explicitly listed as excludes.
+        ImmutableSet<Path> filtered =
+            destinationExcludePaths.getPaths().stream()
+                .filter(p -> !p.toString().contains("AUTOPATCHES"))
+                .collect(toImmutableSet());
+        destinationExcludePaths = new DestinationExcludePaths(filtered);
+      }
       return Optional.of(Inputs.DESTINATION_EXCLUDE_PATHS.asValue(destinationExcludePaths));
     }
     return Optional.empty();

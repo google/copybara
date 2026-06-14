@@ -49,6 +49,13 @@ public class GeneratorOptions implements Option {
   public ImmutableMap<String, String> inputs = ImmutableMap.of();
 
   @Parameter(
+      names = "--optimize-globs",
+      description =
+          "When true, ensures no path containing 'AUTOPATCHES' is added to the destination excludes"
+              + " lists.")
+  public boolean optimizeGlobs = false;
+
+  @Parameter(
       names = "--new-package",
       description = "Whether or not files from this package exist in the destination.")
   public boolean newPackage;

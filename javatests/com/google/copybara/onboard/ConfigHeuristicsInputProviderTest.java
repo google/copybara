@@ -277,6 +277,58 @@ public class ConfigHeuristicsInputProviderTest {
             new Message(MessageType.INFO, "Assuming version 1.0.0 references v1.0.0 (1.0.0)"));
   }
 
+  @Test
+  public void destinationExcludes_filtersAutopatchesWhenOptimizeGlobsTrue() throws Exception {
+    Files.writeString(workDir.resolve("foo.txt"), "hi");
+    origin.add().files("foo.txt").run();
+    origin.simpleCommand("commit", "foo.txt", "-m", "message");
+    origin.tag("1.0.0").run();
+
+    Files.writeString(destination.resolve("destination-only.txt"), "regular exclude");
+    Files.createDirectories(destination.resolve("src/AUTOPATCHES"));
+    Files.writeString(destination.resolve("src/AUTOPATCHES/custom.patch"), "patch content");
+    Files.createDirectories(destination.resolve("AUTOPATCHES"));
+    Files.writeString(destination.resolve("AUTOPATCHES/root.patch"), "patch content");
+
+    generatorOptions.optimizeGlobs = true;
+
+    InputProviderResolver resolver =
+        new InputProviderResolver() {
+          @Override
+          public <T> T resolve(Input<T> input) throws CannotProvideException {
+            try {
+              if (input == Inputs.GIT_ORIGIN_URL) {
+                return Inputs.GIT_ORIGIN_URL.asValue(new URL(url));
+              }
+              if (input == Inputs.CURRENT_VERSION) {
+                return Inputs.CURRENT_VERSION.asValue("1.0.0");
+              }
+              if (input == Inputs.GENERATOR_FOLDER) {
+                return Inputs.GENERATOR_FOLDER.asValue(destination);
+              }
+            } catch (MalformedURLException e) {
+              Assert.fail("Malformed url, shouldn't happen: " + e);
+            }
+            throw new CannotProvideException("Cannot provide " + input);
+          }
+        };
+
+    ConfigHeuristicsInputProvider inputProvider =
+        new ConfigHeuristicsInputProvider(
+            gitOptions,
+            generalOptions,
+            generatorOptions,
+            ImmutableSet.of(),
+            30,
+            console,
+            (db) -> db.resolve(Inputs.GENERATOR_FOLDER));
+
+    DestinationExcludePaths paths =
+        inputProvider.resolve(Inputs.DESTINATION_EXCLUDE_PATHS, resolver).get();
+
+    assertThat(paths.getPaths()).containsExactly(Path.of("destination-only.txt"));
+  }
+
   public OptionsBuilder getOptionsBuilder(TestingConsole console) throws IOException {
     return new OptionsBuilder().setConsole(this.console).setOutputRootToTmpDir();
   }

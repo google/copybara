@@ -89,18 +89,23 @@ public class GeneratorCmd implements OnboardingCmd {
     GeneratorOptions genOpts = commandEnv.getOptions().get(GeneratorOptions.class);
     Console console = commandEnv.getOptions().get(GeneralOptions.class).console();
 
-    return ImmutableList.of(
-        new ConstantProvider<>(
-            Inputs.GENERATOR_FOLDER, commandEnv.getOptions().get(GeneralOptions.class).getCwd()),
-        new ConfigHeuristicsInputProvider(
-            commandEnv.getOptions().get(GitOptions.class),
-            commandEnv.getOptions().get(GeneralOptions.class),
-            commandEnv.getOptions().get(GeneratorOptions.class),
-            ImmutableSet.of(),
-            genOpts.computeGlobPercentageSimilar,
-            console,
-            (db) -> db.resolve(Inputs.GENERATOR_FOLDER)),
-        new MapBasedInputProvider(genOpts.inputs, InputProvider.COMMAND_LINE_PRIORITY));
+    ImmutableList.Builder<InputProvider> result = ImmutableList.builder();
+    return result
+        .add(
+            new ConstantProvider<>(
+                Inputs.GENERATOR_FOLDER,
+                commandEnv.getOptions().get(GeneralOptions.class).getCwd()))
+        .add(
+            new ConfigHeuristicsInputProvider(
+                commandEnv.getOptions().get(GitOptions.class),
+                commandEnv.getOptions().get(GeneralOptions.class),
+                commandEnv.getOptions().get(GeneratorOptions.class),
+                ImmutableSet.of(),
+                genOpts.computeGlobPercentageSimilar,
+                console,
+                (db) -> db.resolve(Inputs.GENERATOR_FOLDER)))
+        .add(new MapBasedInputProvider(genOpts.inputs, InputProvider.COMMAND_LINE_PRIORITY))
+        .build();
   }
 
   @Override
