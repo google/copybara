@@ -342,7 +342,7 @@ public final class FileUtil {
     private final CopySymlinkStrategy symlinkStrategy;
     private final PathMatcher originPathMatcher;
     private final PathMatcher destPathMatcher;
-    private final Optional<CopyVisitorValidator> additonalValidator;
+    private final Optional<CopyVisitorValidator> additionalValidator;
     private final ImmutableSet<Path> visitedSourceDirs;
 
     CopyVisitor(
@@ -358,7 +358,7 @@ public final class FileUtil {
       this.symlinkStrategy = symlinkStrategy;
       this.originPathMatcher = originPathMatcher;
       this.destPathMatcher = destPathMatcher;
-      this.additonalValidator = additionalValidator;
+      this.additionalValidator = additionalValidator;
       this.visitedSourceDirs = visitedSourceDirs;
     }
 
@@ -369,8 +369,8 @@ public final class FileUtil {
       if (!destPathMatcher.matches(destFile)) {
         return FileVisitResult.CONTINUE;
       }
-      if (additonalValidator.isPresent()) {
-        additonalValidator.get().validate(file);
+      if (additionalValidator.isPresent()) {
+        additionalValidator.get().validate(file);
       }
       Files.createDirectories(destFile.getParent());
 
@@ -416,7 +416,7 @@ public final class FileUtil {
                       symlinkStrategy,
                       originPathMatcher,
                       destPathMatcher,
-                      additonalValidator,
+                      additionalValidator,
                       ImmutableSet.<Path>builder()
                           .addAll(visitedSourceDirs)
                           .add(targetReal)
