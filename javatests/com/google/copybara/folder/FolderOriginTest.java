@@ -38,10 +38,10 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.revision.Change;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
+import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.Set;
@@ -243,11 +243,7 @@ public class FolderOriginTest {
   public void testAbsolutePaths() throws Exception {
     ValidationException thrown =
         assertThrows(ValidationException.class, () -> runAbsolutePaths("folder.origin()"));
-    assertThat(thrown)
-        .hasMessageThat()
-        .contains(
-            "Some symlinks refer to locations outside of the folder and"
-                + " 'materialize_outside_symlinks' config option was not used");
+    assertThat(thrown).hasMessageThat().contains("is OUTSIDE");
   }
 
   @Test
@@ -262,15 +258,21 @@ public class FolderOriginTest {
 
   @Test
   public void testInvalidSymlinks() throws Exception {
-    RepoException e = assertThrows(RepoException.class, () -> checkInvalidSymlink());
-    assertThat(e).hasCauseThat().isInstanceOf(NoSuchFileException.class);
-    assertThat(e).hasCauseThat().hasMessageThat().contains("foo");
+    ValidationException e = assertThrows(ValidationException.class, () -> checkInvalidSymlink());
+    assertThat(e).hasMessageThat().contains("is BROKEN");
   }
 
   @Test
   public void testInvalidSymlinks_ignore() throws Exception {
     options.folderOrigin.ignoreInvalidSymlinks = true;
     checkInvalidSymlink();
+  }
+
+  @Test
+  public void testOutsideSymlinks_ignore_legacy() throws Exception {
+    options.folderOrigin.ignoreInvalidSymlinks = true;
+    runAbsolutePaths("folder.origin()");
+    assertThatPath(workdir).containsNoMoreFiles();
   }
 
   private void checkInvalidSymlink()
@@ -311,5 +313,276 @@ public class FolderOriginTest {
     Reader<FolderRevision> reader = origin.newReader(Glob.ALL_FILES, authoring);
     FolderRevision ref = origin.resolve(localFolder.toString());
     reader.checkout(ref, workdir);
+  }
+
+  interface SymlinkSetup {
+    void setup(Path localFolder) throws IOException;
+  }
+
+  private void runSymlinkTest(String originStr, SymlinkSetup setup) throws Exception {
+    Path localFolder = Files.createTempDirectory("local_folder");
+    setup.setup(localFolder);
+
+    FolderOrigin origin = skylark.eval("f", "f = " + originStr);
+
+    Reader<FolderRevision> reader = origin.newReader(Glob.ALL_FILES, authoring);
+    FolderRevision ref = origin.resolve(localFolder.toString());
+    reader.checkout(ref, workdir);
+  }
+
+  @Test
+  public void testInsideSymlinks_copyAsIs() throws Exception {
+    runSymlinkTest(
+        "folder.origin(inside_symlinks_mode = 'COPY_AS_IS')",
+        localFolder -> {
+          touch(localFolder.resolve("target"), "abc");
+          Files.createSymbolicLink(
+              localFolder.resolve("link"), localFolder.getFileSystem().getPath("target"));
+        });
+    assertThatPath(workdir)
+        .containsFile("target", "abc")
+        .containsFile("link", "abc")
+        .containsNoMoreFiles();
+    assertThat(Files.isSymbolicLink(workdir.resolve("link"))).isTrue();
+    assertThat(Files.readSymbolicLink(workdir.resolve("link")).toString()).isEqualTo("target");
+  }
+
+  @Test
+  public void testInsideSymlinks_materializeFile() throws Exception {
+    runSymlinkTest(
+        "folder.origin(inside_symlinks_mode = 'MATERIALIZE')",
+        localFolder -> {
+          touch(localFolder.resolve("target"), "abc");
+          Files.createSymbolicLink(
+              localFolder.resolve("link"), localFolder.getFileSystem().getPath("target"));
+        });
+    assertThatPath(workdir)
+        .containsFile("target", "abc")
+        .containsFile("link", "abc")
+        .containsNoMoreFiles();
+    assertThat(Files.isSymbolicLink(workdir.resolve("link"))).isFalse();
+  }
+
+  @Test
+  public void testInsideSymlinks_materializeDir() throws Exception {
+    runSymlinkTest(
+        "folder.origin(inside_symlinks_mode = 'MATERIALIZE')",
+        localFolder -> {
+          Path dir = Files.createDirectory(localFolder.resolve("dir"));
+          touch(dir.resolve("file"), "abc");
+          Files.createSymbolicLink(
+              localFolder.resolve("link"), localFolder.getFileSystem().getPath("dir"));
+        });
+    assertThatPath(workdir)
+        .containsFile("dir/file", "abc")
+        .containsFile("link/file", "abc")
+        .containsNoMoreFiles();
+    assertThat(Files.isSymbolicLink(workdir.resolve("link"))).isFalse();
+    assertThat(Files.isDirectory(workdir.resolve("link"))).isTrue();
+  }
+
+  @Test
+  public void testInsideSymlinks_ignore() throws Exception {
+    runSymlinkTest(
+        "folder.origin(inside_symlinks_mode = 'IGNORE')",
+        localFolder -> {
+          touch(localFolder.resolve("target"), "abc");
+          Files.createSymbolicLink(
+              localFolder.resolve("link"), localFolder.getFileSystem().getPath("target"));
+        });
+    assertThatPath(workdir).containsFile("target", "abc").containsNoMoreFiles();
+  }
+
+  @Test
+  public void testInsideSymlinks_fail() throws Exception {
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                runSymlinkTest(
+                    "folder.origin(inside_symlinks_mode = 'FAIL')",
+                    localFolder -> {
+                      touch(localFolder.resolve("target"), "abc");
+                      Files.createSymbolicLink(
+                          localFolder.resolve("link"),
+                          localFolder.getFileSystem().getPath("target"));
+                    }));
+    assertThat(e).hasMessageThat().contains("is INSIDE");
+    assertThat(e).hasMessageThat().contains("link");
+  }
+
+  @Test
+  public void testOutsideSymlinks_copyAsIs() throws Exception {
+    Path other = Files.createTempDirectory("other");
+    touch(other.resolve("file"), "abc");
+    try {
+      runSymlinkTest(
+          "folder.origin(outside_symlinks_mode = 'COPY_AS_IS')",
+          localFolder -> {
+            Files.createSymbolicLink(localFolder.resolve("link"), other.resolve("file"));
+          });
+      assertThat(Files.isSymbolicLink(workdir.resolve("link"))).isTrue();
+      assertThat(Files.readSymbolicLink(workdir.resolve("link")).toString())
+          .isEqualTo(other.resolve("file").toString());
+    } finally {
+      FileUtil.deleteRecursively(other);
+    }
+  }
+
+  @Test
+  public void testOutsideSymlinks_materialize() throws Exception {
+    Path other = Files.createTempDirectory("other");
+    touch(other.resolve("file"), "abc");
+    try {
+      runSymlinkTest(
+          "folder.origin(outside_symlinks_mode = 'MATERIALIZE')",
+          localFolder -> {
+            Files.createSymbolicLink(localFolder.resolve("link"), other.resolve("file"));
+          });
+      assertThatPath(workdir).containsFile("link", "abc").containsNoMoreFiles();
+      assertThat(Files.isSymbolicLink(workdir.resolve("link"))).isFalse();
+    } finally {
+      FileUtil.deleteRecursively(other);
+    }
+  }
+
+  @Test
+  public void testOutsideSymlinks_ignore() throws Exception {
+    Path other = Files.createTempDirectory("other");
+    touch(other.resolve("file"), "abc");
+    try {
+      runSymlinkTest(
+          "folder.origin(outside_symlinks_mode = 'IGNORE')",
+          localFolder -> {
+            Files.createSymbolicLink(localFolder.resolve("link"), other.resolve("file"));
+          });
+      assertThatPath(workdir).containsNoMoreFiles();
+    } finally {
+      FileUtil.deleteRecursively(other);
+    }
+  }
+
+  @Test
+  public void testOutsideSymlinks_fail() throws Exception {
+    Path other = Files.createTempDirectory("other");
+    touch(other.resolve("file"), "abc");
+    try {
+      ValidationException e =
+          assertThrows(
+              ValidationException.class,
+              () ->
+                  runSymlinkTest(
+                      "folder.origin(outside_symlinks_mode = 'FAIL')",
+                      localFolder -> {
+                        Files.createSymbolicLink(
+                            localFolder.resolve("link"), other.resolve("file"));
+                      }));
+      assertThat(e).hasMessageThat().contains("is OUTSIDE");
+      assertThat(e).hasMessageThat().contains("link");
+    } finally {
+      FileUtil.deleteRecursively(other);
+    }
+  }
+
+  @Test
+  public void testBrokenSymlinks_copyAsIs() throws Exception {
+    runSymlinkTest(
+        "folder.origin(broken_symlinks_mode = 'COPY_AS_IS')",
+        localFolder -> {
+          Files.createSymbolicLink(localFolder.resolve("link"), localFolder.resolve("invalid"));
+        });
+    assertThat(Files.isSymbolicLink(workdir.resolve("link"))).isTrue();
+    assertThat(Files.readSymbolicLink(workdir.resolve("link").normalize()).getFileName().toString())
+        .isEqualTo("invalid");
+  }
+
+  @Test
+  public void testBrokenSymlinks_ignore() throws Exception {
+    runSymlinkTest(
+        "folder.origin(broken_symlinks_mode = 'IGNORE')",
+        localFolder -> {
+          Files.createSymbolicLink(localFolder.resolve("link"), localFolder.resolve("invalid"));
+        });
+    assertThatPath(workdir).containsNoMoreFiles();
+  }
+
+  @Test
+  public void testBrokenSymlinks_fail() throws Exception {
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                runSymlinkTest(
+                    "folder.origin(broken_symlinks_mode = 'FAIL')",
+                    localFolder -> {
+                      Files.createSymbolicLink(
+                          localFolder.resolve("link"), localFolder.resolve("invalid"));
+                    }));
+    assertThat(e).hasMessageThat().contains("is BROKEN");
+    assertThat(e).hasMessageThat().contains("link");
+  }
+
+  @Test
+  public void testBrokenSymlinks_materialize_invalid() throws Exception {
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () -> skylark.eval("f", "f = folder.origin(broken_symlinks_mode = 'MATERIALIZE')"));
+    assertThat(e).hasMessageThat().contains("MATERIALIZE is not a valid mode for broken symlinks");
+  }
+
+  @Test
+  public void testMixedConfig_starlark_fail() throws Exception {
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                skylark.eval(
+                    "f",
+                    "f = folder.origin(materialize_outside_symlinks = True, outside_symlinks_mode ="
+                        + " 'MATERIALIZE')"));
+    assertThat(e).hasMessageThat().contains("Cannot mix deprecated symlink configuration");
+  }
+
+  @Test
+  public void testMixedConfig_cli_fail() throws Exception {
+    options.folderOrigin.ignoreInvalidSymlinks = true;
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () -> skylark.eval("f", "f = folder.origin(outside_symlinks_mode = 'MATERIALIZE')"));
+    assertThat(e).hasMessageThat().contains("Cannot mix deprecated symlink configuration");
+  }
+
+  @Test
+  public void testCycleDetection_file() throws Exception {
+    RepoException e =
+        assertThrows(
+            RepoException.class,
+            () ->
+                runSymlinkTest(
+                    "folder.origin()",
+                    localFolder -> {
+                      Files.createSymbolicLink(localFolder.resolve("a"), localFolder.resolve("b"));
+                      Files.createSymbolicLink(localFolder.resolve("b"), localFolder.resolve("a"));
+                    }));
+    assertThat(e).hasCauseThat().isInstanceOf(IOException.class);
+    assertThat(e).hasCauseThat().hasMessageThat().contains("Symlink cycle detected");
+  }
+
+  @Test
+  public void testCycleDetection_directory() throws Exception {
+    RepoException e =
+        assertThrows(
+            RepoException.class,
+            () ->
+                runSymlinkTest(
+                    "folder.origin(inside_symlinks_mode = 'MATERIALIZE')",
+                    localFolder -> {
+                      Path dir = Files.createDirectory(localFolder.resolve("dir"));
+                      Files.createSymbolicLink(dir.resolve("link"), dir);
+                    }));
+    assertThat(e).hasCauseThat().isInstanceOf(IOException.class);
+    assertThat(e).hasCauseThat().hasMessageThat().contains("Symlink cycle detected");
   }
 }

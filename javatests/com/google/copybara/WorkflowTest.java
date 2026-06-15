@@ -3740,7 +3740,7 @@ public class WorkflowTest {
     assertThat(expected.getMessage())
         .matches(
             ""
-                + "Failed to perform reversible check of transformations due to symlink '.*' that "
+                + "Failed to perform reversible check of transformations due to a symlink that "
                 + "points outside the checkout dir. Consider removing this symlink from your "
                 + "origin_files or, alternatively, set reversible_check = False in your "
                 + "workflow.");

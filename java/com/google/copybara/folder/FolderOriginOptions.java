@@ -45,7 +45,10 @@ public final class FolderOriginOptions implements Option {
               + " specified, the default will be the folder path.")
   public String version = null;
 
-  @Parameter(names = "--folder-origin-ignore-invalid-symlinks",
-      description = "If an invalid symlink is found, ignore it instead of failing")
-  public boolean ignoreInvalidSymlinks = false;
+  @Parameter(
+      names = "--folder-origin-ignore-invalid-symlinks",
+      description =
+          "DEPRECATED - equivalent to folder.origin(outside_symlinks_mode='IGNORE',"
+              + " broken_symlinks_mode='IGNORE')")
+  public Boolean ignoreInvalidSymlinks = null;
 }

@@ -203,9 +203,9 @@ public class CheckoutPath implements Comparable<CheckoutPath>, StarlarkValue {
 
       ResolvedSymlink resolvedSymlink =
           FileUtil.resolveSymlink(Glob.ALL_FILES.relativeTo(checkoutDir), symlinkPath);
-      if (!resolvedSymlink.isAllUnderRoot()) {
+      if (resolvedSymlink.getTargetLocation() != ResolvedSymlink.TargetLocation.INSIDE) {
         throw Starlark.errorf(
-            "Symlink %s points to a file outside the checkout dir: %s",
+            "Symlink %s does not point to a file inside the checkout dir: %s",
             symlinkPath, resolvedSymlink.getRegularFile());
       }
 

@@ -250,14 +250,14 @@ public class FileUtilTest {
     Path absoluteTarget = folder.relativize(absolute);
     Files.createSymbolicLink(folder.resolve("absolute"), absoluteTarget);
 
-    AbsoluteSymlinksNotAllowed expected =
+    SymlinkException expected =
         assertThrows(
-            AbsoluteSymlinksNotAllowed.class,
+            SymlinkException.class,
             () -> FileUtil.copyFilesRecursively(one, two, FAIL_OUTSIDE_SYMLINKS));
     assertThat(expected).hasMessageThat().isNotNull();
-    assertThat(expected.toString()).contains("is absolute or escaped the root:");
-      assertThat(expected.toString()).contains("folder/absolute");
-      assertThat(expected.toString()).contains("absolute/absolute");
+    assertThat(expected.toString()).contains("is OUTSIDE");
+    assertThat(expected.toString()).contains("folder/absolute");
+    assertThat(expected.toString()).contains("absolute/absolute");
   }
 
   private Path touch(Path path) throws IOException {

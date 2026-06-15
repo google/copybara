@@ -70,6 +70,7 @@ import com.google.copybara.util.Glob;
 import com.google.copybara.util.InsideGitDirException;
 import com.google.copybara.util.MergeImportTool;
 import com.google.copybara.util.MergeImportTool.MergeRunner;
+import com.google.copybara.util.SymlinkException;
 import com.google.copybara.util.console.AnsiColor;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.PrefixConsole;
@@ -77,7 +78,6 @@ import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.re2j.Pattern;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
@@ -607,16 +607,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         try (ProfilerTask ignored = profiler().start("reverse_copy")) {
           console.progress("Making a copy or the workdir for reverse checking");
           originCopy = Files.createDirectories(workdir.resolve("origin"));
-          try {
-            FileUtil.copyFilesRecursively(checkoutDir, originCopy, FAIL_OUTSIDE_SYMLINKS);
-          } catch (NoSuchFileException e) {
-            throw new ValidationException(String.format(""
-                + "Failed to perform reversible check of transformations due to symlink '%s' "
-                + "that points outside the checkout dir. Consider removing this symlink from "
-                + "your origin_files or, alternatively, set reversible_check = False in your "
-                + "workflow.", e.getFile()), e
-            );
-          }
+          copyForReverseCheck(checkoutDir, originCopy);
         }
       }
       // Lazy loading to avoid running afoul of checks unless the instance is actually used.
@@ -667,16 +658,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         Path reverse;
         try (ProfilerTask ignored = profiler().start("reverse_copy")) {
           reverse = Files.createDirectories(workdir.resolve("reverse"));
-          try {
-            FileUtil.copyFilesRecursively(checkoutDir, reverse, FAIL_OUTSIDE_SYMLINKS);
-          } catch (NoSuchFileException e) {
-            throw new ValidationException(""
-                + "Failed to perform reversible check of transformations due to a symlink that "
-                + "points outside the checkout dir. Consider removing this symlink from your "
-                + "origin_files or, alternatively, set reversible_check = False in your "
-                + "workflow.", e
-            );
-          }
+          copyForReverseCheck(checkoutDir, reverse);
         }
 
         try (ProfilerTask ignored = profiler().start("reverse_transform")) {
@@ -1190,6 +1172,20 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       if (deleted != 0) {
         processConsole.infoFmt(
             "Removed %d files from workdir that do not match origin_files", deleted);
+      }
+    }
+
+    private void copyForReverseCheck(Path from, Path to) throws IOException, ValidationException {
+      try {
+        FileUtil.copyFilesRecursively(from, to, FAIL_OUTSIDE_SYMLINKS);
+      } catch (SymlinkException e) {
+        throw new ValidationException(
+            ""
+                + "Failed to perform reversible check of transformations due to a symlink that "
+                + "points outside the checkout dir. Consider removing this symlink from your "
+                + "origin_files or, alternatively, set reversible_check = False in your "
+                + "workflow.",
+            e);
       }
     }
   }

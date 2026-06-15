@@ -1251,7 +1251,7 @@ transformation = core.transform([test])
         assertThrows(
             ValidationException.class,
             () -> transformation.transform(TransformWorks.of(workdir, "test", console)));
-    assertThat(e).hasMessageThat().contains("points to a file outside the checkout dir");
+    assertThat(e).hasMessageThat().contains("does not point to a file inside the checkout dir");
   }
 
   @Test

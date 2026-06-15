@@ -18,6 +18,7 @@ package com.google.copybara.util;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Verify.verify;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -34,6 +35,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.SimpleFileVisitor;
@@ -139,13 +141,17 @@ public final class FileUtil {
       }
       Files.walkFileTree(
           rootElement,
-          new CopyVisitor(rootElement, to.resolve(root), symlinkStrategy,
+          new CopyVisitor(
+              rootElement,
+              to.resolve(root),
+              symlinkStrategy,
               glob.relativeTo(from.normalize()),
               // The PathMatcher matches destination files so that it can work with
               // absolute symlink materialization (We create a new CopyVisitor with the
               // resolved symlink as origin.
               glob.relativeTo(to.normalize()),
-              validator));
+              validator,
+              ImmutableSet.of()));
     }
   }
 
@@ -155,15 +161,18 @@ public final class FileUtil {
   public static void addPermissionsRecursively(
       Path path, Set<PosixFilePermission> permissionsToAdd, PathMatcher pathMatcher)
       throws IOException {
-    Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
-      @Override
-      public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-        if (pathMatcher.matches(file)) {
-          addPermissions(file, permissionsToAdd);
-        }
-        return FileVisitResult.CONTINUE;
-      }
-    });
+    Files.walkFileTree(
+        path,
+        new SimpleFileVisitor<Path>() {
+          @Override
+          public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
+              throws IOException {
+            if (!attrs.isSymbolicLink() && pathMatcher.matches(file)) {
+              addPermissions(file, permissionsToAdd);
+            }
+            return FileVisitResult.CONTINUE;
+          }
+        });
   }
 
   /**
@@ -263,26 +272,63 @@ public final class FileUtil {
     };
   }
 
-  /**
-   * How to handle symlinks
-   */
-  public enum CopySymlinkStrategy {
+  /** Modes for handling symlinks in Copybara. */
+  public enum SymlinkMode {
     /**
-     * Materialize any symlink found in a new file.
+     * Copy the symlink as-is. The destination will contain a symlink pointing to the same target as
+     * the original symlink.
      */
-    MATERIALIZE_ALL,
+    COPY_AS_IS,
     /**
-     * Any symlink outside of the folder copied will be materialized in a new file.
+     * Materialize the symlink. The destination will contain a copy of the target file or directory
+     * that the symlink points to, instead of the symlink itself.
      */
-    MATERIALIZE_OUTSIDE_SYMLINKS,
-    /**
-     * Fail if any symlink outside of the folder is found.
-     */
-    FAIL_OUTSIDE_SYMLINKS,
-    /**
-     * If any symlink points to an invalid/outside path, ignore them
-     */
-    IGNORE_INVALID_SYMLINKS,
+    MATERIALIZE,
+    /** Ignore the symlink. The symlink will not be copied to the destination. */
+    IGNORE,
+    /** Fail the operation. An exception will be thrown if a symlink is encountered. */
+    FAIL
+  }
+
+  /** How to handle symlinks */
+  public static final class CopySymlinkStrategy {
+    public static final CopySymlinkStrategy FAIL_OUTSIDE_SYMLINKS =
+        new CopySymlinkStrategy(
+            /* inside= */ SymlinkMode.COPY_AS_IS,
+            /* outside= */ SymlinkMode.FAIL,
+            /* broken= */ SymlinkMode.FAIL);
+
+    public static final CopySymlinkStrategy MATERIALIZE_OUTSIDE_SYMLINKS =
+        new CopySymlinkStrategy(
+            /* inside= */ SymlinkMode.COPY_AS_IS,
+            /* outside= */ SymlinkMode.MATERIALIZE,
+            /* broken= */ SymlinkMode.FAIL);
+
+    public static final CopySymlinkStrategy IGNORE_INVALID_SYMLINKS =
+        new CopySymlinkStrategy(
+            /* inside= */ SymlinkMode.COPY_AS_IS,
+            /* outside= */ SymlinkMode.COPY_AS_IS,
+            /* broken= */ SymlinkMode.IGNORE);
+
+    private final SymlinkMode inside;
+    private final SymlinkMode outside;
+    private final SymlinkMode broken;
+
+    public CopySymlinkStrategy(SymlinkMode inside, SymlinkMode outside, SymlinkMode broken) {
+      this.inside = checkNotNull(inside);
+      this.outside = checkNotNull(outside);
+      this.broken = checkNotNull(broken);
+      checkArgument(
+          broken != SymlinkMode.MATERIALIZE, "MATERIALIZE is not a valid mode for broken symlinks");
+    }
+
+    public SymlinkMode getSymlinkMode(ResolvedSymlink resolvedSymlink) {
+      return switch (resolvedSymlink.getTargetLocation()) {
+        case INSIDE -> inside;
+        case OUTSIDE -> outside;
+        case BROKEN -> broken;
+      };
+    }
   }
 
   /**
@@ -297,19 +343,23 @@ public final class FileUtil {
     private final PathMatcher originPathMatcher;
     private final PathMatcher destPathMatcher;
     private final Optional<CopyVisitorValidator> additonalValidator;
+    private final ImmutableSet<Path> visitedSourceDirs;
 
-    CopyVisitor(Path from,
+    CopyVisitor(
+        Path from,
         Path to,
         CopySymlinkStrategy symlinkStrategy,
         PathMatcher originPathMatcher,
         PathMatcher destPathMatcher,
-        Optional<CopyVisitorValidator> additionalValidator) {
+        Optional<CopyVisitorValidator> additionalValidator,
+        ImmutableSet<Path> visitedSourceDirs) {
       this.to = to;
       this.from = from;
       this.symlinkStrategy = symlinkStrategy;
       this.originPathMatcher = originPathMatcher;
       this.destPathMatcher = destPathMatcher;
       this.additonalValidator = additionalValidator;
+      this.visitedSourceDirs = visitedSourceDirs;
     }
 
     @Override
@@ -326,40 +376,54 @@ public final class FileUtil {
 
       boolean symlink = attrs.isSymbolicLink();
       if (symlink) {
-        // If the symlink remains under 'from' we keep the symlink as relative.
-        // Otherwise we copy it as a regular file.
+        // Determine the symlink mode based on whether it is broken, escaped the root,
+        // or is inside the root.
         ResolvedSymlink resolvedSymlink = resolveSymlink(originPathMatcher, file);
-        boolean escapedRoot = !resolvedSymlink.allUnderRoot;
-        if (escapedRoot) {
-          String msg = String.format(
-              "Symlink '%s' is absolute or escaped the root: '%s'.",
-              file, resolvedSymlink.regularFile);
-          if (symlinkStrategy == CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS) {
-            throw new AbsoluteSymlinksNotAllowed(msg, file, resolvedSymlink.regularFile);
-          }
-          if (symlinkStrategy == CopySymlinkStrategy.IGNORE_INVALID_SYMLINKS) {
+        SymlinkMode mode = symlinkStrategy.getSymlinkMode(resolvedSymlink);
+
+        switch (mode) {
+          case FAIL ->
+              throw new SymlinkException(
+                  String.format(
+                      "Symlink '%s' is %s as it points to '%s'",
+                      file, resolvedSymlink.getTargetLocation(), resolvedSymlink.getRegularFile()));
+          case IGNORE -> {
             return FileVisitResult.CONTINUE;
           }
-          logger.atInfo().log("%s Materializing the symlink.", msg);
-        }
-        if (symlinkStrategy == CopySymlinkStrategy.IGNORE_INVALID_SYMLINKS
-            && !Files.exists(resolvedSymlink.regularFile)) {
-          return FileVisitResult.CONTINUE;
-        }
-        if (symlinkStrategy == CopySymlinkStrategy.MATERIALIZE_ALL || escapedRoot) {
-          if (Files.isDirectory(file)) {
-            // A symlink to a directory outside 'from'. Copy all the files recursively as regular
-            // files
-            Files.createDirectory(destFile);
-            Files.walkFileTree(resolvedSymlink.regularFile,
-                new CopyVisitor(resolvedSymlink.regularFile, destFile,
-                    CopySymlinkStrategy.MATERIALIZE_ALL, originPathMatcher, destPathMatcher,
-                    additonalValidator));
+          case COPY_AS_IS -> {
+            Files.createSymbolicLink(destFile, Files.readSymbolicLink(file));
             return FileVisitResult.CONTINUE;
           }
-        } else {
-          Files.createSymbolicLink(destFile, Files.readSymbolicLink(file));
-          return FileVisitResult.CONTINUE;
+          case MATERIALIZE -> {
+            verify(resolvedSymlink.getTargetLocation() != ResolvedSymlink.TargetLocation.BROKEN);
+            if (Files.isDirectory(resolvedSymlink.getRegularFile())) {
+              Path targetReal = resolvedSymlink.getRegularFile().toRealPath();
+              if (visitedSourceDirs.contains(targetReal)) {
+                throw new IOException(
+                    "Symlink cycle detected: "
+                        + file
+                        + " -> "
+                        + targetReal
+                        + " which is already being visited in "
+                        + visitedSourceDirs);
+              }
+              Files.createDirectory(destFile);
+              Files.walkFileTree(
+                  resolvedSymlink.getRegularFile(),
+                  new CopyVisitor(
+                      resolvedSymlink.getRegularFile(),
+                      destFile,
+                      symlinkStrategy,
+                      originPathMatcher,
+                      destPathMatcher,
+                      additonalValidator,
+                      ImmutableSet.<Path>builder()
+                          .addAll(visitedSourceDirs)
+                          .add(targetReal)
+                          .build()));
+              return FileVisitResult.CONTINUE;
+            }
+          }
         }
       }
       if (symlink || attrs.isRegularFile()) {
@@ -388,20 +452,26 @@ public final class FileUtil {
    */
   public static final class ResolvedSymlink {
 
-    private final Path regularFile;
-    private final boolean allUnderRoot;
+    public enum TargetLocation {
+      INSIDE,
+      OUTSIDE,
+      BROKEN
+    }
 
-    ResolvedSymlink(Path regularFile, boolean allUnderRoot) {
+    private final Path regularFile;
+    private final TargetLocation targetLocation;
+
+    ResolvedSymlink(Path regularFile, TargetLocation targetLocation) {
       this.regularFile = checkNotNull(regularFile);
-      this.allUnderRoot = allUnderRoot;
+      this.targetLocation = checkNotNull(targetLocation);
     }
 
     public Path getRegularFile() {
       return regularFile;
     }
 
-    public boolean isAllUnderRoot() {
-      return allUnderRoot;
+    public TargetLocation getTargetLocation() {
+      return targetLocation;
     }
   }
 
@@ -417,11 +487,16 @@ public final class FileUtil {
 
     Set<Path> visited = new LinkedHashSet<>();
     while (Files.isSymbolicLink(path)) {
-      visited.add(path);
+      if (!visited.add(path)) {
+        throw new IOException(
+            "Symlink cycle detected:\n  "
+                + Joiner.on("\n  ").join(Iterables.concat(visited, ImmutableList.of(symlink))));
+      }
       // Avoid 'dot' -> . like traps by capping to a sane limit
       if (visited.size() > 50) {
-        throw new IOException("Symlink cycle detected:\n  "
-            + Joiner.on("\n  ").join(Iterables.concat(visited, ImmutableList.of(symlink))));
+        throw new IOException(
+            "Symlink chain too long:\n  "
+                + Joiner.on("\n  ").join(Iterables.concat(visited, ImmutableList.of(symlink))));
       }
       Path newPath = Files.readSymbolicLink(path);
       if (!newPath.isAbsolute()) {
@@ -435,13 +510,27 @@ public final class FileUtil {
             // shouldn't allow this because of our glob implementation, but this is a regression
             // from the old code and the correct behavior is difficult to understand by our users.
             || !matcher.matches(newPath.resolve("copybara_random_path.txt"))) {
-          Path realPath = newPath.toRealPath();
-          return new ResolvedSymlink(realPath, /*allUnderRoot=*/ false);
+          Path realPath;
+          boolean broken = false;
+          try {
+            realPath = newPath.toRealPath();
+          } catch (NoSuchFileException e) {
+            realPath = newPath;
+            broken = true;
+          }
+          return new ResolvedSymlink(
+              realPath,
+              broken
+                  ? ResolvedSymlink.TargetLocation.BROKEN
+                  : ResolvedSymlink.TargetLocation.OUTSIDE);
         }
       }
       path = newPath;
     }
-    return new ResolvedSymlink(path, /*allUnderRoot=*/ true);
+    boolean broken = !Files.exists(path);
+    return new ResolvedSymlink(
+        path,
+        broken ? ResolvedSymlink.TargetLocation.BROKEN : ResolvedSymlink.TargetLocation.INSIDE);
   }
 
   /**

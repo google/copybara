@@ -21,12 +21,17 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.doc.annotations.UsesFlags;
+import com.google.copybara.util.FileUtil.CopySymlinkStrategy;
+import com.google.copybara.util.FileUtil.SymlinkMode;
 import java.nio.file.FileSystem;
 import java.util.Optional;
 import net.starlark.java.annot.Param;
+import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.NoneType;
+import net.starlark.java.eval.Starlark;
 import net.starlark.java.eval.StarlarkValue;
 
 /** Main module that groups all the functions related to folders. */
@@ -77,25 +82,126 @@ public class FolderModule implements StarlarkValue {
       parameters = {
         @Param(
             name = "materialize_outside_symlinks",
+            doc = "DEPRECATED - equivalent to outside_symlinks_mode='MATERIALIZE'",
+            defaultValue = "None",
+            allowedTypes = {
+              @ParamType(type = Boolean.class),
+              @ParamType(type = NoneType.class),
+            },
+            named = true),
+        @Param(
+            name = "inside_symlinks_mode",
             doc =
-                "By default folder.origin will refuse any symlink in the migration folder"
-                    + " that is an absolute symlink or that refers to a file outside of the folder."
-                    + " If this flag is set, it will materialize those symlinks as regular files"
-                    + " in the checkout directory.",
-            defaultValue = "False",
+                "How to handle symlinks pointing inside the origin folder. Possible values:"
+                    + " 'COPY_AS_IS' (copy the symlink as-is), 'MATERIALIZE' (copy the content of"
+                    + " the target instead of the symlink), 'IGNORE' (ignore the symlink), 'FAIL'"
+                    + " (fail the operation). Defaults to 'COPY_AS_IS'.",
+            defaultValue = "None",
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
+            named = true),
+        @Param(
+            name = "outside_symlinks_mode",
+            doc =
+                "How to handle symlinks pointing outside the origin folder. See"
+                    + " inside_symlinks_mode for possible values. Defaults to 'FAIL'.",
+            defaultValue = "None",
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
+            named = true),
+        @Param(
+            name = "broken_symlinks_mode",
+            doc =
+                "How to handle broken symlinks. See inside_symlinks_mode for possible values"
+                    + " (except 'MATERIALIZE', which is invalid for broken symlinks). Defaults to"
+                    + " 'FAIL'.",
+            defaultValue = "None",
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             named = true),
       })
   @UsesFlags(FolderOriginOptions.class)
-  public FolderOrigin origin(Boolean materializeOutsideSymlinks) throws EvalException {
-     // Lets assume we are in the same filesystem for now...
+  public FolderOrigin origin(
+      Object materializeOutsideSymlinks,
+      Object insideSymlinksMode,
+      Object outsideSymlinksMode,
+      Object brokenSymlinksMode)
+      throws EvalException {
+    boolean materializeOutsideSymlinksSet = materializeOutsideSymlinks != Starlark.NONE;
+    boolean ignoreInvalidSymlinksSet = originOptions.ignoreInvalidSymlinks != null;
+    boolean modernSymlinkOptionsSet =
+        insideSymlinksMode != Starlark.NONE
+            || outsideSymlinksMode != Starlark.NONE
+            || brokenSymlinksMode != Starlark.NONE;
+
+    if (materializeOutsideSymlinksSet) {
+      generalOptions
+          .console()
+          .warn(
+              "folder.origin(materialize_outside_symlinks = ...) is deprecated. Use"
+                  + " outside_symlinks_mode instead.");
+    }
+    if (ignoreInvalidSymlinksSet) {
+      generalOptions
+          .console()
+          .warn(
+              "--folder-origin-ignore-invalid-symlinks is deprecated. Use"
+                  + " folder.origin(outside_symlinks_mode = ..., broken_symlinks_mode = ...)"
+                  + " instead.");
+    }
+    if (modernSymlinkOptionsSet && (materializeOutsideSymlinksSet || ignoreInvalidSymlinksSet)) {
+      throw Starlark.errorf(
+          "Cannot mix deprecated symlink configuration ('materialize_outside_symlinks' Starlark"
+              + " parameter or '--folder-origin-ignore-invalid-symlinks' CLI flag) with new symlink"
+              + " mode parameters ('inside_symlinks_mode', 'outside_symlinks_mode',"
+              + " 'broken_symlinks_mode')");
+    }
+
+    CopySymlinkStrategy symlinkStrategy;
+    if (modernSymlinkOptionsSet) {
+      try {
+        SymlinkMode inside =
+            insideSymlinksMode == Starlark.NONE
+                ? SymlinkMode.COPY_AS_IS
+                : SymlinkMode.valueOf((String) insideSymlinksMode);
+        SymlinkMode outside =
+            outsideSymlinksMode == Starlark.NONE
+                ? SymlinkMode.FAIL
+                : SymlinkMode.valueOf((String) outsideSymlinksMode);
+        SymlinkMode broken =
+            brokenSymlinksMode == Starlark.NONE
+                ? SymlinkMode.FAIL
+                : SymlinkMode.valueOf((String) brokenSymlinksMode);
+        symlinkStrategy = new CopySymlinkStrategy(inside, outside, broken);
+      } catch (IllegalArgumentException e) {
+        throw Starlark.errorf("Invalid symlink configuration: %s", e.getMessage());
+      }
+    } else {
+      boolean materializeOutside =
+          materializeOutsideSymlinksSet && (Boolean) materializeOutsideSymlinks;
+      boolean ignoreInvalid = ignoreInvalidSymlinksSet && originOptions.ignoreInvalidSymlinks;
+      symlinkStrategy =
+          new CopySymlinkStrategy(
+              /* inside= */ SymlinkMode.COPY_AS_IS,
+              /* outside= */ ignoreInvalid
+                  ? SymlinkMode.IGNORE
+                  : (materializeOutside ? SymlinkMode.MATERIALIZE : SymlinkMode.FAIL),
+              /* broken= */ ignoreInvalid ? SymlinkMode.IGNORE : SymlinkMode.FAIL);
+    }
+
     FileSystem fs = generalOptions.getFileSystem();
     return new FolderOrigin(
         fs,
         Author.parse(originOptions.author),
         originOptions.message,
         generalOptions.getCwd(),
-        materializeOutsideSymlinks,
-        originOptions.ignoreInvalidSymlinks,
+        symlinkStrategy,
         Optional.ofNullable(originOptions.version));
   }
 

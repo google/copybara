@@ -29,10 +29,10 @@ import com.google.copybara.authoring.Authoring;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.revision.Change;
-import com.google.copybara.util.AbsoluteSymlinksNotAllowed;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.FileUtil.CopySymlinkStrategy;
 import com.google.copybara.util.Glob;
+import com.google.copybara.util.SymlinkException;
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
@@ -64,18 +64,13 @@ public class FolderOrigin implements Origin<FolderRevision> {
       Author author,
       String message,
       Path cwd,
-      boolean materializeOutsideSymlinks,
-      boolean ignoreInvalidSymlinks,
+      CopySymlinkStrategy copySymlinkStrategy,
       Optional<String> version) {
     this.fs = Preconditions.checkNotNull(fs);
     this.author = author;
     this.message = message;
     this.cwd = Preconditions.checkNotNull(cwd);
-    this.copySymlinkStrategy = ignoreInvalidSymlinks
-            ? CopySymlinkStrategy.IGNORE_INVALID_SYMLINKS
-            : materializeOutsideSymlinks
-                ? CopySymlinkStrategy.MATERIALIZE_OUTSIDE_SYMLINKS
-                : CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS;
+    this.copySymlinkStrategy = Preconditions.checkNotNull(copySymlinkStrategy);
     this.version = version;
   }
 
@@ -106,12 +101,8 @@ public class FolderOrigin implements Origin<FolderRevision> {
         try {
           FileUtil.copyFilesRecursively(ref.path, workdir, copySymlinkStrategy, originFiles);
           FileUtil.addPermissionsAllRecursively(workdir, FILE_PERMISSIONS);
-        } catch (AbsoluteSymlinksNotAllowed e) {
-          throw new ValidationException(
-              String.format("Cannot copy files into the workdir: Some"
-                        + " symlinks refer to locations outside of the folder and"
-                        + " 'materialize_outside_symlinks' config option was not used:\n"
-                        + "  %s -> %s\n", e.getSymlink(), e.getDestinationFile()));
+        } catch (SymlinkException e) {
+          throw new ValidationException("Cannot copy files into the workdir: " + e.getMessage(), e);
         } catch (IOException e) {
           throw new RepoException(
               String.format(
