@@ -17,9 +17,18 @@
 package com.google.copybara.regenerate;
 
 import static com.google.copybara.exception.ValidationException.checkCondition;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.hash.HashCode;
+import com.google.common.hash.HashFunction;
+import com.google.common.io.MoreFiles;
 import com.google.copybara.AutoPatchfileConfiguration;
 import com.google.copybara.Destination.PatchRegenerator;
 import com.google.copybara.Destination.Writer;
@@ -35,15 +44,22 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
 import com.google.copybara.revision.Revision;
+import com.google.copybara.transform.patch.PatchingOptions;
 import com.google.copybara.util.AutoPatchUtil;
 import com.google.copybara.util.ConsistencyFile;
+import com.google.copybara.util.DiffUtil;
+import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.InsideGitDirException;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 
 /**
@@ -52,10 +68,13 @@ import javax.annotation.Nullable;
  */
 public class Regenerate<O extends Revision, D extends Revision> {
 
+  private static final Pattern LINE_SPLITTER = Pattern.compile("\r?\n");
+
   Console console;
   @Nullable AutoPatchfileConfiguration autoPatchfileConfiguration;
   Workflow<O, D> workflow;
   Path workdir;
+  PatchingOptions patchingOptions;
   GeneralOptions generalOptions;
   WorkflowOptions workflowOptions;
   RegenerateOptions regenerateOptions;
@@ -64,23 +83,32 @@ public class Regenerate<O extends Revision, D extends Revision> {
   public static Regenerate<? extends Revision, ? extends Revision> newRegenerate(
       Workflow<? extends Revision, ? extends Revision> workflow,
       Path workdir,
+      PatchingOptions patchingOptions,
       GeneralOptions generalOptions,
       WorkflowOptions workflowOptions,
       RegenerateOptions regenerateOptions,
       @Nullable String sourceRef) {
     return new Regenerate<>(
-        workflow, workdir, generalOptions, workflowOptions, regenerateOptions, sourceRef);
+        workflow,
+        workdir,
+        patchingOptions,
+        generalOptions,
+        workflowOptions,
+        regenerateOptions,
+        sourceRef);
   }
 
   public Regenerate(
       Workflow<O, D> workflow,
       Path workdir,
+      PatchingOptions patchingOptions,
       GeneralOptions generalOptions,
       WorkflowOptions workflowOptions,
       RegenerateOptions regenerateOptions,
       @Nullable String sourceRef) {
     this.workflow = workflow;
     this.workdir = workdir;
+    this.patchingOptions = patchingOptions;
     this.generalOptions = generalOptions;
     this.workflowOptions = workflowOptions;
     this.regenerateOptions = regenerateOptions;
@@ -141,6 +169,18 @@ public class Regenerate<O extends Revision, D extends Revision> {
       }
     }
 
+    String patchFilePath = null;
+    boolean useExplicitPatch =
+        !workflow.isMergeImport() && workflow.getConsistencyFilePath() != null;
+    if (useExplicitPatch) {
+      patchFilePath = getValidatedPatchFilePath();
+      if (patchFilePath != null) {
+        patchingOptions.skippedPatchFiles = ImmutableList.of(patchFilePath);
+      } else {
+        useExplicitPatch = false;
+      }
+    }
+
     if (regenBaseline.isPresent()) {
       checkCondition(
           consistencyFileExists(
@@ -167,33 +207,36 @@ public class Regenerate<O extends Revision, D extends Revision> {
               destinationWriter);
     }
 
-    Optional<byte[]> consistencyFile = Optional.empty();
+    ConsistencyFile consistencyFile = null;
     if (workflow.getConsistencyFilePath() != null) {
       try {
         boolean excludeBuildFiles = false;
         if (workflow.getConsistencyFileConfig() != null) {
           excludeBuildFiles = workflow.getConsistencyFileConfig().excludeBuildFiles();
         }
+        ImmutableSet.Builder<String> excludedFilesBuilder = ImmutableSet.builder();
+        if (useExplicitPatch && patchFilePath != null) {
+          excludedFilesBuilder.add(patchFilePath).add(getSeriesFilePath(patchFilePath));
+        }
         consistencyFile =
-            Optional.of(
-                ConsistencyFile.generate(
-                        previousPath,
-                        nextPath,
-                        workflow.getDestination().getHashFunction(),
-                        workflow.getGeneralOptions().getEnvironment(),
-                        workflow.isVerbose(),
-                        workflow.getMainConfigFile().getIdentifier(),
-                        workflow.getName(),
-                        excludeBuildFiles,
-                        /* excludedFiles= */ null)
-                    .toBytes());
+            ConsistencyFile.generate(
+                previousPath,
+                nextPath,
+                workflow.getDestination().getHashFunction(),
+                workflow.getGeneralOptions().getEnvironment(),
+                workflow.isVerbose(),
+                workflow.getMainConfigFile().getIdentifier(),
+                workflow.getName(),
+                excludeBuildFiles,
+                excludedFilesBuilder.build());
       } catch (InsideGitDirException e) {
         throw new ValidationException("Error generating consistency file", e);
       }
     }
 
-    if (autopatchConfig != null) {
+    if (autopatchConfig != null && !useExplicitPatch) {
       // generate new autopatch files in the target directory
+      // if explicit patch file is used, autopatches should always be empty, so skip early
       try {
         AutoPatchUtil.generatePatchFiles(
             previousPath,
@@ -218,14 +261,80 @@ public class Regenerate<O extends Revision, D extends Revision> {
       }
     }
 
-    if (workflow.getConsistencyFilePath() != null && consistencyFile.isPresent()) {
+    Glob destinationFiles = workflow.getDestinationFiles();
+    if (consistencyFile != null) {
+      byte[] consistencyFileBytes;
+      if (!useExplicitPatch) {
+        consistencyFileBytes = consistencyFile.toBytes();
+      } else {
+        // extend destination files with explicit patch and series if necessary
+        DestinationReader baselineDestinationReader =
+            destinationWriter.getDestinationReader(console, regenTarget, workdir);
+        destinationFiles =
+            writePatchAndSeriesFiles(
+                consistencyFile,
+                patchFilePath,
+                nextPath,
+                baselineDestinationReader,
+                destinationFiles);
+        consistencyFile = updateConsistencyFileHashes(consistencyFile, patchFilePath, nextPath);
+        consistencyFileBytes = consistencyFile.withoutDiff().toBytes();
+      }
       Files.createDirectories(nextPath.resolve(workflow.getConsistencyFilePath()).getParent());
-      Files.write(nextPath.resolve(workflow.getConsistencyFilePath()), consistencyFile.get());
+      Files.write(nextPath.resolve(workflow.getConsistencyFilePath()), consistencyFileBytes);
     }
 
     // push the new set of files
-    patchRegenerator.updateChange(
-        workflow.getName(), nextPath, workflow.getDestinationFiles(), regenTarget);
+    patchRegenerator.updateChange(workflow.getName(), nextPath, destinationFiles, regenTarget);
+  }
+
+  /**
+   * Return most specific available patch file path according to this fallback logic:
+   *
+   * <ol>
+   *   <li>explicitly provided CLI argument
+   *   <li>configured in consistency config
+   *   <li>default to consistency file path + ".patch"
+   * </ol>
+   *
+   * and also validates that the picked path is normalized and relative, so it can be used relative
+   * to the working directory and destination.
+   */
+  @Nullable
+  private String getValidatedPatchFilePath() throws ValidationException {
+    String filePath = null;
+    if (regenerateOptions.getRegenPatchFile().isPresent()) {
+      filePath = regenerateOptions.getRegenPatchFile().get();
+    } else if (workflow.getConsistencyFileConfig() != null
+        && workflow.getConsistencyFileConfig().patchFilePath() != null) {
+      filePath = workflow.getConsistencyFileConfig().patchFilePath();
+    } else {
+      String consistencyFilePath = workflow.getConsistencyFilePath();
+      if (consistencyFilePath != null) {
+        filePath = consistencyFilePath + ".patch";
+      }
+    }
+
+    if (filePath == null) {
+      return null;
+    }
+
+    try {
+      return FileUtil.standardizePath(filePath);
+    } catch (IllegalArgumentException e) {
+      throw new ValidationException(e.getMessage(), e);
+    }
+  }
+
+  private String getSeriesFilePath(String patchFilePath) {
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(patchFilePath));
+
+    Path patchPath = Path.of(patchFilePath);
+    Path parent = patchPath.getParent();
+    if (parent != null) {
+      return parent.resolve("series").toString();
+    }
+    return "series";
   }
 
   private boolean consistencyFileExists(
@@ -247,29 +356,30 @@ public class Regenerate<O extends Revision, D extends Revision> {
       String regenTarget)
       throws ValidationException, RepoException, IOException {
 
-    Glob patchlessDestinationFiles = workflow.getDestinationFiles();
+    Glob autopatchlessDestinationFiles = workflow.getDestinationFiles();
 
     // download all files except for patch files
     if (autopatchConfig != null) {
       Glob autopatchGlob =
           AutoPatchUtil.getAutopatchGlob(
               autopatchConfig.directoryPrefix(), autopatchConfig.directory());
-      patchlessDestinationFiles = Glob.difference(patchlessDestinationFiles, autopatchGlob);
+      autopatchlessDestinationFiles = Glob.difference(autopatchlessDestinationFiles, autopatchGlob);
     }
 
     Glob consistencyFileGlob = Glob.createGlob(ImmutableList.of(workflow.getConsistencyFilePath()));
-    patchlessDestinationFiles = Glob.difference(patchlessDestinationFiles, consistencyFileGlob);
+    autopatchlessDestinationFiles =
+        Glob.difference(autopatchlessDestinationFiles, consistencyFileGlob);
 
     // copy the baseline to one directory
     DestinationReader previousDestinationReader =
         destinationWriter.getDestinationReader(console, regenBaseline, workdir);
     previousDestinationReader.copyDestinationFilesToDirectory(
-        patchlessDestinationFiles, previousPath);
+        autopatchlessDestinationFiles, previousPath);
 
     // copy the target to another directory
     DestinationReader nextDestinationReader =
         destinationWriter.getDestinationReader(console, regenTarget, workdir);
-    nextDestinationReader.copyDestinationFilesToDirectory(patchlessDestinationFiles, nextPath);
+    nextDestinationReader.copyDestinationFilesToDirectory(autopatchlessDestinationFiles, nextPath);
 
     // copy consistency file to a third directory
     previousDestinationReader.copyDestinationFilesToDirectory(consistencyFileGlob, patchPath);
@@ -338,17 +448,31 @@ public class Regenerate<O extends Revision, D extends Revision> {
       runHelper = createRunHelper(workflow, workdir, importRevision, sourceRef);
     }
 
-    Glob patchlessDestinationFiles = workflow.getDestinationFiles();
+    // exclude copybara-managed patch files from diffing to prevent circular diffs
+    Glob autopatchlessDestinationFiles = workflow.getDestinationFiles();
     if (autopatchConfig != null) {
       Glob autopatchGlob =
           AutoPatchUtil.getAutopatchGlob(
               autopatchConfig.directoryPrefix(), autopatchConfig.directory());
-      patchlessDestinationFiles = Glob.difference(workflow.getDestinationFiles(), autopatchGlob);
+      autopatchlessDestinationFiles =
+          Glob.difference(workflow.getDestinationFiles(), autopatchGlob);
     }
     if (workflow.getConsistencyFilePath() != null) {
       Glob consistencyFileGlob =
           Glob.createGlob(ImmutableList.of(workflow.getConsistencyFilePath()));
-      patchlessDestinationFiles = Glob.difference(patchlessDestinationFiles, consistencyFileGlob);
+      autopatchlessDestinationFiles =
+          Glob.difference(autopatchlessDestinationFiles, consistencyFileGlob);
+
+      boolean useExplicitPatch = !workflow.isMergeImport();
+      if (useExplicitPatch) {
+        String patchFilePath = getValidatedPatchFilePath();
+        if (patchFilePath != null) {
+          Glob explicitPatchGlob =
+              Glob.createGlob(ImmutableList.of(patchFilePath, getSeriesFilePath(patchFilePath)));
+          autopatchlessDestinationFiles =
+              Glob.difference(autopatchlessDestinationFiles, explicitPatchGlob);
+        }
+      }
     }
 
     // copy the baseline to one directory
@@ -361,9 +485,140 @@ public class Regenerate<O extends Revision, D extends Revision> {
     // copy the target to another directory
     DestinationReader nextDestinationReader =
         destinationWriter.getDestinationReader(console, regenTarget, workdir);
-    nextDestinationReader.copyDestinationFilesToDirectory(patchlessDestinationFiles, nextPath);
+    nextDestinationReader.copyDestinationFilesToDirectory(autopatchlessDestinationFiles, nextPath);
 
     return importPath;
+  }
+
+  private Glob writePatchAndSeriesFiles(
+      ConsistencyFile consistencyFile,
+      String patchFilePath,
+      Path nextPath,
+      DestinationReader destinationReader,
+      Glob destinationFiles)
+      throws IOException {
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(patchFilePath));
+
+    byte[] diff = consistencyFile.getDiffContent();
+
+    // fix paths within diff to ensure patches apply to real destination folders.
+    // if configured, also strip out and make file paths relative to a given folder.
+    String pathPrefix =
+        workflow.getConsistencyFileConfig() == null
+            ? null
+            : workflow.getConsistencyFileConfig().patchPathPrefixToStrip();
+    diff =
+        DiffUtil.stripPathPrefixes(
+            diff,
+            /* leftPrefix= */ ConsistencyFile.PREMERGE_DIR_NAME,
+            /* rightPrefix= */ ConsistencyFile.CHECKOUT_DIR_NAME,
+            /* commonPrefix= */ pathPrefix);
+    diff = DiffUtil.stripGitDiffHeaders(diff);
+
+    // read series
+    String seriesFilePath = getSeriesFilePath(patchFilePath);
+    boolean seriesExisted = destinationReader.exists(seriesFilePath);
+    List<String> seriesLines = new ArrayList<>();
+    if (seriesExisted) {
+      try {
+        String content = destinationReader.readFile(seriesFilePath).trim();
+        if (!content.isEmpty()) {
+          seriesLines = new ArrayList<>(Splitter.on(LINE_SPLITTER).splitToList(content));
+        }
+      } catch (RepoException e) {
+        seriesExisted = false;
+      }
+    }
+
+    String patchName = Path.of(patchFilePath).getFileName().toString();
+
+    // no diffs found: cleanup patch from series if present, write series to output if preexisting
+    // or changed
+    if (diff.length == 0) {
+      seriesLines.removeIf(line -> line.trim().equals(patchName));
+      if (seriesExisted || !seriesLines.isEmpty()) {
+        destinationFiles =
+            writeFileAndRegister(
+                nextPath, seriesFilePath, joinLinesToBytes(seriesLines), destinationFiles);
+      }
+      destinationFiles = registerFile(destinationFiles, patchFilePath, nextPath);
+      return destinationFiles;
+    }
+
+    // write diff to patch file
+    boolean patchExisted = destinationReader.exists(patchFilePath);
+    destinationFiles = writeFileAndRegister(nextPath, patchFilePath, diff, destinationFiles);
+
+    // write series if preexisting or if patch+series both don't exist yet
+    if (seriesExisted || !patchExisted) {
+      seriesLines.removeIf(line -> line.trim().equals(patchName));
+      seriesLines.add(patchName);
+      destinationFiles =
+          writeFileAndRegister(
+              nextPath, seriesFilePath, joinLinesToBytes(seriesLines), destinationFiles);
+    }
+
+    if (!seriesExisted) {
+      console.warn(
+          """
+          WARNING: Generated patch file and series file, but they might not be applied yet. Check \
+          your config and ensure a patch transformation like patch.apply or patch.quilt_apply \
+          applies these patches.\
+          """);
+    }
+    return destinationFiles;
+  }
+
+  private ConsistencyFile updateConsistencyFileHashes(
+      ConsistencyFile consistencyFile, String patchFilePath, Path nextPath) throws IOException {
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(patchFilePath));
+
+    ImmutableMap.Builder<String, String> finalHashes = ImmutableMap.builder();
+    finalHashes.putAll(consistencyFile.getFileHashes());
+
+    HashFunction hashFunction = workflow.getDestination().getHashFunction();
+
+    // refresh patch file hash
+    Path patchFile = nextPath.resolve(patchFilePath);
+    if (Files.exists(patchFile)) {
+      HashCode hashCode = MoreFiles.asByteSource(patchFile).hash(hashFunction);
+      finalHashes.put(patchFilePath, hashCode.toString());
+    }
+
+    // refresh series file hash
+    String seriesFilePath = getSeriesFilePath(patchFilePath);
+    Path seriesFile = nextPath.resolve(seriesFilePath);
+    if (Files.exists(seriesFile)) {
+      HashCode hashCode = MoreFiles.asByteSource(seriesFile).hash(hashFunction);
+      finalHashes.put(seriesFilePath, hashCode.toString());
+    }
+
+    return consistencyFile.withHashes(finalHashes.buildKeepingLast());
+  }
+
+  private static Glob registerFile(Glob destinationFiles, String relativeFilePath, Path nextPath) {
+    Path fullPath = nextPath.resolve(relativeFilePath);
+    PathMatcher destPathMatcher = destinationFiles.relativeTo(nextPath);
+    if (!destPathMatcher.matches(fullPath)) {
+      return Glob.union(destinationFiles, Glob.createGlob(ImmutableList.of(relativeFilePath)));
+    }
+    return destinationFiles;
+  }
+
+  private static Glob writeFileAndRegister(
+      Path nextPath, String relativeFilePath, byte[] content, Glob destinationFiles)
+      throws IOException {
+    Path fullPath = nextPath.resolve(relativeFilePath);
+    Files.createDirectories(fullPath.getParent());
+    Files.write(fullPath, content);
+    return registerFile(destinationFiles, relativeFilePath, nextPath);
+  }
+
+  private static byte[] joinLinesToBytes(List<String> lines) {
+    if (lines.isEmpty()) {
+      return new byte[0];
+    }
+    return String.join("\n", lines).getBytes(UTF_8);
   }
 
   private WorkflowRunHelper<O, D> createRunHelper(

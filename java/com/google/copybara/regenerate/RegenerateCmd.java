@@ -88,6 +88,7 @@ public class RegenerateCmd implements CopybaraCmd {
         Regenerate.newRegenerate(
             workflow,
             commandEnv.getWorkdir(),
+            patchingOptions,
             options,
             workflowOptions,
             regenerateOptions,

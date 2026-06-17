@@ -17,6 +17,7 @@
 package com.google.copybara;
 
 import com.google.auto.value.AutoValue;
+import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.eval.StarlarkValue;
 
@@ -25,11 +26,22 @@ import net.starlark.java.eval.StarlarkValue;
 @StarlarkBuiltin(name = "core.consistency_file_config", documented = true)
 public abstract class ConsistencyFileConfiguration implements StarlarkValue {
 
-  public static ConsistencyFileConfiguration create(String path, boolean excludeBuildFiles) {
-    return new AutoValue_ConsistencyFileConfiguration(path, excludeBuildFiles);
+  public static ConsistencyFileConfiguration create(
+      String path,
+      boolean excludeBuildFiles,
+      @Nullable String patchFilePath,
+      @Nullable String patchPathPrefixToStrip) {
+    return new AutoValue_ConsistencyFileConfiguration(
+        path, excludeBuildFiles, patchFilePath, patchPathPrefixToStrip);
   }
 
   public abstract String path();
 
   public abstract boolean excludeBuildFiles();
+
+  @Nullable
+  public abstract String patchFilePath();
+
+  @Nullable
+  public abstract String patchPathPrefixToStrip();
 }

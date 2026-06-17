@@ -41,6 +41,10 @@ public class RegenerateOptions implements Option {
     return Optional.ofNullable(regenTarget);
   }
 
+  public Optional<String> getRegenPatchFile() {
+    return Optional.ofNullable(regenPatchFile);
+  }
+
   @Nullable
   @Parameter(
       names = "--regen-baseline",
@@ -50,6 +54,24 @@ public class RegenerateOptions implements Option {
   @VisibleForTesting
   public void setRegenBaseline(@Nullable String regenBaseline) {
     this.regenBaseline = regenBaseline;
+  }
+
+  @Nullable
+  @Parameter(
+      names = "--regen-patch-file",
+      description =
+          "Config-relative path to an explicit patch file to (re-)generate. Only affects "
+              + "migrations not using merge-import mode. Overrides the patchFilePath specified in "
+              + "the consistency config to create a custom-named patch file. The specified patch "
+              + "does not get applied during patch transformations if it exists and instead "
+              + "recreated containing all currently untracked diffs after all transformations. "
+              + "Can be used to create a new patch file for all newly added changes, leaving pre-"
+              + "existing patches intact.")
+  private String regenPatchFile;
+
+  @VisibleForTesting
+  public void setRegenPatchFile(@Nullable String regenPatchFile) {
+    this.regenPatchFile = regenPatchFile;
   }
 
   @Parameter(

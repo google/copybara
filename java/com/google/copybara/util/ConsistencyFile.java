@@ -352,8 +352,16 @@ public class ConsistencyFile {
     return ImmutableMap.copyOf(fileHashes);
   }
 
-  byte[] getDiffContent() {
+  public byte[] getDiffContent() {
     return Arrays.copyOf(diffContent, diffContent.length);
+  }
+
+  public ConsistencyFile withoutDiff() {
+    return new ConsistencyFile(fileHashes, new byte[0], workflowInfo);
+  }
+
+  public ConsistencyFile withHashes(ImmutableMap<String, String> fileHashes) {
+    return new ConsistencyFile(fileHashes, this.diffContent, this.workflowInfo);
   }
 
   public byte[] toBytes() throws IOException {

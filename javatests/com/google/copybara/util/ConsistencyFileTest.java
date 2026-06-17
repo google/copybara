@@ -249,6 +249,17 @@ public class ConsistencyFileTest {
     assertThat(deserializedPatch).isEqualTo(emptyPatch);
   }
 
+  @Test
+  public void testWithHashes_returnsNewInstanceWithUpdatedHashes() throws Exception {
+    ConsistencyFile consistencyFile =
+        new ConsistencyFile(
+            ImmutableMap.of("foo", "abc"), "some diff".getBytes(UTF_8), "config:workflow");
+
+    ConsistencyFile updated = consistencyFile.withHashes(ImmutableMap.of("foo", "xyz"));
+
+    assertThat(updated.getFileHashes()).containsExactly("foo", "xyz");
+    assertThat(new String(updated.getDiffContent(), UTF_8)).isEqualTo("some diff");
+  }
 
   @Test
   public void testDeserializedObjectIsEquivalent_singleFile() throws Exception {
