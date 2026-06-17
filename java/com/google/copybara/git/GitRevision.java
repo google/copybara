@@ -49,6 +49,7 @@ public final class GitRevision implements Revision {
       Pattern.compile("[a-f0-9]{40}|[a-f0-9]{64}");
 
   private final GitRepository repository;
+  private final GitHashAlgorithm hashAlgorithm;
   private final String hash;
   @Nullable private final String reference;
   private final ListMultimap<String, String> associatedLabels;
@@ -116,23 +117,31 @@ public final class GitRevision implements Revision {
     this.reviewReference = reviewReference;
     Preconditions.checkArgument(
         COMPLETE_GIT_HASH_PATTERN.matcher(hash).matches(),
-        "Reference '%s' is not a full git hash (40 characters SHA-1 or 64 characters SHA-256",
+        "Reference '%s' is not a full git hash (40 characters SHA-1 or 64 characters SHA-256)",
         hash);
 
     this.repository = Preconditions.checkNotNull(repository);
     this.hash = hash;
+    this.hashAlgorithm = GitHashAlgorithm.from(hash);
     this.reference = reference;
     ArrayListMultimap<String, String> labels = ArrayListMultimap.create();
     labels.putAll(associatedLabels);
+    String shortHash = hash.substring(0, 7);
     // TODO: hsudhof - Remove GIT_SHA1 and GIT_SHORT_SHA1 labels once all instances are updated.
-    if (!associatedLabels.containsKey("GIT_SHA1")) {
-      labels.put("GIT_SHA1", hash);
-      labels.put("GIT_SHORT_SHA1", hash.substring(0, 7));
-      labels.put("GIT_HASH", hash);
-      labels.put("GIT_SHORT_HASH", hash.substring(0, 7));
+    if (hashAlgorithm == GitHashAlgorithm.SHA1) {
+      putIfMissing(labels, "GIT_SHA1", hash);
+      putIfMissing(labels, "GIT_SHORT_SHA1", shortHash);
     }
+    putIfMissing(labels, "GIT_HASH", hash);
+    putIfMissing(labels, "GIT_SHORT_HASH", shortHash);
     this.associatedLabels = labels;
     this.url = url;
+  }
+
+  private static void putIfMissing(ListMultimap<String, String> labels, String key, String value) {
+    if (!labels.containsKey(key)) {
+      labels.put(key, value);
+    }
   }
 
   @Nullable
@@ -216,6 +225,10 @@ public final class GitRevision implements Revision {
 
   public String getHash() {
     return hash;
+  }
+
+  public GitHashAlgorithm getHashAlgorithm() {
+    return hashAlgorithm;
   }
 
   @Nullable
@@ -384,5 +397,34 @@ public final class GitRevision implements Revision {
         reference,
         Revision.addNewLabels(ImmutableListMultimap.copyOf(associatedLabels), labels),
         url);
+  }
+
+  /** Supported Git hash algorithms. */
+  public enum GitHashAlgorithm {
+    /** SHA-1 hash algorithm (40 characters). */
+    SHA1(40),
+    /** SHA-256 hash algorithm (64 characters). */
+    SHA256(64);
+
+    private final int length;
+
+    GitHashAlgorithm(int length) {
+      this.length = length;
+    }
+
+    public int getLength() {
+      return length;
+    }
+
+    /** Returns the {@code GitHashAlgorithm} corresponding to the length of the given hash. */
+    public static GitHashAlgorithm from(String hash) {
+      if (hash.length() == 40) {
+        return SHA1;
+      } else if (hash.length() == 64) {
+        return SHA256;
+      }
+      throw new IllegalArgumentException(
+          String.format("Invalid hash length %d: '%s'", hash.length(), hash));
+    }
   }
 }
