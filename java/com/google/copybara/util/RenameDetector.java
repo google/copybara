@@ -16,8 +16,10 @@
 
 package com.google.copybara.util;
 
+import com.google.common.base.Ascii;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.io.ByteProcessor;
 import com.google.common.io.ByteStreams;
 import com.google.common.primitives.Ints;
@@ -40,6 +42,7 @@ public final class RenameDetector<I> {
   private final boolean ignoreWhitespace;
   private final boolean skipNewlinesInHash;
   private final boolean considerFilenames;
+  private final ImmutableSet<String> filenameExceptions;
 
   private final List<PriorFile<I>> priorFiles = new ArrayList<>();
 
@@ -57,10 +60,25 @@ public final class RenameDetector<I> {
       boolean ignoreWhitespace,
       boolean skipNewlinesInHash,
       boolean considerFilenames) {
+    this(
+        ignoreCarriageReturn,
+        ignoreWhitespace,
+        skipNewlinesInHash,
+        considerFilenames,
+        ImmutableSet.of());
+  }
+
+  public RenameDetector(
+      boolean ignoreCarriageReturn,
+      boolean ignoreWhitespace,
+      boolean skipNewlinesInHash,
+      boolean considerFilenames,
+      ImmutableSet<String> filenameExceptions) {
     this.ignoreCarriageReturn = ignoreCarriageReturn;
     this.ignoreWhitespace = ignoreWhitespace;
     this.skipNewlinesInHash = skipNewlinesInHash;
     this.considerFilenames = considerFilenames;
+    this.filenameExceptions = filenameExceptions;
   }
 
   private static final class PriorFile<I> {
@@ -204,7 +222,12 @@ public final class RenameDetector<I> {
     for (PriorFile<I> priorFile : priorFiles) {
       if (considerFilenames) {
         String priorFilename = getFilename(priorFile.key);
-        if (isTooFar(priorFilename, laterFilename)) {
+        boolean isException =
+            filenameExceptions.stream().anyMatch(e -> Ascii.equalsIgnoreCase(e, priorFilename))
+                || (laterFilename != null
+                    && filenameExceptions.stream()
+                        .anyMatch(e -> Ascii.equalsIgnoreCase(e, laterFilename)));
+        if (!isException && isTooFar(priorFilename, laterFilename)) {
           continue;
         }
       }

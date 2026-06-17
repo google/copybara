@@ -21,6 +21,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.copybara.util.RenameDetector.Score;
 import java.io.ByteArrayInputStream;
 import java.io.FilterInputStream;
@@ -473,5 +474,22 @@ public final class RenameDetectorTest {
     detector.addPriorFile("foo", new Bytes(content2));
     result = detector.scoresForLaterFile(new Bytes(content1));
     assertThat(result).isEmpty();
+  }
+
+  @Test
+  public void considerFilenames_exceptionBypassesChecks() throws Exception {
+    RenameDetector<String> detector =
+        new RenameDetector<>(
+            /* ignoreCarriageReturn= */ false,
+            /* ignoreWhitespace= */ false,
+            /* skipNewlinesInHash= */ false,
+            /* considerFilenames= */ true,
+            ImmutableSet.of("LICENSE"));
+    detector.addPriorFile("LICENSE", new Bytes("xyz"));
+
+    // "COPYING" vs "LICENSE" -> distance too far, but "LICENSE" is in exceptions. Should match.
+    ImmutableList<Score<String>> result = detector.scoresForLaterFile("COPYING", new Bytes("xyz"));
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getKey()).isEqualTo("LICENSE");
   }
 }
