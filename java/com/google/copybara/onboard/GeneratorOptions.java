@@ -67,4 +67,11 @@ public class GeneratorOptions implements Option {
           "Whether to ignore whitespace in file content comparisons during glob generation.",
       arity = 1)
   public boolean computeGlobIgnoreWhitespace = true;
+
+  @Parameter(
+      names = "--compute-glob-percentage-similar",
+      description =
+          "Percentage of similarity required for considering an origin file similar enough to a"
+              + " destination file in heuristics.")
+  public int computeGlobPercentageSimilar = 30;
 }

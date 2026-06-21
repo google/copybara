@@ -45,8 +45,6 @@ import java.io.IOException;
     commandDescription = "Generates a config file by asking/inferring field information")
 public class GeneratorCmd implements OnboardingCmd {
 
-  public static final int PERCENTAGE_SIMILAR = 30;
-
   private final ModuleSet moduleSet;
   private final GeneratorCmdImpl generatorCmd = new GeneratorCmdImpl();
 
@@ -99,7 +97,7 @@ public class GeneratorCmd implements OnboardingCmd {
             commandEnv.getOptions().get(GeneralOptions.class),
             commandEnv.getOptions().get(GeneratorOptions.class),
             ImmutableSet.of(),
-            PERCENTAGE_SIMILAR,
+            genOpts.computeGlobPercentageSimilar,
             console,
             (db) -> db.resolve(Inputs.GENERATOR_FOLDER)),
         new MapBasedInputProvider(genOpts.inputs, InputProvider.COMMAND_LINE_PRIORITY));
