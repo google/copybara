@@ -151,20 +151,6 @@ java_library(
 )
 
 java_library(
-    name = "coreglobal",
-    srcs = ["CoreGlobal.java"],
-    javacopts = JAVACOPTS,
-    deps = [
-        "//java/com/google/copybara:base",
-        "//java/com/google/copybara/authoring",
-        "//java/com/google/copybara/config:base",
-        "//java/com/google/copybara/doc:annotations",
-        "//java/com/google/copybara/util",
-        "//third_party:starlark",
-    ],
-)
-
-java_library(
     name = "base",
     srcs = BASE_SRCS,
     javacopts = JAVACOPTS,
