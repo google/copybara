@@ -24,8 +24,6 @@
   - [Changes](#changes)
   - [checker](#checker)
   - [Command](#command)
-  - [compression](#compression)
-    - [compression.unzip_path](#compressionunzip_path)
   - [console](#console)
     - [console.error](#consoleerror)
     - [console.info](#consoleinfo)
@@ -866,30 +864,6 @@ Buildozer command type
 <h4 id="consumed_by.Command">Consumed By:</h4>
 
 <ul><li><a href="#buildozer.create">buildozer.create</a></li><li><a href="#buildozer.delete">buildozer.delete</a></li><li><a href="#buildozer.modify">buildozer.modify</a></li></ul>
-
-
-
-## compression
-
-DEPRECATED. Use the `archive` module.
-Module for compression related starlark utilities
-
-<a id="compression.unzip_path" aria-hidden="true"></a>
-### compression.unzip_path
-
-DEPRECATED: Use `archive.extract` instead.
-Unzip the zipped source CheckoutPath and unzip it to the destination CheckoutPath
-
-<code>compression.unzip_path(<a href=#compression.unzip_path.source_path>source_path</a>, <a href=#compression.unzip_path.destination_path>destination_path</a>, <a href=#compression.unzip_path.filter>filter</a>=None)</code>
-
-
-<h4 id="parameters.compression.unzip_path">Parameters:</h4>
-
-Parameter | Description
---------- | -----------
-<span id=compression.unzip_path.source_path href=#compression.unzip_path.source_path>source_path</span> | <code><a href="#path">Path</a></code><br><p>the zipped file source</p>
-<span id=compression.unzip_path.destination_path href=#compression.unzip_path.destination_path>destination_path</span> | <code><a href="#path">Path</a></code><br><p>the path to unzip to</p>
-<span id=compression.unzip_path.filter href=#compression.unzip_path.filter>filter</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>A glob relative to the archive root that will restrict what files <br>from the archive should be extracted.</p>
 
 
 
@@ -4899,7 +4873,7 @@ A glob represents a set of relative filepaths in the Copybara workdir. Most cons
 <ul><li><a href="#glob">glob</a></li></ul>
 <h4 id="consumed_by.glob">Consumed By:</h4>
 
-<ul><li><a href="#archive.create">archive.create</a></li><li><a href="#archive.extract">archive.extract</a></li><li><a href="#compression.unzip_path">compression.unzip_path</a></li><li><a href="#core.autopatch_config">core.autopatch_config</a></li><li><a href="#core.convert_encoding">core.convert_encoding</a></li><li><a href="#core.copy">core.copy</a></li><li><a href="#core.filter_replace">core.filter_replace</a></li><li><a href="#core.merge_import_config">core.merge_import_config</a></li><li><a href="#core.move">core.move</a></li><li><a href="#core.remove">core.remove</a></li><li><a href="#core.rename">core.rename</a></li><li><a href="#core.replace">core.replace</a></li><li><a href="#core.todo_replace">core.todo_replace</a></li><li><a href="#core.verify_match">core.verify_match</a></li><li><a href="#core.workflow">core.workflow</a></li><li><a href="#destination_reader.copy_destination_files">destination_reader.copy_destination_files</a></li><li><a href="#format.buildifier">format.buildifier</a></li><li><a href="#ctx.list">ctx.list</a></li><li><a href="#ctx.run">ctx.run</a></li></ul>
+<ul><li><a href="#archive.create">archive.create</a></li><li><a href="#archive.extract">archive.extract</a></li><li><a href="#core.autopatch_config">core.autopatch_config</a></li><li><a href="#core.convert_encoding">core.convert_encoding</a></li><li><a href="#core.copy">core.copy</a></li><li><a href="#core.filter_replace">core.filter_replace</a></li><li><a href="#core.merge_import_config">core.merge_import_config</a></li><li><a href="#core.move">core.move</a></li><li><a href="#core.remove">core.remove</a></li><li><a href="#core.rename">core.rename</a></li><li><a href="#core.replace">core.replace</a></li><li><a href="#core.todo_replace">core.todo_replace</a></li><li><a href="#core.verify_match">core.verify_match</a></li><li><a href="#core.workflow">core.workflow</a></li><li><a href="#destination_reader.copy_destination_files">destination_reader.copy_destination_files</a></li><li><a href="#format.buildifier">format.buildifier</a></li><li><a href="#ctx.list">ctx.list</a></li><li><a href="#ctx.run">ctx.run</a></li></ul>
 
 
 
@@ -7017,7 +6991,7 @@ path | <code><a href="#string">string</a></code><br><p>Full path relative to the
 <ul><li><a href="#path.read_symlink">path.read_symlink</a></li><li><a href="#path.relativize">path.relativize</a></li><li><a href="#path.resolve">path.resolve</a></li><li><a href="#path.resolve_sibling">path.resolve_sibling</a></li><li><a href="#ctx.new_path">ctx.new_path</a></li></ul>
 <h4 id="consumed_by.Path">Consumed By:</h4>
 
-<ul><li><a href="#archive.create">archive.create</a></li><li><a href="#archive.extract">archive.extract</a></li><li><a href="#compression.unzip_path">compression.unzip_path</a></li><li><a href="#destination_reader.copy_destination_files">destination_reader.copy_destination_files</a></li><li><a href="#hashing.path_md5_sum">hashing.path_md5_sum</a></li><li><a href="#hashing.path_sha256_sum">hashing.path_sha256_sum</a></li><li><a href="#http.multipart_form_file">http.multipart_form_file</a></li><li><a href="#http_response.download">http_response.download</a></li><li><a href="#path.relativize">path.relativize</a></li><li><a href="#path.resolve">path.resolve</a></li><li><a href="#path.resolve_sibling">path.resolve_sibling</a></li><li><a href="#python.parse_metadata">python.parse_metadata</a></li><li><a href="#ctx.create_symlink">ctx.create_symlink</a></li><li><a href="#ctx.read_path">ctx.read_path</a></li><li><a href="#ctx.set_executable">ctx.set_executable</a></li><li><a href="#ctx.write_path">ctx.write_path</a></li></ul>
+<ul><li><a href="#archive.create">archive.create</a></li><li><a href="#archive.extract">archive.extract</a></li><li><a href="#destination_reader.copy_destination_files">destination_reader.copy_destination_files</a></li><li><a href="#hashing.path_md5_sum">hashing.path_md5_sum</a></li><li><a href="#hashing.path_sha256_sum">hashing.path_sha256_sum</a></li><li><a href="#http.multipart_form_file">http.multipart_form_file</a></li><li><a href="#http_response.download">http_response.download</a></li><li><a href="#path.relativize">path.relativize</a></li><li><a href="#path.resolve">path.resolve</a></li><li><a href="#path.resolve_sibling">path.resolve_sibling</a></li><li><a href="#python.parse_metadata">python.parse_metadata</a></li><li><a href="#ctx.create_symlink">ctx.create_symlink</a></li><li><a href="#ctx.read_path">ctx.read_path</a></li><li><a href="#ctx.set_executable">ctx.set_executable</a></li><li><a href="#ctx.write_path">ctx.write_path</a></li></ul>
 
 <a id="path.exists" aria-hidden="true"></a>
 ### path.exists

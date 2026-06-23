@@ -24,7 +24,6 @@ import com.google.copybara.archive.ArchiveModule;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.buildozer.BuildozerModule;
 import com.google.copybara.buildozer.BuildozerOptions;
-import com.google.copybara.compression.CompressionModule;
 import com.google.copybara.credentials.CredentialModule;
 import com.google.copybara.credentials.CredentialOptions;
 import com.google.copybara.folder.FolderDestinationOptions;
@@ -138,7 +137,6 @@ public class ModuleSupplier {
         new HttpModule(console, options.get(HttpOptions.class)),
         new PythonModule(),
         new NpmModule(options.get(RemoteFileOptions.class)),
-        new CompressionModule(),
         new CredentialModule(console, options.get(CredentialOptions.class)),
         Json.INSTANCE);
   }

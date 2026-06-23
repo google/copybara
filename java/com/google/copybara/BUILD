@@ -1,4 +1,4 @@
-# Copyright 2016 Google Inc.
+# Copyright 2016 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -255,7 +255,6 @@ java_library(
         "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/buildozer",
         "//java/com/google/copybara/buildozer:buildozer_options",
-        "//java/com/google/copybara/compression",
         "//java/com/google/copybara/config:base",
         "//java/com/google/copybara/config:global_migrations",
         "//java/com/google/copybara/config:parser",
