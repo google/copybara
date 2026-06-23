@@ -38,7 +38,7 @@ public class GitHubPrIntegrateLabelTest {
   @Mock Console console;
 
   @Test
-  public void testParseLabel() {
+  public void parseLabel_sha1() {
     GeneralOptions options =
         new GeneralOptions(ImmutableMap.of(), FileSystems.getDefault(), console);
 
@@ -49,7 +49,7 @@ public class GitHubPrIntegrateLabelTest {
   }
 
   @Test
-  public void testParseLabel_containsDot() {
+  public void parseLabel_containsDot() {
     GeneralOptions options =
         new GeneralOptions(ImmutableMap.of(), FileSystems.getDefault(), console);
 
@@ -63,7 +63,7 @@ public class GitHubPrIntegrateLabelTest {
   }
 
   @Test
-  public void testParseLabel_hyphenatedUser() {
+  public void parseLabel_hyphenatedUser() {
     GeneralOptions options =
         new GeneralOptions(ImmutableMap.of(), FileSystems.getDefault(), console);
 
@@ -71,6 +71,20 @@ public class GitHubPrIntegrateLabelTest {
             GitHubPrIntegrateLabel.parse(
                 "https://github.com/foo/bar/pull/18"
                     + " from hyphenated-user:main dbb8386719596088dbf7513fad87559b2ff796cc   ",
+                repo,
+                options))
+        .isNotNull();
+  }
+
+  @Test
+  public void parseLabel_sha256() {
+    GeneralOptions options =
+        new GeneralOptions(ImmutableMap.of(), FileSystems.getDefault(), console);
+
+    assertThat(
+            GitHubPrIntegrateLabel.parse(
+                "https://github.com/foo/bar/pull/18 from copybarrista:main"
+                    + " dbb8386719596088dbf7513fad87559b2ff796ccdbb8386719596088dbf7513f   ",
                 repo,
                 options))
         .isNotNull();

@@ -23,6 +23,7 @@ import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static com.google.copybara.util.CommandRunner.NO_INPUT;
 
+import com.google.common.base.Ascii;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
@@ -50,6 +51,7 @@ import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitCredential.UserPassword;
+import com.google.copybara.git.GitRevision.GitHashAlgorithm;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.CommandOutputWithStatus;
@@ -104,13 +106,16 @@ public class GitRepository {
   private static final Pattern FULL_URI = Pattern.compile(
       "([a-z][a-z0-9+-]+@[a-zA-Z0-9_.-]+(:.+)?|^[a-z][a-z0-9+-]+://.*)$");
 
-  private static final Pattern LS_TREE_ELEMENT = Pattern.compile(
-      "([0-9]{6}) (commit|tag|tree|blob) ([a-f0-9]{40})\t(.*)");
+  private static final Pattern LS_TREE_ELEMENT =
+      Pattern.compile("([0-9]{6}) (commit|tag|tree|blob) ([a-f0-9]{40,64})\t(.*)");
 
   private static final Pattern LS_REMOTE_OUTPUT_LINE =
-      Pattern.compile("([a-f0-9]{40}|ref: refs/heads/\\S+)\t(.+)");
+      Pattern.compile("([a-f0-9]{40,64}|ref: refs/heads/\\S+)\t(.+)");
 
-  private static final Pattern SHA1_PATTERN = Pattern.compile("[a-f0-9]{6,40}");
+  private static final Pattern HASH_PATTERN = Pattern.compile("[a-f0-9]{6,64}");
+
+  private static final Pattern COMPLETE_HASH_PATTERN =
+      Pattern.compile("(?:[a-f0-9]{40}|[a-f0-9]{64})");
 
   private static final Pattern DEFAULT_BRANCH_PATTERN =
       Pattern.compile("(?s)ref: (refs/heads/(\\S+)).*");
@@ -428,8 +433,8 @@ public class GitRepository {
     // below) and hope the sha1 is reachable from heads.
     // If we fail to find the SHA-1 with that fetch we fetch the SHA-1 directly and hope the server
     // allows to download it.
-    boolean isSha1Ref = isSha1Reference(ref);
-    if (isSha1Ref) {
+    boolean isHashRef = isHashReference(ref);
+    if (isHashRef) {
       boolean tags = !partialFetch && fetchTags;
       try {
         fetch(
@@ -462,7 +467,7 @@ public class GitRepository {
     if (!ref.startsWith("refs/")) {
       ImmutableList.Builder<String> fullRefspec = ImmutableList.builder();
       fullRefspec.addAll(refspec.build());
-      if (!isSha1Ref) {
+      if (!isHashRef) {
         // Define a refspec that attempts to obtain the full reference using wildcards, for use in
         // GitRevision's fullReference() method.
         fullRefspec.add(
@@ -932,8 +937,10 @@ public class GitRepository {
         continue;
       }
       List<String> strings = Splitter.on(' ').splitToList(line);
-      Preconditions.checkState(strings.size() == 2
-          && SHA1_PATTERN.matcher(strings.get(0)).matches(), "Cannot parse line: '%s'", line);
+      Preconditions.checkState(
+          strings.size() == 2 && COMPLETE_HASH_PATTERN.matcher(strings.get(0)).matches(),
+          "Cannot parse line: '%s'",
+          line);
       // Ref -> SHA1
       result.put(strings.get(1), new GitRevision(this, strings.get(0)));
     }
@@ -1294,7 +1301,10 @@ public class GitRepository {
       throw new CannotResolveRevisionException("Cannot find reference '" + ref + "'");
     }
     String sha1 = result.getStdout().trim();
-    Verify.verify(SHA1_PATTERN.matcher(sha1).matches(), "Should be resolved to a SHA-1: %s", sha1);
+    Verify.verify(
+        COMPLETE_HASH_PATTERN.matcher(sha1).matches(),
+        "Should be resolved to a complete hash: %s",
+        sha1);
     return sha1;
   }
 
@@ -1805,7 +1815,15 @@ public class GitRepository {
     return allArgv;
   }
 
+  /** Initializes the repository. */
+  @CanIgnoreReturnValue
   public GitRepository init() throws RepoException {
+    return init(null);
+  }
+
+  /** Initializes the repository with the specified object format. */
+  @CanIgnoreReturnValue
+  public GitRepository init(@Nullable GitHashAlgorithm objectFormat) throws RepoException {
     try {
       Files.createDirectories(gitDir);
       if (workTree != null) {
@@ -1814,12 +1832,51 @@ public class GitRepository {
     } catch (IOException e) {
       throw new RepoException("Cannot create directories: " + e.getMessage(), e);
     }
+    ImmutableList.Builder<String> args = ImmutableList.<String>builder().add("init");
+    if (objectFormat != null) {
+      args.add("--object-format=" + Ascii.toLowerCase(objectFormat.name()));
+    }
     if (workTree != null && workTree.resolve(".git").equals(gitDir)) {
-      git(workTree, Optional.empty(), ImmutableList.of("init", "."));
+      args.add(".");
+      git(workTree, Optional.empty(), args.build());
     } else {
-      git(gitDir, Optional.empty(), ImmutableList.of("init", "--bare"));
+      args.add("--bare");
+      git(gitDir, Optional.empty(), args.build());
     }
     return this;
+  }
+
+  /** Returns whether the repository is initialized. */
+  public boolean isInitialized() {
+    return Files.exists(gitDir.resolve("HEAD")) || Files.exists(gitDir.resolve(".git/HEAD"));
+  }
+
+  /**
+   * Returns the object format of the remote repository.
+   *
+   * @param fetchUrl the url of the remote repository
+   * @return the object format of the remote repository (e.g. sha1 or sha256)
+   * @throws RepoException if git ls-remote fails
+   */
+  public GitHashAlgorithm getRemoteObjectFormat(String fetchUrl) throws RepoException {
+    CommandOutputWithStatus output;
+    try {
+      output =
+          executeGit(
+              getCwd(),
+              ImmutableList.of("ls-remote", fetchUrl),
+              gitEnv.withVars(ImmutableMap.of("GIT_TRACE_PACKET", "1")),
+              /* verbose= */ false,
+              /* maxLogLines= */ DEFAULT_MAX_LOG_LINES,
+              /* timeout= */ Optional.of(Duration.ofSeconds(10)));
+    } catch (CommandException e) {
+      throw new RepoException("Cannot get remote object format for " + fetchUrl, e);
+    }
+    String stderr = output.getStderr();
+    if (stderr.contains("object-format=sha256")) {
+      return GitHashAlgorithm.SHA256;
+    }
+    return GitHashAlgorithm.SHA1;
   }
 
   @CanIgnoreReturnValue
@@ -2253,8 +2310,8 @@ public class GitRepository {
     return new GitRevision(this, ref);
   }
 
-  private boolean isSha1Reference(String ref) {
-    return SHA1_PATTERN.matcher(ref).matches();
+  private boolean isHashReference(String ref) {
+    return HASH_PATTERN.matcher(ref).matches();
   }
 
   /**

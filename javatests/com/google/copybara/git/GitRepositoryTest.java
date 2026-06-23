@@ -45,6 +45,7 @@ import com.google.copybara.git.GitRepository.GitObjectType;
 import com.google.copybara.git.GitRepository.PushCmd;
 import com.google.copybara.git.GitRepository.StatusFile;
 import com.google.copybara.git.GitRepository.TreeElement;
+import com.google.copybara.git.GitRevision.GitHashAlgorithm;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.Glob;
@@ -204,7 +205,8 @@ public class GitRepositoryTest {
         author Some User <example@example.com> 1528942829 --400
         committer Some User <example@example.com> 1528942829 --400
 
-        Allow to check and resolve symlinks"""
+        Allow to check and resolve symlinks\
+        """
             .formatted(entry.tree(), entry.commit().getHash());
     Files.write(workdir.resolve("commit"), badCommit.getBytes(UTF_8));
     String commitSha1 =
@@ -1597,7 +1599,8 @@ public class GitRepositoryTest {
         """
         #!/bin/bash
         echo Hook run
-        exit 1"""
+        exit 1\
+        """
             .getBytes(StandardCharsets.UTF_8));
     hook.toFile().setExecutable(true);
 
@@ -1970,6 +1973,33 @@ public class GitRepositoryTest {
   public void testGetCurrentBranch() throws Exception {
     repository.simpleCommand("checkout", "-b", "test");
     assertThat(repository.getCurrentBranch()).isEqualTo("test");
+  }
+
+  @Test
+  public void init_withSha256_setsObjectFormat() throws Exception {
+    Path newGitDir = Files.createTempDirectory("newgitdir");
+    GitRepository newRepo =
+        GitRepository.newBareRepo(
+            newGitDir, getGitEnv(), /* verbose= */ true, DEFAULT_TIMEOUT, /* noVerify= */ false);
+
+    newRepo = newRepo.init(GitHashAlgorithm.SHA256);
+
+    String output = newRepo.simpleCommand("config", "extensions.objectformat").getStdout().trim();
+    assertThat(output).isEqualTo("sha256");
+    GitHashAlgorithm format = newRepo.getRemoteObjectFormat("file://" + newGitDir.toAbsolutePath());
+    assertThat(format).isEqualTo(GitHashAlgorithm.SHA256);
+  }
+
+  @Test
+  public void isInitialized_returnsTrueWhenInitialized() throws Exception {
+    Path newGitDir = Files.createTempDirectory("newgitdir");
+    GitRepository newRepo =
+        GitRepository.newBareRepo(
+            newGitDir, getGitEnv(), /* verbose= */ true, DEFAULT_TIMEOUT, /* noVerify= */ false);
+
+    assertThat(newRepo.isInitialized()).isFalse();
+    newRepo = newRepo.init();
+    assertThat(newRepo.isInitialized()).isTrue();
   }
 
   private GitRepository mockRepository(Path gitDir, Path workTree) throws RepoException {

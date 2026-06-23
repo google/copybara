@@ -32,15 +32,15 @@ import javax.annotation.Nullable;
  *
  * <p>Format like: "https://github.com/google/copybara/pull/12345 from mikelalcon:master SHA-1"
  *
- * <p>Where SHA-1 is optional: If present it means to integrate the specific SHA-1. Otherwise the
- * head of the PR is used.
+ * <p>Where SHA is optional: If present it means to integrate the specific SHA. Otherwise the head
+ * of the PR is used.
  */
 class GitHubPrIntegrateLabel implements IntegrateLabel {
 
   private static final Pattern LABEL_PATTERN =
       Pattern.compile(
           "https://github.com/([.a-zA-Z0-9_/-]+)/pull/([0-9]+)"
-              + " from ([^\\s\\r\\n]*)(?: ([0-9a-f]{7,40}))?");
+              + " from ([^\\s\\r\\n]*)(?: ([0-9a-f]{7,64}))?");
 
   private final GitRepository repository;
   private final GeneralOptions generalOptions;

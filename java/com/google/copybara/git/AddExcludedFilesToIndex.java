@@ -120,7 +120,7 @@ final class AddExcludedFilesToIndex {
 
     String submoduleStatus = repo.simpleCommand("submodule", "status").getStdout();
     for (String line : Splitter.on('\n').omitEmptyStrings().split(submoduleStatus)) {
-      String submoduleName = line.replaceFirst("^-[0-9a-f]{40} ", "");
+      String submoduleName = line.replaceFirst("^-[0-9a-f]{40,64} ", "");
       if (submoduleName.equals(line)) {
         console.warn("Cannot parse line from 'git submodule status': " + line);
         continue;
