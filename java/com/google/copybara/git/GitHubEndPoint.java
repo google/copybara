@@ -576,19 +576,39 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       name = "create_issue",
       doc = "Create a new issue.",
       parameters = {
-          @Param(name = "title", named = true, doc = "Title of the issue"),
-          @Param(name = "body", named = true, doc = "Body of the issue."),
-          @Param(name = "assignees", named = true,
-              doc = "GitHub users to whom the issue will be assigned."),
+        @Param(
+            name = "title",
+            named = true,
+            doc = "Title of the issue",
+            allowedTypes = {
+              @ParamType(type = String.class),
+            }),
+        @Param(
+            name = "body",
+            named = true,
+            doc = "Body of the issue.",
+            allowedTypes = {
+              @ParamType(type = String.class),
+            }),
+        @Param(
+            name = "assignees",
+            named = true,
+            allowedTypes = {
+              @ParamType(type = StarlarkList.class, generic1 = String.class),
+            },
+            doc = "GitHub users to whom the issue will be assigned.",
+            defaultValue = "[]"),
       })
   public Issue createIssue(String title, String body, StarlarkList<?> assignees)
       throws EvalException, RepoException {
     try {
       String project = ghHost.getProjectNameFromUrl(url);
-      return apiSupplier.load(console)
-          .createIssue(project, new CreateIssueRequest(title, body,
-              SkylarkUtil.convertStringList(assignees,
-                  "Expected assignees to be a list of string.")));
+      return apiSupplier
+          .load(console)
+          .createIssue(
+              project,
+              new CreateIssueRequest(
+                  title, body, Sequence.cast(assignees, String.class, "assignees")));
     } catch (ValidationException | RuntimeException e) {
       throw Starlark.errorf(
           "Error calling create_issue: %s - %s",

@@ -4238,7 +4238,7 @@ Parameter | Description
 
 Create a new issue.
 
-<code><a href="#issue">Issue</a></code> <code>github_api_obj.create_issue(<a href=#github_api_obj.create_issue.title>title</a>, <a href=#github_api_obj.create_issue.body>body</a>, <a href=#github_api_obj.create_issue.assignees>assignees</a>)</code>
+<code><a href="#issue">Issue</a></code> <code>github_api_obj.create_issue(<a href=#github_api_obj.create_issue.title>title</a>, <a href=#github_api_obj.create_issue.body>body</a>, <a href=#github_api_obj.create_issue.assignees>assignees</a>=[])</code>
 
 
 <h4 id="parameters.github_api_obj.create_issue">Parameters:</h4>
@@ -4247,7 +4247,7 @@ Parameter | Description
 --------- | -----------
 <span id=github_api_obj.create_issue.title href=#github_api_obj.create_issue.title>title</span> | <code><a href="#string">string</a></code><br><p>Title of the issue</p>
 <span id=github_api_obj.create_issue.body href=#github_api_obj.create_issue.body>body</span> | <code><a href="#string">string</a></code><br><p>Body of the issue.</p>
-<span id=github_api_obj.create_issue.assignees href=#github_api_obj.create_issue.assignees>assignees</span> | <code>sequence</code><br><p>GitHub users to whom the issue will be assigned.</p>
+<span id=github_api_obj.create_issue.assignees href=#github_api_obj.create_issue.assignees>assignees</span> | <code>list of string</code><br><p>GitHub users to whom the issue will be assigned.</p>
 
 <a id="github_api_obj.create_release" aria-hidden="true"></a>
 ### github_api_obj.create_release
