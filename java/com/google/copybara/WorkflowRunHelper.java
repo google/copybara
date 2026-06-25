@@ -309,7 +309,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
    */
   public static class ChangeMigrator<O extends Revision, D extends Revision> {
 
-    private final Workflow<O, D> workflow;
+    private final Workflow<O, D> headWorkflow;
     private final Path workdir;
     private final O resolvedRef;
     private final Reader<O> reader;
@@ -321,13 +321,17 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     ChangeMigrator(Workflow<O, D> workflow, Path workdir, Reader<O> reader,
         Writer<D> writer, O resolvedRef, @Nullable String rawSourceRef,
         Consumer<ChangeMigrationFinishedEvent> migrationFinishedMonitor) {
-      this.workflow = checkNotNull(workflow);
+      this.headWorkflow = checkNotNull(workflow);
       this.workdir = checkNotNull(workdir);
       this.resolvedRef = checkNotNull(resolvedRef);
       this.reader = checkNotNull(reader);
       this.writer = checkNotNull(writer);
       this.rawSourceRef = rawSourceRef;
       this.migrationFinishedMonitor = checkNotNull(migrationFinishedMonitor);
+    }
+
+    protected Workflow<O, D> getWorkflow() {
+      return headWorkflow;
     }
 
     /**
@@ -341,8 +345,10 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     final boolean skipChange(Change<?> currentChange) {
       boolean skipChange = shouldSkipChange(currentChange);
       if (skipChange) {
-        workflow.getConsole().verboseFmt("Skipped change %s as it would create an empty result.",
-            currentChange.toString());
+        getWorkflow()
+            .getConsole()
+            .verboseFmt(
+                "Skipped change %s as it would create an empty result.", currentChange.toString());
       }
       return skipChange;
     }
@@ -352,7 +358,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
      * provided.
      */
     final boolean shouldSkipChange(Change<?> currentChange) {
-      if (workflow.isMigrateNoopChanges()) {
+      if (getWorkflow().isMigrateNoopChanges()) {
         return false;
       }
       // We cannot know the files included. Try to migrate then.
@@ -374,8 +380,10 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       for (String changesFile : currentChange.getChangeFiles()) {
         for (String configPath : getConfigFiles()) {
           if (changesFile.endsWith(configPath)) {
-            workflow.getConsole()
-                .infoFmt("Migrating %s because %s config file changed at that revision",
+            getWorkflow()
+                .getConsole()
+                .infoFmt(
+                    "Migrating %s because %s config file changed at that revision",
                     currentChange.getRevision().asString(), changesFile);
             return false;
           }
@@ -385,38 +393,38 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     }
 
     protected Set<String> getConfigFiles() {
-      return workflow.configPaths();
+      return getWorkflow().configPaths();
     }
 
     protected Glob getOriginFiles() {
-      return workflow.getOriginFiles();
+      return getWorkflow().getOriginFiles();
     }
 
     protected Glob getDestinationFiles() {
-      return workflow.getDestinationFiles();
+      return getWorkflow().getDestinationFiles();
     }
 
     protected Transformation getTransformation() {
-      return workflow.getTransformation();
+      return getWorkflow().getTransformation();
     }
 
     @Nullable
     protected Transformation getReverseTransformForCheck() {
-      return workflow.getReverseTransformForCheck();
+      return getWorkflow().getReverseTransformForCheck();
     }
 
     protected Glob getReversibleCheckIgnoreFiles() {
-      return workflow.getReversibleCheckIgnoreFiles();
+      return getWorkflow().getReversibleCheckIgnoreFiles();
     }
 
     public final Profiler profiler() {
-      return workflow.profiler();
+      return getWorkflow().profiler();
     }
 
     // provide the correct context reference when the --same-version flag is used
     private O getResolvedRefForTransform(O rev) {
-      if (workflow.getMode() == WorkflowMode.SQUASH
-          && workflow.getWorkflowOptions().importSameVersion) {
+      if (getWorkflow().getMode() == WorkflowMode.SQUASH
+          && getWorkflow().getWorkflowOptions().importSameVersion) {
         return rev;
       }
       return resolvedRef;
@@ -451,8 +459,9 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       ImmutableList<DestinationEffect> effects = ImmutableList.of();
       Exception lastException = null;
       try {
-        workflow.eventMonitors().dispatchEvent(
-            m -> m.onChangeMigrationStarted(new ChangeMigrationStartedEvent()));
+        getWorkflow()
+            .eventMonitors()
+            .dispatchEvent(m -> m.onChangeMigrationStarted(new ChangeMigrationStartedEvent()));
         effects =
             doMigrate(
                 rev,
@@ -515,14 +524,18 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         throw e;
       } finally {
         try {
-          if (!workflow.getGeneralOptions().dryRunMode) {
+          if (!getWorkflow().getGeneralOptions().dryRunMode) {
             try (ProfilerTask ignored = profiler().start("after_migration")) {
-              effects = workflow.runHooks(effects, workflow.getAfterMigrationActions(),
-                  // Only do this once for all the actions
-                  LazyResourceLoader.memoized(reader::getFeedbackEndPoint),
-                  // Only do this once for all the actions
-                  LazyResourceLoader.memoized(writer::getFeedbackEndPoint),
-                  resolvedRef);
+              effects =
+                  getWorkflow()
+                      .runHooks(
+                          effects,
+                          getWorkflow().getAfterMigrationActions(),
+                          // Only do this once for all the actions
+                          LazyResourceLoader.memoized(reader::getFeedbackEndPoint),
+                          // Only do this once for all the actions
+                          LazyResourceLoader.memoized(writer::getFeedbackEndPoint),
+                          resolvedRef);
             } catch (ValidationException | RepoException e) {
               if (lastException != null) {
                 lastException.addSuppressed(e);
@@ -530,15 +543,19 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                 throw e;
               }
             }
-          } else if (!workflow.getAfterMigrationActions().isEmpty()) {
-            workflow.getConsole()
+          } else if (!getWorkflow().getAfterMigrationActions().isEmpty()) {
+            getWorkflow()
+                .getConsole()
                 .infoFmt(
                     "Not calling 'after_migration' actions because of %s mode",
                     GeneralOptions.DRY_RUN_FLAG);
           }
         } finally {
-          migrationFinishedMonitor.accept(new ChangeMigrationFinishedEvent(effects,
-              workflow.getOriginDescription(), workflow.getDestinationDescription()));
+          migrationFinishedMonitor.accept(
+              new ChangeMigrationFinishedEvent(
+                  effects,
+                  getWorkflow().getOriginDescription(),
+                  getWorkflow().getDestinationDescription()));
         }
       }
       return effects;
@@ -550,26 +567,30 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
      * @param effects The destination effect of the migration
      */
     final void finishedMigrate(ImmutableList<DestinationEffect> effects) {
-      workflow.eventMonitors().dispatchEvent(
-          m -> m.onChangeMigrationStarted(new ChangeMigrationStartedEvent()));
-      migrationFinishedMonitor.accept(new ChangeMigrationFinishedEvent(effects,
-          workflow.getOriginDescription(), workflow.getDestinationDescription()));
+      getWorkflow()
+          .eventMonitors()
+          .dispatchEvent(m -> m.onChangeMigrationStarted(new ChangeMigrationStartedEvent()));
+      migrationFinishedMonitor.accept(
+          new ChangeMigrationFinishedEvent(
+              effects,
+              getWorkflow().getOriginDescription(),
+              getWorkflow().getDestinationDescription()));
     }
 
     private boolean showDiffInOrigin(O rev, @Nullable O lastRev, Console processConsole)
         throws RepoException, ValidationException {
-      if (!workflow.getWorkflowOptions().diffInOrigin
-          || workflow.getMode() == WorkflowMode.CHANGE_REQUEST
-          || workflow.getMode() == WorkflowMode.CHANGE_REQUEST_FROM_SOT
+      if (!getWorkflow().getWorkflowOptions().diffInOrigin
+          || getWorkflow().getMode() == WorkflowMode.CHANGE_REQUEST
+          || getWorkflow().getMode() == WorkflowMode.CHANGE_REQUEST_FROM_SOT
           || lastRev == null) {
         return false;
       }
-      String diff = workflow.getOrigin().showDiff(lastRev, rev);
+      String diff = getWorkflow().getOrigin().showDiff(lastRev, rev);
       if (diff == null) {
-        throw new ValidationException("diff_in_origin is not supported by origin "
-            + workflow.getOrigin().getType());
+        throw new ValidationException(
+            "diff_in_origin is not supported by origin " + getWorkflow().getOrigin().getType());
       }
-      if (diff.isEmpty() && !workflow.getGeneralOptions().force) {
+      if (diff.isEmpty() && !getWorkflow().getGeneralOptions().force) {
         throw new EmptyChangeException("No difference at diff_in_origin");
       }
       StringBuilder sb = new StringBuilder();
@@ -584,8 +605,10 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         }
       }
       processConsole.info(sb.toString());
-      if (!processConsole.promptConfirmation(String.format("Continue to migrate with '%s' to "
-          + "%s?", workflow.getMode(), workflow.getDestination().getType()))) {
+      if (!processConsole.promptConfirmation(
+          String.format(
+              "Continue to migrate with '%s' to " + "%s?",
+              getWorkflow().getMode(), getWorkflow().getDestination().getType()))) {
         processConsole.warn("Migration aborted by user.");
         throw new ChangeRejectedException(
             "User aborted execution: did not confirm diff in origin changes.");
@@ -617,7 +640,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       checkout(rev, processConsole, checkoutDir, "origin.checkout");
 
       Path originCopy = null;
-      Console console = workflow.getConsole();
+      Console console = getWorkflow().getConsole();
       if (getReverseTransformForCheck() != null) {
         try (ProfilerTask ignored = profiler().start("reverse_copy")) {
           console.progress("Making a copy or the workdir for reverse checking");
@@ -632,7 +655,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
           writer.getDestinationReader(console, destinationBaseline, checkoutDir);
       metadata =
           metadata.withHiddenLabels(
-              workflow.getGeneralOptions().cliLabels().entrySet().stream()
+              getWorkflow().getGeneralOptions().cliLabels().entrySet().stream()
                   .collect(
                       toImmutableListMultimap(
                           e -> GeneralOptions.CLI_FLAG_PREFIX + Ascii.toUpperCase(e.getKey()),
@@ -643,24 +666,24 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                   metadata,
                   changes,
                   console,
-                  new MigrationInfo(workflow.getRevIdLabel(), writer),
+                  new MigrationInfo(getWorkflow().getRevIdLabel(), writer),
                   getResolvedRefForTransform(rev),
                   originApi,
                   destinationApi,
                   destinationReader,
-                  workflow.getMode().toString())
+                  getWorkflow().getMode().toString())
               .withLastRev(lastRev)
               .withCurrentRev(rev)
               .withDestinationInfo(writer.getDestinationInfo());
-      transformWork.addLabel(COPYBARA_CONFIG_PATH_LABEL,
-          workflow.getMainConfigFile().getIdentifier(), "=", true);
-      transformWork.addLabel(COPYBARA_WORKFLOW_NAME_LABEL, workflow.getName(), "=", true);
+      transformWork.addLabel(
+          COPYBARA_CONFIG_PATH_LABEL, getWorkflow().getMainConfigFile().getIdentifier(), "=", true);
+      transformWork.addLabel(COPYBARA_WORKFLOW_NAME_LABEL, getWorkflow().getName(), "=", true);
 
       try (ProfilerTask ignored = profiler().start("transforms")) {
         TransformationStatus status = getTransformation().transform(transformWork);
         if (status.isNoop()) {
           showInfoAboutNoop(console);
-          status.throwException(console, workflow.getWorkflowOptions().ignoreNoop);
+          status.throwException(console, getWorkflow().getWorkflowOptions().ignoreNoop);
         }
       } catch (VoidOperationException e) {
         // This happens if an inner sequence throws noop as an exception.
@@ -690,12 +713,12 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                               destinationApi,
                               originApi,
                               () -> DestinationReader.NOT_IMPLEMENTED,
-                              workflow.getMode().toString())
+                              getWorkflow().getMode().toString())
                           .withDestinationInfo(writer.getDestinationInfo()));
           if (status.isNoop()) {
             console.warnFmt("No-op detected running the transformations in reverse. The most"
                 + " probably cause is that the transformations are not reversible.");
-            status.throwException(console, workflow.getWorkflowOptions().ignoreNoop);
+            status.throwException(console, getWorkflow().getWorkflowOptions().ignoreNoop);
           }
         }
         String diff;
@@ -704,8 +727,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               DiffUtil.diff(
                   originCopy,
                   reverse,
-                  workflow.isVerbose(),
-                  workflow.getGeneralOptions().getEnvironment());
+                  getWorkflow().isVerbose(),
+                  getWorkflow().getGeneralOptions().getEnvironment());
 
           // This should be more optimal than parsing a potential huge diff file.
           if (getReversibleCheckIgnoreFiles() != null) {
@@ -731,7 +754,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               + " be deactivated by setting core.workflow(..., reversible_check = False)"
               + " field.", DiffUtil.colorize(console, diff));
           throw new ValidationException(
-              String.format("Workflow '%s' is not reversible", workflow.getName()));
+              String.format("Workflow '%s' is not reversible", getWorkflow().getName()));
         }
       }
 
@@ -748,16 +771,16 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                   transformWork.getAuthor(),
                   transformWork.getMessage(),
                   /* requestedRevision= */ getResolvedRefForTransform(rev),
-                  workflow.getName(),
+                  getWorkflow().getName(),
                   changes,
                   rawSourceRef,
-                  workflow.isSetRevId(),
+                  getWorkflow().isSetRevId(),
                   transformWork::getAllLabels,
-                  workflow.getRevIdLabel())
+                  getWorkflow().getRevIdLabel())
               .withDestinationInfo(transformWork.getDestinationInfo());
 
       ImmutableList<String> mergeErrorPaths = null;
-      if (workflow.isMergeImport()) {
+      if (getWorkflow().isMergeImport()) {
         mergeErrorPaths =
             runMergeImport(
                 console,
@@ -780,28 +803,28 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       }
       if (mergeErrorPaths == null) {
         mergeErrorPaths = ImmutableList.of();
-        if (workflow.getConsistencyFilePath() != null) {
+        if (getWorkflow().getConsistencyFilePath() != null) {
           boolean excludeBuildFiles = false;
-          if (workflow.getConsistencyFileConfig() != null) {
-            excludeBuildFiles = workflow.getConsistencyFileConfig().excludeBuildFiles();
+          if (getWorkflow().getConsistencyFileConfig() != null) {
+            excludeBuildFiles = getWorkflow().getConsistencyFileConfig().excludeBuildFiles();
           }
           byte[] consistencyFileContents =
               ConsistencyFile.generateNoDiff(
                       checkoutDir,
-                      workflow.getDestination().getHashFunction(),
-                      workflow.getMainConfigFile().getIdentifier(),
-                      workflow.getName(),
+                      getWorkflow().getDestination().getHashFunction(),
+                      getWorkflow().getMainConfigFile().getIdentifier(),
+                      getWorkflow().getName(),
                       excludeBuildFiles)
                   .toBytes();
           Files.createDirectories(
-              checkoutDir.resolve(workflow.getConsistencyFilePath()).getParent());
+              checkoutDir.resolve(getWorkflow().getConsistencyFilePath()).getParent());
           Files.write(
-              checkoutDir.resolve(workflow.getConsistencyFilePath()), consistencyFileContents);
+              checkoutDir.resolve(getWorkflow().getConsistencyFilePath()), consistencyFileContents);
         }
       }
       if (destinationBaseline != null) {
         transformResult = transformResult.withBaseline(destinationBaseline.getBaseline());
-        if (workflow.isSmartPrune() && workflow.getWorkflowOptions().canUseSmartPrune()) {
+        if (getWorkflow().isSmartPrune() && getWorkflow().getWorkflowOptions().canUseSmartPrune()) {
           checkCondition(
               destinationBaseline.getOriginRevision() != null,
               "smart_prune is not compatible with %s flag for now",
@@ -817,9 +840,12 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                   destinationApi,
                   destinationReader);
           try {
-            ImmutableList<DiffFile> affectedFiles = DiffUtil
-                .diffFiles(baselineWorkdir, checkoutDir, workflow.getGeneralOptions().isVerbose(),
-                    workflow.getGeneralOptions().getEnvironment());
+            ImmutableList<DiffFile> affectedFiles =
+                DiffUtil.diffFiles(
+                    baselineWorkdir,
+                    checkoutDir,
+                    getWorkflow().getGeneralOptions().isVerbose(),
+                    getWorkflow().getGeneralOptions().getEnvironment());
             transformResult = transformResult.withAffectedFilesForSmartPrune(affectedFiles);
           } catch (InsideGitDirException e) {
             throw new ValidationException("Error computing diff for smart_prune: " + e.getMessage(),
@@ -829,14 +855,18 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       }
       transformResult =
           transformResult
-              .withAskForConfirmation(workflow.isAskForConfirmation())
+              .withAskForConfirmation(getWorkflow().isAskForConfirmation())
               .withDiffInOrigin(isShowDiffInOrigin)
-              .withIdentity(workflow.getMigrationIdentity(changeIdentityRevision, transformWork))
-              .withApprovalsProvider(workflow.getOrigin().getApprovalsProvider());
+              .withIdentity(
+                  getWorkflow().getMigrationIdentity(changeIdentityRevision, transformWork))
+              .withApprovalsProvider(getWorkflow().getOrigin().getApprovalsProvider());
 
       ImmutableList<DestinationEffect> result;
-      try (ProfilerTask ignored = profiler().start(
-          "destination.write", profiler().taskType(workflow.getDestination().getType()))) {
+      try (ProfilerTask ignored =
+          profiler()
+              .start(
+                  "destination.write",
+                  profiler().taskType(getWorkflow().getDestination().getType()))) {
         result = writer.write(transformResult, getDestinationFiles(), processConsole);
       }
       Verify.verifyNotNull(result, "Destination returned a null result.");
@@ -879,26 +909,27 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       DestinationReader reader = writer.getDestinationReader(console, destinationBaseline,
           checkoutDir);
       // get a glob excluding any patch files
-      Glob patchlessDestinationFiles = patchlessDestinationFiles(workflow);
+      Glob patchlessDestinationFiles = patchlessDestinationFiles(getWorkflow());
 
       Path destinationFilesWorkdir = Files.createDirectories(workdir.resolve("destination"));
       reader.copyDestinationFilesToDirectory(
           patchlessDestinationFiles, destinationFilesWorkdir);
 
       Path baselineWorkdir = null;
-      if (workflow.getMergeImport().useConsistencyFile()
-          && !workflow.disableConsistencyMergeImport()) {
+      if (getWorkflow().getMergeImport().useConsistencyFile()
+          && !getWorkflow().disableConsistencyMergeImport()) {
         // If there is a consistency file, then use it.
         // Otherwise, fall back to baseline import.
         Path consistencyFileWorkdir =
             Files.createDirectories(workdir.resolve("currentConsistencyFile"));
         reader.copyDestinationFilesToDirectory(
-            consistencyFileGlob(workflow), consistencyFileWorkdir);
+            consistencyFileGlob(getWorkflow()), consistencyFileWorkdir);
 
-        if (reader.exists(workflow.getConsistencyFilePath())) {
+        if (reader.exists(getWorkflow().getConsistencyFilePath())) {
           try {
             @Nullable
-            String consistencyFileVersion = reader.lastModified(workflow.getConsistencyFilePath());
+            String consistencyFileVersion =
+                reader.lastModified(getWorkflow().getConsistencyFilePath());
             DestinationReader consistencyFileVersionReader = reader;
             if (consistencyFileVersion != null) {
               consistencyFileVersionReader =
@@ -953,29 +984,29 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
           CopySymlinkStrategy.IGNORE_INVALID_SYMLINKS,
           Glob.ALL_FILES);
       Pattern debugPattern =
-          workflow.getWorkflowOptions().debugMergeImport != null
-              ? Pattern.compile(workflow.getWorkflowOptions().debugMergeImport)
+          getWorkflow().getWorkflowOptions().debugMergeImport != null
+              ? Pattern.compile(getWorkflow().getWorkflowOptions().debugMergeImport)
               : null;
       MergeRunner mergeRunner =
           new CommandLineDiffUtil(
-              workflow.getGeneralOptions().getDiffBin(),
-              workflow.getGeneralOptions().getEnvironment(),
+              getWorkflow().getGeneralOptions().getDiffBin(),
+              getWorkflow().getGeneralOptions().getEnvironment(),
               debugPattern);
-      if (workflow.getGeneralOptions().isTemporaryFeature("use_patch_merge", false)
-          || workflow.getMergeImport().mergeStrategy()
+      if (getWorkflow().getGeneralOptions().isTemporaryFeature("use_patch_merge", false)
+          || getWorkflow().getMergeImport().mergeStrategy()
               == MergeImportConfiguration.MergeStrategy.PATCH_MERGE) {
         mergeRunner =
             new ApplyDestinationPatch(
                 console,
-                workflow.getGeneralOptions().patchBin,
-                workflow.getGeneralOptions().getEnvironment());
+                getWorkflow().getGeneralOptions().patchBin,
+                getWorkflow().getGeneralOptions().getEnvironment());
       }
 
       MergeImportTool mergeImportTool =
           new MergeImportTool(
               console,
               mergeRunner,
-              workflow.getWorkflowOptions().threadsForMergeImport,
+              getWorkflow().getWorkflowOptions().threadsForMergeImport,
               debugPattern);
       ImmutableList<String> mergeErrorPaths;
       try (ProfilerTask ignored = profiler().start("merge_tool")) {
@@ -985,30 +1016,30 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                 destinationFilesWorkdir,
                 baselineWorkdir,
                 Files.createDirectories(workdir.resolve("merge_import")),
-                workflow.getMergeImport().paths(),
-                Path.of(workflow.getMergeImport().packagePath()));
+                getWorkflow().getMergeImport().paths(),
+                Path.of(getWorkflow().getMergeImport().packagePath()));
       }
       try (ProfilerTask ignore = profiler().start("after_merge_transformations")) {
-        workflow.afterMergeTransformations.transform(transformWork);
+        getWorkflow().afterMergeTransformations.transform(transformWork);
       }
 
       Optional<byte[]> consistencyFile = Optional.empty();
-      if (workflow.isConsistencyFileMergeImport()) {
+      if (getWorkflow().isConsistencyFileMergeImport()) {
         try {
           boolean excludeBuildFiles = false;
-          if (workflow.getConsistencyFileConfig() != null) {
-            excludeBuildFiles = workflow.getConsistencyFileConfig().excludeBuildFiles();
+          if (getWorkflow().getConsistencyFileConfig() != null) {
+            excludeBuildFiles = getWorkflow().getConsistencyFileConfig().excludeBuildFiles();
           }
           consistencyFile =
               Optional.of(
                   ConsistencyFile.generate(
                           preMergeImportWorkdir,
                           checkoutDir,
-                          workflow.getDestination().getHashFunction(),
-                          workflow.getGeneralOptions().getEnvironment(),
-                          workflow.isVerbose(),
-                          workflow.getMainConfigFile().getIdentifier(),
-                          workflow.getName(),
+                          getWorkflow().getDestination().getHashFunction(),
+                          getWorkflow().getGeneralOptions().getEnvironment(),
+                          getWorkflow().isVerbose(),
+                          getWorkflow().getMainConfigFile().getIdentifier(),
+                          getWorkflow().getName(),
                           excludeBuildFiles)
                       .toBytes());
         } catch (InsideGitDirException e) {
@@ -1016,21 +1047,21 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         }
       }
 
-      if (workflow.getAutoPatchfileConfiguration() != null) {
+      if (getWorkflow().getAutoPatchfileConfiguration() != null) {
         try {
           AutoPatchUtil.generatePatchFiles(
               preMergeImportWorkdir == null ? baselineWorkdir : preMergeImportWorkdir,
               preMergeImportWorkdir == null ? destinationFilesWorkdir : checkoutDir,
-              Path.of(workflow.getAutoPatchfileConfiguration().directoryPrefix()),
-              workflow.getAutoPatchfileConfiguration().directory(),
-              workflow.isVerbose(),
-              workflow.getGeneralOptions().getEnvironment(),
-              workflow.getAutoPatchfileConfiguration().header(),
-              workflow.getAutoPatchfileConfiguration().suffix(),
+              Path.of(getWorkflow().getAutoPatchfileConfiguration().directoryPrefix()),
+              getWorkflow().getAutoPatchfileConfiguration().directory(),
+              getWorkflow().isVerbose(),
+              getWorkflow().getGeneralOptions().getEnvironment(),
+              getWorkflow().getAutoPatchfileConfiguration().header(),
+              getWorkflow().getAutoPatchfileConfiguration().suffix(),
               checkoutDir,
-              workflow.getAutoPatchfileConfiguration().stripFilenames(),
-              workflow.getAutoPatchfileConfiguration().stripLineNumbers(),
-              workflow.getAutoPatchfileConfiguration().glob());
+              getWorkflow().getAutoPatchfileConfiguration().stripFilenames(),
+              getWorkflow().getAutoPatchfileConfiguration().stripLineNumbers(),
+              getWorkflow().getAutoPatchfileConfiguration().glob());
         } catch (InsideGitDirException e) {
           console.errorFmt(
               "Could not automatically generate patch files. Error received is %s", e.getMessage());
@@ -1039,9 +1070,11 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       }
       // Write the ConsistencyFile after auto patches are generated so that it does not get
       // included in the auto patches.
-      if (workflow.getConsistencyFilePath() != null && consistencyFile.isPresent()) {
-        Files.createDirectories(checkoutDir.resolve(workflow.getConsistencyFilePath()).getParent());
-        Files.write(checkoutDir.resolve(workflow.getConsistencyFilePath()), consistencyFile.get());
+      if (getWorkflow().getConsistencyFilePath() != null && consistencyFile.isPresent()) {
+        Files.createDirectories(
+            checkoutDir.resolve(getWorkflow().getConsistencyFilePath()).getParent());
+        Files.write(
+            checkoutDir.resolve(getWorkflow().getConsistencyFilePath()), consistencyFile.get());
       }
       return mergeErrorPaths;
     }
@@ -1071,10 +1104,12 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     private Path checkoutConsistencyFileBaseline(DestinationReader reader)
         throws ValidationException, IOException, RepoException {
       Path consistencyFileWorkdir = Files.createDirectories(workdir.resolve("consistencyFile"));
-      Path consistencyFilePath = consistencyFileWorkdir.resolve(workflow.getConsistencyFilePath());
+      Path consistencyFilePath =
+          consistencyFileWorkdir.resolve(getWorkflow().getConsistencyFilePath());
 
       // copy the consistency file somewhere so we can parse it
-      reader.copyDestinationFilesToDirectory(consistencyFileGlob(workflow), consistencyFileWorkdir);
+      reader.copyDestinationFilesToDirectory(
+          consistencyFileGlob(getWorkflow()), consistencyFileWorkdir);
       ConsistencyFile consistencyFile =
           ConsistencyFile.fromBytes(Files.readAllBytes(consistencyFilePath));
 
@@ -1088,7 +1123,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       if (reader.supportsGetHash()) {
         hashGetter = reader::getHash;
       } else {
-        var hashFunction = workflow.getDestination().getHashFunction();
+        var hashFunction = getWorkflow().getDestination().getHashFunction();
         hashGetter = (String path) -> {
           return MoreFiles.asByteSource(baselineWorkdir.resolve(path)).hash(hashFunction).toString();
         };
@@ -1096,7 +1131,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       consistencyFile.validateDirectory(
           ConsistencyFile.filesInDir(baselineWorkdir), hashGetter);
       consistencyFile.reversePatches(
-          baselineWorkdir, workflow.getGeneralOptions().getEnvironment());
+          baselineWorkdir, getWorkflow().getGeneralOptions().getEnvironment());
 
       return baselineWorkdir;
     }
@@ -1125,12 +1160,12 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                   // We don't care about the changes that are imported.
                   Changes.EMPTY,
                   baselineConsole,
-                  new MigrationInfo(workflow.getRevIdLabel(), writer),
+                  new MigrationInfo(getWorkflow().getRevIdLabel(), writer),
                   resolvedRef,
                   originApi,
                   destinationApi,
                   destinationReader,
-                  workflow.getMode().toString())
+                  getWorkflow().getMode().toString())
               // Again, we don't care about this
               .withLastRev(lastRev)
               .withCurrentRev(baseline)
@@ -1141,17 +1176,18 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
             // no-op baseline transformations are OK for smart prune - smart prune works by
             // comparing file contents with DiffUtil, meaning it is OK if the file paths are not
             // exactly as expected (because a core.move()) transformation didn't run
-            && !workflow.isSmartPrune()) {
+            && !getWorkflow().isSmartPrune()) {
           console.warnFmt("No-op detected in baseline transformations");
           showInfoAboutNoop(console);
-          status.throwException(console, workflow.getWorkflowOptions().ignoreNoop);
+          status.throwException(console, getWorkflow().getWorkflowOptions().ignoreNoop);
         }
       }
       return baselineWorkdir;
     }
 
     private void showInfoAboutNoop(Console console) {
-      console.warnFmt("No-op detected, this could happen for several reasons:\n\n"
+      console.warnFmt(
+          "No-op detected, this could happen for several reasons:\n\n"
               + "    - origin_files doesn't include the files. Current origin_files: %s\n\n"
               + "    - Previous transformations didn't do what you were expecting. You can"
               + " inspect the work directory state (if run locally) at %s\n\n"
@@ -1161,9 +1197,10 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               + " so that it is ignored or, if your origin supports it, using"
               + " %s flag to sync the config version to the change"
               + " being migrated.",
-          console.colorize(AnsiColor.YELLOW, workflow.getOriginFiles().toString()),
+          console.colorize(AnsiColor.YELLOW, getWorkflow().getOriginFiles().toString()),
           console.colorize(AnsiColor.YELLOW, workdir.toString()),
-          console.colorize(AnsiColor.YELLOW,
+          console.colorize(
+              AnsiColor.YELLOW,
               "core.transform([your_transformation], noop_behavior = \"IGNORE_NOOP\")"),
           console.colorize(AnsiColor.YELLOW, "--read-config-from-change"));
     }
@@ -1171,9 +1208,11 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     private void checkout(
         O rev, Console processConsole, Path checkoutDir, String profileDescription)
         throws RepoException, ValidationException, IOException {
-      if (workflow.isCheckout()) {
-        try (ProfilerTask ignored = profiler().start(
-            profileDescription, profiler().taskType(workflow.getOrigin().getType()))) {
+      if (getWorkflow().isCheckout()) {
+        try (ProfilerTask ignored =
+            profiler()
+                .start(
+                    profileDescription, profiler().taskType(getWorkflow().getOrigin().getType()))) {
           reader.checkout(rev, checkoutDir);
         }
       }

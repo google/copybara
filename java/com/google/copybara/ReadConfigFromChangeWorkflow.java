@@ -34,10 +34,8 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
 import com.google.copybara.revision.Change;
 import com.google.copybara.revision.Revision;
-import com.google.copybara.util.Glob;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
@@ -209,34 +207,8 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
     }
 
     @Override
-    protected Set<String> getConfigFiles() {
-      return changeWorkflow.configPaths();
-    }
-
-    @Override
-    protected Glob getOriginFiles() {
-      return changeWorkflow.getOriginFiles();
-    }
-
-    @Override
-    protected Glob getDestinationFiles() {
-      return changeWorkflow.getDestinationFiles();
-    }
-
-    @Override
-    protected Transformation getTransformation() {
-      return changeWorkflow.getTransformation();
-    }
-
-    @Override
-    @Nullable
-    protected Transformation getReverseTransformForCheck() {
-      return changeWorkflow.getReverseTransformForCheck();
-    }
-
-    @Override
-    protected Glob getReversibleCheckIgnoreFiles() {
-      return changeWorkflow.getReversibleCheckIgnoreFiles();
+    protected Workflow<O, D> getWorkflow() {
+      return changeWorkflow;
     }
 
   }
