@@ -57,13 +57,13 @@ public final class ReadablePathMatcher implements PathMatcher {
     String root = path.normalize().toString();
     String separator = fs.getSeparator();
 
-    if (!root.endsWith(separator)) {
+    if (!root.isEmpty() && !root.endsWith(separator)) {
       root += separator;
     }
 
     // If the current filesystem uses a backslash as the separator, the root must be escaped
     // first to be valid glob syntax since backslash is considered an escaping character.
-    if ("\\".equals(separator)) {
+    if (separator.equals("\\")) {
       root = root.replace("\\", "\\\\");
       glob = glob.replace("/", "\\\\");
     }

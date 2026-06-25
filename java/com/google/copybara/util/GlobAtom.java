@@ -89,6 +89,9 @@ public final class GlobAtom {
   public static Path getRelativePath(Path root, String filePath) {
     FileSystem fs = root.getFileSystem();
     String rootStr = root.normalize().toString();
+    if (rootStr.isEmpty()) {
+      return fs.getPath(filePath);
+    }
     String separator = fs.getSeparator();
 
     if (!rootStr.endsWith(separator)) {
@@ -103,10 +106,9 @@ public final class GlobAtom {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof GlobAtom)) {
+    if (!(o instanceof GlobAtom that)) {
       return false;
     }
-    GlobAtom that = (GlobAtom) o;
     return Objects.equals(type, that.type) && Objects.equals(pattern, that.pattern);
   }
 
@@ -185,15 +187,11 @@ public final class GlobAtom {
       int c = 0;
       while (c < pathComponent.length()) {
         switch (pathComponent.charAt(c)) {
-          case '*':
-          case '{':
-          case '[':
-          case '?':
+          case '*', '{', '[', '?' -> {
             return true;
-          case '\\':
-            c++;
-            break;
-          default: // fall out
+          }
+          case '\\' -> c++;
+          default -> {}
         }
         c++;
       }
@@ -233,10 +231,9 @@ public final class GlobAtom {
       if (this == o) {
         return true;
       }
-      if (!(o instanceof Root)) {
+      if (!(o instanceof Root that)) {
         return false;
       }
-      Root that = (Root) o;
       return Objects.equals(root, that.root)
           && isRecursive == that.isRecursive;
     }

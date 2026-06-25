@@ -24,8 +24,8 @@ import com.google.copybara.ChangeVisitable.VisitResult;
 import com.google.copybara.Destination.DestinationStatus;
 import com.google.copybara.revision.Change;
 import com.google.copybara.revision.Revision;
+import java.nio.file.Path;
 import java.nio.file.PathMatcher;
-import java.nio.file.Paths;
 import javax.annotation.Nullable;
 
 /**
@@ -50,7 +50,7 @@ public class DestinationStatusVisitor implements ChangesVisitor {
     if (changeFiles != null) {
       if (change.getLabels().containsKey(labelName)) {
         for (String file : changeFiles) {
-          if (pathMatcher.matches(Paths.get('/' + file))) {
+          if (pathMatcher.matches(Path.of(file))) {
             String lastRev = Iterables.getLast(change.getLabels().get(labelName));
             destinationStatus = new DestinationStatus(lastRev, ImmutableList.of());
             return VisitResult.TERMINATE;

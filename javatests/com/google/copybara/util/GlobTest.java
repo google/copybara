@@ -304,11 +304,14 @@ public class GlobTest {
   @Test
   public void testWithDirs()
       throws IOException, ValidationException, RepoException {
-    PathMatcher pathMatcher = createPathMatcher("""
-        glob(
-          include = ['**/*.java'],
-          exclude = ['**/Generated*.java']
-        )""");
+    PathMatcher pathMatcher =
+        createPathMatcher(
+            """
+            glob(
+              include = ['**/*.java'],
+              exclude = ['**/Generated*.java']
+            )\
+            """);
     assertThat(pathMatcher.matches(workdir.resolve("foo/Some.java"))).isTrue();
     assertThat(pathMatcher.matches(workdir.resolve("foo/GeneratedSome.java"))).isFalse();
     // Doesn't match because '**/' matches when there is already one directory segment.
@@ -430,6 +433,15 @@ public class GlobTest {
         .isEqualTo(createPathMatcher("glob(['foo/**'], exclude=['bar/**'])"));
   }
 
+  @Test
+  public void emptyRootTest() throws Exception {
+    Glob glob = parseGlob("glob(['foo/**'])");
+    PathMatcher matcher = glob.relativeTo(Path.of(""));
+    assertThat(matcher.matches(Path.of("foo/bar"))).isTrue();
+    assertThat(matcher.matches(Path.of("bar/baz"))).isFalse();
+    assertThat(matcher.matches(Path.of("/foo/bar"))).isFalse();
+  }
+
   private PathMatcher createPathMatcher(String expression)
       throws ValidationException {
     return parseGlob(expression).relativeTo(workdir);
@@ -438,10 +450,10 @@ public class GlobTest {
   private Glob parseGlob(String expression) throws ValidationException {
     Glob glob = skylark.eval("result", "result=" + expression);
     System.err.println("---------->" + expression + "<---------");
-    System.err.println("---------->" + glob.toString() + "<---------");
+    System.err.println("---------->" + glob + "<---------");
     // Check toString implementation is a valid glob
     assertWithMessage("Non-equal result for %s / %s", expression, glob)
-        .that(skylark.<Glob>eval("result", "result=" + glob.toString()))
+        .that(skylark.<Glob>eval("result", "result=" + glob))
         .isEqualTo(glob);
     return glob;
   }

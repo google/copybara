@@ -35,7 +35,6 @@ import java.io.OutputStream;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashSet;
@@ -112,10 +111,7 @@ public final class MergeImportTool {
             Path baselineFile = baselineWorkdir.resolve(relativeFile);
             Path destinationFile = destinationWorkdir.resolve(relativeFile);
             Path relativizedFile = packagePath.relativize(relativeFile);
-            boolean match =
-                matcher
-                    .relativeTo(Paths.get(""))
-                    .matches(Path.of("/".concat(relativizedFile.toString())));
+            boolean match = matcher.relativeTo(Path.of("")).matches(relativizedFile);
 
             // All 3 files must be present to merge
             if (!Files.exists(destinationFile) || !Files.exists(baselineFile) || !match) {
@@ -188,8 +184,7 @@ public final class MergeImportTool {
     }
     Files.walkFileTree(destinationWorkdir, destinationWorkdirFileVisitor);
     if (!mergeErrorPaths.isEmpty()) {
-      mergeErrorPaths.forEach(
-          path -> console.warn(String.format("Merge error for path %s", path.toString())));
+      mergeErrorPaths.forEach(path -> console.warn(String.format("Merge error for path %s", path)));
     }
     if (!troublePaths.isEmpty()) {
       troublePaths.forEach(
