@@ -38,6 +38,8 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.isNull;
+import static com.google.common.collect.ImmutableList.toImmutableList;
+import static com.google.common.collect.Streams.stream;
 import static org.mockito.Mockito.when;
 
 import com.google.common.base.Joiner;
@@ -64,7 +66,6 @@ import com.google.copybara.config.MapConfigFile;
 import com.google.copybara.config.Migration;
 import com.google.copybara.config.PathBasedConfigFile;
 import com.google.copybara.effect.DestinationEffect;
-import com.google.copybara.effect.DestinationEffect.Type;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.ChangeRejectedException;
 import com.google.copybara.exception.EmptyChangeException;
@@ -107,8 +108,8 @@ import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
-import java.nio.file.Paths;
 import java.time.Instant;
+import java.time.InstantSource;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -118,8 +119,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
@@ -240,7 +239,7 @@ public class WorkflowTest {
   }
 
   protected Workflow<?, ?> workflow() throws ValidationException, IOException {
-    origin.addSimpleChange(/*timestamp*/ 42);
+    origin.addSimpleChange(/* timestamp= */ 42);
     return skylarkWorkflow("default", SQUASH);
   }
 
@@ -295,7 +294,7 @@ public class WorkflowTest {
                 (smartPrune ? "True" : "False"),
                 mergeImport,
                 consistencyFilePath,
-                (!afterMigration.equals("") ? "    after_migration = " + afterMigration + "," : ""),
+                (!afterMigration.isEmpty() ? "    after_migration = " + afterMigration + "," : ""),
                 (afterMergeTransformations != null
                     ? "after_merge_transformations = " + afterMergeTransformations + ","
                     : ""),
@@ -406,7 +405,7 @@ public class WorkflowTest {
 
   @Test
   public void squashWorkflowTestRecordContextReference() throws Exception {
-    origin.addSimpleChange(/*timestamp*/ 1);
+    origin.addSimpleChange(/* timestamp= */ 1);
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = workflow();
     workflow.run(workdir, ImmutableList.of("HEAD"));
@@ -416,7 +415,7 @@ public class WorkflowTest {
 
   @Test
   public void squashWorkflowPublishesEvents() throws Exception {
-    origin.addSimpleChange(/*timestamp*/ 1);
+    origin.addSimpleChange(/* timestamp= */ 1);
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = workflow();
     workflow.run(workdir, ImmutableList.of("HEAD"));
@@ -529,7 +528,7 @@ public class WorkflowTest {
 
   @Test
   public void contextReferenceAsLabel() throws Exception {
-    origin.addSimpleChange(/*timestamp*/ 1);
+    origin.addSimpleChange(/* timestamp= */ 1);
     transformations = ImmutableList.of(
         "metadata.add_header('Import of ${" + COPYBARA_CONTEXT_REFERENCE_LABEL + "}\\n')",
         "metadata.expose_label('" + COPYBARA_CONTEXT_REFERENCE_LABEL + "')"
@@ -567,7 +566,7 @@ public class WorkflowTest {
 
   @Test
   public void configDetailsAsLabel() throws Exception {
-    origin.addSimpleChange(/*timestamp*/ 1);
+    origin.addSimpleChange(/* timestamp= */ 1);
     transformations = ImmutableList.of(
         "metadata.add_header('Import of ${" + COPYBARA_CONFIG_PATH_LABEL + "}\\n')",
         "metadata.expose_label('" + COPYBARA_WORKFLOW_NAME_LABEL + "')"
@@ -585,14 +584,14 @@ public class WorkflowTest {
 
   @Test
   public void squashReadsLatestAffectedChangeInRoot() throws Exception {
-    origin.addSimpleChange(/*timestamp*/ 1);
+    origin.addSimpleChange(/* timestamp= */ 1);
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = workflow();
     workflow.run(workdir, ImmutableList.of("HEAD"));
-    origin.addSimpleChange(/*timestamp*/ 2);
+    origin.addSimpleChange(/* timestamp= */ 2);
     DummyRevision expected = origin.resolve("HEAD");
-    origin.addChange(/*timestamp*/ 3, Paths.get("not important"), "message",
-        /*matchesGlob=*/false);
+    origin.addChange(
+        /* timestamp= */ 3, Path.of("not important"), "message", /* matchesGlob= */ false);
 
     options.setForce(false);
     workflow = skylarkWorkflow("default", SQUASH);
@@ -648,7 +647,7 @@ public class WorkflowTest {
     remote.simpleCommand("commit", "foo.txt", "-m", "message_a");
     GitRevision lastRev = remote.resolveReference(primaryBranch);
 
-    Files.write(workdir.resolve("bar.txt"), "change content".getBytes(UTF_8));
+    Files.writeString(workdir.resolve("bar.txt"), "change content");
     remote.add().files("bar.txt").run();
     remote.simpleCommand("commit", "bar.txt", "-m", "message_s");
 
@@ -697,7 +696,7 @@ public class WorkflowTest {
     remote.simpleCommand("commit", "foo.txt", "-m", "message_a");
     GitRevision lastRev = remote.resolveReference(primaryBranch);
 
-    Files.write(workdir.resolve("bar.txt"), "change content".getBytes(UTF_8));
+    Files.writeString(workdir.resolve("bar.txt"), "change content");
     remote.add().files("bar.txt").run();
     remote.simpleCommand("commit", "bar.txt", "-m", "message_s");
 
@@ -728,7 +727,8 @@ public class WorkflowTest {
     ChangeRejectedException e =
         assertThrows(ChangeRejectedException.class,
             () -> workflow.run(workdir, ImmutableList.of(primaryBranch)));
-    assertThat(e.getMessage())
+    assertThat(e)
+        .hasMessageThat()
         .contains("User aborted execution: did not confirm diff in origin changes.");
   }
 
@@ -852,6 +852,7 @@ public class WorkflowTest {
   }
 
   @Test
+  @SuppressWarnings("AssertThrowsMinimizer")
   public void testIterativeModeWithLimit() throws Exception {
     for (int timestamp = 0; timestamp < 51; timestamp++) {
       origin.addSimpleChange(timestamp);
@@ -911,6 +912,7 @@ public class WorkflowTest {
             "Migration of origin revision '2' failed with error: Your change is wrong.*");
   }
 
+  // Safe cast of unchecked exception types for parameterized exception helper.
   @SuppressWarnings("unchecked")
   private <T extends Exception> T checkIterativeModeWithError(T exception)
       throws IOException, ValidationException {
@@ -1000,10 +1002,10 @@ public class WorkflowTest {
   public void testForcedChangeMessageAndAuthorFlags_squash() throws Exception {
     options.workflowOptions.forcedChangeMessage = FORCED_MESSAGE;
     options.workflowOptions.forcedAuthor = FORCED_AUTHOR;
-    origin.addSimpleChange(/*timestamp*/ 1);
+    origin.addSimpleChange(/* timestamp= */ 1);
     options.workflowOptions.lastRevision = resolveHead();
-    origin.addSimpleChange(/*timestamp*/ 2);
-    origin.addSimpleChange(/*timestamp*/ 3);
+    origin.addSimpleChange(/* timestamp= */ 2);
+    origin.addSimpleChange(/* timestamp= */ 3);
 
     Workflow<?, ?> workflow = workflow();
 
@@ -1016,11 +1018,11 @@ public class WorkflowTest {
 
   @Test
   public void testSquashCustomLabel() throws Exception {
-    origin.addSimpleChange(/*timestamp*/ 0);
-    origin.addSimpleChange(/*timestamp*/ 1);
+    origin.addSimpleChange(/* timestamp= */ 0);
+    origin.addSimpleChange(/* timestamp= */ 1);
     options.workflowOptions.lastRevision = resolveHead();
-    origin.addSimpleChange(/*timestamp*/ 2);
-    origin.addSimpleChange(/*timestamp*/ 3);
+    origin.addSimpleChange(/* timestamp= */ 2);
+    origin.addSimpleChange(/* timestamp= */ 3);
 
     extraWorkflowFields = ImmutableList.of("custom_rev_id = \"CUSTOM_REV_ID\"");
 
@@ -1045,8 +1047,8 @@ public class WorkflowTest {
                 workflow.getInfo().migrationReferences()).getLastMigratedChange().
             getRevision().asString())
         .isEqualTo("3");
-    origin.addSimpleChange(/*timestamp*/ 4);
-    origin.addSimpleChange(/*timestamp*/ 5);
+    origin.addSimpleChange(/* timestamp= */ 4);
+    origin.addSimpleChange(/* timestamp= */ 5);
 
     workflow.run(workdir, ImmutableList.of(HEAD));
     ProcessedChange last = Iterables.getLast(destination.processed);
@@ -1147,14 +1149,15 @@ public class WorkflowTest {
     ChangeRejectedException expected =
         assertThrows(
             ChangeRejectedException.class, () -> workflow.run(workdir, ImmutableList.of("9")));
-    assertThat(expected.getMessage())
+    assertThat(expected)
+        .hasMessageThat()
         .contains("Iterative workflow aborted by user after: Change 3 of 7 (5)");
     assertThat(programmableDestination.processed).hasSize(3);
   }
 
   @Test
   public void iterativeWorkflowNoPreviousRef() throws Exception {
-    origin.addSimpleChange(/*timestamp*/ 1);
+    origin.addSimpleChange(/* timestamp= */ 1);
     Workflow<?, ?> workflow = iterativeWorkflow(/*previousRef=*/null);
     CannotResolveRevisionException thrown =
         assertThrows(
@@ -1167,7 +1170,7 @@ public class WorkflowTest {
 
   @Test
   public void iterativeWorkflowEmptyChanges() throws Exception {
-    origin.addSimpleChange(/*timestamp*/ 1);
+    origin.addSimpleChange(/* timestamp= */ 1);
     Workflow<?, ?> workflow = iterativeWorkflow(/*previousRef=*/"0");
     EmptyChangeException thrown =
         assertThrows(
@@ -1239,7 +1242,8 @@ public class WorkflowTest {
     iterativeWorkflow(/*previousRef=*/null).run(workdir, ImmutableList.of("3"));
 
     assertThat(Lists.transform(destination.processed, input -> input.getOriginRef().asString()))
-        .isEqualTo(Lists.newArrayList("1", "2", "3"));
+        .containsExactly("1", "2", "3")
+        .inOrder();
 
     // Mark last two changes as pending.
     destination.processed.get(1).pending = true;
@@ -1249,7 +1253,8 @@ public class WorkflowTest {
 
     // We migrate everything from pending1
     assertThat(Lists.transform(destination.processed, input -> input.getOriginRef().asString()))
-        .isEqualTo(Lists.newArrayList("1", "2", "3", "2", "3", "5"));
+        .containsExactly("1", "2", "3", "2", "3", "5")
+        .inOrder();
   }
 
   @Test
@@ -1326,7 +1331,8 @@ public class WorkflowTest {
               - 2 pending1 by Copybara <no-reply@google.com>
             """);
     assertThat(Lists.transform(destination.processed, input -> input.getOriginRef().asString()))
-        .isEqualTo(Lists.newArrayList("1", "3"));
+        .containsExactly("1", "3")
+        .inOrder();
 
     // Mark last change as pending.
     Iterables.getLast(destination.processed).pending = true;
@@ -1344,12 +1350,13 @@ public class WorkflowTest {
             """);
     // We migrate everything from pending1
     assertThat(Lists.transform(destination.processed, input -> input.getOriginRef().asString()))
-        .isEqualTo(Lists.newArrayList("1", "3", "5"));
+        .containsExactly("1", "3", "5")
+        .inOrder();
   }
 
   @Test
   public void emptyTransformList() throws Exception {
-    origin.addSimpleChange(/*timestamp*/ 1);
+    origin.addSimpleChange(/* timestamp= */ 1);
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = workflow();
     workflow.run(workdir, ImmutableList.of("0"));
@@ -1378,7 +1385,7 @@ public class WorkflowTest {
   @Test
   public void sendsOriginTimestampToDest() throws Exception {
     Workflow<?, ?> workflow = workflow();
-    origin.addSimpleChange(/*timestamp*/ 42918273);
+    origin.addSimpleChange(/* timestamp= */ 42918273);
     workflow.run(workdir, ImmutableList.of(HEAD));
     assertThat(destination.processed).hasSize(1);
     assertThat(destination.processed.get(0).getTimestamp().toInstant())
@@ -1388,10 +1395,10 @@ public class WorkflowTest {
   @Test
   public void usesDefaultAuthorForSquash() throws Exception {
     // Squash always sets the default author for the commit but not in the release notes
-    origin.addSimpleChange(/*timestamp*/ 1);
+    origin.addSimpleChange(/* timestamp= */ 1);
     options.workflowOptions.lastRevision = resolveHead();
-    origin.addSimpleChange(/*timestamp*/ 2);
-    origin.addSimpleChange(/*timestamp*/ 3);
+    origin.addSimpleChange(/* timestamp= */ 2);
+    origin.addSimpleChange(/* timestamp= */ 3);
     includeReleaseNotes = true;
 
     Workflow<?, ?> workflow = workflow();
@@ -1406,10 +1413,10 @@ public class WorkflowTest {
   @Test
   public void migrationIdentityConstant() throws Exception {
     // Squash always sets the default author for the commit but not in the release notes
-    origin.addSimpleChange(/*timestamp*/ 1);
+    origin.addSimpleChange(/* timestamp= */ 1);
     String before = workflow().getMigrationIdentity(origin.resolve(HEAD), transformWork);
-    origin.addSimpleChange(/*timestamp*/ 2);
-    origin.addSimpleChange(/*timestamp*/ 3);
+    origin.addSimpleChange(/* timestamp= */ 2);
+    origin.addSimpleChange(/* timestamp= */ 3);
     String after = workflow().getMigrationIdentity(origin.resolve(HEAD), transformWork);
 
     // If we use 'HEAD' as reference it is constant
@@ -1425,7 +1432,7 @@ public class WorkflowTest {
   @Test
   public void migrationIdentityWithUser() throws Exception {
     // Squash always sets the default author for the commit but not in the release notes
-    origin.addSimpleChange(/*timestamp*/ 1);
+    origin.addSimpleChange(/* timestamp= */ 1);
     String withUser = workflow().getMigrationIdentity(origin.resolve(HEAD), transformWork);
 
     options.workflowOptions.workflowIdentityUser = StandardSystemProperty.USER_NAME.value();
@@ -1442,38 +1449,38 @@ public class WorkflowTest {
 
   @Test
   public void testSquashAlreadyMigrated() throws Exception {
-    origin.addSimpleChange(/*timestamp*/ 1);
+    origin.addSimpleChange(/* timestamp= */ 1);
     String oldRef = resolveHead();
-    origin.addSimpleChange(/*timestamp*/ 2);
-    origin.addSimpleChange(/*timestamp*/ 3);
+    origin.addSimpleChange(/* timestamp= */ 2);
+    origin.addSimpleChange(/* timestamp= */ 3);
     includeReleaseNotes = true;
 
     options.setForce(true);
     skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of(HEAD));
     options.setForce(false); // Disable force so that we get an error
+    Workflow<?, ?> workflow = skylarkWorkflow("default", SQUASH);
     EmptyChangeException thrown =
         assertThrows(
-            EmptyChangeException.class,
-            () -> skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of(oldRef)));
+            EmptyChangeException.class, () -> workflow.run(workdir, ImmutableList.of(oldRef)));
     assertThat(thrown).hasMessageThat().contains("'0' has been already migrated");
   }
 
   @Test
   public void testSquashAlreadyMigratedSameChange() throws Exception {
-    origin.addSimpleChange(/*timestamp*/ 1);
+    origin.addSimpleChange(/* timestamp= */ 1);
     skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of(HEAD));
     options.setForce(false); // Disable force so that we get an error
+    Workflow<?, ?> workflow = skylarkWorkflow("default", SQUASH);
     EmptyChangeException thrown =
         assertThrows(
-            EmptyChangeException.class,
-            () -> skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of(HEAD)));
+            EmptyChangeException.class, () -> workflow.run(workdir, ImmutableList.of(HEAD)));
     assertThat(thrown).hasMessageThat().contains("'0' has been already migrated");
   }
 
   @Test
   public void testSquashLastRevDoesntExist() throws Exception {
     options.setForce(false); // Disable force so that we get an error
-    origin.addSimpleChange(/*timestamp*/ 1);
+    origin.addSimpleChange(/* timestamp= */ 1);
     options.workflowOptions.lastRevision = "42";
 
     Workflow<?, ?> workflow = workflow();
@@ -1490,10 +1497,10 @@ public class WorkflowTest {
 
   @Test
   public void testSquashAlreadyMigratedWithForce() throws Exception {
-    origin.addSimpleChange(/*timestamp*/ 1);
+    origin.addSimpleChange(/* timestamp= */ 1);
     String oldRef = resolveHead();
-    origin.addSimpleChange(/*timestamp*/ 2);
-    origin.addSimpleChange(/*timestamp*/ 3);
+    origin.addSimpleChange(/* timestamp= */ 2);
+    origin.addSimpleChange(/* timestamp= */ 3);
     includeReleaseNotes = true;
 
     options.setForce(true);
@@ -1528,7 +1535,7 @@ public class WorkflowTest {
     remote.simpleCommand("commit", "foo.txt", "-m", "message_a");
     GitRevision lastRev = remote.resolveReference(primaryBranch);
 
-    Files.write(workdir.resolve("foo.txt"), "change content".getBytes(UTF_8));
+    Files.writeString(workdir.resolve("foo.txt"), "change content");
     remote.add().files("foo.txt").run();
     remote.simpleCommand("commit", "foo.txt", "-m", "message_a");
 
@@ -1620,7 +1627,7 @@ public class WorkflowTest {
     ImmutableList<String> tags =
         workflow.getInfo().versions().stream()
             .map(t -> t.getRevision().contextReference())
-            .collect(ImmutableList.toImmutableList());
+            .collect(toImmutableList());
 
     assertThat(tags).containsExactly("tag_a", "tag_b", "tag_c");
   }
@@ -1728,9 +1735,9 @@ public class WorkflowTest {
 
   @Test
   public void testShowDiffInOriginFail() throws Exception {
-    origin.addSimpleChange(/*timestamp*/ 1);
-    origin.addSimpleChange(/*timestamp*/ 2);
-    origin.addSimpleChange(/*timestamp*/ 3);
+    origin.addSimpleChange(/* timestamp= */ 1);
+    origin.addSimpleChange(/* timestamp= */ 2);
+    origin.addSimpleChange(/* timestamp= */ 3);
     options.workflowOptions.lastRevision = "1";
     options.workflowOptions.diffInOrigin = true;
 
@@ -1775,6 +1782,7 @@ public class WorkflowTest {
   }
 
   @Test
+  @SuppressWarnings("AssertThrowsMinimizer")
   public void invalidExcludedOriginPath() throws Exception {
     prepareOriginExcludes("a");
     String outsideFolder = "../../file";
@@ -1792,6 +1800,7 @@ public class WorkflowTest {
   }
 
   @Test
+  @SuppressWarnings("AssertThrowsMinimizer")
   public void invalidExcludedOriginGlob() throws Exception {
     prepareOriginExcludes("a");
     originFiles = "glob(['{'])";
@@ -1866,11 +1875,11 @@ public class WorkflowTest {
                 ],
             )
             """);
+    Workflow<?, ?> workflow = workflow();
     VoidOperationException e =
         assertThrows(
-            VoidOperationException.class, () -> workflow().run(workdir, ImmutableList.of(HEAD)));
-    assertThat(e.getMessage().contains("Use --ignore-noop if you want to ignore this error"))
-        .isTrue();
+            VoidOperationException.class, () -> workflow.run(workdir, ImmutableList.of(HEAD)));
+    assertThat(e).hasMessageThat().contains("Use --ignore-noop if you want to ignore this error");
   }
 
   @Test
@@ -1980,9 +1989,9 @@ public class WorkflowTest {
   @Test
   public void testDestinationFilesPassedToDestination_iterative() throws Exception {
     destinationFiles = "glob(['**'], exclude = ['foo', 'bar/**'])";
-    origin.addSimpleChange(/*timestamp*/ 42);
+    origin.addSimpleChange(/* timestamp= */ 42);
     Workflow<?, ?> workflow = iterativeWorkflow(resolveHead());
-    origin.addSimpleChange(/*timestamp*/ 4242);
+    origin.addSimpleChange(/* timestamp= */ 4242);
     workflow.run(workdir, ImmutableList.of(HEAD));
 
     assertThat(destination.processed).hasSize(1);
@@ -2014,7 +2023,7 @@ public class WorkflowTest {
 
   @Test
   public void invalidLastRevFlagGivesClearError() throws Exception {
-    origin.addSimpleChange(/*timestamp*/ 42);
+    origin.addSimpleChange(/* timestamp= */ 42);
 
     Workflow<?, ?> workflow = iterativeWorkflow("deadbeef");
     CannotResolveRevisionException thrown =
@@ -2069,7 +2078,8 @@ public class WorkflowTest {
     setRevId = true;
     ValidationException e =
         assertThrows(ValidationException.class, () -> changeRequestWorkflow(null));
-    assertThat(e.getMessage())
+    assertThat(e)
+        .hasMessageThat()
         .containsMatch(
             "custom_rev_id is not allowed to be used in CHANGE_REQUEST mode if "
                 + "set_rev_id is set to true. custom_rev_id is used");
@@ -2094,20 +2104,20 @@ public class WorkflowTest {
 
     w.run(workdir, ImmutableList.of("2"));
 
-    change = destination.processed.get(destination.processed.size() - 1);
+    change = Iterables.getLast(destination.processed);
     assertThat(change.getChangesSummary()).isEqualTo("Second Change");
     assertThat(change.getBaseline()).isEqualTo("1");
   }
 
   @Test
   public void changeRequest_sot_ahead_sot() throws Exception {
-    checkChangeRequest_sot_ahead_sot();
+    checkChangeRequestSotAheadSot();
   }
 
   @Test
   public void changeRequest_sot_ahead_sot_retries() throws Exception {
     options.workflowOptions.changeRequestFromSotRetry = Lists.newArrayList(1, 1, 1, 1, 1);
-    checkChangeRequest_sot_ahead_sot();
+    checkChangeRequestSotAheadSot();
     console().assertThat().timesInLog(5, MessageType.WARNING,
         ".*Couldn't find a change in the destination.*Retrying in.*");
   }
@@ -2148,7 +2158,8 @@ public class WorkflowTest {
   public void testDryRunWithLocalGitPath() throws Exception {
     Path originPath = Files.createTempDirectory("origin");
     Path destinationPath = Files.createTempDirectory("destination");
-    GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
+    GitRepository origin =
+        GitRepository.newRepo(/* verbose= */ true, originPath, getGitEnv()).init();
     GitRepository destination = GitRepository.newBareRepo(destinationPath, getGitEnv(),
         /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false).init();
     String primaryBranch = origin.getPrimaryBranch();
@@ -2191,13 +2202,11 @@ public class WorkflowTest {
     options.general.dryRunMode = true;
     options.setForce(true);
 
+    Migration migration = loadConfig(config).getMigration("default");
     EmptyChangeException e =
         assertThrows(
             EmptyChangeException.class,
-            () ->
-                loadConfig(config)
-                    .getMigration("default")
-                    .run(Files.createTempDirectory("workdir"), ImmutableList.of()));
+            () -> migration.run(Files.createTempDirectory("workdir"), ImmutableList.of()));
     assertThat(e)
         .hasMessageThat()
         .contains("Migration of the revision resulted in an empty change");
@@ -2206,7 +2215,7 @@ public class WorkflowTest {
         .contains(destination.parseRef("HEAD"));
   }
 
-  private void checkChangeRequest_sot_ahead_sot()
+  private void checkChangeRequestSotAheadSot()
       throws IOException, ValidationException, RepoException {
     options.workflowOptions.changeRequestFromSotLimit = 1;
     origin
@@ -2251,7 +2260,7 @@ public class WorkflowTest {
     Workflow<?, ?> w = skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST_FROM_SOT);
 
     w.run(workdir, ImmutableList.of("3"));
-    change = destination.processed.get(destination.processed.size() - 1);
+    change = Iterables.getLast(destination.processed);
     assertThat(change.getChangesSummary()).isEqualTo("Third Change");
     assertThat(change.getBaseline()).isEqualTo("1");
   }
@@ -2350,7 +2359,7 @@ public class WorkflowTest {
     smartPrune = true;
     ImmutableList<DiffFile> diffFiles = checkChangeRequestSmartPrune();
     ImmutableMap<String, DiffFile> byName = Maps.uniqueIndex(diffFiles, DiffFile::getName);
-    assertThat(byName.size()).isEqualTo(3);
+    assertThat(byName).hasSize(3);
     assertThat(byName.get("folder/deleted.txt").getOperation()).isEqualTo(DELETE);
     assertThat(byName.get("folder/modified.txt").getOperation()).isEqualTo(MODIFIED);
     assertThat(byName.get("folder/added.txt").getOperation()).isEqualTo(ADD);
@@ -2456,20 +2465,10 @@ public class WorkflowTest {
 
     workflow.run(workdir, ImmutableList.of("HEAD"));
 
-    assertThat(
-            destination
-                .processed
-                .get(destination.processed.size() - 1)
-                .getWorkdir()
-                .get("dir/foo.txt"))
-        .isEqualTo("a\nb\nc\n");
+    assertThat(Iterables.getLast(destination.processed).getWorkdir())
+        .containsEntry("dir/foo.txt", "a\nb\nc\n");
 
-    assertThat(
-            destination
-                .processed
-                .get(destination.processed.size() - 1)
-                .getWorkdir()
-                .get(consistencyPath))
+    assertThat(Iterables.getLast(destination.processed).getWorkdir().get(consistencyPath))
         .isNotEmpty();
   }
 
@@ -2517,20 +2516,10 @@ public class WorkflowTest {
     console().assertThat().onceInLog(MessageType.INFO, "Generating new consistency file");
 
     String consistencyFilePath = workflow.getConsistencyFilePath();
-    assertThat(
-        destination
-            .processed
-            .get(destination.processed.size() - 1)
-            .getWorkdir()
-            .get("dir/foo.txt"))
-        .isEqualTo("a\nb\nc\n");
+    assertThat(Iterables.getLast(destination.processed).getWorkdir())
+        .containsEntry("dir/foo.txt", "a\nb\nc\n");
 
-    assertThat(
-            destination
-                .processed
-                .get(destination.processed.size() - 1)
-                .getWorkdir()
-                .get(consistencyFilePath))
+    assertThat(Iterables.getLast(destination.processed).getWorkdir().get(consistencyFilePath))
         .isNotEmpty();
   }
 
@@ -2665,8 +2654,8 @@ public class WorkflowTest {
 
     workflow.run(workdir, ImmutableList.of("HEAD"));
 
-    ImmutableMap<String, String> latestWorkdir = destination.processed.get(
-        destination.processed.size() - 1).getWorkdir();
+    ImmutableMap<String, String> latestWorkdir =
+        Iterables.getLast(destination.processed).getWorkdir();
 
     // check that destination change is persisted
     Path destContents = Files.createDirectories(testDir.resolve("destContents"));
@@ -2698,7 +2687,7 @@ public class WorkflowTest {
   }
 
   private ProcessedChange latestProcessedChange() {
-    return destination.processed.get(destination.processed.size() - 1);
+    return Iterables.getLast(destination.processed);
   }
 
   @Test
@@ -3060,11 +3049,8 @@ public class WorkflowTest {
     for (boolean supportsGetHash : new boolean[]{true, false}) {
       options.testingOptions.destination.supportsGetHash = supportsGetHash;
       Throwable throwable =
-        assertThrows(
-            ValidationException.class,
-            () -> {
-              workflow.run(workdir, ImmutableList.of("HEAD"));
-            });
+          assertThrows(
+              ValidationException.class, () -> workflow.run(workdir, ImmutableList.of("HEAD")));
       assertThat(throwable)
           .hasMessageThat()
           .containsMatch("has hash value \\w+ in ConsistencyFile but \\w+ in directory");
@@ -3132,10 +3118,7 @@ public class WorkflowTest {
 
     Throwable throwable =
         assertThrows(
-            ValidationException.class,
-            () -> {
-              workflow.run(workdir, ImmutableList.of("HEAD"));
-            });
+            ValidationException.class, () -> workflow.run(workdir, ImmutableList.of("HEAD")));
     assertThat(throwable)
         .hasMessageThat()
         .containsMatch("has hash value \\w+ in ConsistencyFile but \\w+ in directory");
@@ -3208,12 +3191,7 @@ public class WorkflowTest {
     workflow.run(workdir, ImmutableList.of("HEAD"));
 
     // check that a merge conflict was generated
-    assertThat(
-            destination
-                .processed
-                .get(destination.processed.size() - 1)
-                .getWorkdir()
-                .get("dir/foo.txt"))
+    assertThat(Iterables.getLast(destination.processed).getWorkdir().get("dir/foo.txt"))
         .contains(">>>>>>>");
 
     assertThat(destination.getEndpoint().getMessages().toString())
@@ -3281,20 +3259,11 @@ public class WorkflowTest {
     workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
     workflow.run(workdir, ImmutableList.of("HEAD"));
 
-    assertThat(
-        destination
-            .processed
-            .get(destination.processed.size() - 1)
-            .getWorkdir()
-            .get("dir/foo.txt"))
-        .isEqualTo("foo\na\nb\nc\nbar");
-    assertThat(
-            destination
-                .processed
-                .get(destination.processed.size() - 1)
-                .getWorkdir()
-                .get("dir/GOIMPORT/AUTOPATCHES/foo.txt.patch"))
-        .isEqualTo(
+    assertThat(Iterables.getLast(destination.processed).getWorkdir())
+        .containsEntry("dir/foo.txt", "foo\na\nb\nc\nbar");
+    assertThat(Iterables.getLast(destination.processed).getWorkdir())
+        .containsEntry(
+            "dir/GOIMPORT/AUTOPATCHES/foo.txt.patch",
             """
             This patch file was generated by Copybara!
             @@ foo
@@ -3304,22 +3273,12 @@ public class WorkflowTest {
             +bar
             \\ No newline at end of file
             """);
-    assertThat(
-        destination
-            .processed
-            .get(destination.processed.size() - 1)
-            .getWorkdir()
-            .containsKey("dir/GOIMPORT/AUTOPATCHES/no_patch.txt.patch"))
-        .isFalse();
-    assertThat(destination.processed.get(1).getWorkdir().get("dir/to_delete.txt"))
-        .isEqualTo("I will be deleted");
-    assertThat(
-        destination
-            .processed
-            .get(destination.processed.size() - 1)
-            .getWorkdir()
-            .containsKey("dir/to_delete.txt"))
-        .isFalse();
+    assertThat(Iterables.getLast(destination.processed).getWorkdir())
+        .doesNotContainKey("dir/GOIMPORT/AUTOPATCHES/no_patch.txt.patch");
+    assertThat(destination.processed.get(1).getWorkdir())
+        .containsEntry("dir/to_delete.txt", "I will be deleted");
+    assertThat(Iterables.getLast(destination.processed).getWorkdir())
+        .doesNotContainKey("dir/to_delete.txt");
   }
 
   @Test
@@ -3384,20 +3343,11 @@ public class WorkflowTest {
     workflow.run(workdir, ImmutableList.of("HEAD"));
 
     // a has been replaced with X
-    assertThat(
-        destination
-            .processed
-            .get(destination.processed.size() - 1)
-            .getWorkdir()
-            .get("dir/foo.txt"))
-        .isEqualTo("foo\nX\nb\nc\nbXr");
-    assertThat(
-            destination
-                .processed
-                .get(destination.processed.size() - 1)
-                .getWorkdir()
-                .get("dir/GOIMPORT/AUTOPATCHES/foo.txt.patch"))
-        .isEqualTo(
+    assertThat(Iterables.getLast(destination.processed).getWorkdir())
+        .containsEntry("dir/foo.txt", "foo\nX\nb\nc\nbXr");
+    assertThat(Iterables.getLast(destination.processed).getWorkdir())
+        .containsEntry(
+            "dir/GOIMPORT/AUTOPATCHES/foo.txt.patch",
             """
             This patch file was generated by Copybara!
             @@
@@ -3409,22 +3359,12 @@ public class WorkflowTest {
             +bXr
             \\ No newline at end of file
             """);
-    assertThat(
-        destination
-            .processed
-            .get(destination.processed.size() - 1)
-            .getWorkdir()
-            .containsKey("dir/GOIMPORT/AUTOPATCHES/no_patch.txt.patch"))
-        .isFalse();
-    assertThat(destination.processed.get(1).getWorkdir().get("dir/to_delete.txt"))
-        .isEqualTo("I will be deleted");
-    assertThat(
-        destination
-            .processed
-            .get(destination.processed.size() - 1)
-            .getWorkdir()
-            .containsKey("dir/to_delete.txt"))
-        .isFalse();
+    assertThat(Iterables.getLast(destination.processed).getWorkdir())
+        .doesNotContainKey("dir/GOIMPORT/AUTOPATCHES/no_patch.txt.patch");
+    assertThat(destination.processed.get(1).getWorkdir())
+        .containsEntry("dir/to_delete.txt", "I will be deleted");
+    assertThat(Iterables.getLast(destination.processed).getWorkdir())
+        .doesNotContainKey("dir/to_delete.txt");
   }
 
   @Test
@@ -3470,18 +3410,12 @@ public class WorkflowTest {
     origin.addChange(2, base2, "change 2", true);
     workflow.run(workdir, ImmutableList.of("HEAD"));
 
-    assertThat(
-        destination.processed.get(destination.processed.size() - 1).getWorkdir().get("foo.txt"))
-        .isEqualTo("foo\na\nb\nc\nbar");
-    assertThat(destination.processed.get(1).getWorkdir().get("to_delete.txt"))
-        .isEqualTo("I will be deleted");
-    assertThat(
-        destination
-            .processed
-            .get(destination.processed.size() - 1)
-            .getWorkdir()
-            .containsKey("to_delete.txt"))
-        .isFalse();
+    assertThat(Iterables.getLast(destination.processed).getWorkdir())
+        .containsEntry("foo.txt", "foo\na\nb\nc\nbar");
+    assertThat(destination.processed.get(1).getWorkdir())
+        .containsEntry("to_delete.txt", "I will be deleted");
+    assertThat(Iterables.getLast(destination.processed).getWorkdir())
+        .doesNotContainKey("to_delete.txt");
   }
 
   @Test
@@ -3538,16 +3472,10 @@ public class WorkflowTest {
     origin.addChange(2, base2, "change 2", true);
     workflow.run(workdir, ImmutableList.of("HEAD"));
 
-    assertThat(
-        destination.processed.get(destination.processed.size() - 1).getWorkdir().get("foo.txt"))
-        .isEqualTo("foo\na\nb\nc\nbar");
-    assertThat(
-        destination
-            .processed
-            .get(destination.processed.size() - 1)
-            .getWorkdir()
-            .get("foo2.txt"))
-        .isEqualTo("pre\nx\ny\nz\npost");
+    assertThat(Iterables.getLast(destination.processed).getWorkdir())
+        .containsEntry("foo.txt", "foo\na\nb\nc\nbar");
+    assertThat(Iterables.getLast(destination.processed).getWorkdir())
+        .containsEntry("foo2.txt", "pre\nx\ny\nz\npost");
     assertThat(workflow.getMergeImport().mergeStrategy())
         .isEqualTo(MergeImportConfiguration.MergeStrategy.DIFF3);
   }
@@ -3685,16 +3613,10 @@ public class WorkflowTest {
     origin.addChange(2, base2, "change 2", true);
     workflow.run(workdir, ImmutableList.of("HEAD"));
 
-    assertThat(
-        destination.processed.get(destination.processed.size() - 1).getWorkdir().get("foo.txt"))
-        .isEqualTo("foo\na\nb\nc\nbar");
-    assertThat(
-        destination
-            .processed
-            .get(destination.processed.size() - 1)
-            .getWorkdir()
-            .get("not_merged.txt"))
-        .isEqualTo("pre\nx\ny\nz\n");
+    assertThat(Iterables.getLast(destination.processed).getWorkdir())
+        .containsEntry("foo.txt", "foo\na\nb\nc\nbar");
+    assertThat(Iterables.getLast(destination.processed).getWorkdir())
+        .containsEntry("not_merged.txt", "pre\nx\ny\nz\n");
   }
 
   @Test
@@ -3765,26 +3687,17 @@ public class WorkflowTest {
     origin.addChange(2, base2, "change 2", true);
     workflow.run(workdir, ImmutableList.of("HEAD"));
 
-    assertThat(
-        destination
-            .processed
-            .get(destination.processed.size() - 1)
-            .getWorkdir()
-            .get("folder/foo.txt"))
-        .isEqualTo("foo\na\nb\nc\nbar");
-    assertThat(
-        destination
-            .processed
-            .get(destination.processed.size() - 1)
-            .getWorkdir()
-            .get("folder/not_merged.txt"))
-        .isEqualTo("pre\nx\ny\nz\n");
+    assertThat(Iterables.getLast(destination.processed).getWorkdir())
+        .containsEntry("folder/foo.txt", "foo\na\nb\nc\nbar");
+    assertThat(Iterables.getLast(destination.processed).getWorkdir())
+        .containsEntry("folder/not_merged.txt", "pre\nx\ny\nz\n");
   }
 
   @Test
   public void changeRequestEmptyChanges() throws Exception {
     Path originPath = Files.createTempDirectory("origin");
-    GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
+    GitRepository origin =
+        GitRepository.newRepo(/* verbose= */ true, originPath, getGitEnv()).init();
 
     String primaryBranch = origin.getPrimaryBranch();
 
@@ -3807,17 +3720,20 @@ public class WorkflowTest {
     Migration workflow = loadConfig(config).getMigration("default");
 
     Files.createDirectory(originPath.resolve("included"));
-    Files.write(originPath.resolve("included/foo.txt"), "a".getBytes(UTF_8));
+    Files.writeString(originPath.resolve("included/foo.txt"), "a");
     origin.add().files("included/foo.txt").run();
     origin.commit(
         "Foo <foo@bara.com>",
-        ZonedDateTime.now(ZoneId.systemDefault()),
+        InstantSource.system().instant().atZone(ZoneId.systemDefault()),
         "the baseline\n\n" + destination.getLabelNameWhenOrigin() + "=42");
 
     Files.createDirectory(originPath.resolve("excluded"));
-    Files.write(originPath.resolve("excluded/foo.txt"), "a".getBytes(UTF_8));
+    Files.writeString(originPath.resolve("excluded/foo.txt"), "a");
     origin.add().files("excluded/foo.txt").run();
-    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), "head change");
+    origin.commit(
+        "Foo <foo@bara.com>",
+        InstantSource.system().instant().atZone(ZoneId.systemDefault()),
+        "head change");
 
     EmptyChangeException thrown =
         assertThrows(EmptyChangeException.class, () -> workflow.run(workdir, ImmutableList.of()));
@@ -3836,7 +3752,8 @@ public class WorkflowTest {
     Path originPath = someRoot.resolve("origin");
     Files.createDirectories(originPath);
 
-    GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
+    GitRepository origin =
+        GitRepository.newRepo(/* verbose= */ true, originPath, getGitEnv()).init();
     String primaryBranch = origin.getPrimaryBranch();
 
     String config = "core.workflow(\n"
@@ -3854,19 +3771,23 @@ public class WorkflowTest {
 
     Path included = originPath.resolve("included");
     Files.createDirectory(included);
-    Files.write(originPath.resolve("included/foo.txt"), "a".getBytes(UTF_8));
+    Files.writeString(originPath.resolve("included/foo.txt"), "a");
 
     Path fileOutsideCheckout = someRoot.resolve("file_outside_checkout");
-    Files.write(fileOutsideCheckout, "THE CONTENT".getBytes(UTF_8));
+    Files.writeString(fileOutsideCheckout, "THE CONTENT");
     Files.createSymbolicLink(included.resolve("symlink"), included.relativize(fileOutsideCheckout));
 
     origin.add().files("included/foo.txt").run();
     origin.add().files("included/symlink").run();
-    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), "A commit");
+    origin.commit(
+        "Foo <foo@bara.com>",
+        InstantSource.system().instant().atZone(ZoneId.systemDefault()),
+        "A commit");
 
     ValidationException expected =
         assertThrows(ValidationException.class, () -> workflow.run(workdir, ImmutableList.of()));
-    assertThat(expected.getMessage())
+    assertThat(expected)
+        .hasMessageThat()
         .matches(
             ""
                 + "Failed to perform reversible check of transformations due to a symlink that "
@@ -3881,7 +3802,8 @@ public class WorkflowTest {
     Path originPath = someRoot.resolve("origin");
     Files.createDirectories(originPath);
 
-    GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
+    GitRepository origin =
+        GitRepository.newRepo(/* verbose= */ true, originPath, getGitEnv()).init();
     String primaryBranch = origin.getPrimaryBranch();
 
     String config = "core.workflow(\n"
@@ -3908,22 +3830,21 @@ public class WorkflowTest {
     origin.add().all().run();
     origin.simpleCommand("commit", "-m", "change");
 
-    try {
-      workflow.run(Files.createDirectory(someRoot.resolve("run1")), ImmutableList.of());
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e).hasMessageThat().contains("is not reversible");
-      String msg =
-          console().getMessages().stream()
-              .filter(
-                  m -> m.getType() == MessageType.ERROR && m.getText().contains("non-reversible"))
-              .findFirst()
-              .get()
-              .getText();
-      assertThat(msg).contains("--- a/origin/test");
-      assertThat(msg).doesNotContain("--- a/origin/to_ignore/test");
-      assertThat(msg).contains("--- a/origin/to_ignore/exclude");
-    }
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                workflow.run(Files.createDirectory(someRoot.resolve("run1")), ImmutableList.of()));
+    assertThat(e).hasMessageThat().contains("is not reversible");
+    String msg =
+        console().getMessages().stream()
+            .filter(m -> m.getType() == MessageType.ERROR && m.getText().contains("non-reversible"))
+            .findFirst()
+            .get()
+            .getText();
+    assertThat(msg).contains("--- a/origin/test");
+    assertThat(msg).doesNotContain("--- a/origin/to_ignore/test");
+    assertThat(msg).contains("--- a/origin/to_ignore/exclude");
 
     // Now lets fix the only file that we check in reversible check:
     GitTestUtil.writeFile(originPath, "test", "aa");
@@ -3967,7 +3888,8 @@ public class WorkflowTest {
     Path originPath = someRoot.resolve("origin");
     Files.createDirectories(originPath);
 
-    GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
+    GitRepository origin =
+        GitRepository.newRepo(/* verbose= */ true, originPath, getGitEnv()).init();
     String primaryBranch = origin.getPrimaryBranch();
 
     String config = "core.workflow(\n"
@@ -3985,7 +3907,10 @@ public class WorkflowTest {
 
     GitTestUtil.writeFile(originPath, "initial.txt", "initial");
     origin.add().files("initial.txt").run();
-    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), "Initial");
+    origin.commit(
+        "Foo <foo@bara.com>",
+        InstantSource.system().instant().atZone(ZoneId.systemDefault()),
+        "Initial");
     origin.simpleCommand("tag", "-m", "this is a tag!", "0.1");
 
     options.setLastRevision(origin.parseRef("HEAD"));
@@ -3993,15 +3918,24 @@ public class WorkflowTest {
 
     GitTestUtil.writeFile(originPath, "included/foo.txt", "a");
     origin.add().files("included/foo.txt").run();
-    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), "one");
+    origin.commit(
+        "Foo <foo@bara.com>",
+        InstantSource.system().instant().atZone(ZoneId.systemDefault()),
+        "one");
 
     GitTestUtil.writeFile(originPath, "included/foo.txt", "b");
     origin.add().files("included/foo.txt").run();
-    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), "two");
+    origin.commit(
+        "Foo <foo@bara.com>",
+        InstantSource.system().instant().atZone(ZoneId.systemDefault()),
+        "two");
 
     GitTestUtil.writeFile(originPath, "excluded/foo.txt", "c");
     origin.add().files("excluded/foo.txt").run();
-    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), "three");
+    origin.commit(
+        "Foo <foo@bara.com>",
+        InstantSource.system().instant().atZone(ZoneId.systemDefault()),
+        "three");
 
     workflow.run(workdir, ImmutableList.of());
   }
@@ -4044,8 +3978,10 @@ public class WorkflowTest {
     config.getMigration("one").run(workdir, ImmutableList.of());
 
     assertThat(destination.processed).hasSize(3);
-    ImmutableList<String> oneResult = destination.processed.stream().map(
-        ProcessedChange::getChangeIdentity).collect(ImmutableList.toImmutableList());
+    ImmutableList<String> oneResult =
+        destination.processed.stream()
+            .map(ProcessedChange::getChangeIdentity)
+            .collect(toImmutableList());
 
     // Different identities
     assertThat(ImmutableSet.copyOf(oneResult)).hasSize(3);
@@ -4054,16 +3990,20 @@ public class WorkflowTest {
 
     config.getMigration("two").run(workdir, ImmutableList.of());
 
-    ImmutableList<String> twoResult = destination.processed.stream().map(
-        ProcessedChange::getChangeIdentity).collect(ImmutableList.toImmutableList());
+    ImmutableList<String> twoResult =
+        destination.processed.stream()
+            .map(ProcessedChange::getChangeIdentity)
+            .collect(toImmutableList());
 
     assertThat(oneResult).isEqualTo(twoResult);
 
     destination.processed.clear();
     config.getMigration("three").run(workdir, ImmutableList.of());
 
-    ImmutableList<String> threeResult = destination.processed.stream().map(
-        ProcessedChange::getChangeIdentity).collect(ImmutableList.toImmutableList());
+    ImmutableList<String> threeResult =
+        destination.processed.stream()
+            .map(ProcessedChange::getChangeIdentity)
+            .collect(toImmutableList());
 
     assertThat(oneResult).isNotEqualTo(threeResult);
   }
@@ -4094,12 +4034,16 @@ public class WorkflowTest {
     origin.addSimpleChange(1, "change\n\nsome_label=a");
 
     config1.getMigration("default").run(workdir, ImmutableList.of());
-    ImmutableList<String> oneResult = destination.processed.stream().map(
-        ProcessedChange::getChangeIdentity).collect(ImmutableList.toImmutableList());
+    ImmutableList<String> oneResult =
+        destination.processed.stream()
+            .map(ProcessedChange::getChangeIdentity)
+            .collect(toImmutableList());
     destination.processed.clear();
     config2.getMigration("default").run(workdir, ImmutableList.of());
-    ImmutableList<String> twoResult = destination.processed.stream().map(
-        ProcessedChange::getChangeIdentity).collect(ImmutableList.toImmutableList());
+    ImmutableList<String> twoResult =
+        destination.processed.stream()
+            .map(ProcessedChange::getChangeIdentity)
+            .collect(toImmutableList());
 
     assertThat(oneResult).isNotEqualTo(twoResult);
   }
@@ -4274,26 +4218,34 @@ public class WorkflowTest {
     options.workflowOptions.lastRevision = "0";
     passThruAuthoring();
 
-    Config config = loadConfig(""
-        + "def first(ctx):\n"
-        + "  msg =''\n"
-        + "  for c in ctx.changes.current:\n"
-        + "    msg+='CHANGE: %s (%s) by %s\\n' %  (c.message, c.ref, c.author.name)\n"
-        + "  ctx.set_message(msg)\n"
-        + "def second(ctx):\n"
-        + "  ctx.set_message(ctx.message +'\\nBAR = foo\\n')\n"
-        + "  ctx.set_author(new_author('Someone <someone@somewhere.com>'))\n"
-        + "\n"
-        + (thirdTransform == null ? "" : thirdTransform)
-        + "core.workflow(\n"
-        + "    name = 'default',\n"
-        + "    origin =  testing.origin(),\n"
-        + "    authoring = " + authoring + "\n,"
-        + "    destination = testing.destination(),\n"
-        + "    mode = '" + mode + "',\n"
-        + "    transformations = [\n"
-        + "      first, second" + (thirdTransform == null ? "" : ", third") + "]\n"
-        + ")\n");
+    Config config =
+        loadConfig(
+            ""
+                + "def first(ctx):\n"
+                + "  msg =''\n"
+                + "  for c in ctx.changes.current:\n"
+                + "    msg+='CHANGE: %s (%s) by %s\\n' %  (c.message, c.ref, c.author.name)\n"
+                + "  ctx.set_message(msg)\n"
+                + "def second(ctx):\n"
+                + "  ctx.set_message(ctx.message +'\\nBAR = foo\\n')\n"
+                + "  ctx.set_author(new_author('Someone <someone@somewhere.com>'))\n"
+                + "\n"
+                + Strings.nullToEmpty(thirdTransform)
+                + "core.workflow(\n"
+                + "    name = 'default',\n"
+                + "    origin =  testing.origin(),\n"
+                + "    authoring = "
+                + authoring
+                + "\n,"
+                + "    destination = testing.destination(),\n"
+                + "    mode = '"
+                + mode
+                + "',\n"
+                + "    transformations = [\n"
+                + "      first, second"
+                + (thirdTransform == null ? "" : ", third")
+                + "]\n"
+                + ")\n");
     config.getMigration("default").run(workdir, ImmutableList.of("2"));
   }
 
@@ -4688,7 +4640,7 @@ public class WorkflowTest {
     assertThat(firstEffect.getDestinationRef().getId()).isEqualTo("destination/1");
     DestinationEffect secondEffect = event.getDestinationEffects().get(1);
     assertThat(secondEffect.getSummary()).isEqualTo("New effect");
-    assertThat(secondEffect.getType()).isEqualTo(Type.UPDATED);
+    assertThat(secondEffect.getType()).isEqualTo(DestinationEffect.Type.UPDATED);
     assertThat(secondEffect.getOriginRefs().get(0).getRef()).isEqualTo("1111");
     assertThat(secondEffect.getDestinationRef().getId()).isEqualTo("9999");
   }
@@ -4709,7 +4661,8 @@ public class WorkflowTest {
         };
       }
     };
-    verifyHookForException(ValidationException.class, Type.ERROR, "Validation exception!");
+    verifyHookForException(
+        ValidationException.class, DestinationEffect.Type.ERROR, "Validation exception!");
   }
 
   // Validates that the hook is executed when the workflow throws an exception != VE, and that
@@ -4728,11 +4681,14 @@ public class WorkflowTest {
         };
       }
     };
-    verifyHookForException(RepoException.class, Type.TEMPORARY_ERROR, "Repo exception!");
+    verifyHookForException(
+        RepoException.class, DestinationEffect.Type.TEMPORARY_ERROR, "Repo exception!");
   }
 
-  private <T extends Exception> void verifyHookForException(Class<T> expectedExceptionType,
-      Type expectedEffectType, String expectedErrorMsg)
+  private <T extends Exception> void verifyHookForException(
+      Class<T> expectedExceptionType,
+      DestinationEffect.Type expectedEffectType,
+      String expectedErrorMsg)
       throws IOException, ValidationException, RepoException {
     origin.singleFileChange(0, "one commit", "foo.txt", "1");
 
@@ -4771,12 +4727,13 @@ public class WorkflowTest {
     // Effect from the hook is also created
     DestinationEffect secondEffect = event.getDestinationEffects().get(1);
     assertThat(secondEffect.getSummary()).isEqualTo("New effect");
-    assertThat(secondEffect.getType()).isEqualTo(Type.UPDATED);
+    assertThat(secondEffect.getType()).isEqualTo(DestinationEffect.Type.UPDATED);
     assertThat(secondEffect.getOriginRefs().get(0).getRef()).isEqualTo("1111");
     assertThat(secondEffect.getDestinationRef().getId()).isEqualTo("9999");
   }
 
   @Test
+  @SuppressWarnings("AssertThrowsMinimizer")
   public void testOnFinishHookDoesNotReturnResult() throws Exception {
     origin.singleFileChange(0, "one commit", "foo.txt", "1");
 
@@ -4800,7 +4757,7 @@ public class WorkflowTest {
         assertThrows(
             ValidationException.class,
             () -> loadConfig(config).getMigration("default").run(workdir, ImmutableList.of()));
-    assertThat(expected.getMessage()).contains("Error loading config file");
+    assertThat(expected).hasMessageThat().contains("Error loading config file");
   }
 
   @Test
@@ -4840,7 +4797,7 @@ public class WorkflowTest {
             "Error while executing the skylark transformation other: Traceback \\(most"
                 + " recent call last\\):");
 
-    assertThat(ignored.getSuppressed()[0].getCause()).isNull();
+    assertThat(ignored.getSuppressed()[0]).hasCauseThat().isNull();
   }
 
   @Test
@@ -4900,7 +4857,7 @@ public class WorkflowTest {
   public void testReversibleInsideGit() throws IOException, ValidationException, RepoException {
     origin.singleFileChange(0, "one commit", "foo.txt", "foo\nbaz\n");
 
-    GitRepository.newRepo(/*verbose*/ true, workdir, getGitEnv()).init();
+    GitRepository.newRepo(/* verbose= */ true, workdir, getGitEnv()).init();
     Path subdir = Files.createDirectory(workdir.resolve("subdir"));
     String config = ""
         + "core.workflow(\n"
@@ -4968,26 +4925,23 @@ public class WorkflowTest {
   }
 
   @Test
-  public void changeRequestWithFolderDestinationError()
-      throws IOException, ValidationException, RepoException {
+  public void changeRequestWithFolderDestinationError() throws Exception {
     origin.singleFileChange(/*timestamp=*/44, "commit 1", "bar.txt", "1");
 
+    Migration migration =
+        loadConfig(
+                "core.workflow(\n"
+                    + "    name = 'foo',\n"
+                    + "    origin = testing.origin(),\n"
+                    + "    destination = folder.destination(),\n"
+                    + "    authoring = "
+                    + authoring
+                    + ",\n"
+                    + "    mode = 'CHANGE_REQUEST',\n"
+                    + ")\n")
+            .getMigration("foo");
     ValidationException thrown =
-        assertThrows(
-            ValidationException.class,
-            () ->
-                loadConfig(
-                    "core.workflow(\n"
-                        + "    name = 'foo',\n"
-                        + "    origin = testing.origin(),\n"
-                        + "    destination = folder.destination(),\n"
-                        + "    authoring = "
-                        + authoring
-                        + ",\n"
-                        + "    mode = 'CHANGE_REQUEST',\n"
-                        + ")\n")
-                    .getMigration("foo")
-                    .run(workdir, ImmutableList.of()));
+        assertThrows(ValidationException.class, () -> migration.run(workdir, ImmutableList.of()));
     assertThat(thrown)
         .hasMessageThat()
         .contains(
@@ -5009,7 +4963,8 @@ public class WorkflowTest {
     ValidationException e =
         assertThrows(
             ValidationException.class, () -> checkLastRevStatus(WorkflowMode.CHANGE_REQUEST));
-    assertThat(e.getMessage())
+    assertThat(e)
+        .hasMessageThat()
         .isEqualTo("--check-last-rev-state is not compatible with CHANGE_REQUEST");
   }
 
@@ -5017,9 +4972,10 @@ public class WorkflowTest {
   public void sameVersionWithDiff() throws Exception {
     Path originPath = Files.createTempDirectory("origin");
     Path destinationPath = Files.createTempDirectory("destination");
-    GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
+    GitRepository origin =
+        GitRepository.newRepo(/* verbose= */ true, originPath, getGitEnv()).init();
     GitRepository destination =
-        GitRepository.newRepo(/*verbose*/ true, destinationPath, getGitEnv()).init();
+        GitRepository.newRepo(/* verbose= */ true, destinationPath, getGitEnv()).init();
     String primaryBranch = origin.getPrimaryBranch();
 
     String config =
@@ -5046,9 +5002,12 @@ public class WorkflowTest {
             + "',"
             + ")\n";
 
-    Files.write(originPath.resolve("foo.txt"), "not important".getBytes(UTF_8));
+    Files.writeString(originPath.resolve("foo.txt"), "not important");
     origin.add().files("foo.txt").run();
-    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), "not important");
+    origin.commit(
+        "Foo <foo@bara.com>",
+        InstantSource.system().instant().atZone(ZoneId.systemDefault()),
+        "not important");
     String firstCommit = origin.parseRef("HEAD");
 
     options.gitDestination.committerName = "Foo";
@@ -5060,7 +5019,7 @@ public class WorkflowTest {
 
     destination.simpleCommand("checkout", destination.getPrimaryBranch());
 
-    Files.write(destinationPath.resolve("bar.txt"), "a bar".getBytes(UTF_8));
+    Files.writeString(destinationPath.resolve("bar.txt"), "a bar");
     destination.add().files("bar.txt").run();
     destination.simpleCommand("commit", "-a", "-m", "something different");
 
@@ -5070,15 +5029,7 @@ public class WorkflowTest {
     options.workflowOptions.initHistory = false;
     loadConfig(config).getMigration("default").run(workdir, ImmutableList.of());
     // bar.txt present in because it was reverted
-    assertThat(
-        destination
-            .log("HEAD")
-            .withLimit(1)
-            .includeFiles(true)
-            .run()
-            .iterator()
-            .next()
-            .files())
+    assertThat(destination.log("HEAD").withLimit(1).includeFiles(true).run().get(0).files())
         .contains("bar.txt");
   }
 
@@ -5104,13 +5055,15 @@ public class WorkflowTest {
   }
 
   @Test
+  // getMigration returns a wildcard Migration type, requiring an unchecked cast to Info<Revision>.
   @SuppressWarnings("unchecked")
   public void givenLastRevFlagInfoCommandUsesIt() throws Exception {
     Path originPath = Files.createTempDirectory("origin");
     Path destinationPath = Files.createTempDirectory("destination");
-    GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
+    GitRepository origin =
+        GitRepository.newRepo(/* verbose= */ true, originPath, getGitEnv()).init();
     GitRepository destination =
-        GitRepository.newRepo(/*verbose*/ true, destinationPath, getGitEnv()).init();
+        GitRepository.newRepo(/* verbose= */ true, destinationPath, getGitEnv()).init();
     String primaryBranch = origin.getPrimaryBranch();
 
     String config = "core.workflow("
@@ -5124,20 +5077,28 @@ public class WorkflowTest {
         + "    mode = '" + WorkflowMode.ITERATIVE + "',"
         + ")\n";
 
-    Files.write(originPath.resolve("foo.txt"), "not important".getBytes(UTF_8));
+    Files.writeString(originPath.resolve("foo.txt"), "not important");
     origin.add().files("foo.txt").run();
-    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), "not important");
+    origin.commit(
+        "Foo <foo@bara.com>",
+        InstantSource.system().instant().atZone(ZoneId.systemDefault()),
+        "not important");
     origin.tag("1_0_0").run();
     String firstCommit = origin.parseRef("HEAD");
 
-    Files.write(destinationPath.resolve("foo.txt"), "not important".getBytes(UTF_8));
+    Files.writeString(destinationPath.resolve("foo.txt"), "not important");
     destination.add().files("foo.txt").run();
     destination.commit(
-        "Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), "not important");
+        "Foo <foo@bara.com>",
+        InstantSource.system().instant().atZone(ZoneId.systemDefault()),
+        "not important");
 
-    Files.write(originPath.resolve("foo.txt"), "foo".getBytes(UTF_8));
+    Files.writeString(originPath.resolve("foo.txt"), "foo");
     origin.add().files("foo.txt").run();
-    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), "change1");
+    origin.commit(
+        "Foo <foo@bara.com>",
+        InstantSource.system().instant().atZone(ZoneId.systemDefault()),
+        "change1");
     options.setWorkdirToRealTempDir();
     // Pass custom HOME directory so that we run an hermetic test and we
     // can add custom configuration to $HOME/.gitconfig.
@@ -5150,17 +5111,21 @@ public class WorkflowTest {
 
     Info<Revision> info = (Info<Revision>) loadConfig(config).getMigration("default").getInfo();
     verifyInfo(info, "change1\n");
-    assertThat(info.originDescription().get("url"))
+    assertThat(info.originDescription())
+        .valuesForKey("url")
         .containsExactly("file://" + origin.getWorkTree());
-    assertThat(info.destinationDescription().get("url"))
+    assertThat(info.destinationDescription())
+        .valuesForKey("url")
         .containsExactly("file://" + destination.getWorkTree());
     Iterable<MigrationReference<Revision>> refs = info.migrationReferences();
     assertThat(Iterables.getFirst(refs, null).getLastMigrated()
         .associatedLabel(GIT_DESCRIBE_ABBREV)).containsExactly("1_0_0");
     assertThat(
-        Iterables.getOnlyElement(
-            info.migrationReferences()).getLastMigratedChange().getLabels().get(
-            GIT_DESCRIBE_ABBREV)).containsExactly("1_0_0");
+            Iterables.getOnlyElement(info.migrationReferences())
+                .getLastMigratedChange()
+                .getLabels())
+        .valuesForKey(GIT_DESCRIBE_ABBREV)
+        .containsExactly("1_0_0");
   }
 
   @Test
@@ -5168,9 +5133,10 @@ public class WorkflowTest {
   public void testToFolderFlag() throws Exception {
     Path originPath = Files.createTempDirectory("origin");
     Path destinationPath = Files.createTempDirectory("destination");
-    GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
+    GitRepository origin =
+        GitRepository.newRepo(/* verbose= */ true, originPath, getGitEnv()).init();
     GitRepository destination =
-        GitRepository.newRepo(/*verbose*/ true, destinationPath, getGitEnv()).init();
+        GitRepository.newRepo(/* verbose= */ true, destinationPath, getGitEnv()).init();
     String primaryBranch = origin.getPrimaryBranch();
 
     String config = "core.workflow("
@@ -5184,9 +5150,12 @@ public class WorkflowTest {
         + "    mode = '" + WorkflowMode.ITERATIVE + "',"
         + ")\n";
 
-    Files.write(originPath.resolve("foo.txt"), "change".getBytes(UTF_8));
+    Files.writeString(originPath.resolve("foo.txt"), "change");
     origin.add().files("foo.txt").run();
-    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), "not important");
+    origin.commit(
+        "Foo <foo@bara.com>",
+        InstantSource.system().instant().atZone(ZoneId.systemDefault()),
+        "not important");
 
     options.workflowOptions.toFolder = true;
     options.general.squash = true;
@@ -5237,7 +5206,7 @@ public class WorkflowTest {
         + "    mode = '" + WorkflowMode.ITERATIVE + "',"
         + ")\n";
 
-    Files.write(originPath.resolve("foo.txt"), "testing foo".getBytes(UTF_8));
+    Files.writeString(originPath.resolve("foo.txt"), "testing foo");
     origin.hg(originPath, "add", "foo.txt");
     origin.hg(originPath, "commit", "-m", "add foo");
 
@@ -5253,7 +5222,7 @@ public class WorkflowTest {
     assertThat(destCommits).hasSize(1);
     assertThat(destCommits.get(0).body()).contains("add foo");
 
-    Files.write(originPath.resolve("bar.txt"), "testing bar".getBytes(UTF_8));
+    Files.writeString(originPath.resolve("bar.txt"), "testing bar");
     origin.hg(originPath, "add", "bar.txt");
     origin.hg(originPath, "commit", "-m", "add bar");
 
@@ -5267,12 +5236,13 @@ public class WorkflowTest {
   }
 
   @Test
+  // getMigration returns a wildcard Migration type, requiring an unchecked cast to Info<Revision>.
   @SuppressWarnings("unchecked")
   public void testInfoSkipsChangesThatDontAffectOriginPaths() throws Exception {
     originFiles = "glob(['**'], exclude = ['folder/**'])";
     transformations = ImmutableList.of();
 
-    Workflow<?, ?> workflow = iterativeWorkflow(/*previousRef*/ "0");
+    Workflow<?, ?> workflow = iterativeWorkflow(/* previousRef= */ "0");
 
     origin.singleFileChange(0, "change1", "file.txt", "aaa");
     origin.singleFileChange(1, "change2", "file.txt", "bbb");
@@ -5281,7 +5251,7 @@ public class WorkflowTest {
 
     workflow.run(workdir, ImmutableList.of("1"));
 
-    workflow = iterativeWorkflow(/*previousRef*/ null);
+    workflow = iterativeWorkflow(/* previousRef= */ null);
 
     verifyInfo((Info<Revision>) workflow.getInfo(), "change4");
 
@@ -5302,7 +5272,8 @@ public class WorkflowTest {
     options.workflowOptions.initHistory = true;
     skylarkWorkflow("default", ITERATIVE).run(workdir, ImmutableList.of("3"));
     assertThat(Lists.transform(destination.processed, input -> input.getOriginRef().asString()))
-        .isEqualTo(Lists.newArrayList("0", "1", "2", "3"));
+        .containsExactly("0", "1", "2", "3")
+        .inOrder();
   }
 
   @Test
@@ -5317,14 +5288,16 @@ public class WorkflowTest {
 
     skylarkWorkflow("default", ITERATIVE).run(workdir, ImmutableList.of("3"));
     assertThat(Lists.transform(destination.processed, input -> input.getOriginRef().asString()))
-        .isEqualTo(Lists.newArrayList("0", "1", "2", "3"));
+        .containsExactly("0", "1", "2", "3")
+        .inOrder();
 
     origin.singleFileChange(4, "change 5", "file.txt", "e");
     origin.singleFileChange(5, "change 6", "file.txt", "f");
 
     skylarkWorkflow("default", ITERATIVE).run(workdir, ImmutableList.of("5"));
     assertThat(Lists.transform(destination.processed, input -> input.getOriginRef().asString()))
-        .isEqualTo(Lists.newArrayList("0", "1", "2", "3", "4", "5"));
+        .containsExactly("0", "1", "2", "3", "4", "5")
+        .inOrder();
     console().assertThat().onceInLog(MessageType.WARNING,
         ".*Ignoring --init-history because a previous imported revision '3' was found in "
             + "the destination.*");
@@ -5341,7 +5314,7 @@ public class WorkflowTest {
     options.workflowOptions.initHistory = true;
     skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of("3"));
     assertThat(Lists.transform(destination.processed, input -> input.getOriginRef().asString()))
-        .isEqualTo(Lists.newArrayList("3"));
+        .containsExactly("3");
   }
 
   @Test
@@ -5364,10 +5337,10 @@ public class WorkflowTest {
     options.workflowOptions.initHistory = true;
     origin.singleFileChange(0, "change 1", "bar/file.txt", "a");
     options.setForce(false);
+    Workflow<?, ?> workflow = skylarkWorkflow("default", SQUASH);
     EmptyChangeException e =
         assertThrows(
-            EmptyChangeException.class,
-            () -> skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of("0")));
+            EmptyChangeException.class, () -> workflow.run(workdir, ImmutableList.of("0")));
 
     assertThat(e)
         .hasMessageThat()
@@ -5385,7 +5358,7 @@ public class WorkflowTest {
                 .getDestinationEffects()
                 .get(0)
                 .getType())
-        .isEqualTo(Type.NOOP);
+        .isEqualTo(DestinationEffect.Type.NOOP);
     assertThat(
             eventMonitor
                 .changeMigrationFinishedEvents
@@ -5401,13 +5374,12 @@ public class WorkflowTest {
     options.workflowOptions.initHistory = true;
     options.general.enableEventMonitor("test", eventMonitor);
     options.general.setConsoleForTest(console());
+    Workflow<?, ?> workflow = skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST);
     ValidationException e =
-        assertThrows(
-            ValidationException.class,
-            () ->
-                skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST)
-                    .run(workdir, ImmutableList.of("")));
-    assertThat(e.getMessage()).isEqualTo("--init-history is not compatible with CHANGE_REQUEST");
+        assertThrows(ValidationException.class, () -> workflow.run(workdir, ImmutableList.of("")));
+    assertThat(e)
+        .hasMessageThat()
+        .isEqualTo("--init-history is not compatible with CHANGE_REQUEST");
   }
 
   @Test
@@ -5532,7 +5504,8 @@ public class WorkflowTest {
   @Test
   public void testFirstParentAlreadyImportedInNoFirstParent() throws Exception {
     Path originPath = Files.createTempDirectory("origin");
-    GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
+    GitRepository origin =
+        GitRepository.newRepo(/* verbose= */ true, originPath, getGitEnv()).init();
     String primaryBranch = origin.getPrimaryBranch();
 
     options.setForce(false);
@@ -5607,22 +5580,23 @@ public class WorkflowTest {
 
   private GitRevision commit(GitRepository origin, String msg)
       throws RepoException, ValidationException {
-    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), msg);
+    origin.commit(
+        "Foo <foo@bara.com>", InstantSource.system().instant().atZone(ZoneId.systemDefault()), msg);
     return origin.resolveReference("HEAD");
   }
 
   private void addGitFile(Path originPath, GitRepository origin, String path, String content)
       throws IOException, RepoException {
     Files.createDirectories(originPath.resolve(path).getParent());
-    Files.write(originPath.resolve(path), content.getBytes(UTF_8));
+    Files.writeString(originPath.resolve(path), content);
     origin.add().files(path).run();
   }
 
-  private void checkLastRevStatus(WorkflowMode mode)
-      throws IOException, RepoException, ValidationException {
+  private void checkLastRevStatus(WorkflowMode mode) throws Exception {
     Path originPath = Files.createTempDirectory("origin");
     Path destinationWorkdir = Files.createTempDirectory("destination_workdir");
-    GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
+    GitRepository origin =
+        GitRepository.newRepo(/* verbose= */ true, originPath, getGitEnv()).init();
 
     GitRepository destinationBare =
         newBareRepo(
@@ -5650,14 +5624,20 @@ public class WorkflowTest {
         + "    mode = '" + mode + "',"
         + ")\n";
 
-    Files.write(originPath.resolve("foo.txt"), "not important".getBytes(UTF_8));
+    Files.writeString(originPath.resolve("foo.txt"), "not important");
     origin.add().files("foo.txt").run();
-    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), "not important");
+    origin.commit(
+        "Foo <foo@bara.com>",
+        InstantSource.system().instant().atZone(ZoneId.systemDefault()),
+        "not important");
     String firstCommit = origin.parseRef("HEAD");
 
-    Files.write(originPath.resolve("foo.txt"), "foo".getBytes(UTF_8));
+    Files.writeString(originPath.resolve("foo.txt"), "foo");
     origin.add().files("foo.txt").run();
-    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), "change1");
+    origin.commit(
+        "Foo <foo@bara.com>",
+        InstantSource.system().instant().atZone(ZoneId.systemDefault()),
+        "change1");
 
     options.setWorkdirToRealTempDir();
     // Pass custom HOME directory so that we run an hermetic test and we
@@ -5672,21 +5652,23 @@ public class WorkflowTest {
     loadConfig(config).getMigration("default").run(workdir, ImmutableList.of("HEAD"));
 
     // Modify destination last commit
-    Files.write(destinationWorkdir.resolve("foo.txt"), "foo_changed".getBytes(UTF_8));
+    Files.writeString(destinationWorkdir.resolve("foo.txt"), "foo_changed");
     destination.add().files("foo.txt").run();
     destination.simpleCommand("commit", "--amend", "-a", "-C", "HEAD");
 
-    Files.write(originPath.resolve("foo.txt"), "foo_origin_changed".getBytes(UTF_8));
+    Files.writeString(originPath.resolve("foo.txt"), "foo_origin_changed");
     origin.add().files("foo.txt").run();
-    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), "change2");
+    origin.commit(
+        "Foo <foo@bara.com>",
+        InstantSource.system().instant().atZone(ZoneId.systemDefault()),
+        "change2");
 
     options.setForce(false);
     options.setLastRevision(null);
+    Migration migration = loadConfig(config).getMigration("default");
     ValidationException thrown =
         assertThrows(
-            ValidationException.class,
-            () ->
-                loadConfig(config).getMigration("default").run(workdir, ImmutableList.of("HEAD")));
+            ValidationException.class, () -> migration.run(workdir, ImmutableList.of("HEAD")));
     assertThat(thrown)
         .hasMessageThat()
         .contains(
@@ -5710,7 +5692,7 @@ public class WorkflowTest {
 
   private void touchFile(Path base, String path, String content) throws IOException {
     Files.createDirectories(base.resolve(path).getParent());
-    Files.write(base.resolve(path), content.getBytes(UTF_8));
+    Files.writeString(base.resolve(path), content);
   }
 
   private Path writeFile(Path base, String path, String content) throws IOException {
@@ -5723,14 +5705,14 @@ public class WorkflowTest {
   }
 
   private void verifyInfo(Info<Revision> info, String... expectedChanges) {
-    List<String> commitMessages =
-        StreamSupport.stream(info.migrationReferences().spliterator(), false)
+    ImmutableList<String> commitMessages =
+        stream(info.migrationReferences())
             .flatMap(
                 revisionMigrationReference ->
                     revisionMigrationReference.getAvailableToMigrate().stream())
             .map(Change::getMessage)
-            .collect(Collectors.toList());
-    assertThat(commitMessages).containsExactly((Object[]) expectedChanges);
+            .collect(toImmutableList());
+    assertThat(commitMessages).containsExactlyElementsIn(expectedChanges);
   }
 
   @Test
@@ -5747,8 +5729,8 @@ public class WorkflowTest {
   }
 
   @Test
-  public void testCustomRevIdFormat_validUsingUnderscoreWithREV_ID() throws Exception {
-    origin.addSimpleChange(/*timestamp*/ 0);
+  public void testCustomRevIdFormat_validUsingUnderscoreWithREV_iD() throws Exception {
+    origin.addSimpleChange(/* timestamp= */ 0);
     extraWorkflowFields = ImmutableList.of("custom_rev_id = \"CUSTOM_REV_ID\"");
     skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of(HEAD));
 
@@ -5756,16 +5738,19 @@ public class WorkflowTest {
     assertThat(change.getRevIdLabel()).isEqualTo("CUSTOM_REV_ID");
   }
 
-  @Test(expected = ValidationException.class)
-  public void testCustomRevIdFormat_invalidUsingHyphenWithREV_ID() throws Exception {
-    origin.addSimpleChange(/*timestamp*/ 0);
+  @Test
+  @SuppressWarnings("AssertThrowsMinimizer")
+  public void testCustomRevIdFormat_invalidUsingHyphenWithREV_iD() throws Exception {
+    origin.addSimpleChange(/* timestamp= */ 0);
     extraWorkflowFields = ImmutableList.of("custom_rev_id = \"CUSTOM-REV_ID\"");
-    skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of(HEAD));
+    assertThrows(
+        ValidationException.class,
+        () -> skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of(HEAD)));
   }
 
   @Test
   public void testCustomRevIdFormat_validHyphenWithRevId() throws Exception {
-    origin.addSimpleChange(/*timestamp*/ 0);
+    origin.addSimpleChange(/* timestamp= */ 0);
     extraWorkflowFields = ImmutableList.of("custom_rev_id = \"Custom-RevId\"");
     skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of(HEAD));
 
@@ -5773,11 +5758,14 @@ public class WorkflowTest {
     assertThat(change.getRevIdLabel()).isEqualTo("Custom-RevId");
   }
 
-  @Test(expected = ValidationException.class)
+  @Test
+  @SuppressWarnings("AssertThrowsMinimizer")
   public void testCustomRevIdFormat_invalidUsingUnderscoreWithRevId() throws Exception {
-    origin.addSimpleChange(/*timestamp*/ 0);
+    origin.addSimpleChange(/* timestamp= */ 0);
     extraWorkflowFields = ImmutableList.of("custom_rev_id = \"CUSTOM_RevId\"");
-    skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of(HEAD));
+    assertThrows(
+        ValidationException.class,
+        () -> skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of(HEAD)));
   }
 
   @Test
