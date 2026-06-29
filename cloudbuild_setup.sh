@@ -17,7 +17,7 @@ apt-get install -y locales
 apt-get install -y mercurial
 apt-get install -y lsb-release
 apt-get install -y software-properties-common
-apt install -y openjdk-21-jdk openjdk-21-jre
+apt install -y openjdk-25-jdk openjdk-25-jre
 add-apt-repository ppa:git-core/ppa -y
 apt install git -y
 
