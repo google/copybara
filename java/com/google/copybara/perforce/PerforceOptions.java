@@ -20,11 +20,13 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
+import com.google.common.flogger.FluentLogger;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.perforce.p4java.exception.P4JavaException;
+import com.perforce.p4java.option.server.TrustOptions;
 import com.perforce.p4java.server.IOptionsServer;
 import com.perforce.p4java.server.ServerFactory;
 import java.net.URISyntaxException;
@@ -34,6 +36,8 @@ import javax.annotation.Nullable;
 /** Connection arguments for Perforce, resolving from flags and falling back to P4 env vars. */
 @Parameters(separators = "=")
 public class PerforceOptions implements Option {
+
+  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   private final GeneralOptions generalOptions;
 
@@ -64,6 +68,21 @@ public class PerforceOptions implements Option {
               + " Takes precedence over --perforce-password.")
   String token = null;
 
+  @Parameter(
+      names = "--perforce-charset",
+      description =
+          "Charset for a Unicode-mode Perforce server (P4CHARSET), e.g. 'utf8'. Defaults to the"
+              + " P4CHARSET environment variable, or 'utf8' when the server is Unicode-enabled.")
+  String charset = null;
+
+  @Parameter(
+      names = "--perforce-ssl-fingerprint",
+      description =
+          "Expected SSL fingerprint of the Perforce server to pin (for 'ssl:' ports). If unset, the"
+              + " server's fingerprint is trusted on first use. Defaults to the P4FINGERPRINT"
+              + " environment variable.")
+  String sslFingerprint = null;
+
   // Lazily created and cached: a migration only ever talks to one server.
   @Nullable private PerforceServer cachedServer;
 
@@ -84,6 +103,8 @@ public class PerforceOptions implements Option {
     String resolvedUser = firstNonEmpty(user, env("P4USER"));
     String resolvedToken = firstNonEmpty(token, env("P4TICKET"));
     String resolvedPassword = firstNonEmpty(password, env("P4PASSWD"));
+    String resolvedCharset = firstNonEmpty(charset, env("P4CHARSET"));
+    String resolvedFingerprint = firstNonEmpty(sslFingerprint, env("P4FINGERPRINT"));
 
     if (Strings.isNullOrEmpty(resolvedPort)) {
       throw new ValidationException(
@@ -92,10 +113,37 @@ public class PerforceOptions implements Option {
 
     try {
       IOptionsServer server = ServerFactory.getOptionsServer(toUri(resolvedPort), new Properties());
+
+      // SSL servers require their certificate fingerprint to be trusted before connecting.
+      if (resolvedPort.startsWith("ssl:")) {
+        if (!Strings.isNullOrEmpty(resolvedFingerprint)) {
+          server.addTrust(resolvedFingerprint, new TrustOptions());
+        } else {
+          logger.atWarning().log(
+              "Trusting the Perforce SSL fingerprint of %s on first use; pin it with"
+                  + " --perforce-ssl-fingerprint to guard against man-in-the-middle.",
+              resolvedPort);
+          server.addTrust(new TrustOptions().setAutoAccept(true));
+        }
+      }
+
       server.connect();
+
       if (!Strings.isNullOrEmpty(resolvedUser)) {
         server.setUserName(resolvedUser);
       }
+
+      // Unicode-mode servers require a charset before any content is exchanged.
+      if (server.supportsUnicode()) {
+        String unicodeCharset = Strings.isNullOrEmpty(resolvedCharset) ? "utf8" : resolvedCharset;
+        if (!server.setCharsetName(unicodeCharset)) {
+          logger.atWarning().log(
+              "Perforce charset '%s' was not accepted by the client", unicodeCharset);
+        }
+      } else if (!Strings.isNullOrEmpty(resolvedCharset)) {
+        server.setCharsetName(resolvedCharset);
+      }
+
       if (!Strings.isNullOrEmpty(resolvedToken)) {
         // A pre-issued ticket: use it directly, no password-for-ticket exchange.
         server.setAuthTicket(resolvedToken);
