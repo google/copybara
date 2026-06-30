@@ -27,6 +27,7 @@ import com.google.copybara.Options;
 import com.google.copybara.TransformResult;
 import com.google.copybara.WriterContext;
 import com.google.copybara.effect.DestinationEffect;
+import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.Glob;
@@ -61,7 +62,7 @@ public class PerforceDestination implements Destination<PerforceRevision> {
 
   @Override
   public Writer<PerforceRevision> newWriter(WriterContext writerContext) {
-    return new WriterImpl(writerContext.getWorkflowName());
+    return new WriterImpl(writerContext.getWorkflowName(), writerContext.isDryRun());
   }
 
   @Override
@@ -85,12 +86,14 @@ public class PerforceDestination implements Destination<PerforceRevision> {
   class WriterImpl implements Writer<PerforceRevision> {
 
     private final String workflowName;
+    private final boolean dryRun;
     // Lazily created on first write: a stream client and its on-disk workspace under the cache.
     private String clientName;
     private Path workspaceRoot;
 
-    WriterImpl(String workflowName) {
+    WriterImpl(String workflowName, boolean dryRun) {
       this.workflowName = checkNotNull(workflowName);
+      this.dryRun = dryRun;
     }
 
     @Override
@@ -109,19 +112,43 @@ public class PerforceDestination implements Destination<PerforceRevision> {
     public ImmutableList<DestinationEffect> write(
         TransformResult transformResult, Glob destinationFiles, Console console)
         throws ValidationException, RepoException, IOException {
+      // p4 reconcile silently ignores local files whose names contain Perforce wildcards, which
+      // would drop them from the changelist without error. Refuse loudly instead. (Full support
+      // would require per-file encoded add/edit/delete; deferred.)
+      rejectUnsupportedPaths(transformResult.getPath(), destinationFiles);
+
       ensureWorkspace();
       PerforceServer server = perforceOptions.server();
 
       // cleanWorkspace() reverts any files left open by a prior aborted run, so this attempt starts
-      // from a clean, head-aligned state. We do NOT retry a failed submit: reconcileAndSubmit()
-      // verifies the submit landed and otherwise throws with the real Perforce error, failing loud
-      // rather than silently drifting or masking the cause. A failed run is safe to re-run.
+      // from a clean, head-aligned state.
       console.progress("Perforce Destination: preparing workspace");
       server.cleanWorkspace(clientName, stream);
 
       console.progress("Perforce Destination: staging transformed files");
       mirror(transformResult.getPath(), workspaceRoot, destinationFiles);
 
+      if (dryRun) {
+        // Compute the diff but never create or submit a changelist.
+        int changed = server.previewReconcile(clientName, stream);
+        if (changed == 0) {
+          throw new EmptyChangeException(
+              "No changes to submit: the destination already matches the transformed tree");
+        }
+        String summary =
+            String.format("(dry run) would submit %d file(s) to %s; not submitted", changed, stream);
+        console.info("Perforce Destination: " + summary);
+        return ImmutableList.of(
+            new DestinationEffect(
+                DestinationEffect.Type.CREATED,
+                summary,
+                transformResult.getChanges().getCurrent(),
+                new DestinationEffect.DestinationRef("(dry run)", "changelist", /* url= */ null)));
+      }
+
+      // We do NOT retry a failed submit: reconcileAndSubmit() verifies the submit landed and
+      // otherwise throws with the real Perforce error, failing loud rather than silently drifting.
+      // A failed run is safe to re-run.
       console.progress("Perforce Destination: submitting changelist");
       int changelist =
           server.reconcileAndSubmit(
@@ -176,23 +203,66 @@ public class PerforceDestination implements Destination<PerforceRevision> {
     try {
       if (Files.exists(to)) {
         try (Stream<Path> walk = Files.walk(to)) {
-          for (Path file : (Iterable<Path>) walk.filter(Files::isRegularFile)
+          for (Path file : (Iterable<Path>) walk.filter(PerforceDestination::isManaged)
               .filter(toMatcher::matches)::iterator) {
             Files.delete(file);
           }
         }
       }
       try (Stream<Path> walk = Files.walk(from)) {
-        for (Path file : (Iterable<Path>) walk.filter(Files::isRegularFile)
+        for (Path file : (Iterable<Path>) walk.filter(PerforceDestination::isManaged)
             .filter(fromMatcher::matches)::iterator) {
           Path dest = to.resolve(from.relativize(file));
           Files.createDirectories(dest.getParent());
-          Files.copy(
-              file, dest, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
+          if (Files.isSymbolicLink(file)) {
+            // Recreate the link itself (not its target) so p4 reconcile stores it as a symlink.
+            Files.deleteIfExists(dest);
+            Files.createSymbolicLink(dest, Files.readSymbolicLink(file));
+          } else {
+            Files.copy(
+                file,
+                dest,
+                StandardCopyOption.REPLACE_EXISTING,
+                StandardCopyOption.COPY_ATTRIBUTES);
+          }
         }
       }
     } catch (IOException e) {
       throw new RepoException("Error staging files into the Perforce workspace", e);
+    }
+  }
+
+  /** The content kinds Perforce tracks: regular files and symlinks (directories are implicit). */
+  private static boolean isManaged(Path path) {
+    return Files.isSymbolicLink(path) || Files.isRegularFile(path);
+  }
+
+  /** Fails loudly if any staged file's name contains a Perforce wildcard character (@ # % *). */
+  private static void rejectUnsupportedPaths(Path from, Glob destinationFiles)
+      throws ValidationException, RepoException {
+    PathMatcher matcher = destinationFiles.relativeTo(from);
+    ImmutableList.Builder<String> offending = ImmutableList.builder();
+    int count = 0;
+    try (Stream<Path> walk = Files.walk(from)) {
+      for (Path file :
+          (Iterable<Path>) walk.filter(PerforceDestination::isManaged).filter(matcher::matches)
+              ::iterator) {
+        String relative = from.relativize(file).toString();
+        if (CharMatcher.anyOf("@#%*").matchesAnyOf(relative)) {
+          offending.add(relative);
+          if (++count >= 10) {
+            break;
+          }
+        }
+      }
+    } catch (IOException e) {
+      throw new RepoException("Error scanning files for Perforce-incompatible names", e);
+    }
+    ImmutableList<String> bad = offending.build();
+    if (!bad.isEmpty()) {
+      throw new ValidationException(
+          "Perforce cannot store filenames containing '@', '#', '%' or '*'; offending file(s): "
+              + bad);
     }
   }
 

@@ -227,6 +227,36 @@ public class PerforceServer {
   }
 
   /**
+   * Reconciles the workspace against the depot to count what *would* be submitted, then reverts so
+   * nothing is left open. Used for dry-run: it never creates or submits a changelist. Returns the
+   * number of files that would be added/edited/deleted.
+   */
+  int previewReconcile(String clientName, String stream) throws RepoException {
+    try {
+      IClient client = server.getClient(clientName);
+      server.setCurrentClient(client);
+      List<IFileSpec> opened =
+          client.reconcileFiles(
+              FileSpecBuilder.makeFileSpecList(stream + "/..."),
+              new ReconcileFilesOptions()
+                  .setOutsideAdd(true)
+                  .setOutsideEdit(true)
+                  .setRemoved(true));
+      int changed = 0;
+      for (IFileSpec spec : opened) {
+        if (spec != null && spec.getOpStatus() == FileSpecOpStatus.VALID) {
+          changed++;
+        }
+      }
+      client.revertFiles(
+          FileSpecBuilder.makeFileSpecList(stream + "/..."), new RevertFilesOptions());
+      return changed;
+    } catch (P4JavaException e) {
+      throw new RepoException("Error previewing changes for " + stream, e);
+    }
+  }
+
+  /**
    * Reverts any files left open in {@code clientName} (e.g. from a previously interrupted submit)
    * and syncs it to the head of {@code stream}, giving each write a clean, head-aligned workspace.
    */
@@ -331,6 +361,19 @@ public class PerforceServer {
     }
   }
 
+  /**
+   * Decodes the %-escapes Perforce uses for the four special characters in depot paths. (On the
+   * write side these are encoded automatically by the server when reconciling the `//stream/...`
+   * wildcard, so only reads need decoding.) %25 must be decoded last.
+   */
+  private static String decodeP4Path(String path) {
+    return path
+        .replace("%40", "@")
+        .replace("%23", "#")
+        .replace("%2A", "*")
+        .replace("%25", "%");
+  }
+
   private static String sanitizeUser(String email) {
     if (Strings.isNullOrEmpty(email)) {
       return "unknown";
@@ -380,7 +423,9 @@ public class PerforceServer {
         if (depotPath == null) {
           continue;
         }
-        files.add(depotPath.startsWith(prefix) ? depotPath.substring(prefix.length()) : depotPath);
+        String relative =
+            depotPath.startsWith(prefix) ? depotPath.substring(prefix.length()) : depotPath;
+        files.add(decodeP4Path(relative));
       }
       return files.build();
     } catch (P4JavaException e) {
