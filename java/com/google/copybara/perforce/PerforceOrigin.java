@@ -30,6 +30,7 @@ import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.Origin.Reader.ChangesResponse.EmptyReason;
 import com.google.copybara.authoring.Authoring;
+import com.google.copybara.credentials.CredentialModule.UsernamePasswordIssuer;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -50,22 +51,25 @@ public class PerforceOrigin implements Origin<PerforceRevision> {
   private final PerforceOptions perforceOptions;
   private final String stream;
   @Nullable private final String configRef;
+  @Nullable private final UsernamePasswordIssuer credentials;
 
   private PerforceOrigin(
       GeneralOptions generalOptions,
       PerforceOptions perforceOptions,
       String stream,
-      @Nullable String configRef) {
+      @Nullable String configRef,
+      @Nullable UsernamePasswordIssuer credentials) {
     this.generalOptions = checkNotNull(generalOptions);
     this.perforceOptions = checkNotNull(perforceOptions);
     // Streams are referenced without a trailing slash, e.g. "//stream/main".
     this.stream = CharMatcher.is('/').trimTrailingFrom(checkNotNull(stream));
     this.configRef = configRef;
+    this.credentials = credentials;
   }
 
   @VisibleForTesting
   public PerforceServer getServer() throws RepoException, ValidationException {
-    return perforceOptions.server();
+    return perforceOptions.server(credentials);
   }
 
   @Override
@@ -191,8 +195,14 @@ public class PerforceOrigin implements Origin<PerforceRevision> {
     return String.format("PerforceOrigin{stream = %s, ref = %s}", stream, configRef);
   }
 
-  static PerforceOrigin newPerforceOrigin(Options options, String stream, @Nullable String ref) {
+  static PerforceOrigin newPerforceOrigin(
+      Options options, String stream, @Nullable String ref,
+      @Nullable UsernamePasswordIssuer credentials) {
     return new PerforceOrigin(
-        options.get(GeneralOptions.class), options.get(PerforceOptions.class), stream, ref);
+        options.get(GeneralOptions.class),
+        options.get(PerforceOptions.class),
+        stream,
+        ref,
+        credentials);
   }
 }

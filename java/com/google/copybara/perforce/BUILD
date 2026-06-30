@@ -26,6 +26,7 @@ java_library(
     name = "perforce",
     srcs = [
         "PerforceDestination.java",
+        "PerforceDestinationReader.java",
         "PerforceModule.java",
         "PerforceOptions.java",
         "PerforceOrigin.java",
@@ -38,7 +39,9 @@ java_library(
         "//java/com/google/copybara:general_options",
         "//java/com/google/copybara:labels",
         "//java/com/google/copybara/authoring",
+        "//java/com/google/copybara/checks",
         "//java/com/google/copybara/config:base",
+        "//java/com/google/copybara/credentials",
         "//java/com/google/copybara/doc:annotations",
         "//java/com/google/copybara/effect",
         "//java/com/google/copybara/exception",

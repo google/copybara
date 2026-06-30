@@ -17,6 +17,7 @@
 package com.google.copybara.perforce;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
@@ -28,10 +29,16 @@ import com.google.copybara.Destination.DestinationStatus;
 import com.google.copybara.Destination.Writer;
 import com.google.copybara.Options;
 import com.google.copybara.WriterContext;
+import com.google.copybara.checks.Checker;
+import com.google.copybara.exception.ValidationException;
+import com.google.copybara.testing.DummyChecker;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.util.Glob;
+import com.google.copybara.util.console.testing.TestingConsole;
 import com.perforce.p4java.core.IChangelistSummary;
 import com.perforce.p4java.server.IOptionsServer;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -56,7 +63,8 @@ public class PerforceDestinationTest {
   }
 
   private PerforceDestination destination(boolean submitAsAuthor) {
-    return PerforceDestination.newPerforceDestination(options, STREAM, submitAsAuthor);
+    return PerforceDestination.newPerforceDestination(
+        options, STREAM, submitAsAuthor, /* credentials= */ null, /* checker= */ null);
   }
 
   private Writer<PerforceRevision> writer() {
@@ -128,6 +136,51 @@ public class PerforceDestinationTest {
     stubChangelists(); // no submitted changelists at all
 
     assertThat(writer().getDestinationStatus(Glob.ALL_FILES, LABEL)).isNull();
+  }
+
+  @Test
+  public void checkerRejectsBadFileContent() throws Exception {
+    Path tree = Files.createTempDirectory("p4checker");
+    Files.writeString(tree.resolve("a.txt"), "this has a BADWORD in it");
+    Checker checker = new DummyChecker(ImmutableSet.of("badword"));
+
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () -> PerforceDestination.applyChecker(checker, tree, "desc", new TestingConsole()));
+    assertThat(e).hasMessageThat().ignoringCase().contains("badword");
+  }
+
+  @Test
+  public void checkerRejectsBadDescription() throws Exception {
+    Path tree = Files.createTempDirectory("p4checker");
+    Files.writeString(tree.resolve("a.txt"), "perfectly fine");
+    Checker checker = new DummyChecker(ImmutableSet.of("secret"));
+
+    assertThrows(
+        ValidationException.class,
+        () ->
+            PerforceDestination.applyChecker(
+                checker, tree, "contains a secret token", new TestingConsole()));
+  }
+
+  @Test
+  public void checkerPassesCleanTreeAndDescription() throws Exception {
+    Path tree = Files.createTempDirectory("p4checker");
+    Files.writeString(tree.resolve("a.txt"), "totally fine content");
+    Checker checker = new DummyChecker(ImmutableSet.of("badword"));
+
+    assertThat(
+            PerforceDestination.applyChecker(
+                checker, tree, "clean description", new TestingConsole()))
+        .isEqualTo("clean description");
+  }
+
+  @Test
+  public void nullCheckerReturnsDescriptionUnchanged() throws Exception {
+    Path tree = Files.createTempDirectory("p4checker");
+    assertThat(PerforceDestination.applyChecker(null, tree, "desc", new TestingConsole()))
+        .isEqualTo("desc");
   }
 
   private void stubChangelists(IChangelistSummary... summaries) throws Exception {

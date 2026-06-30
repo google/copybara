@@ -27,11 +27,13 @@ all_tests(
     deps = [
         "//java/com/google/copybara:base",
         "//java/com/google/copybara/authoring",
+        "//java/com/google/copybara/checks",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/perforce",
         "//java/com/google/copybara/revision",
         "//java/com/google/copybara/testing",
         "//java/com/google/copybara/util",
+        "//java/com/google/copybara/util/console/testing",
         "//third_party:mockito",
         "//third_party:p4java",
         "//third_party:truth",

@@ -72,7 +72,7 @@ public class PerforceOriginTest {
   }
 
   private PerforceOrigin origin() {
-    return PerforceOrigin.newPerforceOrigin(options, STREAM, "head");
+    return PerforceOrigin.newPerforceOrigin(options, STREAM, "head", /* credentials= */ null);
   }
 
   private Reader<PerforceRevision> reader() {

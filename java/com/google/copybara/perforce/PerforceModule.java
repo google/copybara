@@ -20,12 +20,17 @@ import static com.google.copybara.config.SkylarkUtil.checkNotEmpty;
 
 import com.google.common.base.Preconditions;
 import com.google.copybara.Options;
+import com.google.copybara.checks.Checker;
 import com.google.copybara.config.LabelsAwareModule;
+import com.google.copybara.credentials.CredentialModule.UsernamePasswordIssuer;
 import com.google.copybara.doc.annotations.UsesFlags;
+import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
+import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.NoneType;
 import net.starlark.java.eval.StarlarkValue;
 
 /** Main module for Perforce (Helix Core) origins and destinations. */
@@ -62,9 +67,22 @@ public class PerforceModule implements LabelsAwareModule, StarlarkValue {
                 "The default reference used to read a revision. Either a submitted changelist"
                     + " number (e.g. <code>\"12345\"</code>) or the literal <code>\"head\"</code>"
                     + " for the most recent submitted changelist on the stream."),
+        @Param(
+            name = "credentials",
+            allowedTypes = {
+              @ParamType(type = UsernamePasswordIssuer.class),
+              @ParamType(type = NoneType.class)
+            },
+            named = true,
+            defaultValue = "None",
+            doc =
+                "Optional <code>credentials.username_password(...)</code> used to authenticate,"
+                    + " preferred over the --perforce-* flags / env vars."),
       })
-  public PerforceOrigin origin(String stream, String ref) throws EvalException {
-    return PerforceOrigin.newPerforceOrigin(options, checkNotEmpty(stream, "stream"), ref);
+  public PerforceOrigin origin(String stream, String ref, Object credentials)
+      throws EvalException {
+    return PerforceOrigin.newPerforceOrigin(
+        options, checkNotEmpty(stream, "stream"), ref, asIssuer(credentials));
   }
 
   @StarlarkMethod(
@@ -89,10 +107,40 @@ public class PerforceModule implements LabelsAwareModule, StarlarkValue {
                     + " user is created on demand). Requires the connecting user to have permission"
                     + " to create users and submit on their behalf. If false, changelists are"
                     + " submitted as the connecting user and the author is kept in the description."),
+        @Param(
+            name = "credentials",
+            allowedTypes = {
+              @ParamType(type = UsernamePasswordIssuer.class),
+              @ParamType(type = NoneType.class)
+            },
+            named = true,
+            defaultValue = "None",
+            doc =
+                "Optional <code>credentials.username_password(...)</code> used to authenticate,"
+                    + " preferred over the --perforce-* flags / env vars."),
+        @Param(
+            name = "checker",
+            allowedTypes = {@ParamType(type = Checker.class), @ParamType(type = NoneType.class)},
+            named = true,
+            defaultValue = "None",
+            doc =
+                "Optional checker run against the staged files (and the changelist description, if"
+                    + " it is a description checker) before each submit."),
       })
-  public PerforceDestination destination(String stream, boolean submitAsAuthor)
+  public PerforceDestination destination(
+      String stream, boolean submitAsAuthor, Object credentials, Object checker)
       throws EvalException {
     return PerforceDestination.newPerforceDestination(
-        options, checkNotEmpty(stream, "stream"), submitAsAuthor);
+        options,
+        checkNotEmpty(stream, "stream"),
+        submitAsAuthor,
+        asIssuer(credentials),
+        checker instanceof Checker ? (Checker) checker : null);
+  }
+
+  @Nullable
+  private static UsernamePasswordIssuer asIssuer(Object credentials) {
+    return credentials instanceof UsernamePasswordIssuer ? (UsernamePasswordIssuer) credentials
+        : null;
   }
 }

@@ -23,6 +23,7 @@ import com.google.common.base.Strings;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
+import com.google.copybara.credentials.CredentialModule.UsernamePasswordIssuer;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.perforce.p4java.exception.P4JavaException;
@@ -92,17 +93,35 @@ public class PerforceOptions implements Option {
 
   /** Returns a connected {@link PerforceServer}, building and caching it on first use. */
   public PerforceServer server() throws RepoException, ValidationException {
+    return server(null);
+  }
+
+  /**
+   * Returns a connected {@link PerforceServer}. When {@code credentials} is provided (from
+   * config), its issued username/password are used in preference to the {@code --perforce-*} flags
+   * and env vars. Cached on first use; later callers reuse the first connection.
+   */
+  public PerforceServer server(@Nullable UsernamePasswordIssuer credentials)
+      throws RepoException, ValidationException {
     if (cachedServer == null) {
-      cachedServer = new PerforceServer(connect());
+      cachedServer = new PerforceServer(connect(credentials));
     }
     return cachedServer;
   }
 
-  private IOptionsServer connect() throws RepoException, ValidationException {
+  private IOptionsServer connect(@Nullable UsernamePasswordIssuer credentials)
+      throws RepoException, ValidationException {
     String resolvedPort = firstNonEmpty(port, env("P4PORT"));
     String resolvedUser = firstNonEmpty(user, env("P4USER"));
     String resolvedToken = firstNonEmpty(token, env("P4TICKET"));
     String resolvedPassword = firstNonEmpty(password, env("P4PASSWD"));
+
+    // Config-supplied credentials win over flags/env, and imply password auth (not a ticket).
+    if (credentials != null) {
+      resolvedUser = credentials.username().issue().provideSecret();
+      resolvedPassword = credentials.password().issue().provideSecret();
+      resolvedToken = null;
+    }
     String resolvedCharset = firstNonEmpty(charset, env("P4CHARSET"));
     String resolvedFingerprint = firstNonEmpty(sslFingerprint, env("P4FINGERPRINT"));
 

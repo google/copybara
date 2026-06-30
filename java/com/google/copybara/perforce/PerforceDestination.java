@@ -22,10 +22,15 @@ import com.google.common.base.CharMatcher;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.ChangeMessage;
 import com.google.copybara.Destination;
+import com.google.copybara.DestinationReader;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
+import com.google.copybara.Origin;
 import com.google.copybara.TransformResult;
 import com.google.copybara.WriterContext;
+import com.google.copybara.checks.Checker;
+import com.google.copybara.checks.DescriptionChecker;
+import com.google.copybara.credentials.CredentialModule.UsernamePasswordIssuer;
 import com.google.copybara.effect.DestinationEffect;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
@@ -38,6 +43,7 @@ import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.StandardCopyOption;
 import java.util.stream.Stream;
+import javax.annotation.Nullable;
 
 /** A Perforce (Helix Core) destination that submits each migrated change as a changelist. */
 public class PerforceDestination implements Destination<PerforceRevision> {
@@ -48,16 +54,26 @@ public class PerforceDestination implements Destination<PerforceRevision> {
   private final PerforceOptions perforceOptions;
   private final String stream;
   private final boolean submitAsAuthor;
+  @Nullable private final UsernamePasswordIssuer credentials;
+  @Nullable private final Checker checker;
 
   private PerforceDestination(
       GeneralOptions generalOptions,
       PerforceOptions perforceOptions,
       String stream,
-      boolean submitAsAuthor) {
+      boolean submitAsAuthor,
+      @Nullable UsernamePasswordIssuer credentials,
+      @Nullable Checker checker) {
     this.generalOptions = checkNotNull(generalOptions);
     this.perforceOptions = checkNotNull(perforceOptions);
     this.stream = CharMatcher.is('/').trimTrailingFrom(checkNotNull(stream));
     this.submitAsAuthor = submitAsAuthor;
+    this.credentials = credentials;
+    this.checker = checker;
+  }
+
+  private PerforceServer server() throws RepoException, ValidationException {
+    return perforceOptions.server(credentials);
   }
 
   @Override
@@ -99,7 +115,7 @@ public class PerforceDestination implements Destination<PerforceRevision> {
     @Override
     public DestinationStatus getDestinationStatus(Glob destinationFiles, String labelName)
         throws RepoException, ValidationException {
-      String baseline = perforceOptions.server().findOriginLabel(stream, labelName);
+      String baseline = server().findOriginLabel(stream, labelName);
       return baseline == null ? null : new DestinationStatus(baseline, ImmutableList.of());
     }
 
@@ -118,7 +134,7 @@ public class PerforceDestination implements Destination<PerforceRevision> {
       rejectUnsupportedPaths(transformResult.getPath(), destinationFiles);
 
       ensureWorkspace();
-      PerforceServer server = perforceOptions.server();
+      PerforceServer server = server();
 
       // cleanWorkspace() reverts any files left open by a prior aborted run, so this attempt starts
       // from a clean, head-aligned state.
@@ -127,6 +143,11 @@ public class PerforceDestination implements Destination<PerforceRevision> {
 
       console.progress("Perforce Destination: staging transformed files");
       mirror(transformResult.getPath(), workspaceRoot, destinationFiles);
+
+      // Scan the staged tree and (if supported) the changelist description before submitting.
+      String description =
+          applyChecker(
+              checker, transformResult.getPath(), changeDescription(transformResult), console);
 
       if (dryRun) {
         // Compute the diff but never create or submit a changelist.
@@ -152,11 +173,7 @@ public class PerforceDestination implements Destination<PerforceRevision> {
       console.progress("Perforce Destination: submitting changelist");
       int changelist =
           server.reconcileAndSubmit(
-              clientName,
-              stream,
-              changeDescription(transformResult),
-              transformResult.getAuthor(),
-              submitAsAuthor);
+              clientName, stream, description, transformResult.getAuthor(), submitAsAuthor);
       console.info(String.format("Perforce Destination: submitted changelist %d", changelist));
       return ImmutableList.of(
           new DestinationEffect(
@@ -173,6 +190,20 @@ public class PerforceDestination implements Destination<PerforceRevision> {
           + " supported");
     }
 
+    @Override
+    public DestinationReader getDestinationReader(
+        Console console, @Nullable Origin.Baseline<?> baseline, Path workdir)
+        throws ValidationException, RepoException {
+      return new PerforceDestinationReader(server(), stream, workdir);
+    }
+
+    @Override
+    public DestinationReader getDestinationReader(
+        Console console, @Nullable String baseline, Path workdir)
+        throws ValidationException, RepoException {
+      return new PerforceDestinationReader(server(), stream, workdir);
+    }
+
     private void ensureWorkspace() throws RepoException, ValidationException {
       if (clientName != null) {
         return;
@@ -187,7 +218,7 @@ public class PerforceDestination implements Destination<PerforceRevision> {
       } catch (IOException e) {
         throw new RepoException("Could not create Perforce workspace directory", e);
       }
-      perforceOptions.server().ensureClient(clientName, workspaceRoot, stream);
+      server().ensureClient(clientName, workspaceRoot, stream);
     }
   }
 
@@ -235,6 +266,24 @@ public class PerforceDestination implements Destination<PerforceRevision> {
   /** The content kinds Perforce tracks: regular files and symlinks (directories are implicit). */
   private static boolean isManaged(Path path) {
     return Files.isSymbolicLink(path) || Files.isRegularFile(path);
+  }
+
+  /**
+   * Runs {@code checker} (if any) over the staged tree and, when it is a {@link DescriptionChecker},
+   * over the changelist description, returning the possibly-rewritten description.
+   */
+  static String applyChecker(
+      @Nullable Checker checker, Path tree, String description, Console console)
+      throws ValidationException, IOException {
+    if (checker == null) {
+      return description;
+    }
+    console.progress("Perforce Destination: running checker");
+    checker.doCheck(tree, console);
+    if (checker instanceof DescriptionChecker) {
+      return ((DescriptionChecker) checker).processDescription(description, console);
+    }
+    return description;
   }
 
   /** Fails loudly if any staged file's name contains a Perforce wildcard character (@ # % *). */
@@ -285,11 +334,17 @@ public class PerforceDestination implements Destination<PerforceRevision> {
   }
 
   static PerforceDestination newPerforceDestination(
-      Options options, String stream, boolean submitAsAuthor) {
+      Options options,
+      String stream,
+      boolean submitAsAuthor,
+      @Nullable UsernamePasswordIssuer credentials,
+      @Nullable Checker checker) {
     return new PerforceDestination(
         options.get(GeneralOptions.class),
         options.get(PerforceOptions.class),
         stream,
-        submitAsAuthor);
+        submitAsAuthor,
+        credentials,
+        checker);
   }
 }

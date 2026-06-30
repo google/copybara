@@ -45,6 +45,9 @@ import com.perforce.p4java.option.client.RevertFilesOptions;
 import com.perforce.p4java.option.client.SyncOptions;
 import com.perforce.p4java.option.server.GetChangelistsOptions;
 import com.perforce.p4java.server.IOptionsServer;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -140,6 +143,15 @@ public class PerforceServer {
    * removed afterwards so no workspace state leaks between runs.
    */
   void syncStreamTo(String stream, int changelist, Path checkoutDir) throws RepoException {
+    syncStream(stream, "@" + changelist, checkoutDir);
+  }
+
+  /** Syncs the head of {@code stream} into {@code checkoutDir} (used by the destination reader). */
+  void syncStreamHeadTo(String stream, Path checkoutDir) throws RepoException {
+    syncStream(stream, "#head", checkoutDir);
+  }
+
+  private void syncStream(String stream, String revSpec, Path checkoutDir) throws RepoException {
     String clientName =
         String.format("copybara_%d_%d", ProcessHandle.current().pid(), System.nanoTime());
     boolean created = false;
@@ -156,12 +168,12 @@ public class PerforceServer {
       server.setCurrentClient(bound);
       List<IFileSpec> synced =
           bound.sync(
-              FileSpecBuilder.makeFileSpecList(stream + "/...@" + changelist),
+              FileSpecBuilder.makeFileSpecList(stream + "/..." + revSpec),
               new SyncOptions().setForceUpdate(true));
       logFileSpecErrors(synced);
     } catch (P4JavaException e) {
       throw new RepoException(
-          String.format("Error syncing stream '%s' at changelist %d", stream, changelist), e);
+          String.format("Error syncing stream '%s' at %s", stream, revSpec), e);
     } finally {
       if (created) {
         try {
@@ -170,6 +182,23 @@ public class PerforceServer {
           logger.atWarning().withCause(e).log("Could not delete temporary client %s", clientName);
         }
       }
+    }
+  }
+
+  /** Reads the head contents of {@code stream + "/" + relativePath} as a UTF-8 string. */
+  String readFileAtHead(String stream, String relativePath) throws RepoException {
+    String depotPath = stream + "/" + relativePath;
+    try (InputStream in =
+        server.getFileContents(
+            FileSpecBuilder.makeFileSpecList(depotPath),
+            /* allRevs= */ false,
+            /* noHeaderLine= */ true)) {
+      if (in == null) {
+        throw new RepoException("Could not read " + depotPath + " from Perforce");
+      }
+      return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+    } catch (P4JavaException | IOException e) {
+      throw new RepoException("Error reading " + depotPath + " from Perforce", e);
     }
   }
 
