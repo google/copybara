@@ -108,7 +108,7 @@ public class GitOptions implements Option {
               + "flag sets the environment variable GIT_TERMINAL_PROMPT which is intended for"
               + " automated jobs running Git"
               + " https://git-scm.com/docs/git/2.3.0#git-emGITTERMINALPROMPTem")
-  boolean noGitPrompt = false;
+  public boolean noGitPrompt = false;
 
   @Parameter(names = "--git-visit-changes-page-size",
       description = "Size of the git log page used for visiting changes.", hidden = true,
