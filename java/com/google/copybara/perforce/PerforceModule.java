@@ -53,7 +53,7 @@ public class PerforceModule implements LabelsAwareModule, StarlarkValue {
             doc =
                 "The Perforce stream to read from, e.g. <code>//stream/main</code>. The connection"
                     + " details (server, user, ticket) come from the <code>--perforce-*</code>"
-                    + " flags or the standard P4PORT/P4USER/P4PASSWD environment variables."),
+                    + " flags or the standard P4PORT/P4USER/P4PASSWD/P4TICKET environment variables."),
         @Param(
             name = "ref",
             named = true,
@@ -79,7 +79,7 @@ public class PerforceModule implements LabelsAwareModule, StarlarkValue {
             doc =
                 "The Perforce stream to submit to, e.g. <code>//stream/main</code>. Connection"
                     + " details come from the <code>--perforce-*</code> flags or the standard"
-                    + " P4PORT/P4USER/P4PASSWD environment variables."),
+                    + " P4PORT/P4USER/P4PASSWD/P4TICKET environment variables."),
         @Param(
             name = "submit_as_author",
             named = true,

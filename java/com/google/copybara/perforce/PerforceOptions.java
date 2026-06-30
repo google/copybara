@@ -52,9 +52,17 @@ public class PerforceOptions implements Option {
   @Parameter(
       names = "--perforce-password",
       description =
-          "Perforce password or login ticket. Defaults to the P4PASSWD environment variable. If"
-              + " empty, an existing ticket from 'p4 login' is used.")
+          "Perforce password. Exchanged for a ticket via login. Defaults to the P4PASSWD"
+              + " environment variable. Ignored if a token is provided.")
   String password = null;
+
+  @Parameter(
+      names = "--perforce-token",
+      description =
+          "Perforce login ticket to authenticate with directly (as issued by 'p4 login -p'),"
+              + " instead of exchanging a password. Defaults to the P4TICKET environment variable."
+              + " Takes precedence over --perforce-password.")
+  String token = null;
 
   // Lazily created and cached: a migration only ever talks to one server.
   @Nullable private PerforceServer cachedServer;
@@ -74,6 +82,7 @@ public class PerforceOptions implements Option {
   private IOptionsServer connect() throws RepoException, ValidationException {
     String resolvedPort = firstNonEmpty(port, env("P4PORT"));
     String resolvedUser = firstNonEmpty(user, env("P4USER"));
+    String resolvedToken = firstNonEmpty(token, env("P4TICKET"));
     String resolvedPassword = firstNonEmpty(password, env("P4PASSWD"));
 
     if (Strings.isNullOrEmpty(resolvedPort)) {
@@ -87,7 +96,10 @@ public class PerforceOptions implements Option {
       if (!Strings.isNullOrEmpty(resolvedUser)) {
         server.setUserName(resolvedUser);
       }
-      if (!Strings.isNullOrEmpty(resolvedPassword)) {
+      if (!Strings.isNullOrEmpty(resolvedToken)) {
+        // A pre-issued ticket: use it directly, no password-for-ticket exchange.
+        server.setAuthTicket(resolvedToken);
+      } else if (!Strings.isNullOrEmpty(resolvedPassword)) {
         server.login(resolvedPassword);
       }
       return server;
