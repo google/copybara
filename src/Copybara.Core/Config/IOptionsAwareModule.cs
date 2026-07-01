@@ -14,10 +14,15 @@
  * limitations under the License.
  */
 
-// Entry point for the `copybara` .NET tool. Delegates to Copybara.Cli.Main, which mirrors the
-// orchestration flow of the upstream com.google.copybara.Main class.
+namespace Copybara.Config;
 
-using Copybara.Cli;
-using Copybara.Util;
-
-return (int)new Main().Run(args);
+/// <summary>
+/// A StarlarkBuiltin that implements this interface will be initialized with the options.
+///
+/// <para>This method will be invoked just after registering the namespace objects in Skylark.</para>
+/// </summary>
+public interface IOptionsAwareModule
+{
+    /// <summary>Set the options for the current Copybara run.</summary>
+    void SetOptions(Options options);
+}

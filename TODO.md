@@ -80,21 +80,24 @@ builtins), `lib` (json, proto, etc.), `spelling`.
 
 ## Phase 3 — Config model & core module (needs Phases 1–2)
 
-- ⬜ `config/` → `Copybara.Config`: `Config`, `ConfigFile`,
-  `PathBasedConfigFile`, `MapConfigFile`, `Migration`, `ConfigValidator`,
-  `SkylarkParser`, `Config(Loader/Provider)`, `LabelsAwareModule`.
-- ⬜ Top-level engine types in `com.google.copybara/`:
-  `Option`/`Options`, `GeneralOptions`, `ModuleSet`/`ModuleSupplier`,
-  `Core`(`CoreModule`, `CoreGlobal`), `Workflow`, `WorkflowOptions`,
-  `WorkflowMode`, `WorkflowRunHelper`, `Migration`, `Origin`, `Destination`,
-  `Transformation`, `TransformWork`, `TransformResult`, `CheckoutPath`,
-  `CheckoutFileSystem`, `Metadata`, `Info`, `MigrationInfo`.
+- ✅ `config/` → `Copybara.Config`: `Config`, `ConfigFile`, `PathBasedConfigFile`,
+  `MapConfigFile`, `IMigration`, `ConfigValidator`, `SkylarkParser` (wired to the
+  ported interpreter), `ConfigLoader`/`IConfigLoaderProvider`, `ILabelsAwareModule`,
+  `ConfigWithDependencies`.
+- ✅ Top-level engine types: `IOption`/`Options`, `GeneralOptions`, `ModuleSet`/
+  `ModuleSupplier`, `CoreModule`/`CoreGlobal`, `Workflow<O,D>` (+ non-generic
+  `Workflow.Create` factory), `WorkflowOptions`, `WorkflowMode`, `WorkflowRunHelper`,
+  `IMigration`, `IOrigin`/`IDestination`, `ITransformation`, `TransformWork`,
+  `TransformResult`, `CheckoutPath`, `CheckoutFileSystem`, `Metadata`, `Info`,
+  `MigrationInfo`, plus `profiler/`, `effect/`, `monitor/`, `action/`, `approval/`,
+  `treestate/`, `version/`.
 
 ## Phase 4 — Transformations (`transform/`)
 
-- ⬜ `Replace`, `Move`/`Copy`/`Remove`, `Sequence`, `TransformationRegistry`,
-  `SkylarkTransformation`, `ExplicitReversal`, `TodoReplace`, `Scrubber`,
-  `metadata/*` (message/label manipulation), `debug/*`, `patch/*`.
+- ✅ `Replace`, `CopyOrMove`/`Remove`, `Sequence`, `ExplicitReversal`,
+  `IReversibleFunction`, `SkylarkConsole`, `FilterReplace`, `VerifyMatch`,
+  `TodoReplace`, `SkylarkTransformation`, `transform/metadata/*`, `transform/debug/*`.
+- ⬜ `transform/patch/*` (needs DiffUtil/patch tooling).
 
 ## Phase 5 — Git support (`git/`) — uses LibGit2Sharp
 
@@ -113,7 +116,7 @@ Largest single module (175 files). Port in slices:
 
 ## Phase 6 — Other origins/destinations & modules
 
-- ⬜ `folder/` (FolderOrigin/FolderDestination) — good early integration target.
+- ✅ `folder/` (FolderOrigin/FolderDestination/FolderModule) — first ported origin/destination pair.
 - ⬜ `remotefile/`, `archive/`, `hashing/`, `http/`, `format/` (buildifier),
   `hg/` (Mercurial), `go/`, `rust/`, `python/`, `tsjs/`, `toml/`, `json/`,
   `xml/`, `html/`, `re2/`, `buildozer/`, `checks/`, `approval/`, `feedback/`,
@@ -122,13 +125,13 @@ Largest single module (175 files). Port in slices:
 
 ## Phase 7 — CLI (`src/Copybara.Cli`)
 
-- ⬜ Arg parsing (replace JCommander). Options contributed per-module, à la
-  `Options.getAll()`. Lightweight custom parser matching upstream flag names.
-- ⬜ `Main` orchestration (mirror `Main.java`): console setup, logging config,
+- ✅ Arg parsing (custom `ArgParser` replacing JCommander, reading `[Flag]`
+  attributes off option objects), matching upstream flag names.
+- ✅ `Main` orchestration (mirrors `Main.java`): console setup, logging config,
   module set creation, command dispatch, exit codes, error handling.
-- ⬜ Commands: `MigrateCmd`, `InfoCmd`, `ValidateCmd`, `HelpCmd`, `VersionCmd`,
-  `RegenerateCmd`, `OnboardCmd`/`GeneratorCmd`.
-- ⬜ `PackAsTool` metadata, `build-data` version embedding.
+- ✅ Commands: `MigrateCmd`, `InfoCmd`, `ValidateCmd` (+ version/help).
+- ⬜ Commands not yet ported: `RegenerateCmd`, `OnboardCmd`/`GeneratorCmd`.
+- ✅ `PackAsTool` + package icon/readme. ⬜ `build-data` version embedding.
 
 ## Phase 8 — Tests, docs, polish
 

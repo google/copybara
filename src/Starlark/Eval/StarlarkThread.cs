@@ -139,6 +139,28 @@ public sealed class StarlarkThread
     /// <summary>Returns the location of the program counter in the enclosing call frame.</summary>
     public Location GetCallerLocation() => Toplevel ? Location.BUILTIN : FrameAt(1).Loc;
 
+    /// <summary>
+    /// Returns the <paramref name="depth"/>-th innermost enclosing Starlark function on the call
+    /// stack, or null if the number of active calls that are Starlark-defined functions is less than
+    /// or equal to <paramref name="depth"/>.
+    /// </summary>
+    internal StarlarkFunction? GetInnermostEnclosingStarlarkFunction(int depth)
+    {
+        Copybara.Common.Preconditions.CheckArgument(depth >= 0);
+        for (int i = callstack.Count - 1; i >= 0; i--)
+        {
+            if (callstack[i].Fn is StarlarkFunction fn)
+            {
+                if (depth == 0)
+                {
+                    return fn;
+                }
+                depth--;
+            }
+        }
+        return null;
+    }
+
     /// <summary>Returns the size of the callstack.</summary>
     internal int GetCallStackSize() => callstack.Count;
 

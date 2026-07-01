@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-// Entry point for the `copybara` .NET tool. Delegates to Copybara.Cli.Main, which mirrors the
-// orchestration flow of the upstream com.google.copybara.Main class.
+namespace Copybara;
 
-using Copybara.Cli;
-using Copybara.Util;
-
-return (int)new Main().Run(args);
+/// <summary>
+/// An <see cref="IOption"/> indicates a class has options usable by copybara's config system.
+/// </summary>
+public interface IOption
+{
+}

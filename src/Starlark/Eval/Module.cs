@@ -61,6 +61,27 @@ public sealed class Module
     public static Module Create() =>
         new(ImmutableDictionary<string, object>.Empty, null, StarlarkSemantics.DEFAULT);
 
+    /// <summary>
+    /// Returns the module (file) of the <paramref name="depth"/>-th innermost enclosing Starlark
+    /// function on the call stack, or null if the number of active calls that are functions defined
+    /// in Starlark is less than or equal to <paramref name="depth"/>.
+    ///
+    /// <para>This method is a temporary workaround for Starlarkification and should not be used
+    /// anywhere else.</para>
+    /// </summary>
+    public static Module? OfInnermostEnclosingStarlarkFunction(StarlarkThread thread, int depth)
+    {
+        StarlarkFunction? fn = thread.GetInnermostEnclosingStarlarkFunction(depth);
+        return fn?.Module;
+    }
+
+    /// <summary>
+    /// Returns the module (file) of the innermost enclosing Starlark function on the call stack, or
+    /// null if none of the active calls are functions defined in Starlark.
+    /// </summary>
+    public static Module? OfInnermostEnclosingStarlarkFunction(StarlarkThread thread) =>
+        OfInnermostEnclosingStarlarkFunction(thread, 0);
+
     /// <summary>Returns the client data associated with this module.</summary>
     public object? ClientData => clientData;
 

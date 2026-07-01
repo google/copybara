@@ -14,10 +14,15 @@
  * limitations under the License.
  */
 
-// Entry point for the `copybara` .NET tool. Delegates to Copybara.Cli.Main, which mirrors the
-// orchestration flow of the upstream com.google.copybara.Main class.
+namespace Copybara.Folder;
 
-using Copybara.Cli;
-using Copybara.Util;
-
-return (int)new Main().Run(args);
+/// <summary>Arguments for FolderDestination.</summary>
+public sealed class FolderDestinationOptions : IOption
+{
+    [Flag(
+        "--folder-dir",
+        "Local directory to write the output of the migration to. If the directory "
+            + "exists, all files will be deleted. By default Copybara will generate a temporary "
+            + "directory, so you shouldn't need this.")]
+    public string? LocalFolder { get; set; }
+}

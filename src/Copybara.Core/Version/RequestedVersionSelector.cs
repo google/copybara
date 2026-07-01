@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2022 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +14,15 @@
  * limitations under the License.
  */
 
-// Entry point for the `copybara` .NET tool. Delegates to Copybara.Cli.Main, which mirrors the
-// orchestration flow of the upstream com.google.copybara.Main class.
+using Console = Copybara.Util.Console.Console;
 
-using Copybara.Cli;
-using Copybara.Util;
+namespace Copybara.Version;
 
-return (int)new Main().Run(args);
+/// <summary>Given a requested version, it returns it as the selected version. None otherwise.</summary>
+public class RequestedVersionSelector : IVersionSelector
+{
+    public string? Select(IVersionList versionList, string? requestedRef, Console console) =>
+        requestedRef;
+
+    public override string ToString() => nameof(RequestedVersionSelector);
+}

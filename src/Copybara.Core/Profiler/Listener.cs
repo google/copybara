@@ -14,10 +14,20 @@
  * limitations under the License.
  */
 
-// Entry point for the `copybara` .NET tool. Delegates to Copybara.Cli.Main, which mirrors the
-// orchestration flow of the upstream com.google.copybara.Main class.
+namespace Copybara.Profiler;
 
-using Copybara.Cli;
-using Copybara.Util;
+/// <summary>
+/// A listener that, when registered in a <see cref="Profiler"/>, will be notified every time
+/// a task is started/finished.
+/// </summary>
+public interface IListener
+{
+    /// <summary>A notification about a task that has started.</summary>
+    void TaskStarted(Task task);
 
-return (int)new Main().Run(args);
+    /// <summary>
+    /// A notification about a task finish. It is guaranteed that <see cref="Task.IsFinished"/>
+    /// will return true.
+    /// </summary>
+    void TaskFinished(Task task);
+}

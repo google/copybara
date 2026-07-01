@@ -14,10 +14,18 @@
  * limitations under the License.
  */
 
-// Entry point for the `copybara` .NET tool. Delegates to Copybara.Cli.Main, which mirrors the
-// orchestration flow of the upstream com.google.copybara.Main class.
-
-using Copybara.Cli;
 using Copybara.Util;
 
-return (int)new Main().Run(args);
+namespace Copybara.TreeState;
+
+/// <summary>
+/// Utilities for dealing with <see cref="TreeState"/> objects. Port of
+/// <c>com.google.copybara.treestate.TreeStateUtil</c>.
+/// </summary>
+public static class TreeStateUtil
+{
+    /// <summary>Filter a collection of <see cref="TreeState.FileState"/>s using an <see cref="IPathMatcher"/>.</summary>
+    public static List<TreeState.FileState> Filter(
+        IPathMatcher pathMatcher, IEnumerable<TreeState.FileState> files) =>
+        files.Where(fileState => pathMatcher.Matches(fileState.GetPath())).ToList();
+}

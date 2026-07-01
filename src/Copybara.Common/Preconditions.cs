@@ -55,6 +55,37 @@ public static class Preconditions
         return reference;
     }
 
+    /// <summary>Ensures a nullable value type is not null, returning its value.</summary>
+    public static T CheckNotNull<T>([NotNull] T? reference) where T : struct
+    {
+        if (reference is null)
+        {
+            throw new ArgumentNullException();
+        }
+        return reference.Value;
+    }
+
+    /// <summary>Ensures a nullable value type is not null, returning its value.</summary>
+    public static T CheckNotNull<T>([NotNull] T? reference, object? errorMessage) where T : struct
+    {
+        if (reference is null)
+        {
+            throw new ArgumentNullException(null, errorMessage?.ToString());
+        }
+        return reference.Value;
+    }
+
+    /// <summary>Ensures a nullable value type is not null, returning its value.</summary>
+    public static T CheckNotNull<T>([NotNull] T? reference, string format, params object?[] args)
+        where T : struct
+    {
+        if (reference is null)
+        {
+            throw new ArgumentNullException(null, string.Format(format, args));
+        }
+        return reference.Value;
+    }
+
     /// <summary>Ensures the truth of an expression involving parameters to the calling method.</summary>
     public static void CheckArgument([DoesNotReturnIf(false)] bool expression)
     {

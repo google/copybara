@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2018 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +14,12 @@
  * limitations under the License.
  */
 
-// Entry point for the `copybara` .NET tool. Delegates to Copybara.Cli.Main, which mirrors the
-// orchestration flow of the upstream com.google.copybara.Main class.
+namespace Copybara;
 
-using Copybara.Cli;
-using Copybara.Util;
-
-return (int)new Main().Run(args);
+/// <summary>A class that given a main config path (copy.bara.sky file) returns a ConfigLoader.</summary>
+public interface IConfigLoaderProvider
+{
+    /// <summary>Create a new loader for <paramref name="configPath"/>.</summary>
+    /// <exception cref="Copybara.Exceptions.ValidationException"/>
+    ConfigLoader NewLoader(string configPath, string? sourceRef);
+}

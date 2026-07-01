@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2018 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +14,16 @@
  * limitations under the License.
  */
 
-// Entry point for the `copybara` .NET tool. Delegates to Copybara.Cli.Main, which mirrors the
-// orchestration flow of the upstream com.google.copybara.Main class.
+using Starlark.Eval;
 
-using Copybara.Cli;
-using Copybara.Util;
+namespace Copybara;
 
-return (int)new Main().Run(args);
+/// <summary>A context object that can be enhanced with Skylark information.</summary>
+public interface ISkylarkContext<out T>
+{
+    /// <summary>Create a copy instance with Skylark function parameters.</summary>
+    T WithParams(Dict @params);
+
+    /// <summary>Performs tasks after Starlark code finishes.</summary>
+    void OnFinish(object? result, object context);
+}

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2022 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +14,14 @@
  * limitations under the License.
  */
 
-// Entry point for the `copybara` .NET tool. Delegates to Copybara.Cli.Main, which mirrors the
-// orchestration flow of the upstream com.google.copybara.Main class.
+namespace Copybara;
 
-using Copybara.Cli;
-using Copybara.Util;
-
-return (int)new Main().Run(args);
+/// <summary>
+/// An object that is used by destinations to store data that consists of complex values.
+///
+/// <para>Normally, values could be passed to destinations using labels, but the values can only be
+/// strings.</para>
+/// </summary>
+public interface IDestinationInfo
+{
+}

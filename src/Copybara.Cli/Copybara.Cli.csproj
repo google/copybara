@@ -9,10 +9,18 @@
     <PackageOutputPath>./nupkg</PackageOutputPath>
     <Version>0.1.0</Version>
     <Description>A tool for transforming and moving code between repositories (.NET port of Google Copybara).</Description>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>copybara;git;migration;vcs;starlark;code-transformation</PackageTags>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Copybara.Core\Copybara.Core.csproj" />
     <ProjectReference Include="..\Copybara.Common\Copybara.Common.csproj" />
     <ProjectReference Include="..\Starlark\Starlark.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- 256x256 compressed variant keeps the NuGet package icon under the 1 MB limit. -->
+    <None Include="..\..\assets\icon-256.png" Pack="true" PackagePath="icon.png" Visible="false" />
+    <None Include="..\..\README.md" Pack="true" PackagePath="README.md" Visible="false" />
   </ItemGroup>
 </Project>
