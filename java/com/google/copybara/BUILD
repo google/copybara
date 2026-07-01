@@ -258,6 +258,7 @@ java_library(
         "//java/com/google/copybara/http",
         "//java/com/google/copybara/monitor",
         "//java/com/google/copybara/onboard:options",
+        "//java/com/google/copybara/perforce",
         "//java/com/google/copybara/profiler",
         "//java/com/google/copybara/python",
         "//java/com/google/copybara/re2",
