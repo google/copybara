@@ -44,6 +44,10 @@ public sealed class ImmutableListMultimap<TKey, TValue> : IEnumerable<KeyValuePa
 
     public static ImmutableListMultimap<TKey, TValue> Empty => EmptyInstance;
 
+    /// <summary>Creates a multimap with a single key/value entry (Guava parity for <c>of</c>).</summary>
+    public static ImmutableListMultimap<TKey, TValue> Of(TKey key, TValue value) =>
+        CreateBuilder().Put(key, value).Build();
+
     /// <summary>All values associated with <paramref name="key"/> in insertion order (empty if none).</summary>
     public ImmutableArray<TValue> this[TKey key] =>
         _index.TryGetValue(key, out var values) ? values : ImmutableArray<TValue>.Empty;

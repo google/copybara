@@ -107,13 +107,14 @@ Largest single module (~175 files). Port in slices:
   to upstream which shells out), `GitRevision`, `GitRepoType`, `GitEnvironment`,
   `GitCredential`, `Refspec`, `FetchResult`, `MergeResult`, `IntegrateLabel`,
   `SameGitTree`, exceptions.
-- ⬜ Origin/Destination: `GitOrigin`, `GitDestination`, `GitModule`,
-  `GitMirror`, `ChangeReader`, `GitVisitorUtil`, options, writer hooks.
-- ⬜ GitHub: `github/api` client (System.Text.Json + HttpClient),
-  `GitHubOrigin`, `GitHubPrDestination`, `GitHubPrOrigin`, `github/util`.
-- ⬜ Gerrit: `gerritapi` client, `GerritOrigin`, `GerritDestination`.
-- ⬜ GitLab: `gitlab/api`, origin/destination.
-- ✅ `version/` resolvers.
+- ✅ Origin/Destination base: `GitOrigin`, `GitDestination`, `GitDestinationReader`,
+  `ChangeReader`, `GitVisitorUtil`, `Mirror`, `GitIntegrateChanges`, options, write hooks.
+- ⬜ `GitModule` (the `git` Starlark module, ~3677 LOC — registers all git.* factories).
+- ✅ GitHub `github/api` client (System.Text.Json + HttpClient, ~50 files).
+  ⬜ GitHub providers: `GitHubPrOrigin`/`GitHubPrDestination`/`GitHubOrigin`/`github/util`.
+- ✅ Gerrit `gerritapi` client (30 files). ⬜ Gerrit providers: `GerritOrigin`/`GerritDestination`/`GerritEndpoint`.
+- ✅ GitLab `gitlab/api` client (18 files). ⬜ GitLab providers: `GitLabMrOrigin`/`GitLabMrDestination`.
+- ✅ `version/` resolvers. ✅ `hg/` (Mercurial).
 
 ## Phase 6 — Other origins/destinations & modules
 
@@ -122,9 +123,10 @@ Largest single module (~175 files). Port in slices:
   `http/` (HttpClient), `format/` (buildifier), `buildozer/`, `toml/`, `json/`,
   `xml/`, `html/`, `re2/`, `credentials/`, `approval/`, `action/`, `treestate/`,
   `monitor/`, `effect/`, `checks/` (minimal stub).
-- ⬜ `hg/` (Mercurial), `go/`, `rust/`, `python/`, `tsjs/`, `feedback/`,
-  `checks/` (full), `regenerate/`, `onboard/`, `configgen/`, `doc/` (reference
-  doc generator), `transform/patch/`.
+- ✅ `hg/` (Mercurial), `go/`, `rust/`, `python/`, `tsjs/` (npm).
+- ⬜ `feedback/`, `checks/` (full), `regenerate/`, `onboard/`, `configgen/`,
+  `doc/` (reference doc generator), `transform/patch/`, GitHub/Gerrit/GitLab
+  provider classes, `GitModule`.
 
 ## Phase 7 — CLI (`src/Copybara.Cli`)
 
