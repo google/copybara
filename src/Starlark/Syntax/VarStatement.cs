@@ -46,7 +46,7 @@ public sealed class VarStatement : Statement
     public Identifier GetIdentifier() => identifier;
 
     /// <summary>Returns the type expression associated with the variable.</summary>
-    public Expression GetType() => type;
+    public new Expression GetType() => type;
 
     /// <summary>Returns the Sphinx autodoc-style doc comments attached to this statement, if any.</summary>
     public DocComments? GetDocComments() => docComments;

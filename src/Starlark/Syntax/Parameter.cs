@@ -40,7 +40,7 @@ public abstract class Parameter : Node
 
     public virtual Expression? GetDefaultValue() => null;
 
-    public Expression? GetType() => type;
+    public new Expression? GetType() => type;
 
     /// <summary>
     /// Syntax node for a mandatory parameter, <c>f(id)</c>. It may be positional or keyword-only

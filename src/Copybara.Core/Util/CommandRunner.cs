@@ -116,7 +116,7 @@ public sealed class CommandRunner
         Logger.LogInformation("{Msg}", validStartMsg);
         if (_verbose)
         {
-            Console.Error.WriteLine(validStartMsg);
+            System.Console.Error.WriteLine(validStartMsg);
         }
 
         var stdoutCollector = new MemoryStream();
@@ -276,7 +276,7 @@ public sealed class CommandRunner
             }
             if (_verbose)
             {
-                Console.Error.WriteLine(finishMsg);
+                System.Console.Error.WriteLine(finishMsg);
             }
         }
     }
@@ -339,7 +339,7 @@ public sealed class CommandRunner
         {
             return outputStream;
         }
-        var console = Console.OpenStandardError();
+        var console = System.Console.OpenStandardError();
         var limited = new LimitFilterOutputStream(
             console,
             // Assume a line has ~200 characters. If no limit, ~10k lines.

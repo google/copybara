@@ -40,7 +40,7 @@ public sealed class IsInstanceExpression : Expression
 
     public Expression GetValue() => value;
 
-    public Expression GetType() => type;
+    public new Expression GetType() => type;
 
     public override string ToString()
     {

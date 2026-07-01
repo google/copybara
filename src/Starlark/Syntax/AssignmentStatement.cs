@@ -50,7 +50,7 @@ public sealed class AssignmentStatement : Statement
         this.docComments = docComments;
         if (type != null)
         {
-            if (lhs.Kind != ExpressionKind.IDENTIFIER)
+            if (lhs.Kind != Expression.ExpressionKind.IDENTIFIER)
             {
                 throw new InvalidOperationException("Can't have type annotation on complex LHS");
             }
@@ -65,7 +65,7 @@ public sealed class AssignmentStatement : Statement
     public Expression GetLHS() => lhs;
 
     /// <summary>Returns the type expression (if present) of the variable on the LHS.</summary>
-    public Expression? GetType() => type;
+    public new Expression? GetType() => type;
 
     /// <summary>Returns the operator of an augmented assignment, or null for an ordinary assignment.</summary>
     public TokenKind? GetOperator() => op;

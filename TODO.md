@@ -13,44 +13,39 @@ then the domain modules that depend on both.
 
 - ✅ Move original Java/Bazel tree into `java/` (reference only).
 - ✅ Author `CLAUDE.md` and `TODO.md`.
-- 🚧 Create solution + project scaffold:
-  - `src/Copybara.Common` — helpers (Preconditions, ImmutableListMultimap, Glob-support types).
-  - `src/Starlark` — Starlark interpreter port.
-  - `src/Copybara.Core` — engine.
-  - `src/Copybara.Cli` — the `copybara` .NET tool (`PackAsTool=true`).
-  - `tests/Copybara.Tests` — xUnit.
-- 🚧 Wire NuGet deps: `LibGit2Sharp`, `Microsoft.Extensions.Logging`,
-  `System.Text.Json`, `System.Collections.Immutable`, xUnit, FluentAssertions.
-- ⬜ `.gitignore` for .NET (`bin/`, `obj/`, `*.user`).
+- ✅ Create solution + project scaffold (`Copybara.slnx`):
+  - `src/Copybara.Common`, `src/Starlark`, `src/Copybara.Core`,
+    `src/Copybara.Cli` (`PackAsTool=true`, verified `dotnet pack` produces a tool
+    package), `tests/Copybara.Tests`.
+- ✅ Wire NuGet deps: `LibGit2Sharp`, `Microsoft.Extensions.Logging`, xUnit,
+  FluentAssertions (`System.Collections.Immutable`/`System.Text.Json` are in-box).
+- ✅ `.gitignore` for .NET (`bin/`, `obj/`, `*.user`, `nupkg/`).
+- ✅ Whole solution builds clean (0 warnings/0 errors); 8 smoke tests pass.
 - ⬜ CI: `dotnet build` + `dotnet test` GitHub Action.
 
 ## Phase 1 — Foundation (`Copybara.Common` + `Copybara.Core` primitives)
 
 No Starlark dependency. Port these first; they unblock everything else.
 
-- 🚧 `Copybara.Common`
-  - `Preconditions` (CheckNotNull, CheckArgument, CheckState).
-  - `ImmutableListMultimap<K,V>` + builder.
-  - String helpers (Splitter/Joiner/CharMatcher equivalents as needed).
-- 🚧 `exception/` → `Copybara.Exceptions`
-  - `ValidationException` (+ `CheckCondition`), `RepoException`,
-    `CannotResolveRevisionException`, `EmptyChangeException`,
-    `ChangeRejectedException`, `NonReversibleValidationException`,
-    `CommandLineException`, `RedundantChangeException`, `VoidOperationException`,
-    `NotADestinationFileException`, `AccessValidationException`,
-    `CannotResolveLabel`.
-- ⬜ `util/` core (subset, no git):
-  - `ExitCode`, `Glob` + `GlobAtom` + `SequenceGlob` + `ReadablePathMatcher`,
-    `FileUtil`, `DirFactory`, `CommandOutput(WithStatus)`, `CommandRunner`
-    (process runner), `Identity`, `TablePrinter`, `RenameDetector`, `DiffUtil`
-    (backed by `git diff`/LibGit2Sharp), `OriginUtil`.
-- ⬜ `util/console/` → `Copybara.Util.Console`
-  - `Console` interface, `AnsiConsole`, `LogConsole`, `FileConsole`,
-    `NoPromptConsole`, `CapturingConsole`, `Consoles`, `ProgressPrefixConsole`.
-- ⬜ `revision/` → `Copybara.Revision`: `Revision`, `Change`, `Changes`, `OriginRef`.
-- ⬜ `authoring/` → `Copybara.Authoring`: `Author`, `AuthorParser`, `Authoring`,
-  `InvalidAuthorException` (note: `Author`/`Authoring` are Starlark values — see Phase 3).
-- ⬜ `templatetoken/` → `Copybara.TemplateToken`.
+- ✅ `Copybara.Common`: `Preconditions`, `ImmutableListMultimap<K,V>` + builder.
+  (String helpers added ad hoc where needed.)
+- ✅ `exception/` → `Copybara.Exceptions` — all 13 classes ported with correct
+  hierarchy; `ValidationException.CheckCondition` handles printf-style `%s`
+  format strings via an internal `%`→`{}` translator.
+- ✅ `util/` core (subset) → `Copybara.Util`: `ExitCode`, full `Glob` subsystem
+  (`Glob`/`GlobAtom`/`SequenceGlob`/`ReadablePathMatcher`/`GlobPathMatcher`/
+  `IPathMatcher`), `FileUtil`, `DirFactory`, `Identity`, `TablePrinter`,
+  `CommandOutput(WithStatus)`, `CommandRunner` + shell stack.
+  - ⬜ Still TODO in util: `DiffUtil`, `CommandLineDiffUtil`, `MergeImportTool`,
+    `AutoPatchUtil`, `ConsistencyFile`, `ApplyDestinationPatch`, `RenameDetector`,
+    `ScpUtil`, `OriginUtil`, `RepositoryUtil`, `EnumMapConverter`.
+- ✅ `util/console/` → `Copybara.Util.Console` — all 17 files (`Console`,
+  `AnsiConsole`, `LogConsole`, `FileConsole`, `NoPromptConsole`,
+  `CapturingConsole`, `MultiplexingConsole`, `PrefixConsole`, `Consoles`, …).
+- ✅ `revision/` → `Copybara.Revision`: `IRevision`, `Change<R>`, `Changes`, `OriginRef`.
+- ✅ `authoring/` → `Copybara.Authoring`: `Author`, `AuthorParser`, `Authoring`,
+  `InvalidAuthorException` (as Starlark values).
+- ✅ `templatetoken/` → `Copybara.TemplateToken`.
 - ⬜ `profiler/` → `Copybara.Profiler`.
 
 ## Phase 2 — Starlark interpreter (`src/Starlark`)
@@ -60,20 +55,24 @@ self-contained interpreter and the critical dependency for config loading.
 Sub-packages: `annot`, `syntax` (lexer/parser/AST), `eval` (values, evaluator,
 builtins), `lib` (json, proto, etc.), `spelling`.
 
-- ⬜ `annot/` — attributes: `[StarlarkBuiltin]`, `[StarlarkMethod]`,
-  `[Param]`, `[ParamType]`, `StarlarkDocumentationCategory`, etc.
-- ⬜ `syntax/` — `Lexer`, `Parser`, AST node types, `Location`, `FileOptions`,
-  `SyntaxError`.
-- ⬜ `eval/` — `StarlarkValue`, `Starlark` (entry/helpers), `StarlarkThread`,
-  `Module`, `Mutability`, `StarlarkInt/Float/List/Dict/Tuple/Function`,
-  `EvalException`, `MethodLibrary`, `StarlarkCallable`, `Structure`,
-  `CallUtils`/method-descriptor reflection (map `@StarlarkMethod` → dispatch).
+- ✅ `annot/` — `[StarlarkBuiltin]`, `[StarlarkMethod]`, `[Param]`, `[ParamType]`.
+- ✅ `syntax/` — `Lexer`, `Parser`, all AST node types, `Location`, `TokenKind`,
+  `FileOptions`, `SyntaxError`, `NodeVisitor`, `StarlarkFile`/`Program`, plus the
+  resolver/type-system subset (`Resolver`, `Types`, `StarlarkType`, `TypeChecker`,
+  `TypeTagger`, `TypeConstructor`, `TypeContext`).
+- 🚧 `eval/` — DONE: value types (`StarlarkInt/Float/List/Tuple/Dict/RangeList`,
+  `Sequence`), `Mutability`, `StarlarkSemantics`, `Printer`, `Module`,
+  `StarlarkThread`, `EvalUtils`, `StarlarkValue`/`NoneType`/`EvalException`/
+  `Starlark` helpers, callable interfaces.
+  - ⬜ DEFERRED (critical for config loading): `Eval` tree-walking evaluator;
+    reflection dispatch (`CallUtils`/`MethodDescriptor`/`ParamDescriptor`/
+    `BuiltinFunction`/`StarlarkFunction`) mapping `[StarlarkMethod]` → calls;
+    `MethodLibrary`/`StringModule` (string methods); `StarlarkSet`.
+- ✅ `spelling/` — `SpellChecker`.
 - ⬜ `lib/json` — `Json` module (interop with `System.Text.Json`).
-- ⬜ `spelling/` — `SpellChecker`.
-- ⬜ Decide reflection strategy: Java uses annotation processing + reflection.
-  In C#, use reflection over `[StarlarkMethod]` attributes at startup, cached
-  per type. (Source generators are a later optimization.)
-- 🔬 Validate with a handful of upstream Starlark eval tests ported to xUnit.
+- ⬜ Reflection strategy: reflect over `[StarlarkMethod]`/`[Param]` at startup,
+  cached per type (source generators a later optimization).
+- 🔬 Validate with upstream Starlark eval tests once the evaluator lands.
 
 ## Phase 3 — Config model & core module (needs Phases 1–2)
 

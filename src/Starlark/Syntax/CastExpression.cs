@@ -40,7 +40,7 @@ public sealed class CastExpression : Expression
 
     public override int GetEndOffset() => rparenOffset + 1;
 
-    public Expression GetType() => type;
+    public new Expression GetType() => type;
 
     /// <summary>
     /// Returns the Starlark type extracted from the <see cref="GetType"/> expression. Non-null after
