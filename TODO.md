@@ -99,29 +99,32 @@ builtins), `lib` (json, proto, etc.), `spelling`.
   `TodoReplace`, `SkylarkTransformation`, `transform/metadata/*`, `transform/debug/*`.
 - ⬜ `transform/patch/*` (needs DiffUtil/patch tooling).
 
-## Phase 5 — Git support (`git/`) — uses LibGit2Sharp
+## Phase 5 — Git support (`git/`) — uses LibGit2Sharp / git CLI
 
-Largest single module (175 files). Port in slices:
+Largest single module (~175 files). Port in slices:
 
-- ⬜ Core plumbing: `GitRepository`, `GitRevision`, `GitReference`,
-  `GitEnvironment`, `GitCredential`, `RefspecConverter`, `GitOptions`.
-  Prefer LibGit2Sharp; keep a `git` CLI runner for gaps.
+- ✅ Core plumbing: `GitRepository` (git-CLI-backed via `CommandRunner`, faithful
+  to upstream which shells out), `GitRevision`, `GitRepoType`, `GitEnvironment`,
+  `GitCredential`, `Refspec`, `FetchResult`, `MergeResult`, `IntegrateLabel`,
+  `SameGitTree`, exceptions.
 - ⬜ Origin/Destination: `GitOrigin`, `GitDestination`, `GitModule`,
-  `GitMirror`, `ChangeReader`, writer hooks.
+  `GitMirror`, `ChangeReader`, `GitVisitorUtil`, options, writer hooks.
 - ⬜ GitHub: `github/api` client (System.Text.Json + HttpClient),
   `GitHubOrigin`, `GitHubPrDestination`, `GitHubPrOrigin`, `github/util`.
 - ⬜ Gerrit: `gerritapi` client, `GerritOrigin`, `GerritDestination`.
 - ⬜ GitLab: `gitlab/api`, origin/destination.
-- ⬜ `version/` resolvers.
+- ✅ `version/` resolvers.
 
 ## Phase 6 — Other origins/destinations & modules
 
 - ✅ `folder/` (FolderOrigin/FolderDestination/FolderModule) — first ported origin/destination pair.
-- ⬜ `remotefile/`, `archive/`, `hashing/`, `http/`, `format/` (buildifier),
-  `hg/` (Mercurial), `go/`, `rust/`, `python/`, `tsjs/`, `toml/`, `json/`,
-  `xml/`, `html/`, `re2/`, `buildozer/`, `checks/`, `approval/`, `feedback/`,
-  `action/`, `credentials/`, `treestate/`, `monitor/`, `regenerate/`,
-  `onboard/`, `configgen/`, `doc/` (reference doc generator).
+- ✅ `remotefile/`, `archive/` (zip/tar/gzip; xz/bz2 = TODO), `hashing/`,
+  `http/` (HttpClient), `format/` (buildifier), `buildozer/`, `toml/`, `json/`,
+  `xml/`, `html/`, `re2/`, `credentials/`, `approval/`, `action/`, `treestate/`,
+  `monitor/`, `effect/`, `checks/` (minimal stub).
+- ⬜ `hg/` (Mercurial), `go/`, `rust/`, `python/`, `tsjs/`, `feedback/`,
+  `checks/` (full), `regenerate/`, `onboard/`, `configgen/`, `doc/` (reference
+  doc generator), `transform/patch/`.
 
 ## Phase 7 — CLI (`src/Copybara.Cli`)
 
