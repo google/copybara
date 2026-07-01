@@ -6,3 +6,11 @@ bazel-*
 .aswb
 /.bazelrc.user
 MODULE.bazel.lock
+# .NET
+bin/
+obj/
+*.user
+[Nn]upkg/
+.vs/
+*.suo
+TestResults/

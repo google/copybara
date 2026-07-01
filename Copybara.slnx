@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Copybara.Cli/Copybara.Cli.csproj" />
+    <Project Path="src/Copybara.Common/Copybara.Common.csproj" />
+    <Project Path="src/Copybara.Core/Copybara.Core.csproj" />
+    <Project Path="src/Starlark/Starlark.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Copybara.Tests/Copybara.Tests.csproj" />
+  </Folder>
+</Solution>

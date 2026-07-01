@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Copybara.Cli</RootNamespace>
+    <AssemblyName>copybara</AssemblyName>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>copybara</ToolCommandName>
+    <PackageId>Copybara</PackageId>
+    <PackageOutputPath>./nupkg</PackageOutputPath>
+    <Version>0.1.0</Version>
+    <Description>A tool for transforming and moving code between repositories (.NET port of Google Copybara).</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Copybara.Core\Copybara.Core.csproj" />
+    <ProjectReference Include="..\Copybara.Common\Copybara.Common.csproj" />
+    <ProjectReference Include="..\Starlark\Starlark.csproj" />
+  </ItemGroup>
+</Project>

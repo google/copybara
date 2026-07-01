@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Copybara.Common</RootNamespace>
+    <AssemblyName>Copybara.Common</AssemblyName>
+  </PropertyGroup>
+</Project>
