@@ -38,7 +38,7 @@ public class GitDestination : IDestination<GitRevision>
         ImmutableHashSet.Create("master", "main");
 
     /// <summary>Holder for the labels that should be added to the destination change message.</summary>
-    public sealed class MessageInfo
+    public class MessageInfo
     {
         public IReadOnlyList<LabelFinder> LabelsToAdd { get; }
 
@@ -221,7 +221,7 @@ public class GitDestination : IDestination<GitRevision>
                     : new List<LabelFinder>());
         }
 
-        public IReadOnlyList<DestinationEffect> AfterPush(
+        public virtual IReadOnlyList<DestinationEffect> AfterPush(
             string serverResponse,
             MessageInfo messageInfo,
             GitRevision pushedRevision,
@@ -237,6 +237,11 @@ public class GitDestination : IDestination<GitRevision>
         public string GetPushReference(
             GitRepository repo, string pushToRefsFor, TransformResult transformResult) =>
             pushToRefsFor;
+
+        public virtual IEndpoint GetFeedbackEndPoint(Console console) => IEndpoint.NoopEndpoint;
+
+        public virtual ImmutableListMultimap<string, string> Describe() =>
+            ImmutableListMultimap<string, string>.Empty;
     }
 
     /// <summary>
@@ -424,7 +429,7 @@ public class GitDestination : IDestination<GitRevision>
             return visitor.GetDestinationStatus();
         }
 
-        public IEndpoint GetFeedbackEndPoint(Console console) =>
+        public virtual IEndpoint GetFeedbackEndPoint(Console console) =>
             _writeHook.GetFeedbackEndPoint(console);
 
         private GitRevision? GetLocalBranchRevision(GitRepository gitRepository)
@@ -447,7 +452,7 @@ public class GitDestination : IDestination<GitRevision>
 
         public bool SupportsHistory() => true;
 
-        public IReadOnlyList<DestinationEffect> Write(
+        public virtual IReadOnlyList<DestinationEffect> Write(
             TransformResult transformResult, Glob destinationFiles, Console console)
         {
             string? baseline = transformResult.GetBaseline();

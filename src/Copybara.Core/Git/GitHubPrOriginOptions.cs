@@ -22,7 +22,7 @@ namespace Copybara.Git;
 /// Options related to GitHub PR origin. Port of
 /// <c>com.google.copybara.git.GitHubPrOriginOptions</c>.
 /// </summary>
-public sealed class GitHubPrOriginOptions : IOption
+public class GitHubPrOriginOptions : IOption
 {
     // TODO(port): Reference GitModule.GITHUB_PR_ORIGIN_NAME once GitModule is ported.
     private const string GitHubPrOriginName = "github_pr_origin";

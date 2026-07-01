@@ -163,7 +163,7 @@ public class GitOrigin : IOrigin<GitRevision>
 
     public IApprovalsProvider GetApprovalsProvider() => _approvalsProvider;
 
-    public IOrigin<GitRevision>.IReader<GitRevision> NewReader(
+    public virtual IOrigin<GitRevision>.IReader<GitRevision> NewReader(
         Glob originFiles, Authoring.Authoring authoring) =>
         new ReaderImpl(
             RepoUrl,
@@ -183,7 +183,7 @@ public class GitOrigin : IOrigin<GitRevision>
             _credentials,
             GitRepositoryHook);
 
-    public GitRevision Resolve(string? reference)
+    public virtual GitRevision Resolve(string? reference)
     {
         _console.Progress("Git Origin: Initializing local repo");
         string? @ref;
@@ -308,7 +308,7 @@ public class GitOrigin : IOrigin<GitRevision>
     public string? ShowDiff(GitRevision revisionFrom, GitRevision revisionTo) =>
         GetRepository().ShowDiff(revisionFrom.GetHash(), revisionTo.GetHash());
 
-    internal sealed class ReaderImpl : IOrigin<GitRevision>.IReader<GitRevision>
+    internal class ReaderImpl : IOrigin<GitRevision>.IReader<GitRevision>
     {
         private readonly string _repoUrl;
         internal readonly Glob OriginFiles;
@@ -529,7 +529,7 @@ public class GitOrigin : IOrigin<GitRevision>
             }
         }
 
-        private void MaybeRebase(GitRepository repo, GitRevision reference, string workdir)
+        protected virtual void MaybeRebase(GitRepository repo, GitRevision reference, string workdir)
         {
             string? rebaseToRef = _gitOriginOptions.OriginRebaseRef;
             if (rebaseToRef == null)
@@ -546,7 +546,8 @@ public class GitOrigin : IOrigin<GitRevision>
                 .Run();
         }
 
-        public Origin.ChangesResponse<GitRevision> Changes(GitRevision? fromRef, GitRevision toRef)
+        public virtual Origin.ChangesResponse<GitRevision> Changes(
+            GitRevision? fromRef, GitRevision toRef)
         {
             ChangeReader changeReader = ChangeReaderBuilder(_repoUrl)
                 .SetFirstParent(_firstParent)
@@ -638,6 +639,30 @@ public class GitOrigin : IOrigin<GitRevision>
             throw new NotSupportedException(
                 "visitChangesWithAnyLabel is not implemented for git.origin");
 
+        // Declared here (rather than relying on the interface default) so that subclasses such as
+        // GerritOrigin/GitLabMrOrigin readers can override them and have virtual dispatch work
+        // through the IReader interface.
+        public virtual IReadOnlyList<GitRevision> FindBaselinesWithoutLabel(
+            GitRevision startRevision, int limit) =>
+            throw new ValidationException("Origin doesn't support this workflow mode");
+
+        public virtual Origin.Baseline<GitRevision>? FindBaseline(
+            GitRevision startRevision, string label)
+        {
+            var visitor = new Origin.FindLatestWithLabel<GitRevision>(startRevision, label);
+            VisitChanges(startRevision, visitor);
+            return visitor.GetBaseline();
+        }
+
+        public virtual IEndpoint GetFeedbackEndPoint(Console console) => IEndpoint.NoopEndpoint;
+
+        // Accessors for subclasses.
+        protected string RepoUrl => _repoUrl;
+
+        protected GeneralOptions GeneralOptions => _generalOptions;
+
+        protected bool PartialFetch => _partialFetch;
+
         public IReadOnlyList<Change<GitRevision>> GetVersions()
         {
             var result = new List<Change<GitRevision>>();
@@ -694,7 +719,7 @@ public class GitOrigin : IOrigin<GitRevision>
 
     public string GetType() => "git.origin";
 
-    public ImmutableListMultimap<string, string> Describe(Glob? originFiles)
+    public virtual ImmutableListMultimap<string, string> Describe(Glob? originFiles)
     {
         var builder = ImmutableListMultimap<string, string>.CreateBuilder();
         builder.Put("type", GetType());

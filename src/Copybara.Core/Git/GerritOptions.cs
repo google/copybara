@@ -20,6 +20,7 @@ using Copybara.Exceptions;
 using Copybara.Git.GerritApi;
 using Copybara.Http;
 using Console = Copybara.Util.Console.Console;
+using GerritApiClient = Copybara.Git.GerritApi.GerritApi;
 using ProfilerType = Copybara.Profiler.Profiler;
 
 namespace Copybara.Git;
@@ -81,23 +82,23 @@ public class GerritOptions : IOption
     }
 
     /// <summary>Returns a lazy supplier of <see cref="GerritApi"/>.</summary>
-    internal LazyResourceLoader<GerritApi> NewGerritApiSupplier(string url, IChecker? checker) =>
-        LazyResourceLoader.Memoized<GerritApi>(console =>
+    internal LazyResourceLoader<GerritApiClient> NewGerritApiSupplier(string url, IChecker? checker) =>
+        LazyResourceLoader.Memoized<GerritApiClient>(console =>
             checker == null
                 ? NewGerritApi(url)
-                : NewGerritApi(url, new ApiChecker(checker, console!), console!));
+                : NewGerritApi(url, checker, console!));
 
     /// <summary>Override this method in a class for a specific Gerrit implementation.</summary>
-    public virtual GerritApi NewGerritApi(string url) => NewGerritApi(url, null, null);
+    public virtual GerritApiClient NewGerritApi(string url) => NewGerritApi(url, null, null);
 
     /// <summary>Creates a new <see cref="GerritApi"/> enforcing the given checker.</summary>
-    protected virtual GerritApi NewGerritApi(string url, ApiChecker? checker, Console? console)
+    protected virtual GerritApiClient NewGerritApi(string url, IChecker? checker, Console? console)
     {
         if (checker == null)
         {
-            return new GerritApi(NewGerritApiTransport(HostUrl(url)), GeneralOptions.Profiler());
+            return new GerritApiClient(NewGerritApiTransport(HostUrl(url)), GeneralOptions.Profiler());
         }
-        return new GerritApi(
+        return new GerritApiClient(
             NewGerritApiTransport(HostUrl(url), checker, console!), GeneralOptions.Profiler());
     }
 
@@ -155,8 +156,8 @@ public class GerritOptions : IOption
 
     /// <summary>Create a Gerrit http transport for a URI and checker.</summary>
     protected virtual IGerritApiTransport NewGerritApiTransport(
-        Uri uri, ApiChecker checker, Console console) =>
-        new GerritApiTransportWithChecker(NewGerritApiTransport(uri), checker.GetChecker(), console);
+        Uri uri, IChecker checker, Console console) =>
+        new GerritApiTransportWithChecker(NewGerritApiTransport(uri), checker, console);
 
     protected virtual GitRepository GetCredentialsRepo() =>
         GitOptions.CachedBareRepoForUrl("just_for_github_api");

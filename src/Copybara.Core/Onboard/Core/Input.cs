@@ -21,15 +21,35 @@ using Copybara.Common;
 namespace Copybara.Onboard.Core;
 
 /// <summary>
+/// Shared, non-generic registry of all <see cref="Input{T}"/> instances.
+///
+/// <para><b>Port note:</b> Java keeps a single <c>static Map&lt;String, Input&lt;?&gt;&gt;</c> on the
+/// raw <c>Input</c> type. In C#, a <c>static</c> field declared inside the generic
+/// <see cref="Input{T}"/> would be per closed generic type (a separate map for
+/// <c>Input&lt;string&gt;</c>, <c>Input&lt;Uri&gt;</c>, …). To preserve the "one global registry"
+/// semantics we host the map on this non-generic class.</para>
+/// </summary>
+internal static class InputRegistry
+{
+    internal static readonly Dictionary<string, IInput> Inputs = new();
+    internal static readonly object Lock = new();
+
+    internal static IReadOnlyDictionary<string, IInput> RegisteredInputs()
+    {
+        lock (Lock)
+        {
+            return Inputs.ToImmutableDictionary();
+        }
+    }
+}
+
+/// <summary>
 /// An <see cref="Input{T}"/> object represents a named object that can be populated by calling an
 /// <see cref="IInputProvider"/> or by asking the user in the console to give a value.
 /// </summary>
 public sealed class Input<T> : IInput
     where T : class
 {
-    private static readonly Dictionary<string, IInput> Inputs = new();
-    private static readonly object InputsLock = new();
-
     private readonly T? _defaultValue;
     private readonly IConverter<T> _converter;
 
@@ -79,15 +99,15 @@ public sealed class Input<T> : IInput
 
     private static void Register(string name, Input<T> result)
     {
-        lock (InputsLock)
+        lock (InputRegistry.Lock)
         {
-            if (Inputs.ContainsKey(name))
+            if (InputRegistry.Inputs.ContainsKey(name))
             {
                 throw new InvalidOperationException(
                     "Two calls for the same Input name '" + name + "'");
             }
 
-            Inputs[name] = result;
+            InputRegistry.Inputs[name] = result;
         }
     }
 
@@ -123,9 +143,9 @@ public sealed class Input<T> : IInput
     /// <summary>Return all registered inputs.</summary>
     public static IReadOnlyDictionary<string, IInput> RegisteredInputs()
     {
-        lock (InputsLock)
+        lock (InputRegistry.Lock)
         {
-            return Inputs.ToImmutableDictionary();
+            return InputRegistry.Inputs.ToImmutableDictionary();
         }
     }
 
