@@ -64,10 +64,14 @@ builtins), `lib` (json, proto, etc.), `spelling`.
   `Sequence`), `Mutability`, `StarlarkSemantics`, `Printer`, `Module`,
   `StarlarkThread`, `EvalUtils`, `StarlarkValue`/`NoneType`/`EvalException`/
   `Starlark` helpers, callable interfaces.
-  - ⬜ DEFERRED (critical for config loading): `Eval` tree-walking evaluator;
-    reflection dispatch (`CallUtils`/`MethodDescriptor`/`ParamDescriptor`/
-    `BuiltinFunction`/`StarlarkFunction`) mapping `[StarlarkMethod]` → calls;
-    `MethodLibrary`/`StringModule` (string methods); `StarlarkSet`.
+  - ✅ Evaluator + dispatch: `Eval` tree-walker, reflective dispatch
+    (`CallUtils`/`MethodDescriptor`/`ParamDescriptor`/`BuiltinFunction`/
+    `StarlarkFunction`) mapping `[StarlarkMethod]`→calls, `MethodLibrary` +
+    `StringModule` builtins, and `Starlark.ExecFile`/`Eval`/`Call` drivers.
+    Parse→resolve→execute of real Starlark works (functions, comprehensions,
+    closures, builtins, string methods) — verified by xUnit `StarlarkEvalTests`.
+  - ⬜ Still deferred: `StarlarkSet` + its EvalUtils operator branches, `float`
+    builtin, flag-guarded params, dynamic arg/return type-checking.
 - ✅ `spelling/` — `SpellChecker`.
 - ⬜ `lib/json` — `Json` module (interop with `System.Text.Json`).
 - ⬜ Reflection strategy: reflect over `[StarlarkMethod]`/`[Param]` at startup,

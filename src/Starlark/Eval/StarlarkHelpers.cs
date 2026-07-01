@@ -49,12 +49,39 @@ public static partial class Starlark
     }
 
     /// <summary>
-    /// The universal bindings predeclared in every Starlark file. Currently only the literal
-    /// constants; builtin functions are added once the reflective registry is ported.
+    /// The universal bindings predeclared in every Starlark file: the literal constants plus the
+    /// core builtin functions from <see cref="MethodLibrary"/>.
     /// </summary>
-    public static readonly ImmutableDictionary<string, object> UNIVERSE =
-        new Dictionary<string, object> { ["False"] = false, ["True"] = true, ["None"] = None }
-            .ToImmutableDictionary();
+    public static readonly ImmutableDictionary<string, object> UNIVERSE = MakeUniverse();
+
+    private static ImmutableDictionary<string, object> MakeUniverse()
+    {
+        var env = new Dictionary<string, object>
+        {
+            ["False"] = false,
+            ["True"] = true,
+            ["None"] = None,
+        };
+        AddMethods(env, MethodLibrary.INSTANCE);
+        return env.ToImmutableDictionary();
+    }
+
+    /// <summary>
+    /// Adds to <paramref name="env"/> a <see cref="BuiltinFunction"/> for each StarlarkMethod-annotated
+    /// method of <paramref name="receiver"/>'s type (excluding struct fields and the selfCall method).
+    /// </summary>
+    public static void AddMethods(IDictionary<string, object> env, object receiver)
+    {
+        foreach (var e in CallUtils.GetAnnotatedMethods(receiver.GetType()))
+        {
+            MethodDescriptor desc = e.Value;
+            if (desc.IsStructField)
+            {
+                continue;
+            }
+            env[e.Key] = new BuiltinFunction(receiver, desc.Name, desc);
+        }
+    }
 
     /// <summary>Thrown when a value is not a legal Starlark value.</summary>
     public sealed class InvalidStarlarkValueException : ArgumentException

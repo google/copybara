@@ -131,6 +131,9 @@ public sealed class StarlarkThread
 
     internal Frame FrameAt(int depth) => callstack[callstack.Count - 1 - depth];
 
+    /// <summary>Returns the callable of the frame at the given depth (0 == innermost).</summary>
+    internal IStarlarkCallable FrameFnAt(int depth) => FrameAt(depth).Fn;
+
     private bool Toplevel => callstack.Count < 2;
 
     /// <summary>Returns the location of the program counter in the enclosing call frame.</summary>
