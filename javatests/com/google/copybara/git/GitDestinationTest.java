@@ -905,6 +905,35 @@ public class GitDestinationTest {
     assertThat(entry.files()).containsExactly("sub/tools/foo/other");
   }
 
+  /**
+   * Regression test for previously-excluded files inside a dot-directory. Earlier code called
+   * {@link java.nio.file.Files#isHidden} on each tree entry's relative path; on Windows that
+   * resolves against the JVM's current working directory and throws {@code NoSuchFileException}
+   * for any entry under e.g. {@code .github/}. The dot-directory case must produce a commit that
+   * preserves the destination-only files unchanged, on every platform.
+   */
+  @Test
+  public void testExcludes_dotDirectory_preserved() throws Exception {
+    fetch = primaryBranch;
+    push = primaryBranch;
+    GitTestUtil.writeFile(workdir, ".github/PULL_REQUEST_TEMPLATE.md", "destination-only");
+    GitTestUtil.writeFile(workdir, "src/included", "first");
+    repo().withWorkTree(workdir).add().all().run();
+    repo().withWorkTree(workdir).simpleCommand("commit", "-m", "first commit");
+
+    Files.delete(workdir.resolve("src/included"));
+    GitTestUtil.writeFile(workdir, "src/included", "second");
+    destinationFiles =
+        Glob.createGlob(ImmutableList.of("**"), ImmutableList.of(".github/**"));
+
+    process(newWriter(), new DummyRevision("origin_ref"));
+
+    assertThatCheckout(repo(), primaryBranch)
+        .containsFile(".github/PULL_REQUEST_TEMPLATE.md", "destination-only")
+        .containsFile("src/included", "second")
+        .containsNoMoreFiles();
+  }
+
   @Test
   public void processFetchRefDoesntExist() throws Exception {
     fetch = "testPullFromRef";
