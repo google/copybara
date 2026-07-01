@@ -43,6 +43,9 @@ public sealed class ParamAttribute : Attribute
     /// <summary>Whether the parameter may be specified by name.</summary>
     public bool Named { get; set; }
 
+    /// <summary>Whether the parameter appears in generated documentation.</summary>
+    public bool Documented { get; set; } = true;
+
     /// <summary>Whether <c>None</c> is a permissible value.</summary>
     public bool Noneable { get; set; }
 
