@@ -415,12 +415,11 @@ public abstract class StarlarkInt : IStarlarkPrintableValue, IComparable<Starlar
     {
         if (x.TryToLong(out long xl) && y.TryToLong(out long yl))
         {
-            long hi = Math.BigMul(xl, yl, out ulong lo);
-            long lows = unchecked((long)lo);
+            long hi = Math.BigMul(xl, yl, out long lo);
             // Check int128 result is within int64 range.
-            if (hi == (lows >> 63))
+            if (hi == (lo >> 63))
             {
-                return Of(lows);
+                return Of(lo);
             }
         }
         return Of(x.ToBigInteger() * y.ToBigInteger());
