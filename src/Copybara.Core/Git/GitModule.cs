@@ -209,12 +209,12 @@ public class GitModule : ILabelsAwareModule, IStarlarkValue
         var credentialHandler = GetCredentialHandler(fixedUrl, credentials);
         var gitRepositoryHook =
             MaybeGetGitRepositoryHook(
-                new GitRepositoryHook.GitRepositoryData(
+                new IGitRepositoryHook.GitRepositoryData(
                     SkylarkUtil.ConvertFromNoneable<string?>(repoId, null), fixedUrl));
         var gitHubHost = new GitHubHost("github.com");
 
         // TODO(port): reconcile — GitOrigin.NewGitOrigin static factory is provided by a peer.
-        return GitOrigin.NewGitOrigin(
+        return NewGitOrigin(
             Options,
             fixedUrl,
             SkylarkUtil.ConvertOptionalString(@ref),
@@ -238,6 +238,51 @@ public class GitModule : ILabelsAwareModule, IStarlarkValue
             credentialHandler,
             gitRepositoryHook);
     }
+
+    // Port of GitOrigin.newGitOrigin static factory (kept here because the peer GitOrigin exposes
+    // only its internal constructor).
+    private GitOrigin NewGitOrigin(
+        Options options,
+        string url,
+        string? @ref,
+        GitRepoType type,
+        GitOrigin.SubmoduleStrategy submoduleStrategy,
+        IReadOnlyList<string> excludedSubmodules,
+        bool includeBranchCommitLogs,
+        bool firstParent,
+        bool partialClone,
+        bool primaryBranchMigrationMode,
+        ITransformation? patchTransformation,
+        bool describeVersion,
+        IVersionSelector? versionSelector,
+        string? configPath,
+        string? workflowName,
+        IApprovalsProvider approvalsProvider,
+        bool enableLfs,
+        CredentialFileHandler? credentials,
+        IGitRepositoryHook? gitRepositoryHook) =>
+        new GitOrigin(
+            options.Get<GeneralOptions>(),
+            url,
+            @ref,
+            type,
+            options.Get<GitOptions>(),
+            options.Get<GitOriginOptions>(),
+            submoduleStrategy,
+            excludedSubmodules,
+            includeBranchCommitLogs,
+            firstParent,
+            partialClone,
+            patchTransformation,
+            describeVersion,
+            versionSelector,
+            configPath,
+            workflowName,
+            primaryBranchMigrationMode,
+            approvalsProvider,
+            enableLfs,
+            credentials,
+            gitRepositoryHook);
 
     private IVersionSelector? ValidateVersionSelector(object versionSelector)
     {
@@ -487,7 +532,7 @@ public class GitModule : ILabelsAwareModule, IStarlarkValue
                         + "'. git.gerrit_origin"
                         + " is deprecating its usage for submitted changes. Use git.origin instead.");
             // TODO(port): reconcile — GitOrigin.NewGitOrigin static factory is provided by a peer.
-            return GitOrigin.NewGitOrigin(
+            return NewGitOrigin(
                 Options,
                 url,
                 refField,
@@ -509,9 +554,12 @@ public class GitModule : ILabelsAwareModule, IStarlarkValue
                 gitRepositoryHook: null);
         }
 
-        // TODO(port): reconcile — GerritOrigin.NewGerritOrigin is being ported concurrently by a peer.
-        return GerritOrigin.NewGerritOrigin(
-            Options,
+        return global::Copybara.Git.GerritOrigin.NewGerritOrigin(
+            Options.Get<GeneralOptions>(),
+            Options.Get<GitOptions>(),
+            Options.Get<GitOriginOptions>(),
+            Options.Get<GerritOptions>(),
+            Options.Get<GitDestinationOptions>(),
             url,
             SkylarkUtil.StringToEnum<GitOrigin.SubmoduleStrategy>("submodules", submodules),
             excludedSubmoduleList,
@@ -785,11 +833,11 @@ public class GitModule : ILabelsAwareModule, IStarlarkValue
         var credentialHandler = GetCredentialHandler(fixedUrl, credentials);
         var gitRepositoryHook =
             MaybeGetGitRepositoryHook(
-                new GitRepositoryHook.GitRepositoryData(
+                new IGitRepositoryHook.GitRepositoryData(
                     SkylarkUtil.ConvertFromNoneable<string?>(repoId, null), fixedUrl));
 
         // TODO(port): reconcile — GitOrigin.NewGitOrigin static factory is provided by a peer.
-        return GitOrigin.NewGitOrigin(
+        return NewGitOrigin(
             Options,
             fixedUrl,
             SkylarkUtil.ConvertOptionalString(@ref),
@@ -873,7 +921,7 @@ public class GitModule : ILabelsAwareModule, IStarlarkValue
         var credentialHandler = GetCredentialHandler(fixedUrl, credentials);
 
         // TODO(port): reconcile — GitOrigin.NewGitOrigin static factory is provided by a peer.
-        return GitOrigin.NewGitOrigin(
+        return NewGitOrigin(
             Options,
             fixedUrl,
             SkylarkUtil.ConvertOptionalString(@ref),
@@ -893,6 +941,16 @@ public class GitModule : ILabelsAwareModule, IStarlarkValue
             enableLfs,
             credentialHandler,
             gitRepositoryHook: null);
+    }
+
+    // Mirrors Java's `Starlark.isNullOrNone(integrates) ? defaultGitIntegrate
+    // : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates")`.
+    private IEnumerable<GitIntegrateChanges> ConvertIntegrates(object integrates)
+    {
+        var sequence = StarlarkRt.IsNullOrNone(integrates)
+            ? _defaultGitIntegrate
+            : (StarlarkSequence)integrates;
+        return sequence.Cast<GitIntegrateChanges>().ToImmutableArray();
     }
 
     private bool ConvertDescribeVersion(object describeVersion) =>
@@ -974,9 +1032,7 @@ public class GitModule : ILabelsAwareModule, IStarlarkValue
             Options.Get<GitOptions>(),
             generalOptions,
             new GitDestination.DefaultWriteHook(),
-            StarlarkRt.IsNullOrNone(integrates)
-                ? _defaultGitIntegrate
-                : (StarlarkSequence)integrates,
+            ConvertIntegrates(integrates),
             maybeChecker,
             credentialHandler);
     }
@@ -1110,9 +1166,7 @@ public class GitModule : ILabelsAwareModule, IStarlarkValue
                 gitHubHost,
                 credentialHandler,
                 pushToFork),
-            StarlarkRt.IsNullOrNone(integrates)
-                ? _defaultGitIntegrate
-                : (StarlarkSequence)integrates,
+            ConvertIntegrates(integrates),
             checkerObj,
             credentialHandler);
     }
@@ -1237,9 +1291,7 @@ public class GitModule : ILabelsAwareModule, IStarlarkValue
                 GetGeneralConsole(),
                 gitHubHost,
                 credentialHandler),
-            StarlarkRt.IsNullOrNone(integrates)
-                ? _defaultGitIntegrate
-                : (StarlarkSequence)integrates,
+            ConvertIntegrates(integrates),
             SkylarkUtil.ConvertFromNoneable<string?>(title, null),
             SkylarkUtil.ConvertFromNoneable<string?>(body, null),
             SkylarkUtil.ConvertStringList(assignees, "assignees").ToImmutableArray(),
@@ -1252,10 +1304,10 @@ public class GitModule : ILabelsAwareModule, IStarlarkValue
             credentialHandler);
     }
 
-    private ImmutableListMultimap<string, CheckRunConclusion> ConvertSlugToConclusion(
+    private ImmutableSetMultimap<string, CheckRunConclusion> ConvertSlugToConclusion(
         Dict allowEmptyDiffCheckSuitesToConclusion)
     {
-        var builder = ImmutableListMultimap.CreateBuilder<string, CheckRunConclusion>();
+        var builder = ImmutableSetMultimap<string, CheckRunConclusion>.CreateBuilder();
         foreach (var k in allowEmptyDiffCheckSuitesToConclusion.Keys)
         {
             if (k is not string keyStr)
@@ -1284,7 +1336,7 @@ public class GitModule : ILabelsAwareModule, IStarlarkValue
                             Enum.GetValues<CheckRunConclusion>().Select(v => v.GetApiVal())));
                 }
 
-                builder.Add(keyStr, conclusion.Value);
+                builder.Put(keyStr, conclusion.Value);
             }
         }
 
@@ -1400,9 +1452,11 @@ public class GitModule : ILabelsAwareModule, IStarlarkValue
         var checkerObj = SkylarkUtil.ConvertFromNoneable<IChecker?>(checker, null);
         var credentialHandler = GetCredentialHandler(url, credentials);
 
-        // TODO(port): reconcile — GerritDestination.NewGerritDestination factory provided by peer.
-        return GerritDestination.NewGerritDestination(
-            Options,
+        return global::Copybara.Git.GerritDestination.NewGerritDestination(
+            Options.Get<GeneralOptions>(),
+            Options.Get<GerritOptions>(),
+            Options.Get<GitOptions>(),
+            Options.Get<GitDestinationOptions>(),
             FixHttp(url, thread.GetCallerLocation()),
             SkylarkUtil.CheckNotEmpty(FirstNotNull(Options.Get<GitDestinationOptions>().Fetch, fetch), "fetch"),
             SkylarkUtil.CheckNotEmpty(
@@ -1420,9 +1474,7 @@ public class GitModule : ILabelsAwareModule, IStarlarkValue
             cc,
             labels,
             apiCheckerObj ?? checkerObj,
-            StarlarkRt.IsNullOrNone(integrates)
-                ? _defaultGitIntegrate
-                : (StarlarkSequence)integrates,
+            ConvertIntegrates(integrates),
             topicStr,
             gerritSubmit,
             primaryBranchMigrationMode,
@@ -1472,7 +1524,7 @@ public class GitModule : ILabelsAwareModule, IStarlarkValue
 
         // TODO(port): reconcile — GitLabMrOrigin.Builder API provided by a peer.
         var originBuilder =
-            GitLabMrOrigin.Builder()
+            global::Copybara.Git.GitLabMrOrigin.NewBuilder()
                 .SetConsole(console)
                 .SetUsernamePasswordIssuer(
                     SkylarkUtil.ConvertToOptional<UsernamePasswordIssuer>(usernamePasswordIssuer))
@@ -1549,36 +1601,31 @@ public class GitModule : ILabelsAwareModule, IStarlarkValue
         var gitLabOptions = Options.Get<GitLabOptions>();
         var console = GetGeneralConsole();
 
-        // TODO(port): reconcile — GitLabMrDestinationParams builder API provided by a peer.
-        return GitLabMrDestination.GitLabMrDestinationParams.Builder()
-            .SetRepoUrl(new Uri(url))
-            .SetUsernamePasswordIssuer(usernamePasswordIssuer)
-            .SetTitleTemplate(SkylarkUtil.ConvertToOptional<string>(titleTemplate))
-            .SetBodyTemplate(SkylarkUtil.ConvertToOptional<string>(bodyTemplate))
-            .SetAssigneeTemplates(
-                SkylarkUtil.ConvertStringList(assigneeTemplates, "assignee_templates").ToImmutableArray())
-            .SetSourceBranchTemplate(SkylarkUtil.ConvertToOptional<string>(sourceBranchTemplate))
-            .SetTargetBranch(targetBranch)
-            .SetConfigFile(MainConfigFile)
-            .SetAllowEmptyDiff(allowEmptyDiff)
-            .SetAllowEmptyDiffMergeStatuses(
-                SkylarkUtil.StringListToEnumList<DetailedMergeStatus>(
-                        SkylarkUtil.ConvertStringList(
-                            allowEmptyDiffMergeStatuses, "allow_empty_diff_merge_statuses"),
-                        "allow_empty_diff_merge_statuses",
-                        console)
-                    .ToImmutableHashSet())
-            .SetGeneralOptions(Options.Get<GeneralOptions>())
-            .SetGitOptions(Options.Get<GitOptions>())
-            .SetGitLabOptions(Options.Get<GitLabOptions>())
-            .SetDestinationOptions(Options.Get<GitDestinationOptions>())
-            .SetPartialFetch(partialFetch)
-            .SetIntegrates(
-                StarlarkRt.IsNullOrNone(integrates)
-                    ? _defaultGitIntegrate
-                    : (StarlarkSequence)integrates)
-            .SetChecker(SkylarkUtil.ConvertToOptional<IChecker>(checker))
-            .Build()
+        return new global::Copybara.Git.GitLabMrDestination.GitLabMrDestinationParams(
+                RepoUrl: new Uri(url),
+                UsernamePasswordIssuer: usernamePasswordIssuer,
+                TitleTemplate: SkylarkUtil.ConvertToOptional<string>(titleTemplate),
+                BodyTemplate: SkylarkUtil.ConvertToOptional<string>(bodyTemplate),
+                AssigneeTemplates:
+                    SkylarkUtil.ConvertStringList(assigneeTemplates, "assignee_templates").ToImmutableArray(),
+                SourceBranchTemplate: SkylarkUtil.ConvertToOptional<string>(sourceBranchTemplate),
+                TargetBranch: targetBranch,
+                ConfigFile: MainConfigFile,
+                AllowEmptyDiff: allowEmptyDiff,
+                AllowEmptyDiffMergeStatuses:
+                    SkylarkUtil.StringListToEnumList<DetailedMergeStatus>(
+                            SkylarkUtil.ConvertStringList(
+                                allowEmptyDiffMergeStatuses, "allow_empty_diff_merge_statuses"),
+                            "allow_empty_diff_merge_statuses",
+                            console)
+                        .ToImmutableHashSet(),
+                GeneralOptions: Options.Get<GeneralOptions>(),
+                GitOptions: Options.Get<GitOptions>(),
+                GitLabOptions: Options.Get<GitLabOptions>(),
+                DestinationOptions: Options.Get<GitDestinationOptions>(),
+                PartialFetch: partialFetch,
+                Integrates: ConvertIntegrates(integrates),
+                Checker: SkylarkUtil.ConvertToOptional<IChecker>(checker))
             .CreateDestination();
     }
 
@@ -2083,7 +2130,7 @@ public class GitModule : ILabelsAwareModule, IStarlarkValue
             return null;
         }
 
-        return console =>
+        return LazyResourceLoader.Memoized<IEndpointProvider>(console =>
         {
             try
             {
@@ -2098,7 +2145,7 @@ public class GitModule : ILabelsAwareModule, IStarlarkValue
                         e.Message),
                     e);
             }
-        };
+        });
     }
 
     protected LazyResourceLoader<IEndpointProvider>? MaybeGetGitHubApi(
@@ -2110,7 +2157,7 @@ public class GitModule : ILabelsAwareModule, IStarlarkValue
             return null;
         }
 
-        return console =>
+        return LazyResourceLoader.Memoized<IEndpointProvider>(console =>
         {
             try
             {
@@ -2125,7 +2172,7 @@ public class GitModule : ILabelsAwareModule, IStarlarkValue
                         e.Message),
                     e);
             }
-        };
+        });
     }
 
     protected CredentialFileHandler? GetCredentialHandler(string host, string path, object? starlarkValue)
@@ -2169,7 +2216,7 @@ public class GitModule : ILabelsAwareModule, IStarlarkValue
     protected bool IsGitRepositoryHookExperimentEnabled() =>
         Options.Get<GeneralOptions>().IsTemporaryFeature("enable_git_repository_hook_experiment", true);
 
-    protected IGitRepositoryHook? MaybeGetGitRepositoryHook(GitRepositoryHook.GitRepositoryData gitRepositoryData)
+    protected IGitRepositoryHook? MaybeGetGitRepositoryHook(IGitRepositoryHook.GitRepositoryData gitRepositoryData)
     {
         var gitHubHost = new GitHubHost("github.com");
         if (!IsGitRepositoryHookExperimentEnabled())

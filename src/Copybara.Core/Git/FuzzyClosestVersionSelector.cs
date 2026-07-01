@@ -14,7 +14,11 @@
  * limitations under the License.
  */
 
+using System.Collections.Immutable;
 using Copybara.Exceptions;
+using Copybara.Git.Version;
+using Copybara.Go;
+using Copybara.Version;
 using Console = Copybara.Util.Console.Console;
 
 namespace Copybara.Git;
@@ -23,23 +27,35 @@ namespace Copybara.Git;
 /// A VersionSelector that heuristically tries to match a version to a git tag. This is best effort
 /// and only recommended for testing. Port of
 /// <c>com.google.copybara.git.FuzzyClosestVersionSelector</c>.
-///
-/// <para>The upstream implementation composes an <c>OrderedVersionSelector</c> over a
-/// <c>TagVersionList</c>. Those git/version helper types are owned by a peer port; until they land,
-/// this falls back to the documented behavior of returning the requested ref.</para>
 /// </summary>
 public class FuzzyClosestVersionSelector
 {
     public string SelectVersion(string? requestedRef, GitRepository repo, string url, Console console)
     {
+        // Move this check where it is used
         ValidationException.CheckCondition(
             !string.IsNullOrEmpty(requestedRef),
             "Fuzzy version finding requires a ref to be explicitly specified");
 
-        // TODO(peer): Wire up OrderedVersionSelector over the git TagVersionList once the
-        // git/version helper types (TagVersionList, RequestedShaVersionSelector) are ported. Until
-        // then, degrade to returning the requested ref, which is the documented best-effort
-        // fallback for this selector.
-        return requestedRef!;
+        var selector =
+            new OrderedVersionSelector(
+                ImmutableArray.Create<IVersionSelector>(
+                    new PseudoVersionSelector(),
+                    new RequestedShaVersionSelector(),
+                    new RequestedExactMatchSelector(),
+                    new CorrectorVersionSelector(console),
+                    new RequestedVersionSelector()));
+        try
+        {
+            return selector.Select(
+                new RefspecVersionList.TagVersionList(repo, url), requestedRef, console)!;
+        }
+        catch (RepoException e)
+        {
+            // Technically this could be a real RepoException, but the current interface
+            //
+            console.WarnFmt("Unable to obtain tags for {0}. {1}", url, e);
+            return requestedRef!;
+        }
     }
 }

@@ -130,7 +130,12 @@ dotnet pack src/Copybara.Cli -c Release
 
 ## Status
 
-The port is in progress. **TODO.md is the living work breakdown** — consult it
-for what is done, in progress, and pending, and update it as work lands.
+**Source port complete.** Every package under `java/com/google/copybara/**` plus
+the vendored `net.starlark.java` interpreter has been ported to C# (~666 files,
+~98.5k LOC). The whole solution builds with 0 warnings / 0 errors and the test
+suite passes. Remaining work is *integration*, not source-porting — chiefly
+wiring `ModuleSupplier` to register the modules/options so `copybara migrate`
+runs a real `copy.bara.sky` end-to-end. **TODO.md is the living work breakdown**
+— consult it for exactly what is done and what integration follow-ups remain.
 </content>
 </invoke>

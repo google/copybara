@@ -204,10 +204,17 @@ public class GitOrigin : IOrigin<GitRevision>
             }
             else
             {
-                // TODO(peer): Build a RefspecVersionList and invoke the version selector once the
-                // git/version helper types are ported. Until then use the requested reference.
-                string? res = _versionSelector.Select(
-                    versionList: null!, requestedRef: reference, console: _console);
+                GitRepository repository = GetRepository();
+                var specs = GetVersionSelectorRefspec(repository);
+                var list = new Version.RefspecVersionList(repository, specs, RepoUrl);
+                foreach (var prefix in RefPrefixes)
+                {
+                    if (reference != null && list.List().Contains(prefix + reference))
+                    {
+                        reference = prefix + reference;
+                    }
+                }
+                string? res = _versionSelector.Select(list, reference, _console);
                 ValidationException.CheckCondition(
                     res != null,
                     "Cannot find any matching version for latest_version expression {0}.\n\n"
@@ -216,6 +223,9 @@ public class GitOrigin : IOrigin<GitRevision>
                     _versionSelector,
                     RepoUrl);
                 @ref = res!;
+                // It is rare that a branch and a tag has the same name. The reason for this is that
+                // destinations expect that the context_reference is a non-full reference. Also it is
+                // more readable when we use it in transformations.
                 foreach (var prefix in RefPrefixes)
                 {
                     if (@ref.StartsWith(prefix, StringComparison.Ordinal))
@@ -793,6 +803,19 @@ public class GitOrigin : IOrigin<GitRevision>
             refspecs.Add(pattern);
         }
         return refspecs.ToImmutable();
+    }
+
+    private ImmutableArray<Refspec> GetVersionSelectorRefspec(GitRepository repository)
+    {
+        Preconditions.CheckNotNull(
+            _versionSelector,
+            "version selector presence should be checked outside of the method call");
+        var specs = ImmutableArray.CreateBuilder<Refspec>();
+        foreach (var prefix in ToRefspec())
+        {
+            specs.Add(repository.CreateRefSpec(prefix));
+        }
+        return specs.ToImmutable();
     }
 
     private string? GetConfigRef()

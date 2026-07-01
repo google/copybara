@@ -109,12 +109,12 @@ Largest single module (~175 files). Port in slices:
   `SameGitTree`, exceptions.
 - ✅ Origin/Destination base: `GitOrigin`, `GitDestination`, `GitDestinationReader`,
   `ChangeReader`, `GitVisitorUtil`, `Mirror`, `GitIntegrateChanges`, options, write hooks.
-- ⬜ `GitModule` (the `git` Starlark module, ~3677 LOC — registers all git.* factories).
-- ✅ GitHub `github/api` client (System.Text.Json + HttpClient, ~50 files).
-  ⬜ GitHub providers: `GitHubPrOrigin`/`GitHubPrDestination`/`GitHubOrigin`/`github/util`.
-- ✅ Gerrit `gerritapi` client (30 files). ⬜ Gerrit providers: `GerritOrigin`/`GerritDestination`/`GerritEndpoint`.
-- ✅ GitLab `gitlab/api` client (18 files). ⬜ GitLab providers: `GitLabMrOrigin`/`GitLabMrDestination`.
-- ✅ `version/` resolvers. ✅ `hg/` (Mercurial).
+- ✅ `GitModule` (the `git` Starlark module — all 19 git.* factories wired).
+- ✅ GitHub: `github/api` client (~50 files) + providers (`GitHubPrOrigin`,
+  `GitHubPrDestination`, `GitHubEndPoint`, write hooks, approvals validators, `github/util`).
+- ✅ Gerrit: `gerritapi` client (30) + providers (`GerritOrigin`/`GerritDestination`/`GerritEndpoint`).
+- ✅ GitLab: `gitlab/api` client (18) + providers (`GitLabMrOrigin`/`GitLabMrDestination`).
+- ✅ `git/version/` selectors. ✅ `hg/` (Mercurial).
 
 ## Phase 6 — Other origins/destinations & modules
 
@@ -124,9 +124,32 @@ Largest single module (~175 files). Port in slices:
   `xml/`, `html/`, `re2/`, `credentials/`, `approval/`, `action/`, `treestate/`,
   `monitor/`, `effect/`, `checks/` (minimal stub).
 - ✅ `hg/` (Mercurial), `go/`, `rust/`, `python/`, `tsjs/` (npm).
-- ⬜ `feedback/`, `checks/` (full), `regenerate/`, `onboard/`, `configgen/`,
-  `doc/` (reference doc generator), `transform/patch/`, GitHub/Gerrit/GitLab
-  provider classes, `GitModule`.
+- ✅ `feedback/`, `checks/`, `regenerate/`, `onboard/`, `configgen/`,
+  `doc/` (reflection-based reference generator), `transform/patch/`.
+- ✅ `starlark/StarlarkUtil`, `archive/util`.
+
+## Source port: COMPLETE
+
+Every source package under `java/com/google/copybara/**` and the vendored
+`net.starlark.java` interpreter has a C# counterpart. ~666 C# files / ~98.5k LOC.
+Whole solution builds 0 warnings / 0 errors; tests pass.
+
+Intentionally NOT ported (superseded/obsolete): `jcommander/*` converters/validators
+(replaced by the custom `Copybara.Cli.ArgParser`).
+
+### Remaining integration / follow-up work (not source-porting)
+- **Wire `ModuleSupplier.GetModules()`** to register the ported Starlark modules
+  (`Core`, `git`, `folder`, `format`, `http`, `hashing`, `archive`, `remotefile`,
+  `toml`/`json`/`xml`/`html`/`re2`, `go`/`rust`/`python`/`npm`, `credentials`, …)
+  and `NewOptions()` to register every `IOption`. Currently stubbed empty — this is
+  what makes `copybara migrate` load a real `copy.bara.sky` end-to-end.
+- **Wire CLI commands**: `RegenerateCmd`/`OnboardCmd`/`GeneratorCmd` engines exist in
+  Core with `Run(...)` entry points; add thin `ICopybaraCmd` adapters in `Copybara.Cli`.
+- **Archive xz/bz2** (`TAR_XZ`/`TAR_BZ2`) need a codec (no in-box option) — currently
+  throw with a `TODO(port)`.
+- **Expand test coverage**: port high-value suites from `java/javatests/` and add an
+  end-to-end folder→folder `migrate` smoke test.
+- Verify a few `structField`/reflective-dispatch edge cases against real configs.
 
 ## Phase 7 — CLI (`src/Copybara.Cli`)
 
