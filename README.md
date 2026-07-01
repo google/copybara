@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/icon.png" alt="Copybara logo" width="180" />
+</p>
+
 # Copybara for .NET
 
 *A tool for transforming and moving code between repositories — a C# / .NET 10
