@@ -108,9 +108,9 @@ Follow these consistently so the port stays coherent across contributors/agents.
 
 Notes / gotchas:
 
-- **re2j is not a drop-in for .NET Regex.** Copybara exposes `core.replace`
-  regex groups with RE2 semantics. Start with `System.Text.RegularExpressions`
-  and record any semantic divergence in TODO; consider a real RE2 port later.
+- **Regex: use the native .NET engine.** Upstream uses re2j, but this port uses
+  `System.Text.RegularExpressions` — an accepted deviation. The vast majority of
+  Copybara patterns behave identically; note any observed divergence in TODO.
 - **Starlark is the critical path.** Almost every domain object is a
   `StarlarkValue` with `@StarlarkMethod` fields, and the config loader executes
   Starlark. The `Starlark` project must land before most `*Module` classes can

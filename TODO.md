@@ -139,8 +139,9 @@ Largest single module (175 files). Port in slices:
 
 ## Cross-cutting decisions / open questions
 
-- 🔬 **RE2 vs .NET Regex** for `core.replace` — start with .NET Regex, flag
-  divergences.
+- ✅ **RE2 vs .NET Regex** — DECIDED: use the native .NET regex engine
+  (`System.Text.RegularExpressions`). Accepted deviation from upstream re2j.
+  Flag any divergences observed during porting/testing.
 - 🔬 **Async vs sync** — repo I/O is naturally async in .NET; upstream is
   blocking. Decide per-boundary; keep the engine mostly synchronous initially to
   stay close to the source, use async only at process/network edges.
