@@ -270,7 +270,9 @@ public class PerforceServer {
               new ReconcileFilesOptions()
                   .setOutsideAdd(true)
                   .setOutsideEdit(true)
-                  .setRemoved(true));
+                  .setRemoved(true)
+                  // -f: encode @ # % * in filenames (e.g. npm @types dirs) instead of skipping them.
+                  .setUseWildcards(true));
       int changed = 0;
       for (IFileSpec spec : opened) {
         if (spec != null && spec.getOpStatus() == FileSpecOpStatus.VALID) {
@@ -333,6 +335,8 @@ public class PerforceServer {
               .setOutsideAdd(true)
               .setOutsideEdit(true)
               .setRemoved(true)
+              // -f: encode @ # % * in filenames (e.g. npm @types dirs) instead of skipping them.
+              .setUseWildcards(true)
               .setChangelistId(pending.getId()));
 
       pending.refresh();
@@ -342,8 +346,14 @@ public class PerforceServer {
             "No changes to submit: the destination already matches the transformed tree");
       }
 
-      int changelist = pending.getId();
+      int pendingId = pending.getId();
       String submitErrors = errorMessages(pending.submit(/* reOpen= */ false));
+
+      // p4 renumbers a pending changelist on submit whenever its number isn't the next in
+      // sequence (a gap opens as soon as one empty change is created and deleted), so the
+      // submitted number can differ from pendingId. p4java refreshes the changelist id from the
+      // submit response, so read it back rather than trusting the pending number.
+      int changelist = pending.getId();
 
       // A 'p4 submit' can return without throwing yet leave the changelist pending (e.g. the
       // unlicensed-server file/user cap, or a server-side error). Verify it actually landed and
@@ -352,11 +362,11 @@ public class PerforceServer {
       if (submitted == null || submitted.getStatus() != ChangelistStatus.SUBMITTED) {
         client.revertFiles(
             FileSpecBuilder.makeFileSpecList(stream + "/..."), new RevertFilesOptions());
-        tryDeletePending(changelist);
+        tryDeletePending(pendingId);
         throw new RepoException(
             String.format(
                 "Perforce submit of changelist %d did not complete%s",
-                changelist, submitErrors.isEmpty() ? "" : ": " + submitErrors));
+                pendingId, submitErrors.isEmpty() ? "" : ": " + submitErrors));
       }
       return changelist;
     } catch (P4JavaException e) {

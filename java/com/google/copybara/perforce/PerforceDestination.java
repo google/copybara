@@ -128,11 +128,6 @@ public class PerforceDestination implements Destination<PerforceRevision> {
     public ImmutableList<DestinationEffect> write(
         TransformResult transformResult, Glob destinationFiles, Console console)
         throws ValidationException, RepoException, IOException {
-      // p4 reconcile silently ignores local files whose names contain Perforce wildcards, which
-      // would drop them from the changelist without error. Refuse loudly instead. (Full support
-      // would require per-file encoded add/edit/delete; deferred.)
-      rejectUnsupportedPaths(transformResult.getPath(), destinationFiles);
-
       ensureWorkspace();
       PerforceServer server = server();
 
@@ -284,35 +279,6 @@ public class PerforceDestination implements Destination<PerforceRevision> {
       return ((DescriptionChecker) checker).processDescription(description, console);
     }
     return description;
-  }
-
-  /** Fails loudly if any staged file's name contains a Perforce wildcard character (@ # % *). */
-  private static void rejectUnsupportedPaths(Path from, Glob destinationFiles)
-      throws ValidationException, RepoException {
-    PathMatcher matcher = destinationFiles.relativeTo(from);
-    ImmutableList.Builder<String> offending = ImmutableList.builder();
-    int count = 0;
-    try (Stream<Path> walk = Files.walk(from)) {
-      for (Path file :
-          (Iterable<Path>) walk.filter(PerforceDestination::isManaged).filter(matcher::matches)
-              ::iterator) {
-        String relative = from.relativize(file).toString();
-        if (CharMatcher.anyOf("@#%*").matchesAnyOf(relative)) {
-          offending.add(relative);
-          if (++count >= 10) {
-            break;
-          }
-        }
-      }
-    } catch (IOException e) {
-      throw new RepoException("Error scanning files for Perforce-incompatible names", e);
-    }
-    ImmutableList<String> bad = offending.build();
-    if (!bad.isEmpty()) {
-      throw new ValidationException(
-          "Perforce cannot store filenames containing '@', '#', '%' or '*'; offending file(s): "
-              + bad);
-    }
   }
 
   /** Builds the changelist description, stamping the origin revision label for incremental syncs. */
