@@ -41,6 +41,7 @@ import com.google.copybara.Origin;
 import com.google.copybara.Origin.Reader.ChangesResponse.EmptyReason;
 import com.google.copybara.approval.ApprovalsProvider;
 import com.google.copybara.authoring.Authoring;
+import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -61,6 +62,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import javax.annotation.Nullable;
 
@@ -76,6 +78,9 @@ public class GitOrigin implements Origin<GitRevision> {
 
   private static final ImmutableSet<String> REF_PREFIXES =
       ImmutableSet.of("refs/heads/", "refs/tags/");
+
+  /** Supported hex lengths for Git commit hashes: 40 character SHA-1 and 64 character SHA-256. */
+  private static final ImmutableSet<Integer> SUPPORTED_HASH_LENGTHS = ImmutableSet.of(40, 64);
 
   /** How downloading submodules should be handled by Git origins. */
   public enum SubmoduleStrategy {
@@ -215,12 +220,14 @@ public class GitOrigin implements Origin<GitRevision> {
         configPath,
         workflowName,
         credentials,
-        gitRepositoryHook);
+        gitRepositoryHook,
+        gitOriginOptions.getLastRevisionMap());
   }
 
   @Override
   public GitRevision resolve(@Nullable String reference)
       throws RepoException, ValidationException {
+    validateLastRevisionMap();
     console.progress("Git Origin: Initializing local repo");
     String ref;
     boolean canUseResolverOnCliRef =
@@ -266,6 +273,14 @@ public class GitOrigin implements Origin<GitRevision> {
       ref = getConfigRef();
     } else {
       ref = reference;
+    }
+
+    if (gitOriginOptions.getLastRevisionMap().containsKey(ref)) {
+      String newRef = gitOriginOptions.getLastRevisionMap().get(ref);
+      generalOptions
+          .console()
+          .infoFmt("Mapping baseline revision from %s to %s via --last-rev-map", ref, newRef);
+      ref = newRef;
     }
 
     return resolveStringRef(ref);
@@ -342,11 +357,49 @@ public class GitOrigin implements Origin<GitRevision> {
 
   @Override
   public GitRevision resolveLastRev(String ref) throws RepoException, ValidationException {
+    validateLastRevisionMap();
+    if (gitOriginOptions.getLastRevisionMap().containsKey(ref)) {
+      String newRef = gitOriginOptions.getLastRevisionMap().get(ref);
+      generalOptions
+          .console()
+          .infoFmt("Mapping baseline revision from %s to %s via --last-rev-map", ref, newRef);
+      ref = newRef;
+    }
     if (gitOriginOptions.useGitFuzzyLastRev()) {
       FuzzyClosestVersionSelector selector = new FuzzyClosestVersionSelector();
       ref = selector.selectVersion(ref, getRepository(), repoUrl, generalOptions.console());
     }
-    return resolveStringRef(ref);
+    try {
+      return resolveStringRef(ref);
+    } catch (CannotResolveRevisionException e) {
+      throw new CannotResolveRevisionException(
+          e.getMessage()
+              + String.format(
+                  " If this repository recently transitioned hashing algorithms,"
+                      + " recover by using the flag: --last-rev-map=%s:<new_hash>",
+                  ref),
+          e.getCause());
+    }
+  }
+
+  private void validateLastRevisionMap() throws ValidationException {
+    if (gitOriginOptions.getLastRevisionMap().isEmpty()) {
+      return;
+    }
+
+    for (Map.Entry<String, String> hashes : gitOriginOptions.getLastRevisionMap().entrySet()) {
+      int oldHashLength = hashes.getKey().length();
+      int newHashLength = hashes.getValue().length();
+      if (oldHashLength == newHashLength
+          || !SUPPORTED_HASH_LENGTHS.contains(oldHashLength)
+          || !SUPPORTED_HASH_LENGTHS.contains(newHashLength)) {
+        throw new ValidationException(
+            String.format(
+                "--last-rev-map must map between different supported hash lengths (got %d vs %d;"
+                    + " supported: %s).",
+                oldHashLength, newHashLength, SUPPORTED_HASH_LENGTHS));
+      }
+    }
   }
 
   @Override
@@ -373,6 +426,44 @@ public class GitOrigin implements Origin<GitRevision> {
     private final String workflowName;
     @Nullable private final CredentialFileHandler credentials;
     @Nullable protected final GitRepositoryHook gitRepositoryHook;
+    private final ImmutableMap<String, String> lastRevisionMap;
+
+    ReaderImpl(
+        String repoUrl,
+        Glob originFiles,
+        Authoring authoring,
+        GitOptions gitOptions,
+        GitOriginOptions gitOriginOptions,
+        GeneralOptions generalOptions,
+        boolean includeBranchCommitLogs,
+        SubmoduleStrategy submoduleStrategy,
+        List<String> excludedSubmodules,
+        boolean firstParent,
+        boolean partialFetch,
+        @Nullable PatchTransformation patchTransformation,
+        String configPath,
+        String workflowName,
+        @Nullable CredentialFileHandler credentials,
+        @Nullable GitRepositoryHook gitRepositoryHook,
+        ImmutableMap<String, String> lastRevisionMap) {
+      this.repoUrl = checkNotNull(repoUrl);
+      this.originFiles = checkNotNull(originFiles, "originFiles");
+      this.authoring = checkNotNull(authoring, "authoring");
+      this.gitOptions = checkNotNull(gitOptions);
+      this.gitOriginOptions = gitOriginOptions;
+      this.generalOptions = checkNotNull(generalOptions);
+      this.includeBranchCommitLogs = includeBranchCommitLogs;
+      this.submoduleStrategy = checkNotNull(submoduleStrategy);
+      this.excludedSubmodules = excludedSubmodules;
+      this.firstParent = firstParent;
+      this.partialFetch = partialFetch;
+      this.patchTransformation = patchTransformation;
+      this.configPath = configPath;
+      this.workflowName = workflowName;
+      this.credentials = credentials;
+      this.gitRepositoryHook = gitRepositoryHook;
+      this.lastRevisionMap = checkNotNull(lastRevisionMap);
+    }
 
     ReaderImpl(
         String repoUrl,
@@ -391,22 +482,24 @@ public class GitOrigin implements Origin<GitRevision> {
         String workflowName,
         @Nullable CredentialFileHandler credentials,
         @Nullable GitRepositoryHook gitRepositoryHook) {
-      this.repoUrl = checkNotNull(repoUrl);
-      this.originFiles = checkNotNull(originFiles, "originFiles");
-      this.authoring = checkNotNull(authoring, "authoring");
-      this.gitOptions = checkNotNull(gitOptions);
-      this.gitOriginOptions = gitOriginOptions;
-      this.generalOptions = checkNotNull(generalOptions);
-      this.includeBranchCommitLogs = includeBranchCommitLogs;
-      this.submoduleStrategy = checkNotNull(submoduleStrategy);
-      this.excludedSubmodules = excludedSubmodules;
-      this.firstParent = firstParent;
-      this.partialFetch = partialFetch;
-      this.patchTransformation = patchTransformation;
-      this.configPath = configPath;
-      this.workflowName = workflowName;
-      this.credentials = credentials;
-      this.gitRepositoryHook = gitRepositoryHook;
+      this(
+          repoUrl,
+          originFiles,
+          authoring,
+          gitOptions,
+          gitOriginOptions,
+          generalOptions,
+          includeBranchCommitLogs,
+          submoduleStrategy,
+          excludedSubmodules,
+          firstParent,
+          partialFetch,
+          patchTransformation,
+          configPath,
+          workflowName,
+          credentials,
+          gitRepositoryHook,
+          ImmutableMap.of());
     }
 
     ChangeReader.Builder changeReaderBuilder(String repoUrl) throws RepoException {
@@ -415,6 +508,7 @@ public class GitOrigin implements Origin<GitRevision> {
           .setRoots(originFiles.roots(/* allowFiles= */ true))
           .setPartialFetch(partialFetch)
           .setBatchSize(gitOriginOptions.gitOriginLogBatchSize)
+          .setLastRevisionMap(lastRevisionMap)
           .setUrl(repoUrl);
     }
 

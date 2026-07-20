@@ -1320,6 +1320,12 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                 + workflow.getLastRevisionFlag(), e);
       }
     }
+    return resolveBaseline();
+  }
+
+  /** Resolves the baseline revision from the destination. */
+  @Nullable
+  private O resolveBaseline() throws RepoException, ValidationException {
     DestinationStatus status = writer.getDestinationStatus(
         workflow.getDestinationFiles(),
         getOriginLabelName());

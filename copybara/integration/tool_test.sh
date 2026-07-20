@@ -1404,5 +1404,103 @@ EOF
   expect_log "Argument '--some-other-flag' looks like a flag"
 }
 
+function test_last_rev_map() {
+  local -r origin="${TEST_TMPDIR}/test_last_rev_map_origin"
+  local -r destination="${TEST_TMPDIR}/test_last_rev_map_destination"
+
+  mkdir -p "${origin}"
+  mkdir -p "${destination}"
+
+  git -C "${origin}" init
+  git -C "${origin}" branch -m master
+  touch "${origin}/file1.txt"
+  git -C "${origin}" add file1.txt
+  git -C "${origin}" commit -m "commit 1"
+  local -r real_sha1=$(git -C "${origin}" rev-parse HEAD)
+
+  # make a fake 64 char string
+  local -r fake_sha256="${real_sha1}000000000000000000000000"
+
+  cat > copy.bara.sky <<EOF
+core.workflow(
+    name = "default",
+    origin = git.origin(
+      url = "file://${origin}",
+      ref = "master",
+    ),
+    destination = git.destination(
+      url = "file://${destination}",
+      fetch = "master",
+      push = "master",
+    ),
+    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
+    mode = "ITERATIVE",
+)
+EOF
+
+  local -r fake_sha1="1234567890123456789012345678901234567890"
+
+  # Validation exception
+  copybara_with_exit_code $CONFIGURATION_ERROR copy.bara.sky default --last-rev-map="${fake_sha1}:${fake_sha1}"
+  expect_log "must map between different supported hash lengths"
+}
+
+function test_last_rev_map_transition() {
+  local -r origin="${TEST_TMPDIR}/test_last_rev_map_transition_origin"
+  local -r destination=$(empty_git_bare_repo)
+  local -r dest_primary=$(get_primary_branch "${destination}")
+
+  mkdir -p "${origin}"
+
+  # Origin repository uses SHA-256
+  git -C "${origin}" init --object-format=sha256
+
+  touch "${origin}/file1.txt"
+  git -C "${origin}" add file1.txt
+  git -C "${origin}" commit -m "commit 1 (sha256)"
+  local -r sha256_1=$(git -C "${origin}" rev-parse HEAD)
+  local -r origin_primary=$(get_primary_branch "${origin}")
+
+  touch "${origin}/file2.txt"
+  git -C "${origin}" add file2.txt
+  git -C "${origin}" commit -m "commit 2 (sha256)"
+  local -r sha256_2=$(git -C "${origin}" rev-parse HEAD)
+
+  # Destination repository is bare; commit the legacy SHA-1 baseline commit in a temp worktree
+  local -r dest_wt=$(mktemp -d)
+  local -r fake_sha1="1234567890123456789012345678901234567890"
+  touch "${dest_wt}/file1.txt"
+  git --git-dir="${destination}" --work-tree="${dest_wt}" add file1.txt
+  git --git-dir="${destination}" --work-tree="${dest_wt}" commit -m "first commit
+
+GitOrigin-RevId: ${fake_sha1}"
+
+  cat > copy.bara.sky <<EOF
+core.workflow(
+    name = "default",
+    origin = git.origin(
+      url = "file://${origin}",
+      ref = "${origin_primary}",
+    ),
+    destination = git.destination(
+      url = "file://${destination}",
+      fetch = "${dest_primary}",
+      push = "${dest_primary}",
+    ),
+    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
+    mode = "ITERATIVE",
+)
+EOF
+
+  # Run copybara without mapping it first; it should fail and recommend last-rev-map
+  copybara_with_exit_code $CONFIGURATION_ERROR copy.bara.sky default
+  expect_log "recover by using the flag: --last-rev-map=${fake_sha1}:<new_hash>"
+
+  # Run copybara mapping fake_sha1 to sha256_1.
+  copybara_with_exit_code $SUCCESS copy.bara.sky default --last-rev-map="${fake_sha1}:${sha256_1}"
+
+  # Verify that the new destination commit has the GitOrigin-RevId of the migrated commit (sha256_2)
+  check_copybara_rev_id "${destination}" "${sha256_2}"
+}
 
 run_suite "Integration tests for Copybara code sharing tool."

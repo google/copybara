@@ -49,7 +49,9 @@ import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
+import com.google.common.collect.ImmutableMap;
 import com.google.copybara.exception.ValidationException;
+
 import com.google.copybara.git.GitCredential.UserPassword;
 import com.google.copybara.git.GitRevision.GitHashAlgorithm;
 import com.google.copybara.revision.Change;
@@ -1623,7 +1625,7 @@ public class GitOriginTest {
         assertThrows(
             CannotResolveRevisionException.class,
             () -> origin.resolveLastRev("v1.0.0").contextReference());
-    assertThat(e.getMessage()).isEqualTo("Cannot find reference(s): [v1.0.0, refs/tags/*]");
+    assertThat(e.getMessage()).contains("Cannot find reference(s): [v1.0.0, refs/tags/*]");
 
     // After tag is enabled, the version is matched to the similar tag available in the repo
     options.gitOrigin.gitFuzzyLastRev = true;
@@ -2343,5 +2345,38 @@ public class GitOriginTest {
 
   private void createBranch(String branchName) throws RepoException {
     repo.simpleCommand("checkout", "-b", branchName);
+  }
+
+  @Test
+  public void lastRevisionMap_invalidLength() throws Exception {
+    options.gitOrigin.lastRevisionMap = ImmutableMap.of("abc", "def");
+
+    ValidationException e =
+        assertThrows(ValidationException.class, () -> origin().resolveLastRev("HEAD"));
+    assertThat(e).hasMessageThat().contains("must map between different supported hash lengths");
+  }
+
+  @Test
+  public void lastRevisionMap_multipleElements() throws Exception {
+    options.gitOrigin.lastRevisionMap =
+        ImmutableMap.of(
+            "99ab4b1306bd3ca616ce78de796f2b86ac7c9265",
+            "703a58eebcfb2e5ef46e8cb4ca9399df2196fbde9c325603ed61ce7b848bb248",
+            "14868b0e768962363f76e7f2b7cb776002ae5f74ad906c77ac0b8413c8caf921",
+            "4b825dc642cb6eb9a060e54bf8d69288fbee4904");
+    // Because the new mapped hash doesn't actually exist in the local Git test repo,
+    // resolving it fails with a CannotResolveRevisionException
+    // that references the new hash value to prove the hash was translated correctly.
+    GitOrigin gitOrigin = origin();
+
+    CannotResolveRevisionException e =
+        assertThrows(
+            CannotResolveRevisionException.class,
+            () -> gitOrigin.resolveLastRev("99ab4b1306bd3ca616ce78de796f2b86ac7c9265"));
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "Cannot find reference(s):"
+                + " [703a58eebcfb2e5ef46e8cb4ca9399df2196fbde9c325603ed61ce7b848bb248");
   }
 }

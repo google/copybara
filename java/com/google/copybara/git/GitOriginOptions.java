@@ -18,12 +18,15 @@ package com.google.copybara.git;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
 import com.google.copybara.approval.ApprovalsProvider;
 import com.google.copybara.approval.NoneApprovedProvider;
 import com.google.copybara.exception.RepoException;
+import com.google.copybara.jcommander.MapConverter;
 import com.google.copybara.util.OriginUtil.CheckoutHook;
 import java.nio.file.Path;
 
@@ -75,6 +78,24 @@ public class GitOriginOptions implements Option {
 
   public boolean useGitFuzzyLastRev() {
     return gitFuzzyLastRev;
+  }
+
+  @Parameter(
+      names = "--last-rev-map",
+      converter = MapConverter.class,
+      description =
+          """
+          Explicit mapping (old_hash:new_hash) to bridge a repository hash algorithm transition \
+          e.g. SHA1 to SHA256, as last-rev cannot be used with CaaS. \
+          Example: --last-rev-map=99ab4b1306bd3ca616ce78de796f2b86ac7c9265:703a58eebcfb2e5ef46e8cb4\
+          ca9399df2196fbde9c325603ed61ce7b848bb248. Multiple comma separated mappings \
+          are supported.
+          """)
+  @VisibleForTesting
+  ImmutableMap<String, String> lastRevisionMap = ImmutableMap.of();
+
+  public ImmutableMap<String, String> getLastRevisionMap() {
+    return lastRevisionMap;
   }
 
   public ApprovalsProvider approvalsProvider = new NoneApprovedProvider();

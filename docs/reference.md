@@ -3402,6 +3402,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--git-origin-log-batch`</span> | *int* | Read the origin git log in batches of n commits. Might be needed for large migrations resulting in git logs of more than 1 GB.
 <span style="white-space: nowrap;">`--git-origin-non-linear-history`</span> | *boolean* | Read the full git log and skip changes before the from ref rather than using a log path.
 <span style="white-space: nowrap;">`--git-origin-rebase-ref`</span> | *string* | When importing a change from a Git origin ref, it will be rebased to this ref, if set. A common use case: importing a Github PR, rebase it to the main branch (usually 'master'). Note that, if the repo uses submodules, they won't be rebased.
+<span style="white-space: nowrap;">`--last-rev-map`</span> | *immutableMap* | Explicit mapping (old_hash:new_hash) to bridge a repository hash algorithm transition e.g. SHA1 to SHA256, as last-rev cannot be used with CaaS. Example: --last-rev-map=99ab4b1306bd3ca616ce78de796f2b86ac7c9265:703a58eebcfb2e5ef46e8cb4ca9399df2196fbde9c325603ed61ce7b848bb248. Multiple comma separated mappings are supported.<br>
 <span style="white-space: nowrap;">`--nogit-origin-version-selector`</span> | *boolean* | Disable the version selector for the migration. Only useful for forcing a migration to the passed version in the CLI
 
 <a id="git.gerrit_trigger" aria-hidden="true"></a>
@@ -3550,6 +3551,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--github-api-bearer-auth`</span> | *boolean* | If using a token for GitHub access, bearer auth might be required
 <span style="white-space: nowrap;">`--github-destination-delete-pr-branch`</span> | *boolean* | Overwrite git.github_destination delete_pr_branch field
 <span style="white-space: nowrap;">`--gql-commit-history-override`</span> | *list* | Flag used to target GraphQL params 'first' arguments in the event the defaults are over or underusing the api ratelimit. The flag value should be semicolon separated. This should be rarely used for repos that don't fit well in our defaults. E.g. '50;5;5' represent 50 commits, 5 PRs for each commit, 5 reviews per PR
+<span style="white-space: nowrap;">`--last-rev-map`</span> | *immutableMap* | Explicit mapping (old_hash:new_hash) to bridge a repository hash algorithm transition e.g. SHA1 to SHA256, as last-rev cannot be used with CaaS. Example: --last-rev-map=99ab4b1306bd3ca616ce78de796f2b86ac7c9265:703a58eebcfb2e5ef46e8cb4ca9399df2196fbde9c325603ed61ce7b848bb248. Multiple comma separated mappings are supported.<br>
 <span style="white-space: nowrap;">`--nogit-origin-version-selector`</span> | *boolean* | Disable the version selector for the migration. Only useful for forcing a migration to the passed version in the CLI
 
 <a id="git.github_pr_destination" aria-hidden="true"></a>
@@ -3725,6 +3727,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--github-skip-required-status-context-names`</span> | *boolean* | Skip checking status context names for importing Pull Requests. Note that this is dangerous as it might import an unsafe PR.
 <span style="white-space: nowrap;">`--github-use-repo`</span> | *string* | Use a different git repository instead
 <span style="white-space: nowrap;">`--gql-commit-history-override`</span> | *list* | Flag used to target GraphQL params 'first' arguments in the event the defaults are over or underusing the api ratelimit. The flag value should be semicolon separated. This should be rarely used for repos that don't fit well in our defaults. E.g. '50;5;5' represent 50 commits, 5 PRs for each commit, 5 reviews per PR
+<span style="white-space: nowrap;">`--last-rev-map`</span> | *immutableMap* | Explicit mapping (old_hash:new_hash) to bridge a repository hash algorithm transition e.g. SHA1 to SHA256, as last-rev cannot be used with CaaS. Example: --last-rev-map=99ab4b1306bd3ca616ce78de796f2b86ac7c9265:703a58eebcfb2e5ef46e8cb4ca9399df2196fbde9c325603ed61ce7b848bb248. Multiple comma separated mappings are supported.<br>
 <span style="white-space: nowrap;">`--nogit-origin-version-selector`</span> | *boolean* | Disable the version selector for the migration. Only useful for forcing a migration to the passed version in the CLI
 
 <a id="git.github_trigger" aria-hidden="true"></a>
@@ -3888,6 +3891,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--git-origin-log-batch`</span> | *int* | Read the origin git log in batches of n commits. Might be needed for large migrations resulting in git logs of more than 1 GB.
 <span style="white-space: nowrap;">`--git-origin-non-linear-history`</span> | *boolean* | Read the full git log and skip changes before the from ref rather than using a log path.
 <span style="white-space: nowrap;">`--git-origin-rebase-ref`</span> | *string* | When importing a change from a Git origin ref, it will be rebased to this ref, if set. A common use case: importing a Github PR, rebase it to the main branch (usually 'master'). Note that, if the repo uses submodules, they won't be rebased.
+<span style="white-space: nowrap;">`--last-rev-map`</span> | *immutableMap* | Explicit mapping (old_hash:new_hash) to bridge a repository hash algorithm transition e.g. SHA1 to SHA256, as last-rev cannot be used with CaaS. Example: --last-rev-map=99ab4b1306bd3ca616ce78de796f2b86ac7c9265:703a58eebcfb2e5ef46e8cb4ca9399df2196fbde9c325603ed61ce7b848bb248. Multiple comma separated mappings are supported.<br>
 <span style="white-space: nowrap;">`--nogit-origin-version-selector`</span> | *boolean* | Disable the version selector for the migration. Only useful for forcing a migration to the passed version in the CLI
 
 <a id="git.review_input" aria-hidden="true"></a>

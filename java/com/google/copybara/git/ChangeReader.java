@@ -17,6 +17,7 @@
 package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.ImmutableMap.toImmutableMap;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -55,11 +56,22 @@ class ChangeReader {
   private final int batchSize;
 
   @Nullable private final String grepString;
+  private final ImmutableMap<String, String> lastRevisionMap;
 
-  private ChangeReader(@Nullable Authoring authoring, GitRepository repository, int limit,
-      Iterable<String> roots, boolean includeBranchCommitLogs, @Nullable String url,
-      boolean firstParent, boolean partialFetch, boolean topoOrder, int skip, int batchSize,
-      @Nullable String grepString) {
+  private ChangeReader(
+      @Nullable Authoring authoring,
+      GitRepository repository,
+      int limit,
+      Iterable<String> roots,
+      boolean includeBranchCommitLogs,
+      @Nullable String url,
+      boolean firstParent,
+      boolean partialFetch,
+      boolean topoOrder,
+      int skip,
+      int batchSize,
+      @Nullable String grepString,
+      ImmutableMap<String, String> lastRevisionMap) {
     this.authoring = authoring;
     this.repository = checkNotNull(repository, "repository");
     this.limit = limit;
@@ -72,11 +84,12 @@ class ChangeReader {
     this.skip = skip;
     this.batchSize = batchSize;
     this.grepString = grepString;
+    this.lastRevisionMap = checkNotNull(lastRevisionMap);
   }
 
-  ImmutableList<Change<GitRevision>> run(GitRevision rev)
+  ImmutableList<Change<GitRevision>> run(GitRevision revision)
       throws RepoException, ValidationException {
-    return run(null, rev, false, ImmutableMap.of());
+    return run(null, revision, false, ImmutableMap.of());
   }
 
   /**
@@ -97,10 +110,12 @@ class ChangeReader {
       boolean historyIsNonLinear,
       ImmutableMap<String, ImmutableListMultimap<String, String>> labels)
       throws RepoException, ValidationException {
+    String fromHash = fromRev == null ? null : resolveRevisionHash(fromRev.getHash());
+    String toHash = resolveRevisionHash(toRev.getHash());
     String refExpression =
-        fromRev == null || historyIsNonLinear
-            ? toRev.getHash()
-            : fromRev.getHash() + ".." + toRev.getHash();
+        fromHash == null || historyIsNonLinear
+          ? toHash
+          : fromHash + ".." + toHash;
     LogCmd logCmd = repository.log(refExpression).firstParent(firstParent).topoOrder(topoOrder);
     if (limit != -1) {
       logCmd = logCmd.withLimit(limit);
@@ -185,6 +200,12 @@ class ChangeReader {
       ImmutableMap<String, ImmutableListMultimap<String, String>> labels,
       GitRevision toRev)
       throws RepoException {
+    ImmutableMap<String, ImmutableListMultimap<String, String>> resolvedLabels =
+        labels.entrySet().stream()
+            .collect(toImmutableMap(e -> resolveRevisionHash(e.getKey()), e -> e.getValue()));
+
+    String toHash = resolveRevisionHash(toRev.getHash());
+
     ImmutableList.Builder<Change<GitRevision>> result = ImmutableList.builder();
     GitRevision last = null;
     for (GitLogEntry e : logEntries) {
@@ -194,9 +215,10 @@ class ChangeReader {
       }
       last = e.commit();
       ImmutableListMultimap<String, String> labelsToCopy =
-          labels.getOrDefault(e.commit().getHash(), ImmutableListMultimap.of());
+          resolvedLabels.getOrDefault(e.commit().getHash(), ImmutableListMultimap.of());
       // Carry over the context reference to the corresponding change in the list.
-      if (last.getHash().equals(toRev.getHash()) && toRev.contextReference() != null) {
+      if ((last.getHash().equals(toHash) || last.getHash().equals(toRev.getHash()))
+          && toRev.contextReference() != null) {
         last = last.withContextReference(toRev.contextReference());
       }
       result.add(
@@ -223,6 +245,10 @@ class ChangeReader {
     }
   }
 
+  private String resolveRevisionHash(String hash) {
+    return lastRevisionMap.getOrDefault(hash, hash);
+  }
+
   /**
    * Builder for ChangeReader.
    */
@@ -240,6 +266,7 @@ class ChangeReader {
     private int skip;
     private int batchSize;
     private String grepString;
+    private ImmutableMap<String, String> lastRevisionMap = ImmutableMap.of();
 
     // TODO(matvore): Consider adding destinationFiles.
     // For ALL_FILES and where roots is [""], This will skip merges that don't affect the tree
@@ -323,10 +350,27 @@ class ChangeReader {
       return this;
     }
 
+    @CanIgnoreReturnValue
+    Builder setLastRevisionMap(ImmutableMap<String, String> lastRevisionMap) {
+      this.lastRevisionMap = checkNotNull(lastRevisionMap);
+      return this;
+    }
+
     ChangeReader build() {
       return new ChangeReader(
-          authoring, repository, limit, roots, includeBranchCommitLogs, url,
-          firstParent, partialFetch, topoOrder, skip, batchSize, grepString);
+          authoring,
+          repository,
+          limit,
+          roots,
+          includeBranchCommitLogs,
+          url,
+          firstParent,
+          partialFetch,
+          topoOrder,
+          skip,
+          batchSize,
+          grepString,
+          lastRevisionMap);
     }
   }
 
