@@ -534,10 +534,6 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
     }
   }
 
-  @StarlarkMethod(
-      name = "url",
-      doc = "Return the URL of this endpoint.",
-      structField = true)
   @Override
   public String getUrl() {
     return url;

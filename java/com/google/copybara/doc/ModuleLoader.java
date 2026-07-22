@@ -37,7 +37,6 @@ import com.google.copybara.doc.DocBase.DocParam;
 import com.google.copybara.doc.annotations.DocDefault;
 import com.google.copybara.doc.annotations.DocSignaturePrefix;
 import com.google.copybara.doc.annotations.Example;
-import com.google.copybara.doc.annotations.Library;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.jcommander.DurationConverter;
 import com.google.re2j.Matcher;
@@ -67,6 +66,7 @@ import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
+import net.starlark.java.annot.StarlarkLibrary;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.NoneType;
 import net.starlark.java.eval.Starlark;
@@ -88,7 +88,7 @@ public final class ModuleLoader {
       try {
         Class<?> cls = Generator.class.getClassLoader().loadClass(clsName);
 
-        getAnnotation(cls, Library.class)
+        getAnnotation(cls, StarlarkLibrary.class)
             .ifPresent(library -> docModule.functions.addAll(processFunctions(cls, null)));
         Optional<StarlarkBuiltin> starlarkBuiltin = getAnnotation(cls, StarlarkBuiltin.class);
         if (starlarkBuiltin.isPresent()) {

@@ -159,8 +159,6 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
         : destinationApiEndpointProvider.load(console).getEndpoint();
   }
 
-  @StarlarkMethod(name = "console", doc = "Get an instance of the console to report errors or"
-      + " warnings", structField = true)
   @Override
   public Console getConsole() {
     return console;

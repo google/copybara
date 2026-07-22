@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.ModuleSet;
-import com.google.copybara.doc.annotations.Library;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.StarlarkMode;
@@ -39,6 +38,7 @@ import java.util.Set;
 import java.util.function.Supplier;
 import net.starlark.java.annot.StarlarkAnnotations;
 import net.starlark.java.annot.StarlarkBuiltin;
+import net.starlark.java.annot.StarlarkLibrary;
 import net.starlark.java.eval.Dict;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Module;
@@ -351,7 +351,7 @@ public class SkylarkParser {
         StarlarkBuiltin annot = StarlarkAnnotations.getStarlarkBuiltin(module);
         if (annot != null) {
           envBuilder.put(annot.name(), module.getConstructor().newInstance());
-        } else if (module.isAnnotationPresent(Library.class)) {
+        } else if (module.isAnnotationPresent(StarlarkLibrary.class)) {
           Starlark.addMethods(envBuilder, module.getConstructor().newInstance());
         }
       } catch (ReflectiveOperationException e) {

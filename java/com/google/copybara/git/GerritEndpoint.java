@@ -292,7 +292,6 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
   }
 
   @Override
-  @StarlarkMethod(name = "url", doc = "Return the URL of this endpoint.", structField = true)
   public String getUrl() {
     return url;
   }

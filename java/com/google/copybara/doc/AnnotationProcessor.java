@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Streams;
-import com.google.copybara.doc.annotations.Library;
 import java.io.IOException;
 import java.io.Writer;
 import java.lang.annotation.Annotation;
@@ -37,6 +36,7 @@ import javax.tools.Diagnostic.Kind;
 import javax.tools.FileObject;
 import javax.tools.StandardLocation;
 import net.starlark.java.annot.StarlarkBuiltin;
+import net.starlark.java.annot.StarlarkLibrary;
 
 /**
  * An annotation processor which, for each jar, writes a text file containing the names of all
@@ -55,7 +55,7 @@ public final class AnnotationProcessor extends BasicAnnotationProcessor {
         new ProcessingStep() {
           @Override
           public ImmutableSet<? extends Class<? extends Annotation>> annotations() {
-            return ImmutableSet.of(StarlarkBuiltin.class, Library.class);
+            return ImmutableSet.of(StarlarkBuiltin.class, StarlarkLibrary.class);
           }
 
           @Override
@@ -79,7 +79,7 @@ public final class AnnotationProcessor extends BasicAnnotationProcessor {
 
     List<String> classNames =
         Streams.concat(
-                elementsByAnnotation.get(Library.class).stream(),
+                elementsByAnnotation.get(StarlarkLibrary.class).stream(),
                 elementsByAnnotation.get(StarlarkBuiltin.class).stream())
             .map(AnnotationProcessor::className)
             .collect(toImmutableList());
