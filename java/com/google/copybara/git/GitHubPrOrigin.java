@@ -59,6 +59,7 @@ import com.google.copybara.git.github.api.CheckRun;
 import com.google.copybara.git.github.api.CombinedStatus;
 import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.git.github.api.GitHubApi.IssuesAndPullRequestsSearchRequestParams;
+import com.google.copybara.git.github.api.GitHubGraphQLApi;
 import com.google.copybara.git.github.api.Issue;
 import com.google.copybara.git.github.api.IssuesAndPullRequestsSearchResults;
 import com.google.copybara.git.github.api.Label;
@@ -332,7 +333,13 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
     checkPrBranch(project, prData);
     checkRequiredLabels(api, project, prData);
     checkRequiredStatusContextNames(api, project, prData);
-    checkRequiredCheckRuns(api, project, prData);
+    if (generalOptions.isTemporaryFeature("use_graphql_api_for_check_runs", false)) {
+      GitHubGraphQLApi graphqlApi =
+          gitHubOptions.newGitHubGraphQLApi(ghHost.getHost(), project, null, credentials, console);
+      checkRequiredCheckRuns(graphqlApi, project, prData);
+    } else {
+      checkRequiredCheckRuns(api, project, prData);
+    }
     checkReviewApprovers(api, project, prData, labels);
 
     // Fetch also the baseline branch. It is almost free and doing a roundtrip later would hurt
@@ -546,6 +553,29 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
     }
   }
 
+  private void checkRequiredCheckRuns(GitHubGraphQLApi api, String project, PullRequest prData)
+      throws ValidationException, RepoException {
+    Set<String> requiredCheckRuns = getRequiredCheckRuns();
+    if (forceImport() || requiredCheckRuns.isEmpty()) {
+      return;
+    }
+
+    String owner = project.substring(0, project.indexOf('/'));
+    String repo = project.substring(project.indexOf('/') + 1);
+
+    ImmutableList<CheckRun> checkRuns =
+        api.getCheckRunsByNameFilter(owner, repo, prData.getHead().getSha(), requiredCheckRuns);
+
+    ImmutableListMultimap.Builder<String, CheckRun> checkRunsByName =
+        ImmutableListMultimap.builder();
+    for (CheckRun run : checkRuns) {
+      if (run.getName() != null) {
+        checkRunsByName.put(run.getName(), run);
+      }
+    }
+    validateRequiredCheckRuns(checkRunsByName.build(), requiredCheckRuns, project, prData);
+  }
+
   /**
    * Check that the PR has a conclusion of "success" for each check_run whose name is in the list
    * provided in the `required_check_runs` param
@@ -564,36 +594,44 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
           requiredCheckRuns.size() <= MANUAL_CHECK_RUN_LOOKUP_THRESHOLD
               ? getCheckRunsByName(api, project, prData, requiredCheckRuns)
               : getCheckRuns(api, project, prData);
+      validateRequiredCheckRuns(observedCheckRuns, requiredCheckRuns, project, prData);
+    }
+  }
 
-      ImmutableSet.Builder<String> missingCheckRunsAggregator = ImmutableSet.builder();
+  private void validateRequiredCheckRuns(
+      ImmutableListMultimap<String, CheckRun> observedCheckRuns,
+      Set<String> requiredCheckRuns,
+      String project,
+      PullRequest prData)
+      throws EmptyChangeException {
+    ImmutableSet.Builder<String> missingCheckRunsAggregator = ImmutableSet.builder();
 
-      for (String requiredCheckRun : requiredCheckRuns) {
-        if (!observedCheckRuns.containsKey(requiredCheckRun)) {
-          missingCheckRunsAggregator.add(requiredCheckRun);
-          continue;
-        }
-        ImmutableList<CheckRun> matchingCheckRuns = observedCheckRuns.get(requiredCheckRun);
-        console.warnFmtIf(
-            matchingCheckRuns.size() > 1,
-            "Matching check run with name '%s' seen %s times. Consider using a"
-                + " more specific name to avoid ambiguity. The instances of this check run are: %s",
-            requiredCheckRun,
-            matchingCheckRuns.size(),
-            matchingCheckRuns);
-        boolean hasMatch =
-            Iterables.any(matchingCheckRuns, e -> e.getConclusion().equals("success"));
-        if (!hasMatch) {
-          missingCheckRunsAggregator.add(requiredCheckRun);
-        }
+    for (String requiredCheckRun : requiredCheckRuns) {
+      if (!observedCheckRuns.containsKey(requiredCheckRun)) {
+        missingCheckRunsAggregator.add(requiredCheckRun);
+        continue;
       }
-
-      if (!missingCheckRunsAggregator.build().isEmpty()) {
-        throw new EmptyChangeException(
-            String.format(
-                "Cannot migrate http://github.com/%s/pull/%d because the following check runs "
-                    + "have not been passed: %s",
-                project, prData.getNumber(), missingCheckRunsAggregator.build()));
+      ImmutableList<CheckRun> matchingCheckRuns = observedCheckRuns.get(requiredCheckRun);
+      console.warnFmtIf(
+          matchingCheckRuns.size() > 1,
+          "Matching check run with name '%s' seen %s times. Consider using a"
+              + " more specific name to avoid ambiguity. The instances of this check run are: %s",
+          requiredCheckRun,
+          matchingCheckRuns.size(),
+          matchingCheckRuns);
+      boolean hasMatch =
+          Iterables.any(matchingCheckRuns, e -> Objects.equals(e.getConclusion(), "success"));
+      if (!hasMatch) {
+        missingCheckRunsAggregator.add(requiredCheckRun);
       }
+    }
+
+    if (!missingCheckRunsAggregator.build().isEmpty()) {
+      throw new EmptyChangeException(
+          String.format(
+              "Cannot migrate http://github.com/%s/pull/%d because the following check runs "
+                  + "have not been passed: %s",
+              project, prData.getNumber(), missingCheckRunsAggregator.build()));
     }
   }
 

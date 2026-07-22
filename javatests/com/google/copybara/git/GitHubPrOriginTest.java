@@ -33,8 +33,10 @@ import static com.google.copybara.testing.git.GitTestUtil.mockResponseAndValidat
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -452,6 +454,65 @@ public class GitHubPrOriginTest {
             "required_check_runs = ['foo/one', 'foo/two']"),
         sha,
         125);
+  }
+
+  @Test
+  public void resolve_hasAllRequiredCheckRunsPassing_graphqlReturnsPassingChecks()
+      throws Exception {
+    options.general.setTemporaryFeaturesForTest(
+        ImmutableMap.of("use_graphql_api_for_check_runs", "true"));
+    MockPullRequest.create(gitUtil)
+        .setState("open")
+        .setPrNumber(125)
+        .addLabels("bar: yes")
+        .addCheckRun("foo/one", "success")
+        .addCheckRun("foo/two", "success")
+        .mock();
+
+    checkResolve(
+        githubPrOrigin(
+            "url = 'https://github.com/google/example'",
+            "required_check_runs = ['foo/one', 'foo/two']"),
+        sha,
+        125);
+
+    verify(gitUtil.httpTransport(), times(1))
+        .buildRequest("POST", "https://api.github.com/graphql");
+    verify(gitUtil.httpTransport(), never()).buildRequest(eq("GET"), contains("/check-runs"));
+  }
+
+  @Test
+  public void resolve_hasAllRequiredCheckRunsFailing_graphqlReturnsFailingChecks()
+      throws Exception {
+    options.general.setTemporaryFeaturesForTest(
+        ImmutableMap.of("use_graphql_api_for_check_runs", "true"));
+    MockPullRequest.create(gitUtil)
+        .setState("open")
+        .setPrNumber(125)
+        .addLabels("bar: yes")
+        .addCheckRun("foo/one", "success")
+        .addCheckRun("foo/two", "failure")
+        .mock();
+
+    EmptyChangeException thrown =
+        assertThrows(
+            EmptyChangeException.class,
+            () ->
+                checkResolve(
+                    githubPrOrigin(
+                        "url = 'https://github.com/google/example'",
+                        "required_check_runs = ['foo/one', 'foo/two']"),
+                    sha,
+                    125));
+
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains(
+            "Cannot migrate http://github.com/google/example/pull/125 because the following check"
+                + " runs have not been passed: [foo/two]");
+    verify(gitUtil.httpTransport(), times(1))
+        .buildRequest("POST", "https://api.github.com/graphql");
+    verify(gitUtil.httpTransport(), never()).buildRequest(eq("GET"), contains("/check-runs"));
   }
 
   @Test
@@ -1917,6 +1978,94 @@ public class GitHubPrOriginTest {
                 return mockResponse(specResponse.toString());
               }
               return mockResponse("{\"check_runs\": []}");
+            }
+          });
+
+      gitUtil.mockApi(
+          eq("POST"),
+          eq("https://api.github.com/graphql"),
+          new Answer<LowLevelHttpRequest>() {
+            @Override
+            public LowLevelHttpRequest answer(InvocationOnMock invocation) throws IOException {
+              return new com.google.api.client.testing.http.MockLowLevelHttpRequest() {
+                @Override
+                public com.google.api.client.http.LowLevelHttpResponse execute()
+                    throws IOException {
+                  String requestBody = getContentAsString();
+                  JsonObject data = new JsonObject();
+                  JsonObject repository = new JsonObject();
+                  JsonObject object = new JsonObject();
+
+                  JsonObject associatedPullRequests = new JsonObject();
+                  JsonArray prNodes = new JsonArray();
+                  JsonObject prNode = new JsonObject();
+                  prNode.addProperty("number", prNumber);
+                  prNodes.add(prNode);
+                  associatedPullRequests.add("nodes", prNodes);
+                  object.add("associatedPullRequests", associatedPullRequests);
+
+                  JsonObject checkSuites = new JsonObject();
+                  JsonObject pageInfo = new JsonObject();
+                  pageInfo.addProperty("hasNextPage", false);
+                  pageInfo.add("endCursor", com.google.gson.JsonNull.INSTANCE);
+                  checkSuites.add("pageInfo", pageInfo);
+
+                  JsonArray suitesNodes = new JsonArray();
+                  JsonObject suiteNode = new JsonObject();
+                  suiteNode.addProperty("id", "id_foo");
+
+                  for (Map.Entry<String, String> checkEntry : checkRuns.entrySet()) {
+                    String checkName = checkEntry.getKey();
+                    String checkConclusion = checkEntry.getValue();
+
+                    String pattern =
+                        String.format(
+                            "filter_(\\d+):\\s*checkRuns\\([^\\)]*checkName:\\s*\\\\?\"%s\\\\?\"", checkName);
+                    java.util.regex.Pattern r = java.util.regex.Pattern.compile(pattern);
+                    java.util.regex.Matcher m = r.matcher(requestBody);
+                    if (m.find()) {
+                      String alias = "filter_" + m.group(1);
+                      JsonObject checkRunsConnection = new JsonObject();
+                      JsonArray runsNodes = new JsonArray();
+
+                      JsonObject runNode = new JsonObject();
+                      runNode.addProperty("id", "CR_" + checkName);
+                      runNode.addProperty("name", checkName);
+                      runNode.addProperty("status", "COMPLETED");
+                      runNode.addProperty(
+                          "conclusion", checkConclusion.toUpperCase(java.util.Locale.US));
+                      runNode.addProperty("detailsUrl", "https://github.com/google/example/runs/1");
+
+                      JsonObject runSuite = new JsonObject();
+                      JsonObject commit = new JsonObject();
+                      commit.addProperty("oid", sha);
+                      runSuite.add("commit", commit);
+
+                      JsonObject app = new JsonObject();
+                      app.addProperty("databaseId", 12345);
+                      app.addProperty("name", "App");
+                      app.addProperty("slug", "app-slug");
+                      runSuite.add("app", app);
+
+                      runNode.add("checkSuite", runSuite);
+                      runsNodes.add(runNode);
+                      checkRunsConnection.add("nodes", runsNodes);
+                      suiteNode.add(alias, checkRunsConnection);
+                    }
+                  }
+
+                  suitesNodes.add(suiteNode);
+                  checkSuites.add("nodes", suitesNodes);
+                  object.add("checkSuites", checkSuites);
+                  repository.add("object", object);
+                  data.add("repository", repository);
+
+                  JsonObject root = new JsonObject();
+                  root.add("data", data);
+
+                  return GitTestUtil.mockResponse(root.toString()).execute();
+                }
+              };
             }
           });
     }
