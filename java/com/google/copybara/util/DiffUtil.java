@@ -17,6 +17,7 @@
 package com.google.copybara.util;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Strings.nullToEmpty;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -50,7 +51,10 @@ import javax.annotation.Nullable;
 /** Diff utilities that are repository-agnostic. */
 public class DiffUtil {
 
-  private static final byte[] EMPTY_DIFF = new byte[]{};
+  private static final byte[] EMPTY_DIFF = new byte[] {};
+
+  public static final String DIFF_LEFT_PREFIX = "--- a/";
+  public static final String DIFF_RIGHT_PREFIX = "+++ b/";
 
   /**
    * Calculates the diff between two sibling directory trees.
@@ -168,8 +172,11 @@ public class DiffUtil {
    * @param patchBytes is an optional diff that will be streamed to the command through stdin.
    * @param patchFiles is a list of paths to patch files that will be supplied to the command.
    */
-  public static void reverseApplyPatches(@Nullable byte[] patchBytes, List<Path> patchFiles,
-      Path applyDirectory, Map<String, String> environment)
+  public static void reverseApplyPatches(
+      @Nullable byte[] patchBytes,
+      List<Path> patchFiles,
+      Path applyDirectory,
+      Map<String, String> environment)
       throws IOException {
     GitEnvironment gitEnv = new GitEnvironment(environment);
     List<String> params = Lists.newArrayList();
@@ -332,11 +339,9 @@ public class DiffUtil {
       params.add("--");
       params.add(root.relativize(one).toString());
       params.add(root.relativize(other).toString());
-      Command cmd = new Command(params.toArray(new String[]{}), environment, root.toFile());
+      Command cmd = new Command(params.toArray(new String[] {}), environment, root.toFile());
       try {
-        new CommandRunner(cmd)
-            .withVerbose(verbose)
-            .execute();
+        new CommandRunner(cmd).withVerbose(verbose).execute();
         return EMPTY_DIFF;
       } catch (BadExitStatusWithOutputException e) {
         CommandOutput output = e.getOutput();
@@ -345,8 +350,10 @@ public class DiffUtil {
         String outputError = output.getStderr();
         if (!Strings.isNullOrEmpty(outputError)
             && OUTPUT_ERROR_PATTERN.matcher(outputError).find()) {
-          throw new IOException(String.format(
-              "Error executing 'git diff': %s. Stderr: \n%s", e.getMessage(), output.getStderr()),
+          throw new IOException(
+              String.format(
+                  "Error executing 'git diff': %s. Stderr: \n%s",
+                  e.getMessage(), output.getStderr()),
               e);
         }
         return output.getStdoutBytes();
@@ -357,8 +364,67 @@ public class DiffUtil {
   }
 
   /**
-   * Given a git compatible diff, returns the diff colorized if the console allows it.
+   * Strips git diff headers (e.g. "diff --git" and "index" lines) from the diff, keeping the
+   * standard file header lines (starting with "---" and "+++").
    */
+  public static byte[] stripGitDiffHeaders(byte[] diffBytes) {
+    boolean dropping = false;
+    List<String> keptLines = Lists.newArrayList();
+    for (String line : Splitter.on('\n').split(new String(diffBytes, UTF_8))) {
+      if (line.startsWith("diff --git ")) {
+        dropping = true;
+      }
+      if (line.startsWith("--- ")) {
+        dropping = false;
+      }
+      if (!dropping) {
+        keptLines.add(line);
+      }
+    }
+    return String.join("\n", keptLines).getBytes(UTF_8);
+  }
+
+  /**
+   * Removes prefixes from paths within patch files. Assumes the patch file is using standard
+   * unified ab format with +++, --- and relative paths using a/ b/. All prefixes are normalized to
+   * end in / if they don't already and can be used standalone or together.
+   *
+   * <p>Specifically, if {@code leftPrefix} is "left" and {@code rightPrefix} is "right", and {@code
+   * commonPrefix} is "common", it turns "+++ a/left/common/path" into "+++ a/path" and "---
+   * b/right/common/path" into "--- b/path".
+   *
+   * @param diffBytes the diff content to modify
+   * @param leftPrefix optional prefix to strip from the left side of the diff
+   * @param rightPrefix optional prefix to strip from the right side of the diff
+   * @param commonPrefix optional common prefix to strip from both sides of the diff, after
+   *     left/right if both are used together
+   */
+  public static byte[] stripPathPrefixes(
+      byte[] diffBytes,
+      @Nullable String leftPrefix,
+      @Nullable String rightPrefix,
+      @Nullable String commonPrefix) {
+    String normalizedCommon = nullToEmpty(commonPrefix);
+    if (!normalizedCommon.isEmpty() && !normalizedCommon.endsWith("/")) {
+      normalizedCommon += "/";
+    }
+    String normalizedLeft = nullToEmpty(leftPrefix);
+    if (!normalizedLeft.isEmpty() && !normalizedLeft.endsWith("/")) {
+      normalizedLeft += "/";
+    }
+    String normalizedRight = nullToEmpty(rightPrefix);
+    if (!normalizedRight.isEmpty() && !normalizedRight.endsWith("/")) {
+      normalizedRight += "/";
+    }
+    String prefixToStripPremerge = DIFF_LEFT_PREFIX + normalizedLeft + normalizedCommon;
+    String prefixToStripCheckout = DIFF_RIGHT_PREFIX + normalizedRight + normalizedCommon;
+    String diffStr = new String(diffBytes, UTF_8);
+    diffStr = diffStr.replace(prefixToStripPremerge, DIFF_LEFT_PREFIX);
+    diffStr = diffStr.replace(prefixToStripCheckout, DIFF_RIGHT_PREFIX);
+    return diffStr.getBytes(UTF_8);
+  }
+
+  /** Given a git compatible diff, returns the diff colorized if the console allows it. */
   public static String colorize(Console console, String diffText) {
     StringBuilder sb = new StringBuilder();
     for (String line : Splitter.on("\n").split(diffText)) {

@@ -626,7 +626,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         @Nullable O changeIdentityRevision,
         @Nullable O originBaselineForPrune)
         throws IOException, RepoException, ValidationException {
-      Path checkoutDir = workdir.resolve("checkout");
+      Path checkoutDir = workdir.resolve(ConsistencyFile.CHECKOUT_DIR_NAME);
       try (ProfilerTask ignored = profiler().start("prepare_workdir")) {
         processConsole.progress("Cleaning working directory");
         if (Files.exists(workdir)) {
@@ -979,7 +979,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                 () -> reader);
       }
 
-      Path preMergeImportWorkdir = Files.createDirectories(workdir.resolve("premerge"));
+      Path preMergeImportWorkdir =
+          Files.createDirectories(workdir.resolve(ConsistencyFile.PREMERGE_DIR_NAME));
       FileUtil.copyFilesRecursively(
           checkoutDir,
           preMergeImportWorkdir,
@@ -1042,7 +1043,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                           getWorkflow().isVerbose(),
                           getWorkflow().getMainConfigFile().getIdentifier(),
                           getWorkflow().getName(),
-                          excludeBuildFiles)
+                          excludeBuildFiles,
+                          /* excludedFiles= */ null)
                       .toBytes());
         } catch (InsideGitDirException e) {
           throw new ValidationException("Error generating consistency file", e);
@@ -1259,7 +1261,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         c -> getDestinationWriter().getFeedbackEndPoint(c);
 
     return migrator.checkoutBaselineAndTransform(
-        "premerge",
+        ConsistencyFile.PREMERGE_DIR_NAME,
         lastRev,
         new Metadata("foo", new Author("foo", "foo@foo.com"), ImmutableSetMultimap.of()),
         currentRev,

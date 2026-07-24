@@ -112,6 +112,24 @@ public class FileUtilTest {
     FileUtil.checkNormalizedRelative("foo/bar.baz");
   }
 
+  @Test
+  public void testStandardizePath() {
+    assertThat(FileUtil.standardizePath("foo/bar")).isEqualTo("foo/bar");
+    assertThat(FileUtil.standardizePath("foo/./bar")).isEqualTo("foo/bar");
+    assertThat(FileUtil.standardizePath("foo/../bar")).isEqualTo("bar");
+    assertThat(FileUtil.standardizePath("//foo/bar")).isEqualTo("foo/bar");
+    assertThat(FileUtil.standardizePath("/foo/bar")).isEqualTo("foo/bar");
+    assertThat(FileUtil.standardizePath("///foo/bar")).isEqualTo("foo/bar");
+    assertThat(FileUtil.standardizePath("foo/bar/")).isEqualTo("foo/bar");
+
+    assertThrows(IllegalArgumentException.class, () -> FileUtil.standardizePath(""));
+    assertThrows(IllegalArgumentException.class, () -> FileUtil.standardizePath("/"));
+    assertThrows(IllegalArgumentException.class, () -> FileUtil.standardizePath("//"));
+    assertThrows(IllegalArgumentException.class, () -> FileUtil.standardizePath("///"));
+    assertThrows(IllegalArgumentException.class, () -> FileUtil.standardizePath("../foo"));
+    assertThrows(IllegalArgumentException.class, () -> FileUtil.standardizePath("foo/.."));
+    assertThrows(IllegalArgumentException.class, () -> FileUtil.standardizePath("foo/../../bar"));
+  }
 
   @Test
   public void testCopyFilesRecursively_symlink_to_other_root() throws Exception{

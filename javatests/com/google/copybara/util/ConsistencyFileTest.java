@@ -207,7 +207,8 @@ public class ConsistencyFileTest {
             /* verbose= */ false,
             "my_config.bara.sky",
             "my_workflow",
-            /* excludeBuildFiles= */ false);
+            /* excludeBuildFiles= */ false,
+            /* excludedFiles= */ null);
 
     String output = new String(consistencyFile.toBytes(), UTF_8);
     assertThat(output).contains("# Workflow: my_config.bara.sky:my_workflow\n");
@@ -523,7 +524,7 @@ public class ConsistencyFileTest {
   @Test
   public void testGenerateConsistencyFile_excludeBuildFiles() throws Exception {
     String testPath = "test/foo";
-    String buildPath = "test/BUILD";
+    String buildPath = "test/" + ConsistencyFile.BUILD_FILE_NAME;
 
     write(destination, testPath, "hello");
     write(baseline, testPath, "hello");
@@ -539,7 +540,8 @@ public class ConsistencyFileTest {
             /* verbose= */ false,
             /* configPath= */ null,
             /* workflowName= */ null,
-            /* excludeBuildFiles= */ true);
+            /* excludeBuildFiles= */ true,
+            /* excludedFiles= */ null);
 
     assertThat(consistencyFile.getFileHashes().keySet()).containsExactly(testPath);
   }
@@ -547,7 +549,7 @@ public class ConsistencyFileTest {
   @Test
   public void testGenerateConsistencyFile_includeBuildFilesByDefault() throws Exception {
     String testPath = "test/foo";
-    String buildPath = "test/BUILD";
+    String buildPath = "test/" + ConsistencyFile.BUILD_FILE_NAME;
 
     write(destination, testPath, "hello");
     write(baseline, testPath, "hello");

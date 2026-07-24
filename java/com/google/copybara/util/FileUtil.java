@@ -30,6 +30,7 @@ import com.google.common.io.InsecureRecursiveDeleteException;
 import com.google.common.io.MoreFiles;
 import com.google.common.io.RecursiveDeleteOption;
 import com.google.common.net.PercentEscaper;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -78,6 +79,7 @@ public final class FileUtil {
    *
    * @return the {@code path} passed
    */
+  @CanIgnoreReturnValue
   public static String checkNormalizedRelative(String path) {
     checkArgument(!RELATIVISM.matcher(path).matches(),
         "path has unexpected . or .. components: %s", path);
@@ -92,9 +94,34 @@ public final class FileUtil {
    *
    * @return the {@code path} passed
    */
+  @CanIgnoreReturnValue
   public static Path checkNormalizedRelative(Path path) {
     checkNormalizedRelative(path.toString());
     return path;
+  }
+
+  /**
+   * Standardizes a path string to be a normalized relative path with Unix separators.
+   *
+   * <p>Strips leading '//' or '/' and normalizes the path. Throws {@link IllegalArgumentException}
+   * if the path escapes the root (starts with '..') or is empty.
+   */
+  public static String standardizePath(String path) {
+    checkNotNull(path, "path cannot be null");
+    checkArgument(!path.isEmpty(), "path cannot be empty");
+
+    int firstNonSlash = 0;
+    while (firstNonSlash < path.length() && path.charAt(firstNonSlash) == '/') {
+      firstNonSlash++;
+    }
+    String cleanPath = path.substring(firstNonSlash);
+    checkArgument(!cleanPath.isEmpty(), "path cannot be empty: %s", path);
+
+    Path normalized = Path.of(cleanPath).normalize();
+    String normalizedStr = normalized.toString();
+    checkArgument(!normalizedStr.isEmpty(), "path resolved to empty: %s", path);
+
+    return checkNormalizedRelative(normalizedStr);
   }
 
   public static void copyFilesRecursively(Path from, Path to, CopySymlinkStrategy symlinkStrategy)

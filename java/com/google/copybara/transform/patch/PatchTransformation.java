@@ -82,6 +82,10 @@ public class PatchTransformation implements Transformation {
       throws ValidationException, InsideGitDirException {
     for (int i = 0; i < patches.size(); i++) {
       ConfigFile patch = patches.get(i);
+      if (options.isSkippedPatch(patch)) {
+        console.infoFmt("Skipping patch %s.", patch.path());
+        continue;
+      }
       try {
         console.infoFmt("Applying patch %d/%d: '%s'.", i + 1, patches.size(), patch.path());
         options.patch(

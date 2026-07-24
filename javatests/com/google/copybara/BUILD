@@ -79,6 +79,7 @@ all_tests(
     deps = [
         "//java/com/google/copybara/git:environment",
         "//java/com/google/copybara/util",
+        "//java/com/google/copybara/util:consistency",
         "//third_party:shell",
         "//third_party:truth",
     ],
@@ -253,6 +254,7 @@ java_library(
     deps = [
         "//java/com/google/copybara/git",
         "//java/com/google/copybara/util",
+        "//java/com/google/copybara/util:consistency",
         "//third_party:guava",
         "//third_party:junit",
         "//third_party:shell",

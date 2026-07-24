@@ -17,6 +17,7 @@
 package com.google.copybara.transform.patch;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.util.stream.Collectors.joining;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -87,8 +88,13 @@ public final class QuiltTransformation implements Transformation {
     Path quiltRunDir = work.getCheckoutDir().resolve(directory);
     createPatchDirectory(quiltRunDir, work.getConsole());
 
+    ImmutableList<ConfigFile> activePatchFiles =
+        patchFiles.stream()
+            .filter(patch -> !options.isSkippedPatch(patch))
+            .collect(toImmutableList());
+
     // avoid setting up and cleaning up quilt if not needed
-    if (this.patchFiles.isEmpty()) {
+    if (activePatchFiles.isEmpty()) {
       copySeriesFile(quiltRunDir);
       return TransformationStatus.success();
     }
@@ -97,7 +103,7 @@ public final class QuiltTransformation implements Transformation {
     work.getConsole().infoFmt("Applying and updating patches with quilt.");
     // "quilt import <patch_path>" only works for a local path, so we copy the patch files to a
     // local temp directory first and setup a fresh empty series file using these tmp paths
-    ImmutableList<Path> patches = copyPatchFilesToTmpDir();
+    ImmutableList<Path> patches = copyPatchFilesToTmpDir(activePatchFiles);
     Map<String, String> env = options.getGeneralOptions().getEnvironment();
     env = initializeQuilt(quiltRunDir, env);
     importPatches(quiltRunDir, patches, env, verbose);
@@ -161,10 +167,11 @@ public final class QuiltTransformation implements Transformation {
     }
   }
 
-  private ImmutableList<Path> copyPatchFilesToTmpDir() throws IOException {
+  private ImmutableList<Path> copyPatchFilesToTmpDir(ImmutableList<ConfigFile> patchesList)
+      throws IOException {
     ImmutableList.Builder<Path> builder = ImmutableList.builder();
     Path patchDir = options.getGeneralOptions().getDirFactory().newTempDir("inputpatches");
-    for (ConfigFile patch : patchFiles) {
+    for (ConfigFile patch : patchesList) {
       // Uses String instead of Path for baseName, because patchDir's FileSystem may not match
       // the default FileSystem from Paths.get().
       String baseName = Paths.get(patch.path()).getFileName().toString();

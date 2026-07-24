@@ -146,6 +146,32 @@ public final class QuiltTransformationTest {
   }
 
   @Test
+  public void skipSkippedPatchTest() throws Exception {
+    Files.write(checkoutDir.resolve("file1.txt"), "line1\nfoo\nline3".getBytes(UTF_8));
+    Files.write(checkoutDir.resolve("file2.txt"), "bar\n".getBytes(UTF_8));
+    patchingOptions.skippedPatchFiles =
+        ImmutableList.of("some/other/prefix/" + patchFile.getIdentifier());
+    QuiltTransformation transform =
+        new QuiltTransformation(
+            Optional.of(seriesFile),
+            ImmutableList.of(patchFile),
+            patchingOptions,
+            /* reverse= */ false,
+            /* directory= */ "",
+            Location.BUILTIN,
+            "patches");
+
+    transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
+
+    // verify that quilt skipped applying
+    assertThatPath(checkoutDir)
+        .containsFile("file1.txt", "line1\nfoo\nline3")
+        .containsFile("file2.txt", "bar\n")
+        .containsFile("patches/series", SERIES)
+        .containsNoMoreFiles();
+  }
+
+  @Test
   public void transformationUpdatePatchTest() throws Exception {
     String expectedNewDiff =
         """

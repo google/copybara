@@ -110,10 +110,8 @@ public class Regenerate<O extends Revision, D extends Revision> {
                     new ValidationException(
                         "this destination does not support regenerating patch files"));
 
-    // use the same directory names as workflow
-    // TODO(b/296111124)
-    Path previousPath = workdir.resolve("premerge");
-    Path nextPath = workdir.resolve("checkout");
+    Path previousPath = workdir.resolve(ConsistencyFile.PREMERGE_DIR_NAME);
+    Path nextPath = workdir.resolve(ConsistencyFile.CHECKOUT_DIR_NAME);
 
     Path autopatchPath = workdir.resolve("autopatches");
     Files.createDirectories(previousPath);
@@ -186,7 +184,8 @@ public class Regenerate<O extends Revision, D extends Revision> {
                         workflow.isVerbose(),
                         workflow.getMainConfigFile().getIdentifier(),
                         workflow.getName(),
-                        excludeBuildFiles)
+                        excludeBuildFiles,
+                        /* excludedFiles= */ null)
                     .toBytes());
       } catch (InsideGitDirException e) {
         throw new ValidationException("Error generating consistency file", e);

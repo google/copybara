@@ -26,6 +26,7 @@ import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
+import com.google.copybara.config.ConfigFile;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitEnvironment;
 import com.google.copybara.util.BadExitStatusWithOutputException;
@@ -62,6 +63,38 @@ public class PatchingOptions implements Option {
       arity = 1,
       description = "Override transform's validation level and force full or no validation")
   public Boolean validateOnLoad = null;
+
+  public ImmutableList<String> skippedPatchFiles = ImmutableList.of();
+
+  public boolean isSkippedPatch(ConfigFile patch) {
+    if (skippedPatchFiles.isEmpty()) {
+      return false;
+    }
+    // we only compare the patch file name + parent folder name to identify the patch to skip.
+    // doing an exact full path resolution was deemed too complex and not worth it due to only minor
+    // edge case benefits.
+    // complexities include: config files (which is how patch files are given) and workspace
+    // or destination aren't necessarily in the same file system or are guaranteed to share the same
+    // path format / prefix.
+    // ConfigFile identifier is also not stable and shouldn't be parsed, so extracting a common root
+    // if it exists isn't a full solution either.
+    String patchSuffix = getSignificantSuffix(patch.getIdentifier());
+    for (String skipped : skippedPatchFiles) {
+      if (patchSuffix.equals(getSignificantSuffix(skipped))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private String getSignificantSuffix(String pathStr) {
+    Path path = Path.of(pathStr);
+    int nameCount = path.getNameCount();
+    if (nameCount <= 2) {
+      return path.toString();
+    }
+    return path.subpath(nameCount - 2, nameCount).toString();
+  }
 
   @Parameter(names = SKIP_VERSION_CHECK_FLAG, description =
       "Skip checking the version of patch and assume it is fine")

@@ -65,6 +65,7 @@ public class PatchTransformationTest {
       +new bar
       \\ No newline at end of file\
       """;
+  private static final ImmutableList<String> EXCLUDED_FROM_PATCH = ImmutableList.of("excluded/*");
 
   private OptionsBuilder options;
   private PatchingOptions patchingOptions;
@@ -73,7 +74,6 @@ public class PatchTransformationTest {
   private SkylarkTestExecutor skylark;
   private ConfigFile patchFile;
   private ConfigFile seriesFile;
-  private final ImmutableList<String> excludedFromPatch = ImmutableList.of("excluded/*");
 
   @Before
   public void setup() throws IOException {
@@ -101,7 +101,7 @@ public class PatchTransformationTest {
     PatchTransformation transform =
         new PatchTransformation(
             ImmutableList.of(patchFile),
-            excludedFromPatch,
+            EXCLUDED_FROM_PATCH,
             patchingOptions,
             /* reverse= */ false,
             /* strip= */ 1,
@@ -116,6 +116,27 @@ public class PatchTransformationTest {
   }
 
   @Test
+  public void skipSkippedPatchTest() throws Exception {
+    Files.write(checkoutDir.resolve("test.txt"), "foo\n".getBytes(UTF_8));
+    patchingOptions.skippedPatchFiles = ImmutableList.of(patchFile.getIdentifier());
+    PatchTransformation transform =
+        new PatchTransformation(
+            ImmutableList.of(patchFile),
+            EXCLUDED_FROM_PATCH,
+            patchingOptions,
+            /* reverse= */ false,
+            /* strip= */ 1,
+            /* directory= */ "",
+            Location.BUILTIN);
+
+    transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
+
+    // verify that the patch was NOT applied (content of test.txt remains "foo")
+    assertThatPath(checkoutDir).containsFile("test.txt", "foo\n").containsNoMoreFiles();
+    console.assertThat().matchesNextSkipAhead(MessageType.INFO, "Skipping patch diff.patch.");
+  }
+
+  @Test
   public void insideGitFolderTest() throws Exception {
     GitRepository.newRepo(/*verbose*/ false, checkoutDir, GitTestUtil.getGitEnv()).init();
     Path foo = Files.createDirectories(checkoutDir.resolve("foo"));
@@ -123,7 +144,7 @@ public class PatchTransformationTest {
     PatchTransformation transform =
         new PatchTransformation(
             ImmutableList.of(patchFile),
-            excludedFromPatch,
+            EXCLUDED_FROM_PATCH,
             patchingOptions,
             /* reverse= */ false,
             /* strip= */ 1,
@@ -143,7 +164,7 @@ public class PatchTransformationTest {
     PatchTransformation transform =
         new PatchTransformation(
             ImmutableList.of(patchFile),
-            excludedFromPatch,
+            EXCLUDED_FROM_PATCH,
             patchingOptions,
             /* reverse= */ true,
             /* strip= */ 1,
@@ -409,7 +430,7 @@ public class PatchTransformationTest {
     PatchTransformation transform =
         new PatchTransformation(
             ImmutableList.of(patchFile, patchFile),
-            excludedFromPatch,
+            EXCLUDED_FROM_PATCH,
             patchingOptions,
             /* reverse= */ false,
             /* strip= */ 1,

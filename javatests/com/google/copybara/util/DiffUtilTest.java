@@ -348,6 +348,284 @@ public class DiffUtilTest {
     assertThat(DiffUtil.diff(left, right, VERBOSE, testEnv)).isEmpty();
   }
 
+  @Test
+  public void testStripDiffHeaders() {
+    String diff =
+        """
+        diff --git a/premerge/foo.txt b/checkout/foo.txt
+        index 123456..789101 100644
+        --- a/premerge/foo.txt
+        +++ b/checkout/foo.txt
+        @@ -1,2 +1,2 @@
+         line 1
+        -line 2
+        +line 2 modified
+        """;
+    byte[] stripped = DiffUtil.stripGitDiffHeaders(diff.getBytes(StandardCharsets.UTF_8));
+
+    String strippedStr = new String(stripped, StandardCharsets.UTF_8);
+    assertThat(strippedStr).doesNotContain("diff --git ");
+    assertThat(strippedStr).doesNotContain("index ");
+    assertThat(strippedStr).startsWith("--- ");
+  }
+
+  @Test
+  public void testStripDiffHeaders_noHeader_unchanged() {
+    String diff =
+        """
+        --- a/premerge/foo.txt
+        +++ b/checkout/foo.txt
+        @@ -1,2 +1,2 @@
+         line 1
+        """;
+    byte[] stripped = DiffUtil.stripGitDiffHeaders(diff.getBytes(StandardCharsets.UTF_8));
+
+    String strippedStr = new String(stripped, StandardCharsets.UTF_8);
+    assertThat(strippedStr).isEqualTo(diff);
+  }
+
+  @Test
+  public void testStripDiffHeaders_metadataAndModeChanges() {
+    String diff =
+        """
+        diff --git a/premerge/foo.txt b/checkout/foo.txt
+        old mode 100644
+        new mode 100755
+        similarity index 100%
+        rename from foo.txt
+        rename to bar.txt
+        index 123456..789101
+        --- a/premerge/foo.txt
+        +++ b/checkout/foo.txt
+        @@ -1 +1 @@
+         line 1
+        """;
+    byte[] stripped = DiffUtil.stripGitDiffHeaders(diff.getBytes(StandardCharsets.UTF_8));
+
+    String strippedStr = new String(stripped, StandardCharsets.UTF_8);
+    assertThat(strippedStr).doesNotContain("diff --git ");
+    assertThat(strippedStr).doesNotContain("old mode");
+    assertThat(strippedStr).doesNotContain("similarity");
+    assertThat(strippedStr).doesNotContain("rename");
+    assertThat(strippedStr).doesNotContain("index ");
+    assertThat(strippedStr).startsWith("--- ");
+  }
+
+  @Test
+  public void testStripDiffHeaders_preservesCrlf() {
+    String diff =
+        """
+        diff --git a/premerge/foo.txt b/checkout/foo.txt\r
+        index 123456..789101 100644\r
+        --- a/premerge/foo.txt\r
+        +++ b/checkout/foo.txt\r
+        @@ -1,2 +1,2 @@\r
+         line 1\r
+        -line 2\r
+        +line 2 modified\r\
+        """;
+    String expected =
+        """
+        --- a/premerge/foo.txt\r
+        +++ b/checkout/foo.txt\r
+        @@ -1,2 +1,2 @@\r
+         line 1\r
+        -line 2\r
+        +line 2 modified\r\
+        """;
+
+    byte[] stripped = DiffUtil.stripGitDiffHeaders(diff.getBytes(StandardCharsets.UTF_8));
+
+    String strippedStr = new String(stripped, StandardCharsets.UTF_8);
+    assertThat(strippedStr).isEqualTo(expected);
+  }
+
+  @Test
+  public void testStripPathPrefixes() {
+    String diff =
+        """
+        --- a/premerge/src/foo.txt
+        +++ b/checkout/src/foo.txt
+         line 1
+        """;
+
+    byte[] stripped =
+        DiffUtil.stripPathPrefixes(
+            diff.getBytes(StandardCharsets.UTF_8),
+            /* leftPrefix= */ ConsistencyFile.PREMERGE_DIR_NAME,
+            /* rightPrefix= */ ConsistencyFile.CHECKOUT_DIR_NAME,
+            /* commonPrefix= */ "src");
+
+    String strippedStr = new String(stripped, StandardCharsets.UTF_8);
+    assertThat(strippedStr).contains("--- a/foo.txt\n");
+    assertThat(strippedStr).contains("+++ b/foo.txt\n");
+  }
+
+  @Test
+  public void testStripPathPrefixes_nullPrefix() {
+    String diff =
+        """
+        --- a/premerge/src/foo.txt
+        +++ b/checkout/src/foo.txt
+        """;
+
+    byte[] stripped =
+        DiffUtil.stripPathPrefixes(
+            diff.getBytes(StandardCharsets.UTF_8),
+            /* leftPrefix= */ ConsistencyFile.PREMERGE_DIR_NAME,
+            /* rightPrefix= */ ConsistencyFile.CHECKOUT_DIR_NAME,
+            /* commonPrefix= */ null);
+
+    String strippedStr = new String(stripped, StandardCharsets.UTF_8);
+    assertThat(strippedStr).contains("--- a/src/foo.txt\n");
+    assertThat(strippedStr).contains("+++ b/src/foo.txt\n");
+  }
+
+  @Test
+  public void testStripPathPrefixes_emptyPrefix() {
+    String diff =
+        """
+        --- a/premerge/src/foo.txt
+        +++ b/checkout/src/foo.txt
+        """;
+
+    byte[] stripped =
+        DiffUtil.stripPathPrefixes(
+            diff.getBytes(StandardCharsets.UTF_8),
+            /* leftPrefix= */ ConsistencyFile.PREMERGE_DIR_NAME,
+            /* rightPrefix= */ ConsistencyFile.CHECKOUT_DIR_NAME,
+            /* commonPrefix= */ "");
+
+    String strippedStr = new String(stripped, StandardCharsets.UTF_8);
+    assertThat(strippedStr).contains("--- a/src/foo.txt\n");
+    assertThat(strippedStr).contains("+++ b/src/foo.txt\n");
+  }
+
+  @Test
+  public void testStripPathPrefixes_prefixedPathNotFound_noChange() {
+    String diff =
+        """
+        --- a/premerge/other/foo.txt
+        +++ b/checkout/other/foo.txt
+        """;
+
+    byte[] stripped =
+        DiffUtil.stripPathPrefixes(
+            diff.getBytes(StandardCharsets.UTF_8),
+            /* leftPrefix= */ ConsistencyFile.PREMERGE_DIR_NAME,
+            /* rightPrefix= */ ConsistencyFile.CHECKOUT_DIR_NAME,
+            /* commonPrefix= */ "src");
+
+    String strippedStr = new String(stripped, StandardCharsets.UTF_8);
+    assertThat(strippedStr).contains("--- a/premerge/other/foo.txt\n");
+    assertThat(strippedStr).contains("+++ b/checkout/other/foo.txt\n");
+  }
+
+  @Test
+  public void testStripPathPrefixes_customFolders() {
+    String diff =
+        """
+        --- a/custom_left/src/foo.txt
+        +++ b/custom_right/src/foo.txt
+         line 1
+        """;
+
+    byte[] stripped =
+        DiffUtil.stripPathPrefixes(
+            diff.getBytes(StandardCharsets.UTF_8),
+            /* leftPrefix= */ "custom_left",
+            /* rightPrefix= */ "custom_right",
+            /* commonPrefix= */ "src");
+
+    String strippedStr = new String(stripped, StandardCharsets.UTF_8);
+    assertThat(strippedStr).contains("--- a/foo.txt\n");
+    assertThat(strippedStr).contains("+++ b/foo.txt\n");
+  }
+
+  @Test
+  public void testStripPathPrefixes_nullLeftDir() {
+    String diff =
+        """
+        --- a/premerge/src/foo.txt
+        +++ b/checkout/src/foo.txt
+         line 1
+        """;
+
+    byte[] stripped =
+        DiffUtil.stripPathPrefixes(
+            diff.getBytes(StandardCharsets.UTF_8),
+            /* leftPrefix= */ null,
+            /* rightPrefix= */ "checkout",
+            /* commonPrefix= */ "src");
+
+    String strippedStr = new String(stripped, StandardCharsets.UTF_8);
+    assertThat(strippedStr).contains("--- a/premerge/src/foo.txt\n");
+    assertThat(strippedStr).contains("+++ b/foo.txt\n");
+  }
+
+  @Test
+  public void testStripPathPrefixes_nullRightDir() {
+    String diff =
+        """
+        --- a/premerge/src/foo.txt
+        +++ b/checkout/src/foo.txt
+         line 1
+        """;
+
+    byte[] stripped =
+        DiffUtil.stripPathPrefixes(
+            diff.getBytes(StandardCharsets.UTF_8),
+            /* leftPrefix= */ "premerge",
+            /* rightPrefix= */ null,
+            /* commonPrefix= */ "src");
+
+    String strippedStr = new String(stripped, StandardCharsets.UTF_8);
+    assertThat(strippedStr).contains("--- a/foo.txt\n");
+    assertThat(strippedStr).contains("+++ b/checkout/src/foo.txt\n");
+  }
+
+  @Test
+  public void testStripPathPrefixes_nullLeftRightDirs_noMatch() {
+    String diff =
+        """
+        --- a/premerge/src/foo.txt
+        +++ b/checkout/src/foo.txt
+         line 1
+        """;
+
+    byte[] stripped =
+        DiffUtil.stripPathPrefixes(
+            diff.getBytes(StandardCharsets.UTF_8),
+            /* leftPrefix= */ null,
+            /* rightPrefix= */ null,
+            /* commonPrefix= */ "src");
+
+    String strippedStr = new String(stripped, StandardCharsets.UTF_8);
+    assertThat(strippedStr).contains("--- a/premerge/src/foo.txt\n");
+    assertThat(strippedStr).contains("+++ b/checkout/src/foo.txt\n");
+  }
+
+  @Test
+  public void testStripPathPrefixes_nullLeftRightDirs_commonMatch() {
+    String diff =
+        """
+        --- a/src/foo.txt
+        +++ b/src/foo.txt
+         line 1
+        """;
+
+    byte[] stripped =
+        DiffUtil.stripPathPrefixes(
+            diff.getBytes(StandardCharsets.UTF_8),
+            /* leftPrefix= */ null,
+            /* rightPrefix= */ null,
+            /* commonPrefix= */ "src");
+
+    String strippedStr = new String(stripped, StandardCharsets.UTF_8);
+    assertThat(strippedStr).contains("--- a/foo.txt\n");
+    assertThat(strippedStr).contains("+++ b/foo.txt\n");
+  }
+
   private Path createDir(Path parent, String name) throws IOException {
     Path path = parent.resolve(name);
     Files.createDirectories(path);

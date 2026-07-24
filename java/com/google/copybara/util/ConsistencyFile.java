@@ -15,6 +15,7 @@
  */
 package com.google.copybara.util;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -47,6 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
@@ -57,6 +59,10 @@ import javax.annotation.Nullable;
  * difference.
  */
 public class ConsistencyFile {
+  public static final String BUILD_FILE_NAME = "BUILD";
+  public static final String PREMERGE_DIR_NAME = "premerge";
+  public static final String CHECKOUT_DIR_NAME = "checkout";
+
   private static final String REGENERATE_ERR_PROMPT =
       "Consider regenerating the consistency file using the regenerate command.";
 
@@ -106,7 +112,8 @@ public class ConsistencyFile {
         verbose,
         /* configPath= */ null,
         /* workflowName= */ null,
-        /* excludeBuildFiles= */ false);
+        /* excludeBuildFiles= */ false,
+        /* excludedFiles= */ null);
   }
 
   public static ConsistencyFile generate(
@@ -117,18 +124,37 @@ public class ConsistencyFile {
       boolean verbose,
       @Nullable String configPath,
       @Nullable String workflowName,
-      boolean excludeBuildFiles)
+      boolean excludeBuildFiles,
+      @Nullable Iterable<String> excludedFiles)
       throws IOException, InsideGitDirException, ValidationException {
+    ImmutableSet<String> excludedFromDiff =
+        excludedFiles == null ? ImmutableSet.of() : ImmutableSet.copyOf(excludedFiles);
     byte[] diff = DiffUtil.diffWithIgnoreCrAtEol(baseline, destination, verbose, environment);
-    if (excludeBuildFiles) {
-      diff = DiffUtil.filterDiff(diff, path -> !path.endsWith("BUILD"));
-    }
+    diff =
+        DiffUtil.filterDiff(
+            diff,
+            path -> {
+              try {
+                Path p = Path.of(path);
+                if (excludeBuildFiles && p.getFileName().toString().equals(BUILD_FILE_NAME)) {
+                  return false;
+                }
+                String pathWithoutPremergeCheckoutPrefix =
+                    (p.getNameCount() > 1)
+                        ? p.subpath(1, p.getNameCount()).toString()
+                        : p.toString();
+                return !excludedFromDiff.contains(pathWithoutPremergeCheckoutPrefix);
+              } catch (InvalidPathException e) {
+                // if path passed is not a valid path, don't fail and don't filter
+                return true;
+              }
+            });
     ImmutableMap<String, String> destinationHashes =
         computeFileHashes(destination, hashFunction, excludeBuildFiles);
     ImmutableList<String> baselineFileNames = getFileNames(baseline, excludeBuildFiles);
 
-    FileSetDiff filesetDiff = calculateFileSetDiff(destinationHashes, baselineFileNames);
-
+    FileSetDiff filesetDiff =
+        calculateFileSetDiff(destinationHashes, baselineFileNames, excludedFromDiff);
     if (!filesetDiff.destinationOnly().isEmpty() || !filesetDiff.originOnly().isEmpty()) {
       String message =
           String.format(
@@ -168,22 +194,28 @@ public class ConsistencyFile {
   record FileSetDiff(ImmutableList<String> destinationOnly, ImmutableList<String> originOnly) {}
 
   public static FileSetDiff calculateFileSetDiff(
-      ImmutableMap<String, String> destinationHashes, ImmutableList<String> baselineFileNames) {
+      ImmutableMap<String, String> destinationHashes,
+      ImmutableList<String> baselineFileNames,
+      Set<String> excludedFiles) {
     ImmutableSet<String> destinationFileSet = destinationHashes.keySet();
     ImmutableSet<String> baselineFileSet = ImmutableSet.copyOf(baselineFileNames);
 
-    ImmutableSet<String> destinationOnly =
-        Sets.difference(destinationFileSet, baselineFileSet).immutableCopy();
-    ImmutableSet<String> originOnly =
-        Sets.difference(baselineFileSet, destinationFileSet).immutableCopy();
+    ImmutableList<String> destinationOnly =
+        filterFiles(Sets.difference(destinationFileSet, baselineFileSet), excludedFiles);
+    ImmutableList<String> originOnly =
+        filterFiles(Sets.difference(baselineFileSet, destinationFileSet), excludedFiles);
+    return new FileSetDiff(destinationOnly, originOnly);
+  }
 
-    return new FileSetDiff(destinationOnly.asList(), originOnly.asList());
+  private static ImmutableList<String> filterFiles(Set<String> files, Set<String> excludedFiles) {
+    return files.stream().filter(file -> !excludedFiles.contains(file)).collect(toImmutableList());
   }
 
   public static ConsistencyFile generateNoDiff(
       Path contents, HashFunction hashFunction, String configPath, String workflowName)
       throws IOException {
-    return generateNoDiff(contents, hashFunction, configPath, workflowName, false);
+    return generateNoDiff(
+        contents, hashFunction, configPath, workflowName, /* excludeBuildFiles= */ false);
   }
 
   public static ConsistencyFile generateNoDiff(
@@ -201,7 +233,7 @@ public class ConsistencyFile {
 
   public static ConsistencyFile generateNoDiff(Path contents, HashFunction hashFunction)
       throws IOException {
-    return generateNoDiff(contents, hashFunction, false);
+    return generateNoDiff(contents, hashFunction, /* excludeBuildFiles= */ false);
   }
 
   public static ConsistencyFile generateNoDiff(
@@ -211,7 +243,7 @@ public class ConsistencyFile {
   }
 
   private static ImmutableList<String> getFileNames(Path directory) throws IOException {
-    return getFileNames(directory, false);
+    return getFileNames(directory, /* excludeBuildFiles= */ false);
   }
 
   private static ImmutableList<String> getFileNames(Path directory, boolean excludeBuildFiles)
@@ -222,11 +254,7 @@ public class ConsistencyFile {
         new SimpleFileVisitor<>() {
           @Override
           public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-            if (Files.isSymbolicLink(file)) {
-              // skip symbolic links
-              return FileVisitResult.CONTINUE;
-            }
-            if (excludeBuildFiles && file.getFileName().toString().equals("BUILD")) {
+            if (shouldExcludeFile(file, excludeBuildFiles)) {
               return FileVisitResult.CONTINUE;
             }
             namesBuilder.add(directory.relativize(file).toString());
@@ -250,13 +278,7 @@ public class ConsistencyFile {
           @Override
           public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
               throws IOException {
-            if (Files.isSymbolicLink(file)) {
-              // skip symbolic links
-              // if they are materialized, then they will be hashed elsewhere
-              // the symbolic link itself will not be hashed
-              return FileVisitResult.CONTINUE;
-            }
-            if (excludeBuildFiles && file.getFileName().toString().equals("BUILD")) {
+            if (shouldExcludeFile(file, excludeBuildFiles)) {
               return FileVisitResult.CONTINUE;
             }
             HashCode hashCode = MoreFiles.asByteSource(file).hash(hashFunction);
@@ -265,6 +287,17 @@ public class ConsistencyFile {
           }
         });
     return hashesBuilder.buildKeepingLast();
+  }
+
+  private static boolean shouldExcludeFile(Path file, boolean excludeBuildFiles) {
+    if (Files.isSymbolicLink(file)) {
+      return true;
+    }
+    String filename = file.getFileName().toString();
+    if (excludeBuildFiles && filename.equals(BUILD_FILE_NAME)) {
+      return true;
+    }
+    return false;
   }
 
   private static String mustReadLine(BufferedReader reader) throws IOException {
