@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import com.google.auto.value.AutoBuilder;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
@@ -34,10 +35,10 @@ import com.google.copybara.git.GitEnvironment;
 import com.google.copybara.util.DiffUtil.DiffFile.Operation;
 import com.google.copybara.util.console.AnsiColor;
 import com.google.copybara.util.console.Console;
-import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
 import java.io.IOException;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.List;
@@ -58,7 +59,7 @@ public class DiffUtil {
    */
   public static byte[] diff(Path one, Path other, boolean verbose, Map<String, String> environment)
       throws IOException, InsideGitDirException {
-    return new FoldersDiff(verbose, environment).run(one.getParent(), one, other);
+    return FoldersDiff.builder(verbose, environment).build().run(one.getParent(), one, other);
   }
 
   /**
@@ -69,8 +70,9 @@ public class DiffUtil {
   public static byte[] diffWithIgnoreCrAtEol(
       Path one, Path other, boolean verbose, Map<String, String> environment)
       throws IOException, InsideGitDirException {
-    return new FoldersDiff(verbose, environment)
-        .withIgnoreCrAtEol()
+    return FoldersDiff.builder(verbose, environment)
+        .setIgnoreCrAtEol(true)
+        .build()
         .run(one.getParent(), one, other);
   }
 
@@ -82,36 +84,44 @@ public class DiffUtil {
   public static byte[] diffFileWithIgnoreCrAtEol(
       Path root, Path one, Path other, boolean verbose, Map<String, String> environment)
       throws IOException, InsideGitDirException {
-    return new FoldersDiff(verbose, environment)
-        .withIgnoreCrAtEol()
-        .withSingleFile()
+    return FoldersDiff.builder(verbose, environment)
+        .setIgnoreCrAtEol(true)
+        .setSingleFile(true)
+        .build()
         .run(root, one, other);
   }
 
   /**
-   * Filter a diff output to only include diffs for original files that match a filter.
+   * Filter a diff output to only include diffs for original files that match a filter. Identifies
+   * file borders via the "diff -git a/left/... b/right/..." line and uses the left/... path.
    */
   public static String filterDiff(byte[] diff, Predicate<String> pathFilter) {
     boolean include = true;
-    StringBuilder filteredDiff = new StringBuilder();
+    List<String> filteredLines = Lists.newArrayList();
     for (String line : Splitter.on('\n').split(new String(diff, UTF_8))) {
       if (line.startsWith("diff ")) {
         List<String> diffHeader = Splitter.on(' ').splitToList(line);
         // Given a diff in the format of:
         //     diff --git a/left/copybara/util/Test.java b/right/copybara/util/Test.java
         // Returns "left/copybara/util/Test.java"
-        String path = diffHeader.get(2).substring(2);
-        include = pathFilter.test(path);
+        if (diffHeader.size() >= 3) {
+          try {
+            String path = diffHeader.get(2).substring(2);
+            var _ = Path.of(path);
+            include = pathFilter.test(path);
+          } catch (InvalidPathException | IndexOutOfBoundsException e) {
+            // diff line not in expected format, ignore
+          }
+        }
       }
       if (include) {
-        filteredDiff.append(line).append("\n");
+        filteredLines.add(line);
       }
     }
-    // Nothing to add
-    if (filteredDiff.length() == 0) {
+    if (filteredLines.isEmpty()) {
       return "";
     }
-    return filteredDiff.toString();
+    return String.join("\n", filteredLines);
   }
 
   /**
@@ -124,10 +134,11 @@ public class DiffUtil {
       throws IOException, InsideGitDirException {
     String cmdResult =
         new String(
-            new FoldersDiff(verbose, environment)
-                .withZOption()
-                .withNameStatus()
-                .withNoRenames()
+            FoldersDiff.builder(verbose, environment)
+                .setZOption(true)
+                .setNameStatus(true)
+                .setNoRenames(true)
+                .build()
                 .run(one.getParent(), one, other),
             UTF_8);
 
@@ -160,7 +171,33 @@ public class DiffUtil {
   public static void reverseApplyPatches(@Nullable byte[] patchBytes, List<Path> patchFiles,
       Path applyDirectory, Map<String, String> environment)
       throws IOException {
-    FoldersDiff.reverseApplyPatches(patchBytes, patchFiles, applyDirectory, environment);
+    GitEnvironment gitEnv = new GitEnvironment(environment);
+    List<String> params = Lists.newArrayList();
+    params.add(gitEnv.resolveGitBinary());
+    // We want to use `git apply` as a glorified patch command without any
+    // git repo involvement. Make sure git doesn't accidentally pick up some
+    // git repo from higher up the directory tree.
+    params.add("--git-dir=/dev/null");
+    params.add("apply");
+    params.add("--reverse");
+    params.add("-p2");
+    params.add("--allow-empty");
+    params.addAll(patchFiles.stream().map(Path::toString).collect(toImmutableList()));
+    if (patchBytes != null) {
+      params.add("-");
+    }
+    Command cmd =
+        new Command(
+            params.toArray(new String[] {}), gitEnv.getEnvironment(), applyDirectory.toFile());
+    try {
+      CommandRunner runner = new CommandRunner(cmd).withVerbose(true);
+      if (patchBytes != null) {
+        runner = runner.withInput(patchBytes);
+      }
+      runner.execute();
+    } catch (CommandException e) {
+      throw new IOException("Error executing 'git apply'", e);
+    }
   }
 
   public static class DiffFile {
@@ -211,115 +248,51 @@ public class DiffUtil {
     }
   }
 
-  /**
-   * Execute git diff between two folders
-   */
-  private static class FoldersDiff {
+  /** Execute git diff between two folders */
+  record FoldersDiff(
+      boolean nameStatus,
+      boolean noRenames,
+      boolean zOption,
+      boolean noIndex,
+      boolean verbose,
+      boolean ignoreCrAtEol,
+      boolean singleFile,
+      @Nullable Map<String, String> environment) {
 
-    private final boolean nameStatus;
-    private final boolean noRenames;
-    private final boolean zOption;
-    private final boolean noIndex;
-    private final boolean verbose;
-    private final boolean ignoreCrAtEol;
-    private final boolean singleFile;
-    private final Map<String, String> environment;
     private static final Pattern OUTPUT_ERROR_PATTERN =
         Pattern.compile("^error:", Pattern.MULTILINE);
 
-    private FoldersDiff(boolean verbose, Map<String, String> environment) {
-      this.verbose = verbose;
-      this.environment = environment;
-      nameStatus = false;
-      noRenames = false;
-      zOption = false;
-      noIndex = false;
-      ignoreCrAtEol = false;
-      singleFile = false;
+    static Builder builder(boolean verbose, @Nullable Map<String, String> environment) {
+      return new AutoBuilder_DiffUtil_FoldersDiff_Builder()
+          .setVerbose(verbose)
+          .setEnvironment(environment)
+          .setNameStatus(false)
+          .setNoRenames(false)
+          .setZOption(false)
+          .setNoIndex(false)
+          .setIgnoreCrAtEol(false)
+          .setSingleFile(false);
     }
 
-    private FoldersDiff(
-        boolean verbose,
-        Map<String, String> environment,
-        boolean nameStatus,
-        boolean noRenames,
-        boolean zOption,
-        boolean noIndex,
-        boolean ignoreCrAtEol,
-        boolean singleFile) {
-      this.verbose = verbose;
-      this.environment = environment;
-      this.nameStatus = nameStatus;
-      this.noRenames = noRenames;
-      this.zOption = zOption;
-      this.noIndex = noIndex;
-      this.ignoreCrAtEol = ignoreCrAtEol;
-      this.singleFile = singleFile;
-    }
+    @AutoBuilder(ofClass = FoldersDiff.class)
+    abstract static class Builder {
+      abstract Builder setNameStatus(boolean nameStatus);
 
-    @CheckReturnValue
-    private FoldersDiff withNameStatus() {
-      return new FoldersDiff(
-          verbose,
-          environment,
-          /*nameStatus=*/ true,
-          noRenames,
-          zOption,
-          noIndex,
-          ignoreCrAtEol,
-          singleFile);
-    }
+      abstract Builder setNoRenames(boolean noRenames);
 
-    @CheckReturnValue
-    private FoldersDiff withNoRenames() {
-      return new FoldersDiff(
-          verbose,
-          environment,
-          nameStatus,
-          /*noRenames=*/ true,
-          zOption,
-          noIndex,
-          ignoreCrAtEol,
-          singleFile);
-    }
+      abstract Builder setZOption(boolean zOption);
 
-    @CheckReturnValue
-    private FoldersDiff withZOption() {
-      return new FoldersDiff(
-          verbose,
-          environment,
-          nameStatus,
-          noRenames,
-          /*zOption=*/ true,
-          noIndex,
-          ignoreCrAtEol,
-          singleFile);
-    }
+      abstract Builder setNoIndex(boolean noIndex);
 
-    @CheckReturnValue
-    private FoldersDiff withIgnoreCrAtEol() {
-      return new FoldersDiff(
-          verbose,
-          environment,
-          nameStatus,
-          noRenames,
-          zOption,
-          noIndex,
-          /*ignoreCrAtEol=*/ true,
-          singleFile);
-    }
+      abstract Builder setVerbose(boolean verbose);
 
-    @CheckReturnValue
-    private FoldersDiff withSingleFile() {
-      return new FoldersDiff(
-          verbose,
-          environment,
-          nameStatus,
-          noRenames,
-          zOption,
-          noIndex,
-          ignoreCrAtEol,
-          /*singleFile=*/ true);
+      abstract Builder setIgnoreCrAtEol(boolean ignoreCrAtEol);
+
+      abstract Builder setSingleFile(boolean singleFile);
+
+      abstract Builder setEnvironment(@Nullable Map<String, String> environment);
+
+      abstract FoldersDiff build();
     }
 
     private byte[] run(Path root, Path one, Path other) throws IOException {
@@ -381,40 +354,7 @@ public class DiffUtil {
         throw new IOException("Error executing 'git diff'", e);
       }
     }
-
-    private static void reverseApplyPatches(@Nullable byte[] patchBytes, List<Path> patchFiles,
-        Path applyDirectory, Map<String, String> environment)
-        throws IOException {
-      GitEnvironment gitEnv = new GitEnvironment(environment);
-      List<String> params = com.google.api.client.util.Lists.newArrayList();
-      params.add(gitEnv.resolveGitBinary());
-      // We want to use `git apply` as a glorified patch command without any
-      // git repo involvement. Make sure git doesn't accidentally pick up some
-      // git repo from higher up the directory tree.
-      params.add("--git-dir=/dev/null");
-      params.add("apply");
-      params.add("--reverse");
-      params.add("-p2");
-      params.add("--allow-empty");
-      params.addAll(patchFiles.stream().map(Path::toString).collect(toImmutableList()));
-      if (patchBytes != null) {
-        params.add("-");
-      }
-      Command cmd =
-          new Command(params.toArray(new String[] {}), gitEnv.getEnvironment(), applyDirectory.toFile());
-      try {
-        CommandRunner runner = new CommandRunner(cmd).withVerbose(true);
-        if (patchBytes != null) {
-          runner = runner.withInput(patchBytes);
-        }
-        runner.execute();
-      } catch (CommandException e) {
-        throw new IOException("Error executing 'git apply'", e);
-      }
-    }
   }
-
-
 
   /**
    * Given a git compatible diff, returns the diff colorized if the console allows it.

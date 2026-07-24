@@ -185,6 +185,44 @@ public class DiffUtilTest {
   }
 
   @Test
+  public void testFilterDiff_preservesCrlf() throws Exception {
+    String diff =
+        """
+        diff --git a/file1.txt b/file1.txt\r
+        --- a/file1.txt\r
+        +++ b/file1.txt\r
+        @@ -1 +1 @@\r
+        -foo\r
+        +bar\r\
+        """;
+
+    // Filter that includes everything
+    String filtered = DiffUtil.filterDiff(diff.getBytes(StandardCharsets.UTF_8), f -> true);
+    assertThat(filtered).isEqualTo(diff);
+
+    // Filter that excludes everything
+    String filteredEmpty = DiffUtil.filterDiff(diff.getBytes(StandardCharsets.UTF_8), f -> false);
+    assertThat(filteredEmpty).isEmpty();
+  }
+
+  @Test
+  public void testFilterDiff_malformedDiffLine_notMatched() throws Exception {
+    String diff =
+        """
+        diff file1.txt
+        --- a/file1.txt
+        +++ b/file1.txt
+        @@ -1 +1 @@
+        -foo
+        +bar\
+        """;
+
+    // Filter that excludes every file found
+    String filteredEmpty = DiffUtil.filterDiff(diff.getBytes(StandardCharsets.UTF_8), f -> false);
+    assertThat(filteredEmpty).isEqualTo(diff);
+  }
+
+  @Test
   public void testNoPrefixSuppressed() throws Exception {
     // set no prefix in git config
     writeFile(left, "file1.txt", "foo-left");
