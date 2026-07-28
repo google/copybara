@@ -60,6 +60,22 @@ public class Inputs {
       "git_origin_url", "Git URL to serve as origin repository",
       null, URL.class, URL_CONVERTER);
 
+  public static final Input<URL> REMOTE_ARCHIVE_URL =
+      Input.create(
+          "remote_archive_url",
+          "URL of the remote archive to serve as origin",
+          null,
+          URL.class,
+          URL_CONVERTER);
+
+  public static final Input<String> UNPACK_METHOD =
+      Input.create(
+          "unpack_method",
+          "Unpack method for the remote archive (e.g., ZIP, TAR_GZ)",
+          null,
+          String.class,
+          (first, resolver) -> first);
+
   public static final Input<String> GIT_ORIGIN_REF =
       Input.create(
           "git_origin_ref",

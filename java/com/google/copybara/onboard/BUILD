@@ -40,6 +40,8 @@ java_library(
         "//java/com/google/copybara/git:core",
         "//java/com/google/copybara/jcommander:converters",
         "//java/com/google/copybara/onboard/core",
+        "//java/com/google/copybara/remotefile",
+        "//java/com/google/copybara/remotefile/extractutil",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
         "//third_party:autovalue",

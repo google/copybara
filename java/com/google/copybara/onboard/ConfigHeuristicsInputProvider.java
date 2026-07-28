@@ -19,10 +19,10 @@ package com.google.copybara.onboard;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 
+import com.google.common.base.Ascii;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.flogger.FluentLogger;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.configgen.ConfigGenHeuristics;
 import com.google.copybara.configgen.ConfigGenHeuristics.DestinationExcludePaths;
@@ -38,13 +38,20 @@ import com.google.copybara.onboard.core.CannotProvideException;
 import com.google.copybara.onboard.core.Input;
 import com.google.copybara.onboard.core.InputProvider;
 import com.google.copybara.onboard.core.InputProviderResolver;
+import com.google.copybara.remotefile.HttpStreamFactory;
+import com.google.copybara.remotefile.RemoteFileOptions;
+import com.google.copybara.remotefile.extractutil.ExtractType;
+import com.google.copybara.remotefile.extractutil.ExtractUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 /**
  * An input provider that uses the origin and destination content information to infer several
@@ -55,14 +62,15 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
   private static final Glob INCLUDE_EXCLUDE_NOOP =
       Glob.createGlob(ImmutableList.of("**"), ImmutableList.of("**"));
 
-  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
-
   @SuppressWarnings({"OptionalUsedAsFieldOrParameterType", "OptionalAssignedToNull"})
   private Optional<Result> cached = null;
+
+  private CannotProvideException cachedException = null;
 
   private final GitOptions gitOptions;
   private final GeneralOptions generalOptions;
   private final GeneratorOptions generatorOptions;
+  private final RemoteFileOptions remoteFileOptions;
   private final ImmutableSet<Path> destinationOnlyPaths;
   private final int percentSimilar;
   private final Console console;
@@ -72,6 +80,7 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
       GitOptions gitOptions,
       GeneralOptions generalOptions,
       GeneratorOptions generatorOptions,
+      RemoteFileOptions remoteFileOptions,
       ImmutableSet<Path> destinationOnlyPaths,
       int percentSimilar,
       Console console,
@@ -79,6 +88,7 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
     this.gitOptions = gitOptions;
     this.generalOptions = generalOptions;
     this.generatorOptions = generatorOptions;
+    this.remoteFileOptions = remoteFileOptions;
     this.destinationOnlyPaths = destinationOnlyPaths;
     this.percentSimilar = percentSimilar;
     this.console = console;
@@ -88,10 +98,8 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
   @Override
   public <T> Optional<T> resolve(Input<T> input, InputProviderResolver db)
       throws InterruptedException, CannotProvideException {
-    URL originUrl = db.resolve(Inputs.GIT_ORIGIN_URL);
-    String currentVersion = db.resolve(Inputs.CURRENT_VERSION);
     Path destination = destinationPathProvider.resolve(db);
-    Optional<Result> result = computeHeuristic(originUrl, currentVersion, destination);
+    Optional<Result> result = computeHeuristic(db, destination);
     if (result.isEmpty()) {
       return Optional.empty();
     }
@@ -124,8 +132,11 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
   }
 
   @SuppressWarnings("OptionalAssignedToNull")
-  protected Optional<Result> computeHeuristic(
-      URL originUrl, String currentVersion, Path destination) {
+  protected Optional<Result> computeHeuristic(InputProviderResolver db, Path destination)
+      throws InterruptedException, CannotProvideException {
+    if (cachedException != null) {
+      throw cachedException;
+    }
     if (!Files.isDirectory(destination)) {
       return Optional.empty();
     }
@@ -133,40 +144,84 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
       return cached;
     }
 
+    String originForLog = "unknown";
     try {
-      // TODO(malcon): Refactor this class to not depend on git. IOW, be able to generate configs
-      // for existing sources for non-git repositories. This would also make the testing of
-      // this class easier.
       Path origin = generalOptions.getDirFactory().newTempDir("checkout");
-      GitRepository repo =
-          gitOptions.cachedBareRepoForUrl(originUrl.toString()).withWorkTree(origin);
+      ImmutableList<String> upstreamTags = ImmutableList.of();
 
-      FuzzyClosestVersionSelector selector = new FuzzyClosestVersionSelector();
-      currentVersion = selector.selectVersion(currentVersion, repo, originUrl.toString(), console);
+      OriginUrls urls = resolveOriginUrls(db);
+      URL archiveUrl = urls.archiveUrl;
+      URL originUrl = urls.originUrl;
 
-      console.progressFmt("Fetching '%s' from %s", currentVersion, originUrl.toString());
-      GitRevision gitRevision;
-      try {
-        gitRevision =
-            repo.fetchSingleRefWithTags(
-                originUrl.toString(),
-                currentVersion,
-                /* fetchTags= */ true,
-                /* partialFetch= */ false,
-                Optional.empty());
-      } catch (RepoException e) {
-        gitRevision =
-            repo.fetchSingleRef(
-                originUrl.toString(), currentVersion, /* partialFetch= */ false, Optional.empty());
+      if (archiveUrl != null) {
+        originForLog = archiveUrl.toString();
+        String unpackMethod = db.resolve(Inputs.UNPACK_METHOD);
+        console.infoFmt("Downloading archive from %s", archiveUrl);
+        HttpStreamFactory transport = remoteFileOptions.getTransport();
+        try (InputStream inputStream = transport.open(archiveUrl, null)) {
+          ExtractType extractType;
+          try {
+            extractType = ExtractType.valueOf(Ascii.toUpperCase(unpackMethod));
+          } catch (IllegalArgumentException e) {
+            throw new ValidationException(
+                String.format("Invalid unpack method '%s'", unpackMethod), e);
+          }
+          ExtractUtil.extractArchive(inputStream, origin, extractType, null);
+        }
+
+        // Verify that the archive was extracted successfully.
+        long fileCount = 0;
+        try (Stream<Path> stream = Files.walk(origin)) {
+          fileCount = stream.filter(Files::isRegularFile).count();
+        } catch (IOException e) {
+          console.warnFmt("Failed to iterate files in extracted archive: %s", e.getMessage());
+        }
+        console.infoFmt("Extracted %d files from remote archive", fileCount);
+        if (fileCount == 0) {
+          console.warnFmt(
+              "Remote archive yielded 0 files! This might indicate download/unpack failure.");
+        }
+      } else if (originUrl != null) {
+        originForLog = originUrl.toString();
+        String currentVersion = db.resolve(Inputs.CURRENT_VERSION);
+
+        GitRepository repo =
+            gitOptions.cachedBareRepoForUrl(originUrl.toString()).withWorkTree(origin);
+
+        FuzzyClosestVersionSelector selector = new FuzzyClosestVersionSelector();
+        currentVersion =
+            selector.selectVersion(currentVersion, repo, originUrl.toString(), console);
+
+        console.progressFmt("Fetching '%s' from %s", currentVersion, originUrl.toString());
+        GitRevision gitRevision;
+        try {
+          gitRevision =
+              repo.fetchSingleRefWithTags(
+                  originUrl.toString(),
+                  currentVersion,
+                  /* fetchTags= */ true,
+                  /* partialFetch= */ false,
+                  Optional.empty());
+        } catch (RepoException e) {
+          gitRevision =
+              repo.fetchSingleRef(
+                  originUrl.toString(),
+                  currentVersion,
+                  /* partialFetch= */ false,
+                  Optional.empty());
+        }
+        Path git = Files.createDirectories(origin);
+        upstreamTags =
+            repo.showRef().keySet().stream()
+                .filter(ref -> ref.startsWith("refs/tags/"))
+                .collect(toImmutableList());
+
+        console.progressFmt("Checking out git files");
+        repo.withWorkTree(git).forceCheckout(gitRevision.getHash());
+      } else {
+        throw new CannotProvideException(
+            "Neither GIT_ORIGIN_URL nor REMOTE_ARCHIVE_URL was provided.");
       }
-      Path git = Files.createDirectories(origin);
-      ImmutableList<String> upstreamTags =
-          repo.showRef().keySet().stream()
-              .filter(ref -> ref.startsWith("refs/tags/"))
-              .collect(toImmutableList());
-
-      console.progressFmt("Checking out git files");
-      repo.withWorkTree(git).forceCheckout(gitRevision.getHash());
 
       ConfigGenHeuristics heuristics =
           getConfigGenHeuristics(
@@ -183,10 +238,47 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
       return cached;
 
     } catch (ValidationException | IOException | RepoException e) {
-      logger.atWarning().withCause(e).log("Cannot compute heuristics for repository %s", originUrl);
-      cached = Optional.empty();
-      return cached;
+      cachedException =
+          new CannotProvideException(
+              String.format(
+                  "Cannot compute heuristics for repository %s: %s", originForLog, e.getMessage()),
+              e);
+      throw cachedException;
     }
+  }
+
+  /** Represents the resolved origin URLs. */
+  protected static class OriginUrls {
+    public final URL archiveUrl;
+    public final URL originUrl;
+
+    public OriginUrls(URL archiveUrl, URL originUrl) {
+      this.archiveUrl = archiveUrl;
+      this.originUrl = originUrl;
+    }
+  }
+
+  /** Resolves the origin URLs from the resolver. */
+  protected OriginUrls resolveOriginUrls(InputProviderResolver db)
+      throws InterruptedException, CannotProvideException {
+    // 1. Peek silently to see if a Git URL is already known (e.g. from flags or file).
+    URL originUrl = db.resolveOptional(Inputs.GIT_ORIGIN_URL).orElse(null);
+    URL archiveUrl = null;
+
+    // 2. If no Git URL found, peek silently for an Archive URL.
+    if (originUrl == null) {
+      archiveUrl = db.resolveOptional(Inputs.REMOTE_ARCHIVE_URL).orElse(null);
+    }
+
+    // 3. If still nothing found silently, force resolution (may prompt user) based on template.
+    if (originUrl == null && archiveUrl == null) {
+      if (Objects.equals(generatorOptions.template, "remote_archive_to_third_party")) {
+        archiveUrl = db.resolve(Inputs.REMOTE_ARCHIVE_URL);
+      } else {
+        originUrl = db.resolve(Inputs.GIT_ORIGIN_URL);
+      }
+    }
+    return new OriginUrls(archiveUrl, originUrl);
   }
 
   /**

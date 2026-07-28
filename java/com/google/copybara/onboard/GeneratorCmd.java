@@ -31,6 +31,7 @@ import com.google.copybara.onboard.core.InputProvider;
 import com.google.copybara.onboard.core.InputProviderResolver;
 import com.google.copybara.onboard.core.MapBasedInputProvider;
 import com.google.copybara.onboard.core.template.ConfigGenerator;
+import com.google.copybara.remotefile.RemoteFileOptions;
 import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
@@ -100,6 +101,7 @@ public class GeneratorCmd implements OnboardingCmd {
                 commandEnv.getOptions().get(GitOptions.class),
                 commandEnv.getOptions().get(GeneralOptions.class),
                 commandEnv.getOptions().get(GeneratorOptions.class),
+                commandEnv.getOptions().get(RemoteFileOptions.class),
                 ImmutableSet.of(),
                 genOpts.computeGlobPercentageSimilar,
                 console,
