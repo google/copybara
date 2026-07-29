@@ -95,7 +95,7 @@ public class DiffUtil {
    * Filter a diff output to only include diffs for original files that match a filter. Identifies
    * file borders via the "diff -git a/left/... b/right/..." line and uses the left/... path.
    */
-  public static String filterDiff(byte[] diff, Predicate<String> pathFilter) {
+  public static byte[] filterDiff(byte[] diff, Predicate<String> pathFilter) {
     boolean include = true;
     List<String> filteredLines = Lists.newArrayList();
     for (String line : Splitter.on('\n').split(new String(diff, UTF_8))) {
@@ -119,9 +119,9 @@ public class DiffUtil {
       }
     }
     if (filteredLines.isEmpty()) {
-      return "";
+      return new byte[0];
     }
-    return String.join("\n", filteredLines);
+    return String.join("\n", filteredLines).getBytes(UTF_8);
   }
 
   /**

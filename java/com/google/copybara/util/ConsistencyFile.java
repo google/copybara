@@ -98,25 +98,15 @@ public class ConsistencyFile {
       Map<String, String> environment,
       boolean verbose)
       throws IOException, InsideGitDirException, ValidationException {
-    return generate(baseline, destination, hashFunction, environment, verbose, (String) null);
-  }
-
-  public static ConsistencyFile generate(
-      Path baseline,
-      Path destination,
-      HashFunction hashFunction,
-      Map<String, String> environment,
-      boolean verbose,
-      String configPath,
-      String workflowName)
-      throws IOException, InsideGitDirException, ValidationException {
     return generate(
         baseline,
         destination,
         hashFunction,
         environment,
         verbose,
-        extractWorkflowInfo(configPath, workflowName));
+        /* configPath= */ null,
+        /* workflowName= */ null,
+        /* excludeBuildFiles= */ false);
   }
 
   public static ConsistencyFile generate(
@@ -125,43 +115,13 @@ public class ConsistencyFile {
       HashFunction hashFunction,
       Map<String, String> environment,
       boolean verbose,
-      String configPath,
-      String workflowName,
-      boolean excludeBuildFiles)
-      throws IOException, InsideGitDirException, ValidationException {
-    return generate(
-        baseline,
-        destination,
-        hashFunction,
-        environment,
-        verbose,
-        extractWorkflowInfo(configPath, workflowName),
-        excludeBuildFiles);
-  }
-
-  public static ConsistencyFile generate(
-      Path baseline,
-      Path destination,
-      HashFunction hashFunction,
-      Map<String, String> environment,
-      boolean verbose,
-      @Nullable String workflowInfo)
-      throws IOException, InsideGitDirException, ValidationException {
-    return generate(baseline, destination, hashFunction, environment, verbose, workflowInfo, false);
-  }
-
-  public static ConsistencyFile generate(
-      Path baseline,
-      Path destination,
-      HashFunction hashFunction,
-      Map<String, String> environment,
-      boolean verbose,
-      @Nullable String workflowInfo,
+      @Nullable String configPath,
+      @Nullable String workflowName,
       boolean excludeBuildFiles)
       throws IOException, InsideGitDirException, ValidationException {
     byte[] diff = DiffUtil.diffWithIgnoreCrAtEol(baseline, destination, verbose, environment);
     if (excludeBuildFiles) {
-      diff = DiffUtil.filterDiff(diff, path -> !path.endsWith("BUILD")).getBytes(UTF_8);
+      diff = DiffUtil.filterDiff(diff, path -> !path.endsWith("BUILD"));
     }
     ImmutableMap<String, String> destinationHashes =
         computeFileHashes(destination, hashFunction, excludeBuildFiles);
@@ -195,6 +155,11 @@ public class ConsistencyFile {
                 + " destination.\n";
       }
       throw new ValidationException(message);
+    }
+
+    String workflowInfo = null;
+    if (configPath != null && workflowName != null) {
+      workflowInfo = extractWorkflowInfo(configPath, workflowName);
     }
 
     return new ConsistencyFile(destinationHashes, diff, workflowInfo);

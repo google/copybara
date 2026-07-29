@@ -39,7 +39,6 @@ import com.google.copybara.templatetoken.LabelTemplate;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.DirFactory;
 import com.google.copybara.util.console.Console;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -334,13 +333,12 @@ public class GitIntegrateChanges implements StarlarkValue {
         // TODO(b/188914756): This doesn't support binaries well. We should fix it.
         diff =
             computeExternalDiff(
-                    repository,
-                    integrateLabel,
-                    externalFiles,
-                    head,
-                    failIfIntegrateCommitNotFound,
-                    console)
-                .getBytes(StandardCharsets.UTF_8);
+                repository,
+                integrateLabel,
+                externalFiles,
+                head,
+                failIfIntegrateCommitNotFound,
+                console);
         if (diff.length == 0) {
           return;
         }
@@ -388,7 +386,7 @@ public class GitIntegrateChanges implements StarlarkValue {
         repository.forceClean();
       }
 
-      private String computeExternalDiff(
+      private byte[] computeExternalDiff(
           GitRepository repository,
           IntegrateLabel integrateLabel,
           Predicate<String> externalFiles,

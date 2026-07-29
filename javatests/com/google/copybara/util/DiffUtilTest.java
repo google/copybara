@@ -156,24 +156,46 @@ public class DiffUtilTest {
   }
 
   @Test
-  public void testFilterDiff() throws Exception {
+  public void testFilterDiff_excludeAll() throws Exception {
     writeFile(left, "file1.txt", "foo-left");
     writeFile(left, "file2.txt", "bar-left");
     writeFile(right, "file1.txt", "foo-right");
     writeFile(right, "file2.txt", "bar-right");
+    byte[] diff = DiffUtil.diff(left, right, VERBOSE, testEnv);
 
-    assertThat(DiffUtil.filterDiff(DiffUtil.diff(left, right, VERBOSE, testEnv), f -> false))
-        .isEmpty();
+    byte[] filtered = DiffUtil.filterDiff(diff, f -> false);
 
-    String all = DiffUtil.filterDiff(DiffUtil.diff(left, right, VERBOSE, testEnv), f -> true);
-    assertThat(all).contains("diff --git a/left/file1.txt b/right/file1.txt");
-    assertThat(all).contains("diff --git a/left/file2.txt b/right/file2.txt");
+    assertThat(filtered).isEmpty();
+  }
 
-    String one =
-        DiffUtil.filterDiff(
-            DiffUtil.diff(left, right, VERBOSE, testEnv), f -> f.equals("left/file1.txt"));
-    assertThat(one).contains("diff --git a/left/file1.txt b/right/file1.txt");
-    assertThat(one)
+  @Test
+  public void testFilterDiff_includeAll() throws Exception {
+    writeFile(left, "file1.txt", "foo-left");
+    writeFile(left, "file2.txt", "bar-left");
+    writeFile(right, "file1.txt", "foo-right");
+    writeFile(right, "file2.txt", "bar-right");
+    byte[] diff = DiffUtil.diff(left, right, VERBOSE, testEnv);
+
+    byte[] filtered = DiffUtil.filterDiff(diff, f -> true);
+
+    String filteredStr = new String(filtered, StandardCharsets.UTF_8);
+    assertThat(filteredStr).contains("diff --git a/left/file1.txt b/right/file1.txt");
+    assertThat(filteredStr).contains("diff --git a/left/file2.txt b/right/file2.txt");
+  }
+
+  @Test
+  public void testFilterDiff_includeOne() throws Exception {
+    writeFile(left, "file1.txt", "foo-left");
+    writeFile(left, "file2.txt", "bar-left");
+    writeFile(right, "file1.txt", "foo-right");
+    writeFile(right, "file2.txt", "bar-right");
+    byte[] diff = DiffUtil.diff(left, right, VERBOSE, testEnv);
+
+    byte[] filtered = DiffUtil.filterDiff(diff, f -> f.equals("left/file1.txt"));
+
+    String filteredStr = new String(filtered, StandardCharsets.UTF_8);
+    assertThat(filteredStr).contains("diff --git a/left/file1.txt b/right/file1.txt");
+    assertThat(filteredStr)
         .contains(
             """
             -foo-left
@@ -181,7 +203,7 @@ public class DiffUtilTest {
             +foo-right
             \\ No newline at end of file\
             """);
-    assertThat(one).doesNotContain("diff --git a/left/file2.txt b/right/file2.txt");
+    assertThat(filteredStr).doesNotContain("diff --git a/left/file2.txt b/right/file2.txt");
   }
 
   @Test
@@ -196,13 +218,9 @@ public class DiffUtilTest {
         +bar\r\
         """;
 
-    // Filter that includes everything
-    String filtered = DiffUtil.filterDiff(diff.getBytes(StandardCharsets.UTF_8), f -> true);
-    assertThat(filtered).isEqualTo(diff);
+    byte[] filtered = DiffUtil.filterDiff(diff.getBytes(StandardCharsets.UTF_8), f -> true);
 
-    // Filter that excludes everything
-    String filteredEmpty = DiffUtil.filterDiff(diff.getBytes(StandardCharsets.UTF_8), f -> false);
-    assertThat(filteredEmpty).isEmpty();
+    assertThat(new String(filtered, StandardCharsets.UTF_8)).isEqualTo(diff);
   }
 
   @Test
@@ -218,8 +236,9 @@ public class DiffUtilTest {
         """;
 
     // Filter that excludes every file found
-    String filteredEmpty = DiffUtil.filterDiff(diff.getBytes(StandardCharsets.UTF_8), f -> false);
-    assertThat(filteredEmpty).isEqualTo(diff);
+    byte[] filteredEmpty = DiffUtil.filterDiff(diff.getBytes(StandardCharsets.UTF_8), f -> false);
+
+    assertThat(new String(filteredEmpty, StandardCharsets.UTF_8)).isEqualTo(diff);
   }
 
   @Test

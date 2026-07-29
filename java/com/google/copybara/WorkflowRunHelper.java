@@ -734,7 +734,9 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
           if (getReversibleCheckIgnoreFiles() != null) {
             PathMatcher pathMatcher =
                 getReversibleCheckIgnoreFiles().relativeTo(Paths.get("origin"));
-            diff = DiffUtil.filterDiff(byteDiff, (s -> !pathMatcher.matches(Paths.get(s))));
+            diff =
+                new String(
+                    DiffUtil.filterDiff(byteDiff, s -> !pathMatcher.matches(Path.of(s))), UTF_8);
           } else {
             diff = new String(byteDiff, UTF_8);
           }
