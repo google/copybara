@@ -251,14 +251,20 @@ public class GitIntegrateChanges implements StarlarkValue {
               e);
         }
 
+        Optional<GitRevision> integrateRevision =
+            resolveIntegrateRevision(integrateLabel, failIfIntegrateCommitNotFound, console);
+        if (integrateRevision.isEmpty()) {
+          return;
+        }
+
         // If there is already a merge, don't overwrite the merge but create a new one.
         // Otherwise amend the last commit as a merge.
         GitRevision commit = head.parents().size() > 1
                              ? repository.commitTree(msg, head.tree(),
-            ImmutableList.of(head.commit(), integrateLabel.getRevision()))
+            ImmutableList.of(head.commit(), integrateRevision.get()))
                              : repository.commitTree(msg, head.tree(),
                                  ImmutableList.<GitRevision>builder().addAll(head.parents())
-                                     .add(integrateLabel.getRevision()).build());
+                                     .add(integrateRevision.get()).build());
         repository.simpleCommand("update-ref", "HEAD", commit.getHash());
       }
     },
@@ -394,6 +400,11 @@ public class GitIntegrateChanges implements StarlarkValue {
           boolean failIfIntegrateCommitNotFound,
           Console console)
           throws ValidationException, RepoException {
+        Optional<GitRevision> integrateRevision =
+            resolveIntegrateRevision(integrateLabel, failIfIntegrateCommitNotFound, console);
+        if (integrateRevision.isEmpty()) {
+          return new byte[0];
+        }
         String commonBaseline =
             findCommonBaseline(
                     repository, integrateLabel, head, failIfIntegrateCommitNotFound, console)
@@ -404,7 +415,7 @@ public class GitIntegrateChanges implements StarlarkValue {
         byte[] diffs =
             repository
                 .simpleCommandNoRedirectOutput(
-                    "diff", commonBaseline + ".." + integrateLabel.getRevision().getHash())
+                    "diff", commonBaseline + ".." + integrateRevision.get().getHash())
                 .getStdoutBytes();
         // Filter the diff to the external files changed by the external change that weren't
         // migrated to the internal repository.
@@ -485,6 +496,24 @@ public class GitIntegrateChanges implements StarlarkValue {
 
     private static GitLogEntry getHeadCommit(GitRepository repository) throws RepoException {
       return Iterables.getOnlyElement(repository.log("HEAD").withLimit(1).run());
+    }
+
+    private static Optional<GitRevision> resolveIntegrateRevision(
+        IntegrateLabel integrateLabel,
+        boolean failIfIntegrateCommitNotFound,
+        Console console)
+        throws ValidationException, RepoException {
+      try {
+        return Optional.of(integrateLabel.getRevision());
+      } catch (RepoException | ValidationException e) {
+        if (failIfIntegrateCommitNotFound) {
+          throw e;
+        }
+        console.warnFmt(
+            "Skipping integration for '%s' as the commit could not be resolved: %s",
+            integrateLabel, e.getMessage());
+        return Optional.empty();
+      }
     }
 
     void integrate(

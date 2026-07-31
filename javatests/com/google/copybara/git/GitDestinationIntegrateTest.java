@@ -975,6 +975,40 @@ public class GitDestinationIntegrateTest {
             MessageType.WARNING, "failIfIntegrateCommitNotFound is true, re-throwing exception");
   }
 
+  @Test
+  public void integrate_fetchingError_doesNotThrowWhenTemporaryFeatureDisabled() throws Exception {
+    Path repoPath = Files.createTempDirectory("test");
+    GitRepository repo = repo().withWorkTree(repoPath);
+    options.general.setTemporaryFeaturesForTest(
+        ImmutableMap.of("GIT_INTEGRATE_FAIL_IF_COMMON_BASELINE_NOT_FOUND", "false"));
+    gitUtil.mockRemoteRepo("github.com/example/test_repo", repoFormat).withWorkTree(repoPath);
+
+    GitRevision unused =
+        singleChange(repoPath, repo, "base_change.txt", "not important", "Base change\n");
+    GitDestination destination = destinationWithDefaultIntegrates();
+    migrateOriginChange(destination, "Base change\n", "test.txt", "not important", "test");
+
+    // SHA-1 is 40 hex characters.
+    String invalidSha =
+        repoFormat == GitHashAlgorithm.SHA256
+            ? "0000000000000000000000000000000000000000000000000000000000000001"
+            : "000000000000000000000000000000000000001";
+    String invalidLabel =
+        GitModule.DEFAULT_INTEGRATE_LABEL
+            + "=https://github.com/example/test_repo/pull/0 from "
+            + invalidSha;
+
+    // It should not throw since the temporary feature is false
+    migrateOriginChange(destination, "Test change\n\n" + invalidLabel + "\n", "content");
+
+    console
+        .assertThat()
+        .timesInLog(
+            2,
+            MessageType.WARNING,
+            "Skipping integration for '.*' as the commit could not be resolved");
+  }
+
   private void migrateOriginChange(GitDestination destination, String summary, String content)
       throws IOException, RepoException, ValidationException {
     migrateOriginChange(destination, summary, "test.txt", content, "test");
