@@ -237,6 +237,12 @@ public class ConsistencyFile {
   }
 
   public static ConsistencyFile generateNoDiff(
+      Path contents, HashFunction hashFunction, String workflowInfo) throws IOException {
+    return new ConsistencyFile(
+        computeFileHashes(contents, hashFunction, false), new byte[0], workflowInfo);
+  }
+
+  public static ConsistencyFile generateNoDiff(
       Path contents, HashFunction hashFunction, boolean excludeBuildFiles) throws IOException {
     return new ConsistencyFile(
         computeFileHashes(contents, hashFunction, excludeBuildFiles), new byte[0]);
