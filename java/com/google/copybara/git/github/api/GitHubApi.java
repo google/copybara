@@ -370,7 +370,7 @@ public class GitHubApi {
    */
   public UserPermissionLevel getUserPermissionLevel(String projectId, String usrLogin)
       throws RepoException, ValidationException {
-    try (ProfilerTask ignore = profiler.start("github_api_update_pull")) {
+    try (ProfilerTask ignore = profiler.start("github_api_get_user_permission_level")) {
       return transport.get(
           UserPermissionLevel.class, "repos/%s/collaborators/%s/permission", projectId, usrLogin);
     }
