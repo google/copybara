@@ -242,10 +242,6 @@ public class ConsistencyFile {
         computeFileHashes(contents, hashFunction, excludeBuildFiles), new byte[0]);
   }
 
-  private static ImmutableList<String> getFileNames(Path directory) throws IOException {
-    return getFileNames(directory, /* excludeBuildFiles= */ false);
-  }
-
   private static ImmutableList<String> getFileNames(Path directory, boolean excludeBuildFiles)
       throws IOException {
     ImmutableList.Builder<String> namesBuilder = ImmutableList.builder();
@@ -262,11 +258,6 @@ public class ConsistencyFile {
           }
         });
     return namesBuilder.build();
-  }
-
-  private static ImmutableMap<String, String> computeFileHashes(
-      Path directory, HashFunction hashFunction) throws IOException {
-    return computeFileHashes(directory, hashFunction, false);
   }
 
   private static ImmutableMap<String, String> computeFileHashes(
@@ -516,7 +507,7 @@ public class ConsistencyFile {
 
   @Override
   public int hashCode() {
-    return Objects.hash(fileHashes.hashCode(), Arrays.hashCode(this.diffContent));
+    return Objects.hash(fileHashes, Arrays.hashCode(this.diffContent));
   }
 
   @Override
