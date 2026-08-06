@@ -57,7 +57,7 @@ public class GeneratorCmdImpl {
       }
       ConfigGenerator template;
       try {
-        template = selectGenerator(resolver, genOpts.template, console);
+        template = selectGenerator(resolver, genOpts.getTemplate(), console);
       } catch (CannotConvertException e) {
         console.error("Cannot infer a template for generating a config. Use --template flag.");
         return ExitCode.COMMAND_LINE_ERROR;

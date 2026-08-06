@@ -272,7 +272,7 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
 
     // 3. If still nothing found silently, force resolution (may prompt user) based on template.
     if (originUrl == null && archiveUrl == null) {
-      if (Objects.equals(generatorOptions.template, "remote_archive_to_third_party")) {
+      if (Objects.equals(generatorOptions.getTemplate(), "remote_archive_to_third_party")) {
         archiveUrl = db.resolve(Inputs.REMOTE_ARCHIVE_URL);
       } else {
         originUrl = db.resolve(Inputs.GIT_ORIGIN_URL);

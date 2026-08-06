@@ -42,6 +42,10 @@ public class GeneratorOptions implements Option {
   @VisibleForTesting
   public String template;
 
+  public String getTemplate() {
+    return template;
+  }
+
   @Parameter(
       names = {"--inputs"},
       description = "Inputs for code generation",
