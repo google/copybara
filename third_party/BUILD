@@ -122,6 +122,13 @@ java_library(
 )
 
 java_library(
+    name = "p4java",
+    exports = [
+        "@copybara_maven//:com_perforce_p4java",
+    ],
+)
+
+java_library(
     name = "truth",
     testonly = 1,
     exports = [
