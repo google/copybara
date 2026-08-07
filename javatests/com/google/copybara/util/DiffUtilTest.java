@@ -366,7 +366,7 @@ public class DiffUtilTest {
   }
 
   @Test
-  public void testStripDiffHeaders() {
+  public void testNormalizeDiff_removesGitDiffHeaders() {
     String diff =
         """
         diff --git a/premerge/foo.txt b/checkout/foo.txt
@@ -378,16 +378,24 @@ public class DiffUtilTest {
         -line 2
         +line 2 modified
         """;
-    byte[] stripped = DiffUtil.stripGitDiffHeaders(diff.getBytes(StandardCharsets.UTF_8));
+    String expected =
+        """
+        --- a/premerge/foo.txt
+        +++ b/checkout/foo.txt
+        @@ -1,2 +1,2 @@
+         line 1
+        -line 2
+        +line 2 modified
+        """;
+
+    byte[] stripped = DiffUtil.normalizeDiff(diff.getBytes(StandardCharsets.UTF_8));
 
     String strippedStr = new String(stripped, StandardCharsets.UTF_8);
-    assertThat(strippedStr).doesNotContain("diff --git ");
-    assertThat(strippedStr).doesNotContain("index ");
-    assertThat(strippedStr).startsWith("--- ");
+    assertThat(strippedStr).isEqualTo(expected);
   }
 
   @Test
-  public void testStripDiffHeaders_noHeader_unchanged() {
+  public void testNormalizeDiff_noHeaders_unchanged() {
     String diff =
         """
         --- a/premerge/foo.txt
@@ -395,14 +403,15 @@ public class DiffUtilTest {
         @@ -1,2 +1,2 @@
          line 1
         """;
-    byte[] stripped = DiffUtil.stripGitDiffHeaders(diff.getBytes(StandardCharsets.UTF_8));
+
+    byte[] stripped = DiffUtil.normalizeDiff(diff.getBytes(StandardCharsets.UTF_8));
 
     String strippedStr = new String(stripped, StandardCharsets.UTF_8);
     assertThat(strippedStr).isEqualTo(diff);
   }
 
   @Test
-  public void testStripDiffHeaders_metadataAndModeChanges() {
+  public void testNormalizeDiff_metadataAndModeChanges() {
     String diff =
         """
         diff --git a/premerge/foo.txt b/checkout/foo.txt
@@ -417,29 +426,55 @@ public class DiffUtilTest {
         @@ -1 +1 @@
          line 1
         """;
-    byte[] stripped = DiffUtil.stripGitDiffHeaders(diff.getBytes(StandardCharsets.UTF_8));
+    String expected =
+        """
+        --- a/premerge/foo.txt
+        +++ b/checkout/foo.txt
+        @@ -1 +1 @@
+         line 1
+        """;
+
+    byte[] stripped = DiffUtil.normalizeDiff(diff.getBytes(StandardCharsets.UTF_8));
 
     String strippedStr = new String(stripped, StandardCharsets.UTF_8);
-    assertThat(strippedStr).doesNotContain("diff --git ");
-    assertThat(strippedStr).doesNotContain("old mode");
-    assertThat(strippedStr).doesNotContain("similarity");
-    assertThat(strippedStr).doesNotContain("rename");
-    assertThat(strippedStr).doesNotContain("index ");
-    assertThat(strippedStr).startsWith("--- ");
+    assertThat(strippedStr).isEqualTo(expected);
   }
 
   @Test
-  public void testStripDiffHeaders_preservesCrlf() {
+  public void testNormalizeDiff_removesHunkSectionHeader() {
+    String diff =
+        """
+        --- a/premerge/foo.txt
+        +++ b/checkout/foo.txt
+        @@ -1,2 +1,2 @@ extra hunk section header
+         line 1
+        """;
+    String expected =
+        """
+        --- a/premerge/foo.txt
+        +++ b/checkout/foo.txt
+        @@ -1,2 +1,2 @@
+         line 1
+        """;
+
+    byte[] stripped = DiffUtil.normalizeDiff(diff.getBytes(StandardCharsets.UTF_8));
+
+    String strippedStr = new String(stripped, StandardCharsets.UTF_8);
+    assertThat(strippedStr).isEqualTo(expected);
+  }
+
+  @Test
+  public void testNormalizeDiff_preservesCrlf() {
     String diff =
         """
         diff --git a/premerge/foo.txt b/checkout/foo.txt\r
         index 123456..789101 100644\r
         --- a/premerge/foo.txt\r
         +++ b/checkout/foo.txt\r
-        @@ -1,2 +1,2 @@\r
+        @@ -1,2 +1,2 @@ extra hunk section header\r
          line 1\r
         -line 2\r
-        +line 2 modified\r\
+        +line 2 modified\r
         """;
     String expected =
         """
@@ -448,10 +483,10 @@ public class DiffUtilTest {
         @@ -1,2 +1,2 @@\r
          line 1\r
         -line 2\r
-        +line 2 modified\r\
+        +line 2 modified\r
         """;
 
-    byte[] stripped = DiffUtil.stripGitDiffHeaders(diff.getBytes(StandardCharsets.UTF_8));
+    byte[] stripped = DiffUtil.normalizeDiff(diff.getBytes(StandardCharsets.UTF_8));
 
     String strippedStr = new String(stripped, StandardCharsets.UTF_8);
     assertThat(strippedStr).isEqualTo(expected);
@@ -645,25 +680,50 @@ public class DiffUtilTest {
 
   @Test
   public void extractDescription_extractsDescription() {
-    String patch = "Description line 1\nDescription line 2\n--- a/file.txt\n+++ b/file.txt\n";
+    String patch =
+        """
+        Description line 1
+        Description line 2
+        --- a/file.txt
+        +++ b/file.txt
+        """;
 
     String description = DiffUtil.extractDescription(patch);
 
-    assertThat(description).isEqualTo("Description line 1\nDescription line 2");
+    assertThat(description)
+        .isEqualTo(
+            """
+            Description line 1
+            Description line 2\
+            """);
   }
 
   @Test
   public void extractDescription_extractsDescription_stopsAtGitDiff() {
-    String patch = "Description line 1\nDescription line 2\ndiff --git a/file.txt b/file.txt\n";
+    String patch =
+        """
+        Description line 1
+        Description line 2
+        diff --git a/file.txt b/file.txt
+        """;
 
     String description = DiffUtil.extractDescription(patch);
 
-    assertThat(description).isEqualTo("Description line 1\nDescription line 2");
+    assertThat(description)
+        .isEqualTo(
+            """
+            Description line 1
+            Description line 2\
+            """);
   }
 
   @Test
   public void extractDescription_noDescription() {
-    String patch = "--- a/file.txt\n+++ b/file.txt\n";
+    String patch =
+        """
+        --- a/file.txt
+        +++ b/file.txt
+        """;
 
     String description = DiffUtil.extractDescription(patch);
 
@@ -672,7 +732,12 @@ public class DiffUtilTest {
 
   @Test
   public void validatePatchDescription_validDescription_doesNotThrow() throws Exception {
-    String description = "This is a valid description\nIt can be multiline\nBut no diff headers";
+    String description =
+        """
+        This is a valid description
+        It can be multiline
+        But no diff headers
+        """;
 
     DiffUtil.validatePatchDescription(Optional.of(description));
   }
@@ -684,7 +749,11 @@ public class DiffUtilTest {
 
   @Test
   public void validatePatchDescription_invalidDescriptionWithLeftHeader_throwsException() {
-    String description = "Invalid description\n--- a/file.txt\n";
+    String description =
+        """
+        Invalid description
+        --- a/file.txt
+        """;
 
     assertThrows(
         ValidationException.class,
@@ -693,7 +762,11 @@ public class DiffUtilTest {
 
   @Test
   public void validatePatchDescription_invalidDescriptionWithRightHeader_throwsException() {
-    String description = "Invalid description\n+++ b/file.txt\n";
+    String description =
+        """
+        Invalid description
+        +++ b/file.txt
+        """;
 
     assertThrows(
         ValidationException.class,
@@ -702,7 +775,37 @@ public class DiffUtilTest {
 
   @Test
   public void validatePatchDescription_invalidDescriptionWithGitDiffHeader_throwsException() {
-    String description = "Invalid description\ndiff --git a/file.txt b/file.txt\n";
+    String description =
+        """
+        Invalid description
+        diff --git a/file.txt b/file.txt
+        """;
+
+    assertThrows(
+        ValidationException.class,
+        () -> DiffUtil.validatePatchDescription(Optional.of(description)));
+  }
+
+  @Test
+  public void validatePatchDescription_invalidDescriptionWithHunkHeader_throwsException() {
+    String description =
+        """
+        Invalid description
+        @@ -1,2 +1,2 @@
+        """;
+
+    assertThrows(
+        ValidationException.class,
+        () -> DiffUtil.validatePatchDescription(Optional.of(description)));
+  }
+
+  @Test
+  public void validatePatchDescription_invalidDescriptionWithIndentedHunkHeader_throwsException() {
+    String description =
+        """
+        Invalid description
+          @@ -1,2 +1,2 @@
+        """;
 
     assertThrows(
         ValidationException.class,

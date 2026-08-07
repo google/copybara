@@ -6948,7 +6948,7 @@ The series and patch files must be included in the destination_files glob in ord
 
 Underneath, Copybara runs quilt in the `directory` parameter's location and then calls `quilt import; quilt push; quilt refresh` for each patch file in the `series` file in order. Copybara also uses the `-p ab` flag to strip out the leading `a/` and `b/` path components and then applies the patch files relative to the `directory` parameter's location.
 
-<code><a href="#transformation">transformation</a></code> <code>patch.quilt_apply(<a href=#patch.quilt_apply.series>series</a>, <a href=#patch.quilt_apply.directory>directory</a>='', <a href=#patch.quilt_apply.validation_level>validation_level</a>="FULL")</code>
+<code><a href="#transformation">transformation</a></code> <code>patch.quilt_apply(<a href=#patch.quilt_apply.series>series</a>, <a href=#patch.quilt_apply.directory>directory</a>='', <a href=#patch.quilt_apply.validation_level>validation_level</a>="FULL", <a href=#patch.quilt_apply.strip_hunk_headers>strip_hunk_headers</a>=False)</code>
 
 
 <h4 id="parameters.patch.quilt_apply">Parameters:</h4>
@@ -6958,6 +6958,7 @@ Parameter | Description
 <span id=patch.quilt_apply.series href=#patch.quilt_apply.series>series</span> | <code><a href="#string">string</a></code><br><p>A path to a series file to apply using Quilt, relative to the Copybara config directory.<br><br>This parameter must represent a simple non-empty relative path. `.` or `..` or absolute paths are not supported.<br><br>Quilt's standard path is `patches/series`, but overriding Quilt's patches directory name is supported by specifying a different directory name here or no directory. A different name for the series file is currently not supported, so this parameter must end in `series`.</p>
 <span id=patch.quilt_apply.directory href=#patch.quilt_apply.directory>directory</span> | <code><a href="#string">string</a></code><br><p>Path relative to the working directory from which to run quilt and apply patches. This supports patches that specify relative paths in their file diffs but use a different relative path base than the working directory.<br><br>This is also the output directory in which the updated patches directory, series and patch files get returned.<br><br>By default, it uses the root of the working directory.</p>
 <span id=patch.quilt_apply.validation_level href=#patch.quilt_apply.validation_level>validation_level</span> | <code><a href="#string">string</a></code><br><p>The validation level to use for patch files and series:<br>'FULL': series must exist in the filesystem, be not empty, and all patch files mentioned within must also exist.<br>'OPTIONAL_SERIES': not an error if series does not exist or is empty. If series exists, patch files mentioned within must still exist.<br>'NONE': no file system or content validation. Series or patches within might not exist or be empty files. The series parameter must still be specified and represent a simple relative path.</p>
+<span id=patch.quilt_apply.strip_hunk_headers href=#patch.quilt_apply.strip_hunk_headers>strip_hunk_headers</span> | <code><a href="#bool">bool</a></code><br><p>If true, Quilt will refresh the patches without generating hunk section headers. This avoids cosmetic changes to patch files when they are updated. </p>
 
 
 <h4 id="example.patch.quilt_apply">Example:</h4>

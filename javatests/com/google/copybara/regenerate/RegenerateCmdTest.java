@@ -508,6 +508,66 @@ public class RegenerateCmdTest {
   }
 
   @Test
+  public void testRegenerate_noSectionHeadersInPatch() throws Exception {
+    setupTarget("bar");
+    String testfile = "Test.java";
+    String originalContent =
+        """
+        public class Test {
+          public void foo() {
+            // 1
+            // 2
+            // 3
+            System.out.println("original");
+          }
+        }
+        """;
+    String modifiedContent =
+        """
+        public class Test {
+          public void foo() {
+            // 1
+            // 2
+            // 3
+            System.out.println("modified");
+          }
+        }
+        """;
+    String expectedDiff =
+        """
+        --- a/Test.java
+        +++ b/Test.java
+        @@ -3,6 +3,6 @@
+             // 1
+             // 2
+             // 3
+        -    System.out.println("original");
+        +    System.out.println("modified");
+           }
+         }
+        """;
+    origin.singleFileChange(0, "foo description", testfile, originalContent);
+    writeDestination("bar", testfile, modifiedContent);
+    options.regenerateOptions.setRegenImportBaseline(true);
+    when(patchRegenerator.inferImportBaseline(any(), any()))
+        .thenReturn(Optional.of(origin.getLatestChange().asString()));
+    RegenerateCmd cmd = getCmd(getNonMergeConsistencyFileConfigString());
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()), cmd);
+
+    ExitCode exitCode = cmd.run(commandEnv);
+
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
+    ArgumentCaptor<Path> pathArg = ArgumentCaptor.forClass(Path.class);
+    verify(patchRegenerator).updateChange(any(), pathArg.capture(), eq(Glob.ALL_FILES), eq("bar"));
+    String expectedPatchPath = CONSISTENCY_FILE_PATH + ".patch";
+    Path patchFile = pathArg.getValue().resolve(expectedPatchPath);
+    assertThat(Files.exists(patchFile)).isTrue();
+    String patchContent = Files.readString(patchFile);
+    assertThat(patchContent).isEqualTo(expectedDiff);
+  }
+
+  @Test
   public void testNoDiff_generatesNoPatches() throws Exception {
     setupTarget("bar");
 

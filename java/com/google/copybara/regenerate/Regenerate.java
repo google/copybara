@@ -556,7 +556,7 @@ public class Regenerate<O extends Revision, D extends Revision> {
             /* leftPrefix= */ ConsistencyFile.PREMERGE_DIR_NAME,
             /* rightPrefix= */ ConsistencyFile.CHECKOUT_DIR_NAME,
             /* commonPrefix= */ pathPrefix);
-    diff = DiffUtil.stripGitDiffHeaders(diff);
+    diff = DiffUtil.normalizeDiff(diff);
 
     // read series
     String seriesFilePath = getSeriesFilePath(patchFilePath);

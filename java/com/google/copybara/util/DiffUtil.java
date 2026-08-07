@@ -57,6 +57,11 @@ public class DiffUtil {
 
   public static final String DIFF_LEFT_PREFIX = "--- a/";
   public static final String DIFF_RIGHT_PREFIX = "+++ b/";
+  public static final String DIFF_FILE_LEFT_PREFIX = "--- ";
+  public static final String DIFF_FILE_RIGHT_PREFIX = "+++ ";
+  public static final String DIFF_GIT_PREFIX = "diff --git ";
+  public static final String DIFF_HUNK_HEADER_START = "@@ -";
+  public static final String DIFF_HUNK_HEADER_END = "@@";
 
   /**
    * Calculates the diff between two sibling directory trees.
@@ -374,20 +379,28 @@ public class DiffUtil {
   }
 
   /**
-   * Strips git diff headers (e.g. "diff --git" and "index" lines) from the diff, keeping the
-   * standard file header lines (starting with "---" and "+++").
+   * Normalizes diff bytes by stripping git-specific metadata, including git file diff headers (e.g.
+   * "diff --git", "index", mode changes) and hunk section headers (text after the closing "@@").
+   * Keeps standard file header lines (starting with "---" and "+++") and hunk diff content.
    */
-  public static byte[] stripGitDiffHeaders(byte[] diffBytes) {
+  public static byte[] normalizeDiff(byte[] diffBytes) {
     boolean dropping = false;
     List<String> keptLines = Lists.newArrayList();
     for (String line : Splitter.on('\n').split(new String(diffBytes, UTF_8))) {
-      if (line.startsWith("diff --git ")) {
+      if (line.startsWith(DIFF_GIT_PREFIX)) {
         dropping = true;
       }
-      if (line.startsWith("--- ")) {
+      if (line.startsWith(DIFF_FILE_LEFT_PREFIX)) {
         dropping = false;
       }
       if (!dropping) {
+        if (line.startsWith(DIFF_HUNK_HEADER_START)) {
+          int closeIndex = line.indexOf(DIFF_HUNK_HEADER_END, 3);
+          if (closeIndex != -1) {
+            boolean hadCr = line.endsWith("\r");
+            line = line.substring(0, closeIndex + 2) + (hadCr ? "\r" : "");
+          }
+        }
         keptLines.add(line);
       }
     }
@@ -448,13 +461,14 @@ public class DiffUtil {
     }
     for (String line : Splitter.on('\n').split(description.get())) {
       String trimmedLine = line.stripLeading();
-      if (trimmedLine.startsWith("--- ")
-          || trimmedLine.startsWith("+++ ")
-          || trimmedLine.startsWith("diff --git ")) {
+      if (trimmedLine.startsWith(DIFF_FILE_LEFT_PREFIX)
+          || trimmedLine.startsWith(DIFF_FILE_RIGHT_PREFIX)
+          || trimmedLine.startsWith(DIFF_GIT_PREFIX)
+          || trimmedLine.startsWith(DIFF_HUNK_HEADER_START)) {
         throw new ValidationException(
-            "Patch description cannot contain lines starting with '--- ', '+++ ' or 'diff --git '"
-                + " to avoid confusing diff parsers and patch tools. Leading spaces are trimmed as"
-                + " well. Problematic line: "
+            "Patch description cannot contain lines starting with '--- ', '+++ ', '@@ -' or "
+                + "'diff --git ' to avoid confusing diff parsers and patch tools. Leading spaces "
+                + "are trimmed as well. Problematic line: "
                 + line);
       }
     }
@@ -470,7 +484,9 @@ public class DiffUtil {
   public static String extractDescription(String patchContent) {
     List<String> headerLines = Lists.newArrayList();
     for (String line : Splitter.on('\n').split(patchContent)) {
-      if (line.startsWith("--- ") || line.startsWith("+++ ") || line.startsWith("diff --git ")) {
+      if (line.startsWith(DIFF_FILE_LEFT_PREFIX)
+          || line.startsWith(DIFF_FILE_RIGHT_PREFIX)
+          || line.startsWith(DIFF_GIT_PREFIX)) {
         break;
       }
       headerLines.add(line);

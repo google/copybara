@@ -60,6 +60,7 @@ public final class QuiltTransformation implements Transformation {
   private final String directory;
   private final Location location;
   private final String patchesDirName;
+  private final boolean stripHunkHeaders;
 
   QuiltTransformation(
       Optional<ConfigFile> series,
@@ -68,7 +69,8 @@ public final class QuiltTransformation implements Transformation {
       boolean reverse,
       String directory,
       Location location,
-      String patchesDirName) {
+      String patchesDirName,
+      boolean stripHunkHeaders) {
     this.series = series;
     this.patchFiles = patchFiles;
     this.options = options;
@@ -76,6 +78,7 @@ public final class QuiltTransformation implements Transformation {
     this.directory = checkNotNull(directory);
     this.location = checkNotNull(location);
     this.patchesDirName = checkNotNull(patchesDirName);
+    this.stripHunkHeaders = stripHunkHeaders;
   }
 
   @Override
@@ -116,7 +119,14 @@ public final class QuiltTransformation implements Transformation {
   @Override
   public Transformation reverse() {
     return new QuiltTransformation(
-        series, patchFiles, options, !reverse, directory, location, patchesDirName);
+        series,
+        patchFiles,
+        options,
+        !reverse,
+        directory,
+        location,
+        patchesDirName,
+        stripHunkHeaders);
   }
 
   @Override
@@ -210,17 +220,19 @@ public final class QuiltTransformation implements Transformation {
   private ImmutableMap<String, String> initializeQuilt(Path quiltRunDir, Map<String, String> env)
       throws ValidationException, IOException {
     // Creates quiltrc file and sets up QUILTRC environment variable.
-    ImmutableMap<String, String> quiltOptions =
+    ImmutableMap.Builder<String, String> quiltOptionsBuilder =
         ImmutableMap.<String, String>builder()
             .put("QUILT_NO_DIFF_TIMESTAMPS", "1")
-            .put("QUILT_DIFF_OPTS", "--show-c-function")
             // Uses the "-p ab" format in order to keep patch files' content independent of the
             // parent directory's name.
             .put("QUILT_DIFF_ARGS", "-p ab --no-index")
             .put("QUILT_REFRESH_ARGS", "-p ab --no-index")
             .put("QUILT_PATCHES_PREFIX", "yes")
-            .put("QUILT_PATCHES", patchesDirName)
-            .buildOrThrow();
+            .put("QUILT_PATCHES", patchesDirName);
+    if (!stripHunkHeaders) {
+      quiltOptionsBuilder.put("QUILT_DIFF_OPTS", "--show-c-function");
+    }
+    ImmutableMap<String, String> quiltOptions = quiltOptionsBuilder.buildOrThrow();
     // It overwrites any existing copybara.quiltrc file, which is OK because it is in the
     // temporary directory and its content is always the same.
     Path quilrcPath = options.getGeneralOptions().getDirFactory().getTmpRoot().resolve(

@@ -275,6 +275,16 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
                 exist or be empty files. The series parameter must still be specified and \
                 represent a simple relative path.\
                 """),
+        @Param(
+            name = "strip_hunk_headers",
+            named = true,
+            positional = false,
+            defaultValue = "False",
+            doc =
+                """
+                If true, Quilt will refresh the patches without generating hunk section headers. \
+                This avoids cosmetic changes to patch files when they are updated. \
+                """),
       },
       useStarlarkThread = true)
   @Example(
@@ -307,7 +317,11 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
           """)
   @UsesFlags(PatchingOptions.class)
   public QuiltTransformation quiltApply(
-      String series, String directory, String validationLevelString, StarlarkThread thread)
+      String series,
+      String directory,
+      String validationLevelString,
+      boolean stripHunkHeaders,
+      StarlarkThread thread)
       throws EvalException, ValidationException {
     validateQuiltSeriesParameter(series);
 
@@ -321,7 +335,8 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
         /* reverse= */ false,
         directory,
         thread.getCallerLocation(),
-        getPatchesDirName(series));
+        getPatchesDirName(series),
+        stripHunkHeaders);
   }
 
   private static void validateQuiltSeriesParameter(String series) throws ValidationException {

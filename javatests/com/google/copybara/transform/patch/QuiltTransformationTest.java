@@ -133,7 +133,8 @@ public final class QuiltTransformationTest {
             /* reverse= */ false,
             /* directory= */ "",
             Location.BUILTIN,
-            "patches");
+            "patches",
+            /* stripHunkHeaders= */ false);
 
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
 
@@ -159,7 +160,8 @@ public final class QuiltTransformationTest {
             /* reverse= */ false,
             /* directory= */ "",
             Location.BUILTIN,
-            "patches");
+            "patches",
+            /* stripHunkHeaders= */ false);
 
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
 
@@ -201,7 +203,8 @@ public final class QuiltTransformationTest {
             /* reverse= */ false,
             /* directory= */ "",
             Location.BUILTIN,
-            "patches");
+            "patches",
+            /* stripHunkHeaders= */ false);
 
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
 
@@ -226,7 +229,8 @@ public final class QuiltTransformationTest {
             /* reverse= */ false,
             /* directory= */ "",
             Location.BUILTIN,
-            "patches");
+            "patches",
+            /* stripHunkHeaders= */ false);
 
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
 
@@ -257,7 +261,8 @@ public final class QuiltTransformationTest {
             /* reverse= */ false,
             /* directory= */ "",
             Location.BUILTIN,
-            "patches");
+            "patches",
+            /* stripHunkHeaders= */ false);
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
 
     console
@@ -310,7 +315,8 @@ public final class QuiltTransformationTest {
             /* reverse= */ false,
             /* directory= */ "",
             Location.BUILTIN,
-            "patches");
+            "patches",
+            /* stripHunkHeaders= */ false);
 
     ValidationException e =
         assertThrows(
@@ -494,7 +500,8 @@ public final class QuiltTransformationTest {
             /* reverse= */ false,
             /* directory= */ "sub/dir",
             Location.BUILTIN,
-            "patches");
+            "patches",
+            /* stripHunkHeaders= */ false);
 
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
 
@@ -587,7 +594,8 @@ public final class QuiltTransformationTest {
             /* reverse= */ false,
             /* directory= */ "sub/dir",
             Location.BUILTIN,
-            "patches");
+            "patches",
+            /* stripHunkHeaders= */ false);
 
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
 
@@ -637,7 +645,8 @@ public final class QuiltTransformationTest {
             /* reverse= */ false,
             /* directory= */ "",
             Location.BUILTIN,
-            "_GOOGLE_PATCHES");
+            "_GOOGLE_PATCHES",
+            /* stripHunkHeaders= */ false);
 
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
 
@@ -676,7 +685,8 @@ public final class QuiltTransformationTest {
             /* reverse= */ false,
             /* directory= */ "sub/dir",
             Location.BUILTIN,
-            "patches");
+            "patches",
+            /* stripHunkHeaders= */ false);
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
 
     console
@@ -730,7 +740,8 @@ public final class QuiltTransformationTest {
             /* reverse= */ false,
             /* directory= */ "",
             Location.BUILTIN,
-            "_GOOGLE_PATCHES");
+            "_GOOGLE_PATCHES",
+            /* stripHunkHeaders= */ false);
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
 
     console
@@ -768,7 +779,8 @@ public final class QuiltTransformationTest {
             /* reverse= */ false,
             "",
             Location.BUILTIN,
-            "patches");
+            "patches",
+            /* stripHunkHeaders= */ false);
     assertThat(transform.describe())
         .isEqualTo(
             "Patch.quilt_apply: using quilt to apply and update patches: patches/diff.patch");
@@ -785,7 +797,8 @@ public final class QuiltTransformationTest {
             /* reverse= */ false,
             /* directory= */ "",
             Location.BUILTIN,
-            "patches");
+            "patches",
+            /* stripHunkHeaders= */ false);
 
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
 
@@ -809,7 +822,8 @@ public final class QuiltTransformationTest {
             /* reverse= */ false,
             /* directory= */ "",
             Location.BUILTIN,
-            "patches");
+            "patches",
+            /* stripHunkHeaders= */ false);
 
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
 
@@ -900,5 +914,69 @@ public final class QuiltTransformationTest {
     skylark.evalFails(
         "patch.quilt_apply(series = 'foo/../bar', validation_level = 'NONE')",
         "path has unexpected \\. or \\.\\. components");
+  }
+
+  @Test
+  public void testQuiltRefresh_stripsHunkSectionHeaders() throws Exception {
+    String javaClassCode =
+        """
+        public class MyClass {
+          public void myMethod() {
+            // context line
+            int a = 1;
+            int b = 2;
+            // modify this line
+          }
+        }
+        """;
+    Files.write(checkoutDir.resolve("file1.txt"), javaClassCode.getBytes(UTF_8));
+    String initialDiff =
+        """
+        --- a/file1.txt
+        +++ b/file1.txt
+        @@ -3,6 +3,6 @@ public class MyClass
+             // context line
+             int a = 1;
+             int b = 2;
+        -    // modify this line
+        +    // modified line
+           }
+         }
+        """;
+    String expectedDiff =
+        """
+        --- a/file1.txt
+        +++ b/file1.txt
+        @@ -3,6 +3,6 @@
+             // context line
+             int a = 1;
+             int b = 2;
+        -    // modify this line
+        +    // modified line
+           }
+         }
+        """;
+    ImmutableMap<String, byte[]> configFiles =
+        ImmutableMap.of(
+            "patches/diff.patch", initialDiff.getBytes(UTF_8),
+            "patches/series", SERIES.getBytes(UTF_8));
+    ConfigFile customPatchFile = new MapConfigFile(configFiles, "patches/diff.patch");
+    ConfigFile customSeriesFile = new MapConfigFile(configFiles, "patches/series");
+    QuiltTransformation transform =
+        new QuiltTransformation(
+            Optional.of(customSeriesFile),
+            ImmutableList.of(customPatchFile),
+            patchingOptions,
+            /* reverse= */ false,
+            /* directory= */ "",
+            Location.BUILTIN,
+            "patches",
+            /* stripHunkHeaders= */ true);
+
+    transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
+
+    Path refreshedPatch = checkoutDir.resolve("patches/diff.patch");
+    String content = Files.readString(refreshedPatch, UTF_8);
+    assertThat(content).isEqualTo(expectedDiff);
   }
 }
