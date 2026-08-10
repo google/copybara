@@ -21,8 +21,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
-import com.google.copybara.util.ScpUtil.ScpUrl;
 import com.google.copybara.util.ScpUtil;
+import com.google.copybara.util.ScpUtil.ScpUrl;
+import com.google.re2j.Pattern;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
@@ -38,6 +39,15 @@ import java.util.Optional;
  */
 public final class GitHubIdentifier {
 
+  /**
+   * GitHub naming regex rules: 1 to 39 characters, alphanumeric with single hyphens (no consecutive
+   * hyphens, no leading or trailing hyphens).
+   *
+   * <p>Source: https://github.com/dead-claudia/github-limits#organization-names
+   */
+  public static final Pattern GITHUB_ORG_PATTERN =
+      Pattern.compile("^[a-zA-Z0-9]+(-[a-zA-Z0-9]+)*$");
+
   private static final String GITHUB_DOT_COM_API_URL = "https://api.github.com";
   private static final String GITHUB_DOT_COM_HOST_NAME = "github.com";
 
@@ -52,6 +62,20 @@ public final class GitHubIdentifier {
     this.hostName = hostName;
     this.ownerOrOrganizationName = ownerOrOrganizationName;
     this.repoName = repoName;
+  }
+
+  /**
+   * Validates if a string is a valid GitHub organization or user name according to {@link
+   * #GITHUB_ORG_PATTERN}.
+   *
+   * @param name the string to validate
+   * @return true if the string is a valid GitHub organization or user name, false otherwise
+   */
+  public static boolean isValidOrganizationName(String name) {
+    return name != null
+        && !name.isEmpty()
+        && name.length() <= 39
+        && GITHUB_ORG_PATTERN.matcher(name).matches();
   }
 
   /**
@@ -89,7 +113,13 @@ public final class GitHubIdentifier {
         identifier);
 
     String apiUrl = determineApiUrl(hostName);
+    
     String ownerOrOrganizationName = pathParts.get(0);
+    checkArgument(
+        isValidOrganizationName(ownerOrOrganizationName),
+        "Invalid owner or organization name: %s",
+        ownerOrOrganizationName);
+
     String repoName = pathParts.get(1);
 
     return new GitHubIdentifier(apiUrl, hostName, ownerOrOrganizationName, repoName);

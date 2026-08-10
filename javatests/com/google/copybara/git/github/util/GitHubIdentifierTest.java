@@ -20,11 +20,12 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
+import com.google.testing.junit.testparameterinjector.TestParameter;
+import com.google.testing.junit.testparameterinjector.TestParameterInjector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
+@RunWith(TestParameterInjector.class)
 public final class GitHubIdentifierTest {
 
   @Test
@@ -84,6 +85,26 @@ public final class GitHubIdentifierTest {
         .contains(
             "URI path must contain exactly one '/' separating the owner or organization and the"
                 + " repo name.");
+  }
+
+  @Test
+  public void testCreate_invalidOrganizationName(
+      @TestParameter({
+            "-leading-hyphen",
+            "trailing-hyphen-",
+            "consecutive--hyphens",
+            "invalid_underscore",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          })
+          String invalidOrg) {
+    String url = "https://github.com/" + invalidOrg + "/reponame";
+
+    IllegalArgumentException exception =
+        assertThrows(IllegalArgumentException.class, () -> GitHubIdentifier.create(url));
+
+    assertThat(exception)
+        .hasMessageThat()
+        .contains("Invalid owner or organization name: " + invalidOrg);
   }
 
   @Test
@@ -168,5 +189,27 @@ public final class GitHubIdentifierTest {
     GitHubIdentifier identifier = GitHubIdentifier.create(url);
 
     assertThat(identifier.getRepoName()).isEqualTo("reponame");
+  }
+
+  @Test
+  public void testIsValidOrganizationName_happyCases(
+      @TestParameter({"google", "fog-3p-actions", "a", "12345", "a-b-c-d"}) String orgName) {
+    assertThat(GitHubIdentifier.isValidOrganizationName(orgName)).isTrue();
+  }
+
+  @Test
+  public void testInvalidOrganizationName_unhappyCases(
+      @TestParameter({
+            "null",
+            "",
+            "-leading-hyphen",
+            "trailing-hyphen-",
+            "consecutive--hyphens",
+            "invalid_underscore",
+            "invalid space",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          })
+          String orgName) {
+    assertThat(GitHubIdentifier.isValidOrganizationName(orgName)).isFalse();
   }
 }

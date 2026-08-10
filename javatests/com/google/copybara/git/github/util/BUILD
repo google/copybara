@@ -29,6 +29,7 @@ all_tests(
     deps = [
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/git/github:util",
+        "//third_party:testparameterinjector",
         "//third_party:truth",
     ],
 )
