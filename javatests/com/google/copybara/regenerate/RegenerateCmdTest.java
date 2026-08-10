@@ -748,6 +748,228 @@ public class RegenerateCmdTest {
   }
 
   @Test
+  public void testConsistencyFile_defaultDescriptionFromConfig() throws Exception {
+    setupTarget("bar");
+    String testfile = "asdf.txt";
+    origin.singleFileChange(0, "foo description", testfile, "foo");
+    when(patchRegenerator.inferImportBaseline(any(), any()))
+        .thenReturn(Optional.of(origin.getLatestChange().asString()));
+    writeDestination("bar", testfile, "bar");
+    String config =
+        getNonMergeConsistencyFileConfigWithExplicitPatchAndDescriptionString(
+            "do-not-edit.bara.consistency",
+            "test/patches/explicit.patch",
+            "Default description\nLine 2");
+    RegenerateCmd cmd = getCmd(config);
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()), cmd);
+
+    ExitCode exitCode = cmd.run(commandEnv);
+
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
+    ArgumentCaptor<Path> pathArg = ArgumentCaptor.forClass(Path.class);
+    verify(patchRegenerator).updateChange(any(), pathArg.capture(), eq(Glob.ALL_FILES), eq("bar"));
+    String explicitPatchPath = "test/patches/explicit.patch";
+    assertThatPath(pathArg.getValue()).containsFiles(explicitPatchPath);
+    String patchContent = Files.readString(pathArg.getValue().resolve(explicitPatchPath));
+    assertThat(patchContent).startsWith("Default description\nLine 2\n--- ");
+  }
+
+  @Test
+  public void testConsistencyFile_cliDescriptionOverride() throws Exception {
+    setupTarget("bar");
+    String testfile = "asdf.txt";
+    origin.singleFileChange(0, "foo description", testfile, "foo");
+    when(patchRegenerator.inferImportBaseline(any(), any()))
+        .thenReturn(Optional.of(origin.getLatestChange().asString()));
+    writeDestination("bar", testfile, "bar");
+    options.regenerateOptions.setRegenPatchDescription("CLI Override Description");
+    String config =
+        getNonMergeConsistencyFileConfigWithExplicitPatchAndDescriptionString(
+            "do-not-edit.bara.consistency", "test/patches/explicit.patch", "Default description");
+    RegenerateCmd cmd = getCmd(config);
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()), cmd);
+
+    ExitCode exitCode = cmd.run(commandEnv);
+
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
+    ArgumentCaptor<Path> pathArg = ArgumentCaptor.forClass(Path.class);
+    verify(patchRegenerator).updateChange(any(), pathArg.capture(), eq(Glob.ALL_FILES), eq("bar"));
+    String explicitPatchPath = "test/patches/explicit.patch";
+    String patchContent = Files.readString(pathArg.getValue().resolve(explicitPatchPath));
+    assertThat(patchContent).startsWith("CLI Override Description\n--- ");
+  }
+
+  @Test
+  public void testConsistencyFile_defaultToNoKeepDescription() throws Exception {
+    setupTarget("bar");
+    String testfile = "asdf.txt";
+    origin.singleFileChange(0, "foo description", testfile, "foo");
+    when(patchRegenerator.inferImportBaseline(any(), any()))
+        .thenReturn(Optional.of(origin.getLatestChange().asString()));
+    writeDestination("bar", testfile, "bar");
+    writeDestination(
+        "bar",
+        "test/patches/explicit.patch",
+        "Existing Description\n--- a/asdf.txt\n+++ b/asdf.txt\n");
+    String config =
+        getNonMergeConsistencyFileConfigWithExplicitPatchAndDescriptionString(
+            "do-not-edit.bara.consistency", "test/patches/explicit.patch", "Config description");
+    RegenerateCmd cmd = getCmd(config);
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()), cmd);
+
+    ExitCode exitCode = cmd.run(commandEnv);
+
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
+    ArgumentCaptor<Path> pathArg = ArgumentCaptor.forClass(Path.class);
+    verify(patchRegenerator).updateChange(any(), pathArg.capture(), eq(Glob.ALL_FILES), eq("bar"));
+    String explicitPatchPath = "test/patches/explicit.patch";
+    String patchContent = Files.readString(pathArg.getValue().resolve(explicitPatchPath));
+    assertThat(patchContent).startsWith("Config description\n--- ");
+  }
+
+  @Test
+  public void testConsistencyFile_defaultToKeepDescriptionWithExplicitPatchFile() throws Exception {
+    setupTarget("bar");
+    String testfile = "asdf.txt";
+    origin.singleFileChange(0, "foo description", testfile, "foo");
+    when(patchRegenerator.inferImportBaseline(any(), any()))
+        .thenReturn(Optional.of(origin.getLatestChange().asString()));
+    writeDestination("bar", testfile, "bar");
+    writeDestination(
+        "bar",
+        "test/patches/explicit_cli.patch",
+        "Existing Description\n--- a/asdf.txt\n+++ b/asdf.txt\n");
+    options.regenerateOptions.setRegenPatchFile("test/patches/explicit_cli.patch");
+    String config =
+        getNonMergeConsistencyFileConfigWithExplicitPatchAndDescriptionString(
+            "do-not-edit.bara.consistency", "test/patches/explicit.patch", "Config description");
+    RegenerateCmd cmd = getCmd(config);
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()), cmd);
+
+    ExitCode exitCode = cmd.run(commandEnv);
+
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
+    ArgumentCaptor<Path> pathArg = ArgumentCaptor.forClass(Path.class);
+    verify(patchRegenerator).updateChange(any(), pathArg.capture(), eq(Glob.ALL_FILES), eq("bar"));
+    String explicitPatchPath = "test/patches/explicit_cli.patch";
+    String patchContent = Files.readString(pathArg.getValue().resolve(explicitPatchPath));
+    assertThat(patchContent).startsWith("Existing Description\n--- ");
+  }
+
+  @Test
+  public void testConsistencyFile_keepDescriptionFalse_fallsBackToConfig() throws Exception {
+    setupTarget("bar");
+    String testfile = "asdf.txt";
+    origin.singleFileChange(0, "foo description", testfile, "foo");
+    when(patchRegenerator.inferImportBaseline(any(), any()))
+        .thenReturn(Optional.of(origin.getLatestChange().asString()));
+    writeDestination("bar", testfile, "bar");
+    writeDestination(
+        "bar",
+        "test/patches/explicit.patch",
+        "Existing Description\n--- a/asdf.txt\n+++ b/asdf.txt\n");
+    options.regenerateOptions.setRegenPatchDescriptionKeep(false);
+    String config =
+        getNonMergeConsistencyFileConfigWithExplicitPatchAndDescriptionString(
+            "do-not-edit.bara.consistency", "test/patches/explicit.patch", "Config Description");
+    RegenerateCmd cmd = getCmd(config);
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()), cmd);
+
+    ExitCode exitCode = cmd.run(commandEnv);
+
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
+    ArgumentCaptor<Path> pathArg = ArgumentCaptor.forClass(Path.class);
+    verify(patchRegenerator).updateChange(any(), pathArg.capture(), eq(Glob.ALL_FILES), eq("bar"));
+    String explicitPatchPath = "test/patches/explicit.patch";
+    String patchContent = Files.readString(pathArg.getValue().resolve(explicitPatchPath));
+    assertThat(patchContent).startsWith("Config Description\n--- ");
+  }
+
+  @Test
+  public void testConsistencyFile_keepDescriptionFalseOverrideWithExplicitPatchFile()
+      throws Exception {
+    setupTarget("bar");
+    String testfile = "asdf.txt";
+    origin.singleFileChange(0, "foo description", testfile, "foo");
+    when(patchRegenerator.inferImportBaseline(any(), any()))
+        .thenReturn(Optional.of(origin.getLatestChange().asString()));
+    writeDestination("bar", testfile, "bar");
+    writeDestination(
+        "bar",
+        "test/patches/explicit_cli.patch",
+        "Existing Description\n--- a/asdf.txt\n+++ b/asdf.txt\n");
+    options.regenerateOptions.setRegenPatchFile("test/patches/explicit_cli.patch");
+    options.regenerateOptions.setRegenPatchDescriptionKeep(false);
+    String config =
+        getNonMergeConsistencyFileConfigWithExplicitPatchAndDescriptionString(
+            "do-not-edit.bara.consistency", "test/patches/explicit.patch", "Config Description");
+    RegenerateCmd cmd = getCmd(config);
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()), cmd);
+
+    ExitCode exitCode = cmd.run(commandEnv);
+
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
+    ArgumentCaptor<Path> pathArg = ArgumentCaptor.forClass(Path.class);
+    verify(patchRegenerator).updateChange(any(), pathArg.capture(), eq(Glob.ALL_FILES), eq("bar"));
+    String explicitPatchPath = "test/patches/explicit_cli.patch";
+    String patchContent = Files.readString(pathArg.getValue().resolve(explicitPatchPath));
+    assertThat(patchContent).startsWith("Config Description\n--- ");
+  }
+
+  @Test
+  public void testConsistencyFile_keepDescriptionTrueOverrideWithoutExplicitPatchFile()
+      throws Exception {
+    setupTarget("bar");
+    String testfile = "asdf.txt";
+    origin.singleFileChange(0, "foo description", testfile, "foo");
+    when(patchRegenerator.inferImportBaseline(any(), any()))
+        .thenReturn(Optional.of(origin.getLatestChange().asString()));
+    writeDestination("bar", testfile, "bar");
+    writeDestination(
+        "bar",
+        "test/patches/explicit.patch",
+        "Existing Description\n--- a/asdf.txt\n+++ b/asdf.txt\n");
+    options.regenerateOptions.setRegenPatchDescriptionKeep(true);
+    String config =
+        getNonMergeConsistencyFileConfigWithExplicitPatchAndDescriptionString(
+            "do-not-edit.bara.consistency", "test/patches/explicit.patch", "Config Description");
+    RegenerateCmd cmd = getCmd(config);
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()), cmd);
+
+    ExitCode exitCode = cmd.run(commandEnv);
+
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
+    ArgumentCaptor<Path> pathArg = ArgumentCaptor.forClass(Path.class);
+    verify(patchRegenerator).updateChange(any(), pathArg.capture(), eq(Glob.ALL_FILES), eq("bar"));
+    String explicitPatchPath = "test/patches/explicit.patch";
+    String patchContent = Files.readString(pathArg.getValue().resolve(explicitPatchPath));
+    assertThat(patchContent).startsWith("Existing Description\n--- ");
+  }
+
+  @Test
+  public void testConsistencyFile_invalidDescriptionFromCli_throws() throws Exception {
+    setupTarget("bar");
+    String testfile = "asdf.txt";
+    origin.singleFileChange(0, "foo description", testfile, "foo");
+    when(patchRegenerator.inferImportBaseline(any(), any()))
+        .thenReturn(Optional.of(origin.getLatestChange().asString()));
+    writeDestination("bar", testfile, "bar");
+    options.regenerateOptions.setRegenPatchDescription("Invalid Description\n--- a/file.txt");
+    RegenerateCmd cmd = getCmd(getNonMergeConsistencyFileConfigString());
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()), cmd);
+
+    assertThrows(ValidationException.class, () -> cmd.run(commandEnv));
+  }
+
+  @Test
   public void testConsistencyFile_capturesDiff() throws Exception {
     setupBaseline("foo");
     setupTarget("bar");
@@ -1494,5 +1716,25 @@ public class RegenerateCmdTest {
     assertThat(patchContent).contains("asdf.txt");
     assertThat(patchContent).doesNotContain("other.patch");
     assertThat(patchContent).doesNotContain("series");
+  }
+
+  private String getNonMergeConsistencyFileConfigWithExplicitPatchAndDescriptionString(
+      String consistencyPath, String patchPath, String description) {
+    return """
+    core.workflow(
+        name = 'default',
+        origin = testing.origin(),
+        origin_files = glob(['**']),
+        destination = testing.destination(),
+        mode = 'SQUASH',
+        authoring = authoring.pass_thru('example <example@example.com>'),
+        consistency_file = core.consistency_file_config(
+            path = "%s",
+            patch_file_path = "%s",
+            patch_file_description = \"\"\"%s\"\"\"
+        ),
+    )\\
+    """
+        .formatted(consistencyPath, patchPath, description);
   }
 }

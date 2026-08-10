@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
 import com.google.common.io.MoreFiles;
+import com.google.common.primitives.Bytes;
 import com.google.copybara.AutoPatchfileConfiguration;
 import com.google.copybara.Destination.PatchRegenerator;
 import com.google.copybara.Destination.Writer;
@@ -270,13 +271,15 @@ public class Regenerate<O extends Revision, D extends Revision> {
         // extend destination files with explicit patch and series if necessary
         DestinationReader baselineDestinationReader =
             destinationWriter.getDestinationReader(console, regenTarget, workdir);
+        String patchDescription = resolvePatchDescription(patchFilePath, baselineDestinationReader);
         destinationFiles =
             writePatchAndSeriesFiles(
                 consistencyFile,
                 patchFilePath,
                 nextPath,
                 baselineDestinationReader,
-                destinationFiles);
+                destinationFiles,
+                patchDescription);
         consistencyFile = updateConsistencyFileHashes(consistencyFile, patchFilePath, nextPath);
         consistencyFileBytes = consistencyFile.withoutDiff().toBytes();
       }
@@ -286,6 +289,45 @@ public class Regenerate<O extends Revision, D extends Revision> {
 
     // push the new set of files
     patchRegenerator.updateChange(workflow.getName(), nextPath, destinationFiles, regenTarget);
+  }
+
+  @Nullable
+  private String resolvePatchDescription(String patchFilePath, DestinationReader destinationReader)
+      throws ValidationException {
+    // 1. CLI description override (absolute precedence)
+    Optional<String> cliDesc = regenerateOptions.getRegenPatchDescription();
+    if (cliDesc.isPresent()) {
+      DiffUtil.validatePatchDescription(cliDesc);
+      return cliDesc.get();
+    }
+
+    // Determine keep behavior
+    boolean keepExisting = false;
+    Boolean keepCliOption = regenerateOptions.getPatchDescriptionKeep();
+    if (keepCliOption != null) {
+      keepExisting = keepCliOption;
+    } else {
+      // Default to true if explicit patch file is provided, false otherwise
+      keepExisting = regenerateOptions.getRegenPatchFile().isPresent();
+    }
+
+    // 2. Keep existing description
+    if (keepExisting && destinationReader.exists(patchFilePath)) {
+      try {
+        String existingContent = destinationReader.readFile(patchFilePath);
+        return DiffUtil.extractDescription(existingContent);
+      } catch (RepoException e) {
+        console.warn("Failed to read existing patch file to keep description: " + e.getMessage());
+      }
+    }
+
+    // 3. Config default
+    if (workflow.getConsistencyFileConfig() != null
+        && workflow.getConsistencyFileConfig().patchFileDescription() != null) {
+      return workflow.getConsistencyFileConfig().patchFileDescription();
+    }
+
+    return null;
   }
 
   /**
@@ -495,7 +537,8 @@ public class Regenerate<O extends Revision, D extends Revision> {
       String patchFilePath,
       Path nextPath,
       DestinationReader destinationReader,
-      Glob destinationFiles)
+      Glob destinationFiles,
+      @Nullable String patchDescription)
       throws IOException {
     Preconditions.checkArgument(!Strings.isNullOrEmpty(patchFilePath));
 
@@ -547,7 +590,14 @@ public class Regenerate<O extends Revision, D extends Revision> {
 
     // write diff to patch file
     boolean patchExisted = destinationReader.exists(patchFilePath);
-    destinationFiles = writeFileAndRegister(nextPath, patchFilePath, diff, destinationFiles);
+    byte[] patchContent = diff;
+    if (!Strings.isNullOrEmpty(patchDescription)) {
+      String descriptionWithNewline = patchDescription + "\n";
+      byte[] descriptionBytes = descriptionWithNewline.getBytes(UTF_8);
+      patchContent = Bytes.concat(descriptionBytes, diff);
+    }
+    destinationFiles =
+        writeFileAndRegister(nextPath, patchFilePath, patchContent, destinationFiles);
 
     // write series if preexisting or if patch+series both don't exist yet
     if (seriesExisted || !patchExisted) {

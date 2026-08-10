@@ -30,9 +30,10 @@ public abstract class ConsistencyFileConfiguration implements StarlarkValue {
       String path,
       boolean excludeBuildFiles,
       @Nullable String patchFilePath,
-      @Nullable String patchPathPrefixToStrip) {
+      @Nullable String patchPathPrefixToStrip,
+      @Nullable String patchFileDescription) {
     return new AutoValue_ConsistencyFileConfiguration(
-        path, excludeBuildFiles, patchFilePath, patchPathPrefixToStrip);
+        path, excludeBuildFiles, patchFilePath, patchPathPrefixToStrip, patchFileDescription);
   }
 
   public abstract String path();
@@ -44,4 +45,7 @@ public abstract class ConsistencyFileConfiguration implements StarlarkValue {
 
   @Nullable
   public abstract String patchPathPrefixToStrip();
+
+  @Nullable
+  public abstract String patchFileDescription();
 }

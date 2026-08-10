@@ -32,6 +32,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitEnvironment;
 import com.google.copybara.util.DiffUtil.DiffFile.Operation;
 import com.google.copybara.util.console.AnsiColor;
@@ -44,6 +45,7 @@ import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import javax.annotation.Nullable;
@@ -422,6 +424,50 @@ public class DiffUtil {
     diffStr = diffStr.replace(prefixToStripPremerge, DIFF_LEFT_PREFIX);
     diffStr = diffStr.replace(prefixToStripCheckout, DIFF_RIGHT_PREFIX);
     return diffStr.getBytes(UTF_8);
+  }
+
+  /**
+   * Validates that the patch description does not contain lines starting with "--- " or "+++ " to
+   * avoid confusing diff parsers. Also trims any leading whitespace before checking the line.
+   *
+   * @param description the patch description to validate
+   * @throws ValidationException if the description is invalid
+   */
+  public static void validatePatchDescription(Optional<String> description)
+      throws ValidationException {
+    if (description.isEmpty()) {
+      return;
+    }
+    for (String line : Splitter.on('\n').split(description.get())) {
+      String trimmedLine = line.stripLeading();
+      if (trimmedLine.startsWith("--- ")
+          || trimmedLine.startsWith("+++ ")
+          || trimmedLine.startsWith("diff --git ")) {
+        throw new ValidationException(
+            "Patch description cannot contain lines starting with '--- ', '+++ ' or 'diff --git '"
+                + " to avoid confusing diff parsers and patch tools. Leading spaces are trimmed as"
+                + " well. Problematic line: "
+                + line);
+      }
+    }
+  }
+
+  /**
+   * Extracts the description (arbitrary text at the top) from a patch file content. Assumes the
+   * diff starts at the first line starting with "--- ", "+++ " or "diff --git ".
+   *
+   * @param patchContent the content of the patch file to extract the description from
+   * @return the extracted description, without newline at the end
+   */
+  public static String extractDescription(String patchContent) {
+    List<String> headerLines = Lists.newArrayList();
+    for (String line : Splitter.on('\n').split(patchContent)) {
+      if (line.startsWith("--- ") || line.startsWith("+++ ") || line.startsWith("diff --git ")) {
+        break;
+      }
+      headerLines.add(line);
+    }
+    return String.join("\n", headerLines);
   }
 
   /** Given a git compatible diff, returns the diff colorized if the console allows it. */

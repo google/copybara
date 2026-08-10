@@ -45,6 +45,15 @@ public class RegenerateOptions implements Option {
     return Optional.ofNullable(regenPatchFile);
   }
 
+  public Optional<String> getRegenPatchDescription() {
+    return Optional.ofNullable(regenPatchDescription);
+  }
+
+  @Nullable
+  public Boolean getPatchDescriptionKeep() {
+    return regenPatchDescriptionKeep;
+  }
+
   @Nullable
   @Parameter(
       names = "--regen-baseline",
@@ -72,6 +81,34 @@ public class RegenerateOptions implements Option {
   @VisibleForTesting
   public void setRegenPatchFile(@Nullable String regenPatchFile) {
     this.regenPatchFile = regenPatchFile;
+  }
+
+  @Nullable
+  @Parameter(
+      names = "--regen-patch-description",
+      description =
+          "A custom description to prepend to the generated patch file. Overrides config.")
+  private String regenPatchDescription;
+
+  @VisibleForTesting
+  public void setRegenPatchDescription(@Nullable String regenPatchDescription) {
+    this.regenPatchDescription = regenPatchDescription;
+  }
+
+  @Nullable
+  @Parameter(
+      names = "--regen-patch-description-keep",
+      arity = 1,
+      description =
+          "Keep the existing description in the patch file if it exists. Defaults to true if"
+              + " --regen-patch-file is specified, false otherwise. Ignored if"
+              + " --regen-patch-description is specified.")
+  // Boxed boolean to distinguish explicitly specified true/false and enable using defaults if null
+  private Boolean regenPatchDescriptionKeep = null;
+
+  @VisibleForTesting
+  public void setRegenPatchDescriptionKeep(@Nullable Boolean regenPatchDescriptionKeep) {
+    this.regenPatchDescriptionKeep = regenPatchDescriptionKeep;
   }
 
   @Parameter(

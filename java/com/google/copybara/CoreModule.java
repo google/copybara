@@ -69,6 +69,7 @@ import com.google.copybara.transform.TodoReplace;
 import com.google.copybara.transform.TodoReplace.Mode;
 import com.google.copybara.transform.VerifyMatch;
 import com.google.copybara.transform.debug.DebugOptions;
+import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.version.CustomVersionSelector;
 import com.google.copybara.version.LatestVersionSelector;
@@ -86,6 +87,7 @@ import java.util.HashSet;
 import java.util.IllegalFormatException;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.function.Supplier;
 import javax.annotation.Nullable;
@@ -2613,13 +2615,29 @@ public class CoreModule implements LabelsAwareModule, StarlarkValue {
             },
             defaultValue = "None",
             named = true,
+            positional = false),
+        @Param(
+            name = "patch_file_description",
+            doc =
+                """
+                A default description to prepend to the generated explicit patch file. Does not \
+                affect the consistency file header itself. May not contain any lines looking like \
+                the beginning of diff content (starting with "+++", "---", "diff -git").\
+                """,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
+            defaultValue = "None",
+            named = true,
             positional = false)
       })
   public ConsistencyFileConfiguration consistencyFileConfig(
       String path,
       boolean excludeBuildFiles,
       Object patchFilePathObj,
-      Object patchPathPrefixToStripObj)
+      Object patchPathPrefixToStripObj,
+      Object patchFileDescriptionObj)
       throws EvalException {
     try {
       checkCondition(
@@ -2630,8 +2648,14 @@ public class CoreModule implements LabelsAwareModule, StarlarkValue {
     }
     String patchFilePath = convertFromNoneable(patchFilePathObj, null);
     String patchPathPrefixToStrip = convertFromNoneable(patchPathPrefixToStripObj, null);
+    String patchFileDescription = convertFromNoneable(patchFileDescriptionObj, null);
+    try {
+      DiffUtil.validatePatchDescription(Optional.ofNullable(patchFileDescription));
+    } catch (ValidationException e) {
+      throw new EvalException(e.getMessage());
+    }
     return ConsistencyFileConfiguration.create(
-        path, excludeBuildFiles, patchFilePath, patchPathPrefixToStrip);
+        path, excludeBuildFiles, patchFilePath, patchPathPrefixToStrip, patchFileDescription);
   }
 
   @SuppressWarnings("unused")
@@ -2750,7 +2774,12 @@ public class CoreModule implements LabelsAwareModule, StarlarkValue {
       boolean val = b;
       if (val) {
         consistencyConfig =
-            ConsistencyFileConfiguration.create("do-not-edit.bara.consistency", false, null, null);
+            ConsistencyFileConfiguration.create(
+                /* path= */ "do-not-edit.bara.consistency",
+                /* excludeBuildFiles= */ false,
+                /* patchFilePath= */ null,
+                /* patchPathPrefixToStrip= */ null,
+                /* patchFileDescription= */ null);
       } else {
         consistencyConfig = null;
       }
@@ -2768,7 +2797,12 @@ public class CoreModule implements LabelsAwareModule, StarlarkValue {
 
     if (consistencyFilePath != null) {
       consistencyConfig =
-          ConsistencyFileConfiguration.create(consistencyFilePath, false, null, null);
+          ConsistencyFileConfiguration.create(
+              consistencyFilePath,
+              /* excludeBuildFiles= */ false,
+              /* patchFilePath= */ null,
+              /* patchPathPrefixToStrip= */ null,
+              /* patchFileDescription= */ null);
     }
     return consistencyConfig;
   }

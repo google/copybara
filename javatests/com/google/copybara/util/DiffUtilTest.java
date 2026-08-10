@@ -23,6 +23,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitEnvironment;
 import com.google.copybara.util.DiffUtil.DiffFile;
 import com.google.copybara.util.DiffUtil.DiffFile.Operation;
@@ -33,6 +34,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -624,6 +626,72 @@ public class DiffUtilTest {
     String strippedStr = new String(stripped, StandardCharsets.UTF_8);
     assertThat(strippedStr).contains("--- a/foo.txt\n");
     assertThat(strippedStr).contains("+++ b/foo.txt\n");
+  }
+
+  @Test
+  public void extractDescription_extractsDescription() {
+    String patch = "Description line 1\nDescription line 2\n--- a/file.txt\n+++ b/file.txt\n";
+
+    String description = DiffUtil.extractDescription(patch);
+
+    assertThat(description).isEqualTo("Description line 1\nDescription line 2");
+  }
+
+  @Test
+  public void extractDescription_extractsDescription_stopsAtGitDiff() {
+    String patch = "Description line 1\nDescription line 2\ndiff --git a/file.txt b/file.txt\n";
+
+    String description = DiffUtil.extractDescription(patch);
+
+    assertThat(description).isEqualTo("Description line 1\nDescription line 2");
+  }
+
+  @Test
+  public void extractDescription_noDescription() {
+    String patch = "--- a/file.txt\n+++ b/file.txt\n";
+
+    String description = DiffUtil.extractDescription(patch);
+
+    assertThat(description).isEmpty();
+  }
+
+  @Test
+  public void validatePatchDescription_validDescription_doesNotThrow() throws Exception {
+    String description = "This is a valid description\nIt can be multiline\nBut no diff headers";
+
+    DiffUtil.validatePatchDescription(Optional.of(description));
+  }
+
+  @Test
+  public void validatePatchDescription_emptyDescription_doesNotThrow() throws Exception {
+    DiffUtil.validatePatchDescription(Optional.empty());
+  }
+
+  @Test
+  public void validatePatchDescription_invalidDescriptionWithLeftHeader_throwsException() {
+    String description = "Invalid description\n--- a/file.txt\n";
+
+    assertThrows(
+        ValidationException.class,
+        () -> DiffUtil.validatePatchDescription(Optional.of(description)));
+  }
+
+  @Test
+  public void validatePatchDescription_invalidDescriptionWithRightHeader_throwsException() {
+    String description = "Invalid description\n+++ b/file.txt\n";
+
+    assertThrows(
+        ValidationException.class,
+        () -> DiffUtil.validatePatchDescription(Optional.of(description)));
+  }
+
+  @Test
+  public void validatePatchDescription_invalidDescriptionWithGitDiffHeader_throwsException() {
+    String description = "Invalid description\ndiff --git a/file.txt b/file.txt\n";
+
+    assertThrows(
+        ValidationException.class,
+        () -> DiffUtil.validatePatchDescription(Optional.of(description)));
   }
 
   private Path createDir(Path parent, String name) throws IOException {
