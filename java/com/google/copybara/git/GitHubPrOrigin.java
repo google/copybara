@@ -147,6 +147,7 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
   private final GitHubHost ghHost;
   private final GitHubPrOriginOptions gitHubPrOriginOptions;
   private final ApprovalsProvider provider;
+  private final boolean enableLfs;
   @Nullable private final CredentialFileHandler credentials;
   @Nullable private final GitRepositoryHook gitRepositoryHook;
 
@@ -176,6 +177,7 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
       boolean describeVersion,
       GitHubHost ghHost,
       ApprovalsProvider provider,
+      boolean enableLfs,
       @Nullable CredentialFileHandler credentials,
       @Nullable GitRepositoryHook gitRepositoryHook) {
     this.url = checkNotNull(url);
@@ -204,6 +206,7 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
     this.describeVersion = describeVersion;
     this.ghHost = ghHost;
     this.provider = checkNotNull(provider);
+    this.enableLfs = enableLfs;
     this.credentials = credentials;
     this.gitRepositoryHook = gitRepositoryHook;
   }
@@ -711,6 +714,9 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
   @VisibleForTesting
   public GitRepository getRepository() throws RepoException {
     GitRepository repo = gitOptions.cachedBareRepoForUrl(url);
+    if (enableLfs) {
+      repo.setRemoteOriginUrl(url);
+    }
     if (credentials != null) {
       try {
         credentials.install(repo, gitOptions.getConfigCredsFile(generalOptions));
@@ -893,6 +899,9 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
     }
     if (!getRetryableLabels().isEmpty()) {
       builder.putAll(GitHubUtil.RETRYABLE_LABELS, getRetryableLabels());
+    }
+    if (enableLfs) {
+      builder.put("enableLfs", Boolean.toString(enableLfs));
     }
     return builder.build();
   }

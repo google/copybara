@@ -49,6 +49,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -1274,6 +1275,28 @@ public class GitHubPrOriginTest {
                 + "url = 'http://github.com/google/example', branch = 'dev')\n");
     assertThat(val.describe(Glob.ALL_FILES).get("branch"))
         .contains("dev");
+  }
+
+  @Test
+  public void testEnableLfs() throws Exception {
+    GitHubPrOrigin origin =
+        githubPrOrigin(
+            "url = 'https://github.com/google/example'",
+            "enable_lfs = True");
+    ImmutableSetMultimap<String, String> actual = origin.describe(Glob.ALL_FILES);
+    assertThat(actual.get("enableLfs")).containsExactly("true");
+
+    GitRepository repo = origin.getRepository();
+    assertThat(repo.simpleCommand("config", "remote.origin.url").getStdout().trim())
+        .isEqualTo("https://github.com/google/example");
+  }
+
+  @Test
+  public void testEnableLfs_defaultFalse() throws Exception {
+    GitHubPrOrigin origin =
+        githubPrOrigin("url = 'https://github.com/google/example'");
+    ImmutableSetMultimap<String, String> actual = origin.describe(Glob.ALL_FILES);
+    assertThat(actual.containsKey("enableLfs")).isFalse();
   }
 
   private GitRevision checkReviewApprovers(String... configLines)
