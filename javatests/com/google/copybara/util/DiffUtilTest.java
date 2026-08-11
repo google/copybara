@@ -209,6 +209,21 @@ public class DiffUtilTest {
   }
 
   @Test
+  public void testFilterDiff_preservesTrailingNewlineWhenLastFileExcluded() throws Exception {
+    writeFile(left, "file1.txt", "foo-left");
+    writeFile(left, "file2.txt", "bar-left");
+    writeFile(right, "file1.txt", "foo-right");
+    writeFile(right, "file2.txt", "bar-right");
+    byte[] diff = DiffUtil.diff(left, right, VERBOSE, testEnv);
+
+    // Filter that includes file1.txt but excludes file2.txt (which is alphabetical last)
+    byte[] filtered = DiffUtil.filterDiff(diff, f -> f.equals("left/file1.txt"));
+
+    String filteredStr = new String(filtered, StandardCharsets.UTF_8);
+    assertThat(filteredStr).endsWith("\n");
+  }
+
+  @Test
   public void testFilterDiff_preservesCrlf() throws Exception {
     String diff =
         """

@@ -104,7 +104,8 @@ public class DiffUtil {
   public static byte[] filterDiff(byte[] diff, Predicate<String> pathFilter) {
     boolean include = true;
     List<String> filteredLines = Lists.newArrayList();
-    for (String line : Splitter.on('\n').split(new String(diff, UTF_8))) {
+    String diffStr = new String(diff, UTF_8);
+    for (String line : Splitter.on('\n').split(diffStr)) {
       if (line.startsWith("diff ")) {
         List<String> diffHeader = Splitter.on(' ').splitToList(line);
         // Given a diff in the format of:
@@ -127,7 +128,14 @@ public class DiffUtil {
     if (filteredLines.isEmpty()) {
       return new byte[0];
     }
-    return String.join("\n", filteredLines).getBytes(UTF_8);
+
+    // Filtering the last file might unintentionally remove trailing newlines from the diff. Ensure
+    // the output of filterDiff has the same trailing newline state as the diff getting filtered.
+    String joined = String.join("\n", filteredLines);
+    if (diffStr.endsWith("\n") && !joined.endsWith("\n")) {
+      joined += "\n";
+    }
+    return joined.getBytes(UTF_8);
   }
 
   /**
