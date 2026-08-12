@@ -38,7 +38,7 @@ RUN bazel build //java/com/google/copybara:copybara_deploy.jar --java_language_v
 FROM docker.io/eclipse-temurin:21-jre-jammy
 
 RUN apt-get update && \
-    apt-get install --no-install-recommends -y git mercurial quilt && \
+    apt-get install --no-install-recommends -y git git-lfs mercurial quilt && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=buildtools /go/bin/buildozer /go/bin/buildifier /usr/bin/
