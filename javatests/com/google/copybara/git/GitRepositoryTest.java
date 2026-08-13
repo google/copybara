@@ -46,6 +46,7 @@ import com.google.copybara.git.GitRepository.PushCmd;
 import com.google.copybara.git.GitRepository.StatusFile;
 import com.google.copybara.git.GitRepository.TreeElement;
 import com.google.copybara.git.GitRevision.GitHashAlgorithm;
+import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.Glob;
@@ -2064,6 +2065,109 @@ public class GitRepositoryTest {
         localRepo.simpleCommand("config", "extensions.objectformat").getStdout().trim();
 
     assertThat(localFormatAfter).isEqualTo("sha256");
+  }
+
+  @Test
+  public void init_withReftableFormat_createsReftableStorage() throws Exception {
+    Path newGitDir = Files.createTempDirectory("reftable-repo");
+    GitRepository newRepo =
+        GitRepository.newBareRepo(
+            newGitDir, getGitEnv(), /* verbose= */ true, DEFAULT_TIMEOUT, /* noVerify= */ false);
+
+    newRepo.init((GitHashAlgorithm) null, GitRefFormat.REFTABLE);
+
+    assertThat(newRepo.isInitialized()).isTrue();
+    assertThat(Files.exists(newGitDir.resolve("reftable"))).isTrue();
+  }
+
+  @Test
+  public void init_withSha256AndReftable_createsSha256ReftableStorage() throws Exception {
+    Path newGitDir = Files.createTempDirectory("reftable-sha256-repo");
+    GitRepository newRepo =
+        GitRepository.newBareRepo(
+            newGitDir, getGitEnv(), /* verbose= */ true, DEFAULT_TIMEOUT, /* noVerify= */ false);
+
+    newRepo.init(GitHashAlgorithm.SHA256, GitRefFormat.REFTABLE);
+
+    assertThat(newRepo.isInitialized()).isTrue();
+    assertThat(Files.exists(newGitDir.resolve("reftable"))).isTrue();
+    String output = newRepo.simpleCommand("config", "extensions.objectformat").getStdout().trim();
+    assertThat(output).isEqualTo("sha256");
+  }
+
+  @Test
+  public void createBareRepo_withReftableFormatOption() throws Exception {
+    OptionsBuilder optionsBuilder = new OptionsBuilder();
+    optionsBuilder.git.gitRefFormat = GitRefFormat.REFTABLE;
+    Path repoDir = Files.createTempDirectory("reftable_options_repo");
+
+    GitRepository repo = optionsBuilder.git.createBareRepo(optionsBuilder.general, repoDir);
+
+    assertThat(repo.isInitialized()).isTrue();
+    assertThat(Files.exists(repoDir.resolve("reftable"))).isTrue();
+  }
+
+  @Test
+  public void init_withExplicitFilesFormat_doesNotCreateReftable() throws Exception {
+    Path newGitDir = Files.createTempDirectory("files-repo");
+    GitRepository newRepo =
+        GitRepository.newBareRepo(
+            newGitDir, getGitEnv(), /* verbose= */ true, DEFAULT_TIMEOUT, /* noVerify= */ false);
+
+    newRepo.init(repoFormat, GitRefFormat.FILES);
+
+    assertThat(newRepo.isInitialized()).isTrue();
+    assertThat(Files.exists(newGitDir.resolve("reftable"))).isFalse();
+    assertThat(Files.exists(newGitDir.resolve("refs"))).isTrue();
+  }
+
+  @Test
+  public void init_withFetchUrlAndReftable_createsReftableStorage() throws Exception {
+    Path newGitDir = Files.createTempDirectory("reftable-fetch-url-repo");
+    GitRepository newRepo =
+        GitRepository.newBareRepo(
+            newGitDir, getGitEnv(), /* verbose= */ true, DEFAULT_TIMEOUT, /* noVerify= */ false);
+
+    newRepo.init("https://example.com/repo.git", GitRefFormat.REFTABLE);
+
+    assertThat(newRepo.isInitialized()).isTrue();
+    assertThat(Files.exists(newGitDir.resolve("reftable"))).isTrue();
+  }
+
+  @Test
+  public void init_switchesFromFilesToReftableAndInvalidatesCache() throws Exception {
+    Path newGitDir = Files.createTempDirectory("switch-repo");
+    GitRepository newRepo =
+        GitRepository.newBareRepo(
+            newGitDir, getGitEnv(), /* verbose= */ true, DEFAULT_TIMEOUT, /* noVerify= */ false);
+
+    newRepo.init((GitHashAlgorithm) null, GitRefFormat.FILES);
+
+    assertThat(newRepo.isReftable()).isFalse();
+    assertThat(Files.exists(newGitDir.resolve("refs"))).isTrue();
+
+    newRepo.init("https://example.com/repo.git", GitRefFormat.REFTABLE);
+
+    assertThat(newRepo.isReftable()).isTrue();
+    assertThat(Files.exists(newGitDir.resolve("reftable"))).isTrue();
+  }
+
+  @Test
+  public void init_switchesFromReftableToFilesAndInvalidatesCache() throws Exception {
+    Path newGitDir = Files.createTempDirectory("switch-back-repo");
+    GitRepository newRepo =
+        GitRepository.newBareRepo(
+            newGitDir, getGitEnv(), /* verbose= */ true, DEFAULT_TIMEOUT, /* noVerify= */ false);
+
+    newRepo.init((GitHashAlgorithm) null, GitRefFormat.REFTABLE);
+
+    assertThat(newRepo.isReftable()).isTrue();
+
+    newRepo.init("https://example.com/repo.git", GitRefFormat.FILES);
+
+    assertThat(newRepo.isReftable()).isFalse();
+    assertThat(Files.exists(newGitDir.resolve("refs"))).isTrue();
+    assertThat(Files.exists(newGitDir.resolve("reftable"))).isFalse();
   }
 
   private GitRepository mockRepository(Path gitDir, Path workTree) throws RepoException {

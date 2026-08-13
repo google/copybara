@@ -1813,12 +1813,20 @@ public class GitRepository {
   /** Initializes the repository. */
   @CanIgnoreReturnValue
   public GitRepository init() throws RepoException {
-    return init((GitHashAlgorithm) null);
+    return init((GitHashAlgorithm) null, (GitRefFormat) null);
   }
 
   /** Initializes the repository with the specified object format. */
   @CanIgnoreReturnValue
   public GitRepository init(@Nullable GitHashAlgorithm objectFormat) throws RepoException {
+    return init(objectFormat, /* refFormat= */ null);
+  }
+
+  /** Initializes the repository with the specified object format and reference format. */
+  @CanIgnoreReturnValue
+  public GitRepository init(
+      @Nullable GitHashAlgorithm objectFormat, @Nullable GitRefFormat refFormat)
+      throws RepoException {
     try {
       Files.createDirectories(gitDir);
       if (workTree != null) {
@@ -1830,6 +1838,9 @@ public class GitRepository {
     ImmutableList.Builder<String> args = ImmutableList.<String>builder().add("init");
     if (objectFormat != null) {
       args.add("--object-format=" + Ascii.toLowerCase(objectFormat.name()));
+    }
+    if (refFormat != null) {
+      args.add("--ref-format=" + refFormat.getFormatName());
     }
     if (workTree != null && workTree.resolve(".git").equals(gitDir)) {
       args.add(".");
@@ -1844,6 +1855,13 @@ public class GitRepository {
   /** Initializes the repository, matching the remote format if fetchUrl is provided. */
   @CanIgnoreReturnValue
   public GitRepository init(@Nullable String fetchUrl) throws RepoException {
+    return init(fetchUrl, /* refFormat= */ null);
+  }
+
+  /** Initializes the repository, matching the remote format if fetchUrl is provided. */
+  @CanIgnoreReturnValue
+  public GitRepository init(@Nullable String fetchUrl, @Nullable GitRefFormat refFormat)
+      throws RepoException {
     try {
       Files.createDirectories(gitDir);
     } catch (IOException e) {
@@ -1871,7 +1889,10 @@ public class GitRepository {
         // Unconfigured, default is sha1
         logger.atInfo().withCause(e).log("Failed to get local object format, using SHA1");
       }
-      if (remoteFormat != null && localFormat != remoteFormat) {
+      boolean objectFormatMismatch = remoteFormat != null && localFormat != remoteFormat;
+      GitRefFormat localRefFormat = isReftable() ? GitRefFormat.REFTABLE : GitRefFormat.FILES;
+      boolean refFormatMismatch = refFormat != null && localRefFormat != refFormat;
+      if (objectFormatMismatch || refFormatMismatch) {
         try {
           FileUtil.deleteRecursively(gitDir);
         } catch (IOException e) {
@@ -1881,7 +1902,7 @@ public class GitRepository {
     }
 
     if (!isInitialized()) {
-      init(remoteFormat);
+      init(remoteFormat, refFormat);
     }
     return this;
   }
@@ -1889,6 +1910,12 @@ public class GitRepository {
   /** Returns whether the repository is initialized. */
   public boolean isInitialized() {
     return Files.exists(gitDir.resolve("HEAD")) || Files.exists(gitDir.resolve(".git/HEAD"));
+  }
+
+  /** Returns whether the repository uses the reftable reference storage backend. */
+  public boolean isReftable() {
+    return Files.exists(gitDir.resolve("reftable"))
+        || Files.exists(gitDir.resolve(".git/reftable"));
   }
 
   /**

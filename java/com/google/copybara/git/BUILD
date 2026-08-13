@@ -25,6 +25,7 @@ JAVACOPTS = [
 CORE = [
     "FetchResult.java",
     "GitCredential.java",
+    "GitRefFormat.java",
     "GitRepository.java",
     "GitRepositoryHook.java",
     "GitRevision.java",

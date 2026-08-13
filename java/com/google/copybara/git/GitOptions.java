@@ -97,6 +97,13 @@ public class GitOptions implements Option {
           + "https://git-scm.com/docs/git-credential-store")
   public String credentialHelperStorePath;
 
+  @Parameter(
+      names = "--git-ref-format",
+      description =
+          "The reference storage format to use when initializing Git repositories (e.g. 'files',"
+              + " 'reftable'). Defaults to 'files'.")
+  public GitRefFormat gitRefFormat = GitRefFormat.FILES;
+
   @Parameter(names = "--nogit-credential-helper-store",
       description = "Disable using credentials store. See "
           + "https://git-scm.com/docs/git-credential-store")
@@ -332,7 +339,7 @@ public class GitOptions implements Option {
   @CanIgnoreReturnValue
   protected GitRepository initRepo(GitRepository repo, @Nullable String fetchUrl)
       throws RepoException {
-    repo.init(fetchUrl);
+    repo.init(fetchUrl, gitRefFormat);
 
     if (noCredentialHelperStore) {
       return repo;

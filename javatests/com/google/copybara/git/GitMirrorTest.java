@@ -169,7 +169,8 @@ public class GitMirrorTest {
             origin = 'file://%s',
             destination = 'file://%s')
         """
-            .formatted(originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath()),
+            .formatted(
+                originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath()),
         "default");
   }
 
@@ -247,7 +248,8 @@ public class GitMirrorTest {
             destination = 'file://%s',
         )
         """
-            .formatted(originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath());
+            .formatted(
+                originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath());
 
     String other = originRepo.simpleCommand("show-ref", "refs/heads/other", "-s").getStdout();
     Migration migration = loadMigration(cfg, "default");
@@ -272,7 +274,8 @@ public class GitMirrorTest {
             prune = True,
         )
         """
-            .formatted(originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath());
+            .formatted(
+                originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath());
 
     Migration migration = loadMigration(cfg, "default");
     migration.run(workdir, ImmutableList.of());
@@ -328,7 +331,8 @@ public class GitMirrorTest {
             destination = 'file://%s',
         )
         """
-            .formatted(originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath());
+            .formatted(
+                originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath());
 
     GitRepository repository = ((Mirror) loadMigration(cfg, "default")).getLocalRepo();
 
@@ -402,7 +406,8 @@ public class GitMirrorTest {
             destination = 'file://%s',
         )
         """
-            .formatted(originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath());
+            .formatted(
+                originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath());
     Path otherRepoPath = Files.createTempDirectory("other_repo");
     GitRepository other =
         GitRepository.newRepo(
@@ -431,7 +436,8 @@ public class GitMirrorTest {
             destination = 'file://%s',
         )
         """
-            .formatted(originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath()),
+            .formatted(
+                originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath()),
         ".*Migration name 'foo[|] bad;name' doesn't conform to expected pattern.*");
   }
 
@@ -450,7 +456,8 @@ public class GitMirrorTest {
             action = a1
         )
         """
-            .formatted(originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath());
+            .formatted(
+                originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath());
 
     Migration migration = loadMigration(cfg, "default");
     migration.run(workdir, ImmutableList.of("my_ref"));
@@ -473,7 +480,8 @@ public class GitMirrorTest {
             action = fail_action,
         )
         """
-            .formatted(originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath());
+            .formatted(
+                originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath());
     Migration migration = loadMigration(cfg, "default");
     ValidationException ve =
         assertThrows(ValidationException.class, () -> migration.run(workdir, ImmutableList.of()));
@@ -724,7 +732,8 @@ public class GitMirrorTest {
             action = test,
         )
         """
-            .formatted(originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath());
+            .formatted(
+                originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath());
     Migration mirror1 = loadMigration(cfg, "default");
     originRepo.branch("foo1").run();
     originRepo.branch("foo2").run();
@@ -764,7 +773,8 @@ public class GitMirrorTest {
             action = test,
         )
         """
-            .formatted(originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath());
+            .formatted(
+                originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath());
     Migration mirror1 = loadMigration(cfg, "default");
     GitLogEntry one = repoChange(originRepo, "some_other_file", "one", "new change");
     GitLogEntry two = repoChange(originRepo, "some_other_file", "two", "new change");
@@ -809,7 +819,8 @@ public class GitMirrorTest {
             action = test,
         )
         """
-            .formatted(originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath());
+            .formatted(
+                originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath());
     Migration mirror = loadMigration(cfg, "default");
     GitLogEntry one = repoChange(originRepo, "some_other_file", "one", "new change");
     RepoException expectedException =
@@ -934,7 +945,8 @@ public class GitMirrorTest {
             action = test,
         )
         """
-            .formatted(originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath());
+            .formatted(
+                originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath());
     repoChange(originRepo, "some_other_file", "1", "one");
     GitLogEntry two = repoChange(originRepo, "some_other_file", "2", "two");
     repoChange(originRepo, "some_other_file", "3", "three");
@@ -964,6 +976,101 @@ public class GitMirrorTest {
         mirror.run(workdir, ImmutableList.of());
       }
     }))).hasMessageThat().contains("Conflict merging refs/heads/" + primaryBranch);
+  }
+
+  @Test
+  public void testMirror_withReftableFormat_branches() throws Exception {
+    options.git.gitRefFormat = GitRefFormat.REFTABLE;
+    Path originGitDir = Files.createTempDirectory("reftable_origin_gitdir");
+    Path originWorkTree = Files.createTempDirectory("reftable_origin_worktree");
+    GitRepository origin =
+        newBareRepo(
+                originGitDir,
+                getGitEnv(),
+                /* verbose= */ true,
+                DEFAULT_TIMEOUT,
+                /* noVerify= */ false)
+            .withWorkTree(originWorkTree);
+    origin.init((GitRevision.GitHashAlgorithm) null, GitRefFormat.REFTABLE);
+    Path destGitDir = Files.createTempDirectory("reftable_dest_gitdir");
+    GitRepository dest =
+        GitRepository.newBareRepo(
+            destGitDir, getGitEnv(), /* verbose= */ true, DEFAULT_TIMEOUT, /* noVerify= */ false);
+    dest.init((GitRevision.GitHashAlgorithm) null, GitRefFormat.REFTABLE);
+
+    Files.write(originWorkTree.resolve("file.txt"), "hello".getBytes(UTF_8));
+    origin.add().files("file.txt").run();
+    origin.simpleCommand("commit", "-m", "first commit");
+    origin.simpleCommand("branch", "feature-1");
+    origin.simpleCommand("branch", "feature-2");
+
+    Migration mirror =
+        loadMigration(
+            String.format(
+                """
+                git.mirror(
+                    name = 'mirror',
+                    origin = '%s',
+                    destination = '%s',
+                    refspecs = ['refs/heads/*:refs/heads/*'],
+                )
+                """,
+                "file://" + originGitDir.toAbsolutePath(), "file://" + destGitDir.toAbsolutePath()),
+            "mirror");
+
+    mirror.run(workdir, ImmutableList.of());
+
+    String destFeature1 = dest.simpleCommand("show-ref", "refs/heads/feature-1").getStdout().trim();
+    String destFeature2 = dest.simpleCommand("show-ref", "refs/heads/feature-2").getStdout().trim();
+    assertThat(destFeature1).isNotEmpty();
+    assertThat(destFeature2).isNotEmpty();
+    assertThat(dest.isReftable()).isTrue();
+  }
+
+  @Test
+  public void testMirror_withReftableFormat_tags() throws Exception {
+    options.git.gitRefFormat = GitRefFormat.REFTABLE;
+    Path originGitDir = Files.createTempDirectory("reftable_origin_gitdir");
+    Path originWorkTree = Files.createTempDirectory("reftable_origin_worktree");
+    GitRepository origin =
+        newBareRepo(
+                originGitDir,
+                getGitEnv(),
+                /* verbose= */ true,
+                DEFAULT_TIMEOUT,
+                /* noVerify= */ false)
+            .withWorkTree(originWorkTree);
+    origin.init((GitRevision.GitHashAlgorithm) null, GitRefFormat.REFTABLE);
+    Path destGitDir = Files.createTempDirectory("reftable_dest_gitdir");
+    GitRepository dest =
+        GitRepository.newBareRepo(
+            destGitDir, getGitEnv(), /* verbose= */ true, DEFAULT_TIMEOUT, /* noVerify= */ false);
+    dest.init((GitRevision.GitHashAlgorithm) null, GitRefFormat.REFTABLE);
+
+    Files.write(originWorkTree.resolve("file.txt"), "hello".getBytes(UTF_8));
+    origin.add().files("file.txt").run();
+    origin.simpleCommand("commit", "-m", "first commit");
+    origin.simpleCommand("tag", "v1.0");
+
+    Migration mirror =
+        loadMigration(
+            String.format(
+                """
+                git.mirror(
+                    name = 'mirror',
+                    origin = '%s',
+                    destination = '%s',
+                    refspecs = ['refs/tags/*:refs/tags/*'],
+                )
+                """,
+                "file://" + originGitDir.toAbsolutePath(), "file://" + destGitDir.toAbsolutePath()),
+            "mirror");
+
+    mirror.run(workdir, ImmutableList.of());
+
+    String destTag = dest.simpleCommand("show-ref", "refs/tags/v1.0").getStdout().trim();
+    assertThat(destTag).isNotEmpty();
+    assertThat(dest.isReftable()).isTrue();
   }
 
   private Migration mergeInit(String fastForwardOption, boolean partialFetch)
