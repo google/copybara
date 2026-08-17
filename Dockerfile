@@ -32,10 +32,10 @@ USER ubuntu
 WORKDIR /home/ubuntu/
 COPY . . 
 
-RUN bazel build //java/com/google/copybara:copybara_deploy.jar --java_language_version=21 --tool_java_language_version=21 --java_runtime_version=remotejdk_21
+RUN bazel build //java/com/google/copybara:copybara_deploy.jar --java_language_version=25 --tool_java_language_version=25 --java_runtime_version=remotejdk_25 --tool_java_runtime_version=remotejdk_25
 
 # Use jammy to drop Python 2
-FROM docker.io/eclipse-temurin:21-jre-jammy
+FROM docker.io/eclipse-temurin:25-jre-jammy
 
 RUN apt-get update && \
     apt-get install --no-install-recommends -y git git-lfs mercurial quilt && \
