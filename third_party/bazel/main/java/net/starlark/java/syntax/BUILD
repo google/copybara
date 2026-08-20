@@ -81,6 +81,7 @@ java_library(
         "//third_party:autovalue",
         "//third_party:error_prone",
         "//third_party:guava",
+        "//third_party:guava_base",
         "//third_party:jsr305",
         "//third_party/bazel/main/java/net/starlark/java/spelling",
     ],

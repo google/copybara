@@ -156,6 +156,11 @@ public final class TypeTagger extends NodeVisitor {
         errorf(id, "local symbol '%s' cannot be used as a type", name);
         return null;
       }
+    } else if (scope == Scope.GLOBAL) {
+      constructor = typeTable.getTypeConstructor(binding);
+      if (constructor != null) {
+        return constructor;
+      }
     }
 
     try {
@@ -176,15 +181,20 @@ public final class TypeTagger extends NodeVisitor {
     }
   }
 
-  private TypeConstructor.Arg extractArg(Expression expr) {
+  private TypeConstructor.Term extractTerm(
+      Expression expr, ImmutableMap<Resolver.Binding, Integer> typeParams) {
     switch (expr.kind()) {
       case BINARY_OPERATOR -> {
         // Syntax sugar for union types, i.e. a|b == Union[a,b]
         BinaryOperatorExpression binop = (BinaryOperatorExpression) expr;
         if (binop.getOperator() == TokenKind.PIPE) {
-          StarlarkType x = extractType(binop.getX());
-          StarlarkType y = extractType(binop.getY());
-          return Types.union(x, y);
+          TypeConstructor.Term x = extractTypeOrTermEvaluatingToType(binop.getX(), typeParams);
+          TypeConstructor.Term y = extractTypeOrTermEvaluatingToType(binop.getY(), typeParams);
+          if (!typeParams.isEmpty() && (x.isOpen() || y.isOpen())) {
+            return new TypeConstructor.Term.DecomposedUnion(x, y);
+          } else {
+            return Types.union((StarlarkType) x, (StarlarkType) y);
+          }
         }
         errorf(expr, "binary operator '%s' is not supported", binop.getOperator());
         return Types.ANY;
@@ -196,8 +206,13 @@ public final class TypeTagger extends NodeVisitor {
         if (constructor == null) {
           return Types.ANY;
         }
-        ImmutableList<TypeConstructor.Arg> arguments =
-            app.getArguments().stream().map(this::extractArg).collect(toImmutableList());
+        ImmutableList<TypeConstructor.Term> arguments =
+            app.getArguments().stream()
+                .map(arg -> extractTerm(arg, typeParams))
+                .collect(toImmutableList());
+        if (!typeParams.isEmpty() && arguments.stream().anyMatch(TypeConstructor.Term::isOpen)) {
+          return new TypeConstructor.Term.DecomposedTypeApplication(constructor, arguments);
+        }
 
         try {
           return constructor.createStarlarkType(arguments);
@@ -207,7 +222,12 @@ public final class TypeTagger extends NodeVisitor {
         }
       }
       case IDENTIFIER -> {
-        TypeConstructor constructor = resolveTypeConstructor((Identifier) expr);
+        Identifier id = (Identifier) expr;
+        Resolver.Binding binding = id.getBinding();
+        if (typeParams.containsKey(binding)) {
+          return new TypeConstructor.Term.TypeVariable(id, typeParams.get(binding));
+        }
+        TypeConstructor constructor = resolveTypeConstructor(id);
         if (constructor == null) {
           return Types.ANY;
         }
@@ -219,21 +239,30 @@ public final class TypeTagger extends NodeVisitor {
         }
       }
       case ELLIPSIS -> {
-        return TypeConstructor.Arg.ELLIPSIS;
+        return TypeConstructor.Term.ELLIPSIS;
       }
       case LIST_EXPR -> {
         ListExpression listExpr = (ListExpression) expr;
-        if (listExpr.isTuple() && listExpr.getElements().isEmpty()) {
-          return TypeConstructor.Arg.EMPTY_TUPLE;
+        if (listExpr.isTuple()) {
+          if (listExpr.getElements().isEmpty()) {
+            return TypeConstructor.Term.EMPTY_TUPLE;
+          }
+        } else {
+          return new TypeConstructor.Term.TypeList(
+              listExpr.getElements().stream()
+                  .map(elem -> extractTerm(elem, typeParams))
+                  .collect(toImmutableList()));
         }
       }
       case DICT_EXPR -> {
         DictExpression dictExpr = (DictExpression) expr;
-        LinkedHashMap<String, StarlarkType> types = new LinkedHashMap<>();
+        LinkedHashMap<String, TypeConstructor.Term> map = new LinkedHashMap<>();
         for (DictExpression.Entry entry : dictExpr.getEntries()) {
           if (entry.getKey() instanceof StringLiteral str) {
             String key = str.getValue();
-            @Nullable var previous = types.put(key, extractType(entry.getValue()));
+            TypeConstructor.Term value =
+                extractTypeOrTermEvaluatingToType(entry.getValue(), typeParams);
+            @Nullable var previous = map.put(key, value);
             if (previous != null) {
               errorf(str, "dictionary expression has duplicate key: %s", str);
             }
@@ -241,7 +270,7 @@ public final class TypeTagger extends NodeVisitor {
             errorf(entry.getKey(), "expected a string literal but got '%s'", entry.getKey());
           }
         }
-        return new TypeConstructor.Arg.TypeDict(ImmutableMap.copyOf(types));
+        return new TypeConstructor.Term.TypeDict(ImmutableMap.copyOf(map));
       }
       default -> {
         // fall through
@@ -252,13 +281,29 @@ public final class TypeTagger extends NodeVisitor {
     return Types.ANY;
   }
 
-  private StarlarkType extractType(Expression expr) {
-    TypeConstructor.Arg arg = extractArg(expr);
-    if (!(arg instanceof StarlarkType type)) {
-      errorf(expr, "expression '%s' is not a valid type.", expr);
-      return Types.ANY;
+  /**
+   * Extracts a type expression and verifies that it's either a {@link StarlarkType} or (if {@code
+   * numTypeParams > 0}) a {@link TypeConstructor.Term} that evaluates to a {@link StarlarkType}.
+   */
+  private TypeConstructor.Term extractTypeOrTermEvaluatingToType(
+      Expression expr, ImmutableMap<Resolver.Binding, Integer> typeParams) {
+    TypeConstructor.Term arg = extractTerm(expr, typeParams);
+    if (arg instanceof StarlarkType type) {
+      return type;
     }
-    return type;
+    if (!typeParams.isEmpty() && arg.isOrEvaluatesToStarlarkType()) {
+      return arg;
+    }
+    errorf(
+        expr,
+        "expression '%s' %s.",
+        expr,
+        typeParams.isEmpty() ? "is not a valid type" : "does not evaluate to a type");
+    return Types.ANY;
+  }
+
+  private StarlarkType extractType(Expression expr) {
+    return (StarlarkType) extractTypeOrTermEvaluatingToType(expr, ImmutableMap.of());
   }
 
   /**
@@ -285,7 +330,7 @@ public final class TypeTagger extends NodeVisitor {
     return result;
   }
 
-  private Types.CallableType createFunctionType(
+  private Types.GeneralCallableType createFunctionType(
       ImmutableList<Parameter> parameters, @Nullable Expression returnTypeExpr) {
     ImmutableList.Builder<String> names = ImmutableList.builder();
     ImmutableList.Builder<StarlarkType> types = ImmutableList.builder();
@@ -337,7 +382,7 @@ public final class TypeTagger extends NodeVisitor {
       returnType = extractType(returnTypeExpr);
     }
 
-    return Types.callable(
+    return Types.generalCallable(
         names.build(),
         types.build(),
         /* numPositionalOnlyParameters= */ 0,
@@ -398,6 +443,28 @@ public final class TypeTagger extends NodeVisitor {
   }
 
   /**
+   * Sets a resolved function's type.
+   *
+   * <p>Throws {@link IllegalArgumentException} if the type is already set.
+   */
+  private static void setType(
+      Resolver.Function resolved, Types.GeneralCallableType type, TypeTable typeTable) {
+    checkNotNull(resolved);
+    @Nullable StarlarkType prevType = typeTable.getType(resolved);
+    if (prevType != null) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Expected type of resolved function %s to be null but was %s",
+              resolved.getName(), prevType));
+    }
+    typeTable.setType(resolved, type);
+  }
+
+  private void setType(Resolver.Function resolved, Types.GeneralCallableType type) {
+    setType(resolved, type, typeTable);
+  }
+
+  /**
    * Sets the type constructor value associated with a given binding, making it available for
    * subsequent type tagging and checking.
    */
@@ -433,28 +500,6 @@ public final class TypeTagger extends NodeVisitor {
       return true;
     }
     return false;
-  }
-
-  /**
-   * Sets a resolved function's type.
-   *
-   * <p>Throws {@link IllegalArgumentException} if the type is already set.
-   */
-  private static void setType(
-      Resolver.Function resolved, Types.CallableType type, TypeTable typeTable) {
-    checkNotNull(resolved);
-    @Nullable StarlarkType prevType = typeTable.getType(resolved);
-    if (prevType != null) {
-      throw new IllegalArgumentException(
-          String.format(
-              "Expected type of resolved function %s to be null but was %s",
-              resolved.getName(), prevType));
-    }
-    typeTable.setType(resolved, type);
-  }
-
-  private void setType(Resolver.Function resolved, Types.CallableType type) {
-    setType(resolved, type, typeTable);
   }
 
   private void visitProgram(Program prog) {
@@ -502,7 +547,7 @@ public final class TypeTagger extends NodeVisitor {
   public void visit(DefStatement def) {
     Resolver.Function resolvedFunction = def.getResolvedFunction();
     functionStack.push(resolvedFunction);
-    Types.CallableType type = createFunctionType(def.getParameters(), def.getReturnType());
+    Types.GeneralCallableType type = createFunctionType(def.getParameters(), def.getReturnType());
     setType(resolvedFunction, type);
     setType(def, def.getIdentifier(), type);
     // Parameter types handled by visit(Parameter).
@@ -523,6 +568,11 @@ public final class TypeTagger extends NodeVisitor {
       if (param.getType() != null) {
         setUsesTypeSyntax();
         type = extractType(param.getType());
+        if (param instanceof Parameter.Star) {
+          type = Types.homogeneousTuple(type);
+        } else if (param instanceof Parameter.StarStar) {
+          type = Types.dict(Types.STR, type);
+        }
       }
       setType(param, param.getIdentifier(), type);
     }
@@ -565,8 +615,22 @@ public final class TypeTagger extends NodeVisitor {
   @Override
   public void visit(TypeAliasStatement node) {
     setUsesTypeSyntax();
-    errorIfTypeConstructor(node, node.getIdentifier());
-    super.visit(node);
+    String name = node.getIdentifier().getName();
+    TypeConstructor typeConstructor;
+    if (node.getParameters().isEmpty()) {
+      StarlarkType definition = extractType(node.getDefinition());
+      typeConstructor = Types.wrapType(name, definition);
+    } else {
+      ImmutableMap.Builder<Resolver.Binding, Integer> typeParamsBuilder = ImmutableMap.builder();
+      for (int i = 0; i < node.getParameters().size(); i++) {
+        typeParamsBuilder.put(node.getParameters().get(i).getBinding(), i);
+      }
+      ImmutableMap<Resolver.Binding, Integer> typeParams = typeParamsBuilder.buildOrThrow();
+      TypeConstructor.Term term =
+          extractTypeOrTermEvaluatingToType(node.getDefinition(), typeParams);
+      typeConstructor = new TypeConstructor.Composite(name, typeParams.size(), term);
+    }
+    setTypeConstructor(node, node.getIdentifier(), typeConstructor);
   }
 
   @Override
@@ -590,7 +654,7 @@ public final class TypeTagger extends NodeVisitor {
 
   @Override
   public void visit(LambdaExpression lambda) {
-    Types.CallableType type =
+    Types.GeneralCallableType type =
         createFunctionType(lambda.getParameters(), /* returnTypeExpr= */ null);
     setType(lambda.getResolvedFunction(), type);
 

@@ -17,22 +17,29 @@ package net.starlark.java.eval;
 import com.google.common.collect.ImmutableList;
 import net.starlark.java.syntax.StarlarkType;
 import net.starlark.java.syntax.TypeConstructor;
+import net.starlark.java.syntax.TypeContext;
 
 /**
- * A {@link StarlarkValue} wrapper for a {@link TypeConstructor}. Allows Starlark-defined type
- * constructors to be passed from the static type tagging/checking system to the eval phase.
+ * A {@link StarlarkValue} wrapping a {@link TypeConstructor}. This is used as the runtime value of
+ * certain symbols that represent Starlark-defined types, such as type aliases.
  *
  * <p>Not all Starlark values that can be used as type constructors are instances of this class. For
  * example, builtin symbols like {@code list} and {@code dict} are instead instances of {@link
  * BuiltinFunction.BuiltinTypeFunction}.
  */
-public final class TypeConstructorValue implements StarlarkValue, TypeConstructor {
+public final class TypeConstructorValue implements StarlarkTypeValue, TypeConstructor {
   public static final StarlarkType TYPE = new Type();
 
   private final TypeConstructor typeConstructor;
+  private final StarlarkType nullaryType;
 
-  public TypeConstructorValue(TypeConstructor typeConstructor) {
+  public static TypeConstructorValue of(TypeConstructor constructor) {
+    return new TypeConstructorValue(constructor, constructor.createStarlarkType());
+  }
+
+  private TypeConstructorValue(TypeConstructor typeConstructor, StarlarkType nullaryType) {
     this.typeConstructor = typeConstructor;
+    this.nullaryType = nullaryType;
   }
 
   @Override
@@ -51,9 +58,15 @@ public final class TypeConstructorValue implements StarlarkValue, TypeConstructo
   }
 
   @Override
-  public StarlarkType createStarlarkType(ImmutableList<TypeConstructor.Arg> argsTuple)
+  public StarlarkType createStarlarkType(ImmutableList<TypeConstructor.Term> argsTuple)
       throws TypeConstructor.Failure {
     return typeConstructor.createStarlarkType(argsTuple);
+  }
+
+  @Override
+  public boolean hasInstance(Object value, StarlarkSemantics semantics, TypeContext typeContext) {
+    return StarlarkType.assignableFrom(
+        nullaryType, Starlark.getStarlarkType(value, semantics), typeContext);
   }
 
   /** The type of {@link StarlarkTypeConstructorValue}-s. */
