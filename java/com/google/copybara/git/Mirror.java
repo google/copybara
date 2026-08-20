@@ -16,11 +16,13 @@
 
 package com.google.copybara.git;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.EndpointProvider;
@@ -44,8 +46,9 @@ import com.google.copybara.transform.SkylarkConsole;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import net.starlark.java.eval.Dict;
 import net.starlark.java.eval.StarlarkThread;
@@ -56,6 +59,10 @@ public class Mirror implements Migration {
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   private static final String MODE_STRING = "MIRROR";
+  private static final ImmutableList<String> LS_REMOTE_FLAGS = ImmutableList.of("--refs");
+
+  // TODO(b/549194654): Remove this flag once the feature is fully rolled out.
+  public static final String GIT_MIRROR_CHECK_ALREADY_IN_SYNC = "GIT_MIRROR_CHECK_ALREADY_IN_SYNC";
 
   private final GeneralOptions generalOptions;
   private final GitOptions gitOptions;
@@ -112,27 +119,38 @@ public class Mirror implements Migration {
   @Override
   public void run(Path workdir, ImmutableList<String> sourceRefs)
       throws RepoException, IOException, ValidationException {
+    boolean updated = false;
     try (ProfilerTask ignore = generalOptions.profiler().start("run/" + name)) {
       GitRepository repo = getLocalRepo();
       maybeConfigureGitNameAndEmail(repo);
       if (action == null) {
-        defaultMirror(repo);
+        updated = defaultMirror(repo);
       } else {
         customMirror(repo, sourceRefs);
+        updated = true;
       }
     }
 
     // More fine grain events based on the references created/updated/deleted:
+    DestinationEffect.Type effectType =
+        (generalOptions.dryRunMode || !updated)
+            ? DestinationEffect.Type.NOOP
+            : DestinationEffect.Type.UPDATED;
+    String effectSummary;
+    if (generalOptions.dryRunMode) {
+      effectSummary = String.format("Refspecs %s can be mirrored", refspec);
+    } else if (!updated) {
+      effectSummary = String.format("Refspecs %s are already in sync", refspec);
+    } else {
+      effectSummary = String.format("Refspecs %s mirrored successfully", refspec);
+    }
+
     ChangeMigrationFinishedEvent event =
         new ChangeMigrationFinishedEvent(
             ImmutableList.of(
                 new DestinationEffect(
-                    generalOptions.dryRunMode
-                        ? DestinationEffect.Type.NOOP
-                        : DestinationEffect.Type.UPDATED,
-                    generalOptions.dryRunMode
-                        ? "Refspecs " + refspec + " can be mirrored"
-                        : "Refspecs " + refspec + " mirrored successfully",
+                    effectType,
+                    effectSummary,
                     // TODO(danielromero): Populate OriginRef here
                     ImmutableList.of(),
                     new DestinationRef(
@@ -196,10 +214,70 @@ public class Mirror implements Migration {
     }
   }
 
-  private void defaultMirror(GitRepository repo) throws RepoException, ValidationException {
-    List<String> fetchRefspecs = refspec.stream()
-        .map(r -> r.originToOrigin().toString())
-        .collect(Collectors.toList());
+  private Optional<Refspec> findOriginRefspec(String originRef) {
+    return refspec.stream().filter(r -> r.matchesOrigin(originRef)).findFirst();
+  }
+
+  private Optional<Refspec> findDestinationRefspec(String destRef) {
+    return refspec.stream().filter(r -> r.invert().matchesOrigin(destRef)).findFirst();
+  }
+
+  private boolean isAlreadyInSync(GitRepository repo) throws RepoException, ValidationException {
+    try (ProfilerTask ignore = generalOptions.profiler().start("ls_remote")) {
+      ImmutableList<String> originRefPatterns =
+          refspec.stream().map(Refspec::getOrigin).collect(toImmutableList());
+      ImmutableList<String> destRefPatterns =
+          refspec.stream().map(Refspec::getDestination).collect(toImmutableList());
+
+      ImmutableMap<String, String> originRefs =
+          ImmutableMap.copyOf(repo.lsRemote(origin, originRefPatterns, LS_REMOTE_FLAGS));
+      ImmutableMap<String, String> destRefs =
+          ImmutableMap.copyOf(repo.lsRemote(destination, destRefPatterns, LS_REMOTE_FLAGS));
+
+      for (Entry<String, String> entry : originRefs.entrySet()) {
+        String originRef = entry.getKey();
+        String originSha = entry.getValue();
+
+        if (findOriginRefspec(originRef)
+            .filter(
+                matchingRefspec ->
+                    !Objects.equals(
+                        originSha, destRefs.get(matchingRefspec.convert(originRef))))
+            .isPresent()) {
+          return false;
+        }
+      }
+
+      // If prune, verify destination has no extra/dangling refs that were deleted on origin.
+      if (prune) {
+        for (String destRef : destRefs.keySet()) {
+          if (findDestinationRefspec(destRef)
+              .filter(
+                  matchingRefspec ->
+                      !originRefs.containsKey(
+                          matchingRefspec.invert().convert(destRef)))
+              .isPresent()) {
+            return false;
+          }
+        }
+      }
+
+      return true;
+    }
+  }
+
+  private boolean defaultMirror(GitRepository repo) throws RepoException, ValidationException {
+    if (generalOptions.isTemporaryFeature(GIT_MIRROR_CHECK_ALREADY_IN_SYNC, false)
+        && isAlreadyInSync(repo)) {
+      generalOptions
+          .console()
+          .infoFmt(
+              "Origin and destination refs are in sync for %s. Skipping fetch and push.", name);
+      return false;
+    }
+
+    ImmutableList<String> fetchRefspecs =
+        refspec.stream().map(r -> r.originToOrigin().toString()).collect(toImmutableList());
 
     generalOptions.console().progressFmt("Fetching from %s", origin);
 
@@ -220,9 +298,10 @@ public class Mirror implements Migration {
           + " commits to push in: %s", destination, repo.getGitDir());
     } else {
       generalOptions.console().progressFmt("Pushing to %s", destination);
-      List<Refspec> pushRefspecs = generalOptions.isForced()
-          ? refspec.stream().map(Refspec::withAllowNoFastForward).collect(Collectors.toList())
-          : refspec;
+      List<Refspec> pushRefspecs =
+          generalOptions.isForced()
+              ? refspec.stream().map(Refspec::withAllowNoFastForward).collect(toImmutableList())
+              : refspec;
       try (ProfilerTask ignore1 = profiler.start("push")) {
         repo.push()
             .prune(prune)
@@ -236,6 +315,7 @@ public class Mirror implements Migration {
             "Error pushing some refs because origin is behind:" + e.getMessage(), e);
       }
     }
+    return true;
   }
 
   private void maybeConfigureGitNameAndEmail(GitRepository repo) throws RepoException {
@@ -272,7 +352,7 @@ public class Mirror implements Migration {
     return new ImmutableSetMultimap.Builder<String, String>()
         .put("type", "git.mirror")
         .put("url", origin)
-        .putAll("ref", refspec.stream().map(Refspec::getOrigin).collect(Collectors.toList()))
+        .putAll("ref", refspec.stream().map(Refspec::getOrigin).collect(toImmutableList()))
         .build();
   }
 
@@ -281,7 +361,7 @@ public class Mirror implements Migration {
     return new ImmutableSetMultimap.Builder<String, String>()
         .put("type", "git.mirror")
         .put("url", destination)
-        .putAll("ref", refspec.stream().map(Refspec::getDestination).collect(Collectors.toList()))
+        .putAll("ref", refspec.stream().map(Refspec::getDestination).collect(toImmutableList()))
         .build();
   }
 

@@ -25,6 +25,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.FakeTicker;
 import com.google.copybara.config.Migration;
 import com.google.copybara.exception.RepoException;
@@ -108,10 +109,7 @@ public class GitMirrorTest {
 
   @Test
   public void testMirror() throws Exception {
-    RecordingListener recordingCallback = new RecordingListener();
-    Profiler profiler = new Profiler(new FakeTicker());
-    profiler.init(ImmutableList.of(recordingCallback));
-    options.general.withProfiler(profiler);
+    RecordingListener recordingCallback = installProfiler();
 
     Migration mirror = createMirrorObj();
     mirror.run(workdir, ImmutableList.of());
@@ -159,19 +157,6 @@ public class GitMirrorTest {
     dest = destRepo.simpleCommand("show-ref").getStdout();
     assertThat(dest).isNotEqualTo(orig);
     assertThat(dest).isEqualTo(destOld);
-  }
-
-  private Migration createMirrorObj() throws IOException, ValidationException {
-    return loadMigration(
-        """
-        git.mirror(
-            name = 'default',
-            origin = 'file://%s',
-            destination = 'file://%s')
-        """
-            .formatted(
-                originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath()),
-        "default");
   }
 
   /**
@@ -1142,5 +1127,172 @@ public class GitMirrorTest {
 
   private GitLogEntry lastChange(GitRepository withWorkdir, String ref) throws RepoException {
     return withWorkdir.log(ref).withLimit(1).run().get(0);
+  }
+
+  @Test
+  public void mirror_alreadyInSync_skipsFetchAndPush() throws Exception {
+    options.general.setTemporaryFeaturesForTest(
+        ImmutableMap.of(Mirror.GIT_MIRROR_CHECK_ALREADY_IN_SYNC, "true"));
+    Migration mirror = createMirrorObj();
+    mirror.run(workdir, ImmutableList.of());
+
+    RecordingListener recordingCallback = installProfiler();
+    mirror.run(workdir, ImmutableList.of());
+
+    recordingCallback
+        .assertMatchesNext(EventType.START, "//copybara")
+        .assertMatchesNext(EventType.START, "//copybara/run/default")
+        .assertMatchesNext(EventType.START, "//copybara/run/default/ls_remote")
+        .assertMatchesNext(EventType.END, "//copybara/run/default/ls_remote")
+        .assertMatchesNext(EventType.END, "//copybara/run/default");
+    console
+        .assertThat()
+        .onceInLog(
+            MessageType.INFO,
+            "Origin and destination refs are in sync for default. Skipping fetch and push.");
+  }
+
+  @Test
+  public void mirror_originUpdated_performsFetchAndPush() throws Exception {
+    options.general.setTemporaryFeaturesForTest(
+        ImmutableMap.of(Mirror.GIT_MIRROR_CHECK_ALREADY_IN_SYNC, "true"));
+    Migration mirror = createMirrorObj();
+    mirror.run(workdir, ImmutableList.of());
+    // Modify a file in the origin and commit so the origin and destination are out of sync.
+    Files.write(originRepo.getWorkTree().resolve("test2.txt"), "new content".getBytes(UTF_8));
+    originRepo.add().files("test2.txt").run();
+    originRepo.simpleCommand("commit", "-m", "second file");
+
+    RecordingListener recordingCallback = installProfiler();
+    mirror.run(workdir, ImmutableList.of());
+
+    recordingCallback
+        .assertMatchesNext(EventType.START, "//copybara")
+        .assertMatchesNext(EventType.START, "//copybara/run/default")
+        .assertMatchesNext(EventType.START, "//copybara/run/default/ls_remote")
+        .assertMatchesNext(EventType.END, "//copybara/run/default/ls_remote")
+        .assertMatchesNext(EventType.START, "//copybara/run/default/fetch")
+        .assertMatchesNext(EventType.END, "//copybara/run/default/fetch")
+        .assertMatchesNext(EventType.START, "//copybara/run/default/push")
+        .assertMatchesNext(EventType.END, "//copybara/run/default/push")
+        .assertMatchesNext(EventType.END, "//copybara/run/default");
+    String orig = originRepo.simpleCommand("show-ref").getStdout();
+    String dest = destRepo.simpleCommand("show-ref").getStdout();
+    assertThat(dest).isEqualTo(orig);
+  }
+
+  @Test
+  public void mirror_pruneTrue_danglingDestRef_triggersFetchAndPush() throws Exception {
+    options.general.setTemporaryFeaturesForTest(
+        ImmutableMap.of(Mirror.GIT_MIRROR_CHECK_ALREADY_IN_SYNC, "true"));
+    Migration mirror = createMirrorObj(/* prune= */ true);
+    mirror.run(workdir, ImmutableList.of());
+    // Inject an extra branch into destination only (simulates a branch deleted on origin).
+    String primarySha = destRepo.simpleCommand("rev-parse", primaryBranch).getStdout().trim();
+    destRepo.simpleCommand("update-ref", "refs/heads/dangling", primarySha);
+
+    // Because prune=true and destination has a dangling ref, fetch and push should execute to prune
+    // the dangling ref.
+    RecordingListener recordingCallback = installProfiler();
+    mirror.run(workdir, ImmutableList.of());
+
+    recordingCallback
+        .assertMatchesNext(EventType.START, "//copybara")
+        .assertMatchesNext(EventType.START, "//copybara/run/default")
+        .assertMatchesNext(EventType.START, "//copybara/run/default/ls_remote")
+        .assertMatchesNext(EventType.END, "//copybara/run/default/ls_remote")
+        .assertMatchesNext(EventType.START, "//copybara/run/default/fetch")
+        .assertMatchesNext(EventType.END, "//copybara/run/default/fetch")
+        .assertMatchesNext(EventType.START, "//copybara/run/default/push")
+        .assertMatchesNext(EventType.END, "//copybara/run/default/push")
+        .assertMatchesNext(EventType.END, "//copybara/run/default");
+    String orig = originRepo.simpleCommand("show-ref").getStdout();
+    String dest = destRepo.simpleCommand("show-ref").getStdout();
+    assertThat(dest).isEqualTo(orig);
+  }
+
+  @Test
+  public void mirror_pruneFalse_danglingDestRef_skipsFetchAndPush() throws Exception {
+    options.general.setTemporaryFeaturesForTest(
+        ImmutableMap.of(Mirror.GIT_MIRROR_CHECK_ALREADY_IN_SYNC, "true"));
+    Migration mirror = createMirrorObj(/* prune= */ false);
+    mirror.run(workdir, ImmutableList.of());
+    // Inject an extra branch into destination only.
+    String primarySha = destRepo.simpleCommand("rev-parse", primaryBranch).getStdout().trim();
+    destRepo.simpleCommand("update-ref", "refs/heads/extra", primarySha);
+
+    // Because prune=false, extra destination refs are permitted, so fetch and push should be
+    // skipped.
+    RecordingListener recordingCallback = installProfiler();
+    mirror.run(workdir, ImmutableList.of());
+
+    recordingCallback
+        .assertMatchesNext(EventType.START, "//copybara")
+        .assertMatchesNext(EventType.START, "//copybara/run/default")
+        .assertMatchesNext(EventType.START, "//copybara/run/default/ls_remote")
+        .assertMatchesNext(EventType.END, "//copybara/run/default/ls_remote")
+        .assertMatchesNext(EventType.END, "//copybara/run/default");
+    console
+        .assertThat()
+        .onceInLog(
+            MessageType.INFO,
+            "Origin and destination refs are in sync for default. Skipping fetch and push.");
+  }
+
+  @Test
+  public void mirror_alreadyInSync_featureFlagDisabled_performsFetchAndPush() throws Exception {
+    options.general.setTemporaryFeaturesForTest(
+        ImmutableMap.of(Mirror.GIT_MIRROR_CHECK_ALREADY_IN_SYNC, "false"));
+
+    Migration mirror = createMirrorObj();
+    mirror.run(workdir, ImmutableList.of());
+
+    RecordingListener recordingCallback = installProfiler();
+    mirror.run(workdir, ImmutableList.of());
+
+    recordingCallback
+        .assertMatchesNext(EventType.START, "//copybara")
+        .assertMatchesNext(EventType.START, "//copybara/run/default")
+        .assertMatchesNext(EventType.START, "//copybara/run/default/fetch")
+        .assertMatchesNext(EventType.END, "//copybara/run/default/fetch")
+        .assertMatchesNext(EventType.START, "//copybara/run/default/push")
+        .assertMatchesNext(EventType.END, "//copybara/run/default/push")
+        .assertMatchesNext(EventType.END, "//copybara/run/default");
+    console
+        .assertThat()
+        .matchesNextSkipAhead(MessageType.PROGRESS, "Fetching from.*")
+        .matchesNextSkipAhead(MessageType.PROGRESS, "Pushing to.*")
+        .timesInLog(
+            0,
+            MessageType.INFO,
+            "Origin and destination refs are in sync for default. Skipping fetch and push.");
+  }
+
+  private Migration createMirrorObj() throws IOException, ValidationException {
+    return createMirrorObj(/* prune= */ false);
+  }
+
+  private Migration createMirrorObj(boolean prune) throws IOException, ValidationException {
+    return loadMigration(
+        """
+        git.mirror(
+            name = 'default',
+            origin = 'file://%s',
+            destination = 'file://%s',
+            prune = %s)
+        """
+            .formatted(
+                originRepo.getGitDir().toAbsolutePath(),
+                destRepo.getGitDir().toAbsolutePath(),
+                prune ? "True" : "False"),
+        "default");
+  }
+
+  private RecordingListener installProfiler() {
+    RecordingListener recordingCallback = new RecordingListener();
+    Profiler profiler = new Profiler(new FakeTicker());
+    profiler.init(ImmutableList.of(recordingCallback));
+    options.general.withProfiler(profiler);
+    return recordingCallback;
   }
 }
