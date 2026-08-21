@@ -23,6 +23,14 @@ java_library(
     ],
 )
 
+# For now just a copy to match starlark
+java_library(
+    name = "guava_base",
+    exports = [
+        ":guava"
+    ],
+)
+
 java_library(
     name = "guava_testlib",
     testonly = 1,
