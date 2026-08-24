@@ -190,8 +190,17 @@ public class Main {
    * @param commandEnv the command environment passed to the command. Can be null for executions
    *     that failed before executing the command, like bad options.
    */
-  protected record CommandResult(
-      ExitCode exitCode, @Nullable CopybaraCmd command, @Nullable CommandEnv commandEnv) {}
+  public static record CommandResult(
+      ExitCode exitCode,
+      @Nullable CopybaraCmd command,
+      @Nullable CommandEnv commandEnv,
+      @Nullable String message) {
+
+    CommandResult(
+        ExitCode exitCode, @Nullable CopybaraCmd command, @Nullable CommandEnv commandEnv) {
+      this(exitCode, command, commandEnv, /* message= */ null);
+    }
+  }
 
   /**
    * Runs the command and returns the {@link ExitCode}.
@@ -251,38 +260,38 @@ public class Main {
       generalOptions.console().progressFmt("Running %s", subcommand.name());
 
       ExitCode exitCode = subcommand.run(commandEnv);
-      return new CommandResult(exitCode, subcommand, commandEnv);
+      return new CommandResult(exitCode, subcommand, commandEnv, /* message= */ null);
 
     } catch (CommandLineException | ParameterException e) {
       Consoles.printCauseChain(Level.WARNING, console, args, e);
       console.error("Try 'copybara help'.");
-      return new CommandResult(ExitCode.COMMAND_LINE_ERROR, subcommand, commandEnv);
+      return new CommandResult(ExitCode.COMMAND_LINE_ERROR, subcommand, commandEnv, e.getMessage());
     } catch (RepoException e) {
       Consoles.printCauseChain(Level.SEVERE, console, args, e);
       // TODO(malcon): Expose interrupted exception from WorkflowMode to Main so that we don't
       // have to do this hack.
       if (e.getCause() instanceof InterruptedException) {
-        return new CommandResult(ExitCode.INTERRUPTED, subcommand, commandEnv);
+        return new CommandResult(ExitCode.INTERRUPTED, subcommand, commandEnv, e.getMessage());
       }
-      return new CommandResult(ExitCode.REPOSITORY_ERROR, subcommand, commandEnv);
+      return new CommandResult(ExitCode.REPOSITORY_ERROR, subcommand, commandEnv, e.getMessage());
     } catch (EmptyChangeException e) {
       // This is not necessarily an error. Maybe the tool was run previously and there are no new
       // changes to import.
       console.warn(e.getMessage());
-      return new CommandResult(ExitCode.NO_OP, subcommand, commandEnv);
+      return new CommandResult(ExitCode.NO_OP, subcommand, commandEnv, e.getMessage());
     } catch (ValidationException e) {
       Consoles.printCauseChain(Level.WARNING, console, args, e);
-      return new CommandResult(ExitCode.CONFIGURATION_ERROR,
-          subcommand, commandEnv);
+      return new CommandResult(
+          ExitCode.CONFIGURATION_ERROR, subcommand, commandEnv, e.getMessage());
     } catch (IOException e) {
       handleUnexpectedError(console, e.getMessage(), args, e);
-      return new CommandResult(ExitCode.ENVIRONMENT_ERROR, subcommand, commandEnv);
+      return new CommandResult(ExitCode.ENVIRONMENT_ERROR, subcommand, commandEnv, e.getMessage());
     } catch (RuntimeException e) {
       // This usually indicates a serious programming error that will require Copybara team
       // intervention. Print stack trace without concern for presentation.
       e.printStackTrace();
       handleUnexpectedError(console, "Unexpected error: " + e.getMessage(), args, e);
-      return new CommandResult(ExitCode.INTERNAL_ERROR, subcommand, commandEnv);
+      return new CommandResult(ExitCode.INTERNAL_ERROR, subcommand, commandEnv, e.getMessage());
     }
   }
 
