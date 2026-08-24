@@ -68,6 +68,7 @@ import com.google.copybara.git.github.api.Review;
 import com.google.copybara.git.github.api.Status;
 import com.google.copybara.git.github.api.Status.State;
 import com.google.copybara.git.github.api.User;
+import com.google.copybara.git.github.util.GitHubIdentifier;
 import com.google.copybara.git.github.util.GitHubHost;
 import com.google.copybara.git.github.util.GitHubHost.GitHubPrUrl;
 import com.google.copybara.git.github.util.GitHubUtil;
@@ -145,6 +146,7 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
   @Nullable private final String branch;
   private final boolean describeVersion;
   private final GitHubHost ghHost;
+  private final GitHubIdentifier gitHubIdentifier;
   private final GitHubPrOriginOptions gitHubPrOriginOptions;
   private final ApprovalsProvider provider;
   @Nullable private final CredentialFileHandler credentials;
@@ -181,6 +183,7 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
     this.url = checkNotNull(url);
     this.useMerge = useMerge;
     this.generalOptions = checkNotNull(generalOptions);
+    this.gitHubIdentifier = GitHubIdentifier.create(url);
     this.gitOptions = checkNotNull(gitOptions);
     this.gitOriginOptions = checkNotNull(gitOriginOptions);
     this.gitHubOptions = gitHubOptions;
@@ -250,8 +253,8 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
     throw new CannotResolveRevisionException(
         String.format(
             "'%s' is not a valid reference for a GitHub Pull Request. Valid formats:"
-                + "'https://github.com/project/pull/1234', 'refs/pull/1234/head' or '1234'",
-            reference));
+                + "'https://%s/project/pull/1234', 'refs/pull/1234/head' or '1234'",
+            reference, gitHubIdentifier.getHostName()));
   }
 
   @Override
@@ -480,9 +483,13 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
     if (!forceImport() && branch != null && !Objects.equals(prData.getBase().getRef(), branch)) {
       throw new EmptyChangeException(
           String.format(
-              "Cannot migrate http://github.com/%s/pull/%d because its base branch is '%s', but"
+              "Cannot migrate http://%s/%s/pull/%d because its base branch is '%s', but"
                   + " the workflow is configured to only migrate changes for branch '%s'",
-              project, prData.getNumber(), prData.getBase().getRef(), branch));
+              gitHubIdentifier.getHostName(),
+              project,
+              prData.getNumber(),
+              prData.getBase().getRef(),
+              branch));
     }
   }
 
@@ -515,9 +522,9 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
     if (!requiredButNotPresent.isEmpty()) {
       throw new EmptyChangeException(
           String.format(
-              "Cannot migrate http://github.com/%s/pull/%d because it is missing the following"
+              "Cannot migrate http://%s/%s/pull/%d because it is missing the following"
                   + " labels: %s",
-              project, prData.getNumber(), requiredButNotPresent));
+              gitHubIdentifier.getHostName(), project, prData.getNumber(), requiredButNotPresent));
     }
   }
 
@@ -546,9 +553,12 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
       if (!requiredButNotPresent.isEmpty()) {
         throw new EmptyChangeException(
             String.format(
-                "Cannot migrate http://github.com/%s/pull/%d because the following ci labels "
+                "Cannot migrate http://%s/%s/pull/%d because the following ci labels "
                     + "have not been passed: %s",
-                project, prData.getNumber(), requiredButNotPresent));
+                gitHubIdentifier.getHostName(),
+                project,
+                prData.getNumber(),
+                requiredButNotPresent));
       }
     }
   }
@@ -629,9 +639,12 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
     if (!missingCheckRunsAggregator.build().isEmpty()) {
       throw new EmptyChangeException(
           String.format(
-              "Cannot migrate http://github.com/%s/pull/%d because the following check runs "
+              "Cannot migrate http://%s/%s/pull/%d because the following check runs "
                   + "have not been passed: %s",
-              project, prData.getNumber(), missingCheckRunsAggregator.build()));
+              gitHubIdentifier.getHostName(),
+              project,
+              prData.getNumber(),
+              missingCheckRunsAggregator.build()));
     }
   }
 
@@ -691,9 +704,9 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
       }
       throw new EmptyChangeException(
           String.format(
-              "Cannot migrate http://github.com/%s/pull/%d because it is missing the required"
+              "Cannot migrate http://%s/%s/pull/%d because it is missing the required"
                   + " approvals (origin is configured as %s).%s",
-              project, prData.getNumber(), reviewState, rejected));
+              gitHubIdentifier.getHostName(), project, prData.getNumber(), reviewState, rejected));
     }
     Set<String> approvers = new HashSet<>();
     Set<String> others = new HashSet<>();
