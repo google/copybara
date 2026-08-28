@@ -387,7 +387,7 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
       return Optional.of(configFile.resolve(path));
     } catch (CannotResolveLabel e) {
       if (validationLevel == ValidationLevel.NONE) {
-        generalOptions.console().infoFmt("Cannot load: %s", path);
+        generalOptions.console().verboseFmt("Cannot load: %s", path);
         return Optional.empty();
       } else {
         throw Starlark.errorf("Failed to resolve patch: %s", path);
@@ -407,13 +407,13 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
       try {
         seriesFile = configFile.resolve(series.trim());
       } catch (CannotResolveLabel e) {
-        switch (validationLevel) {
+        return switch (validationLevel) {
           case NONE, OPTIONAL_SERIES -> {
-            generalOptions.console().infoFmt("Cannot load %s: %s", series.trim(), e);
-            return Optional.empty();
+            generalOptions.console().verboseFmt("Cannot load %s: %s", series.trim(), e);
+            yield Optional.empty();
           }
           default -> throw e;
-        }
+        };
       }
       ImmutableList.Builder<ConfigFile> patchesBuilder = ImmutableList.builder();
       for (String line : LINES.split(seriesFile.readContent())) {
@@ -429,7 +429,7 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
               patchesBuilder.add(seriesFile.resolve(line));
             } catch (CannotResolveLabel e) {
               if (validationLevel == ValidationLevel.NONE) {
-                generalOptions.console().infoFmt("Cannot load %s: %s", line, e);
+                generalOptions.console().verboseFmt("Cannot load %s: %s", line, e);
               } else {
                 throw e;
               }

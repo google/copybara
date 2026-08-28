@@ -30,6 +30,7 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformWorks;
+import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
@@ -85,7 +86,7 @@ public final class QuiltTransformationTest {
     Files.createDirectories(checkoutDir);
     console = new TestingConsole();
     // QuiltTransformation needs to write and read from to real temp directory.
-    options = new OptionsBuilder().setWorkdirToRealTempDir();
+    options = new OptionsBuilder().setWorkdirToRealTempDir().setConsole(console);
     // GeneralOptions.getDirFactory() requires $HOME to be set. We set --output-root instead.
     options.setOutputRootToTmpDir();
     patchingOptions = options.build().get(PatchingOptions.class);
@@ -536,6 +537,8 @@ public final class QuiltTransformationTest {
             )
             """);
 
+    console.assertThat().timesInLog(0, MessageType.INFO, "Cannot load.*");
+    console.assertThat().onceInLog(MessageType.VERBOSE, "Cannot load patches/missing/series.*");
     assertThat(transformation.describe())
         .isEqualTo("Patch.quilt_apply: using quilt to apply and update patches: ");
   }

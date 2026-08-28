@@ -319,7 +319,8 @@ public class PatchTransformationTest {
             )
             """);
 
-    console.assertThat().onceInLog(MessageType.INFO, "Cannot load.*");
+    console.assertThat().onceInLog(MessageType.VERBOSE, "Cannot load.*");
+    console.assertThat().timesInLog(0, MessageType.INFO, "Cannot load.*");
     assertThat(transformation).isNotNull();
   }
 
@@ -361,6 +362,8 @@ public class PatchTransformationTest {
             )
             """);
 
+    console.assertThat().timesInLog(0, MessageType.INFO, "Cannot load.*");
+    console.assertThat().onceInLog(MessageType.VERBOSE, "Cannot load missing_series.*");
     assertThat(transformation.describe()).isEqualTo("Patch.apply: ");
   }
 
@@ -376,6 +379,8 @@ public class PatchTransformationTest {
             )
             """);
 
+    console.assertThat().timesInLog(0, MessageType.INFO, "Cannot load.*");
+    console.assertThat().onceInLog(MessageType.VERBOSE, "Cannot load missing_series.*");
     assertThat(transformation.describe()).isEqualTo("Patch.apply: ");
   }
 
@@ -403,7 +408,8 @@ public class PatchTransformationTest {
             )
             """);
 
-    console.assertThat().onceInLog(MessageType.INFO, "Cannot load: missing.patch");
+    console.assertThat().onceInLog(MessageType.VERBOSE, "Cannot load: missing.patch");
+    console.assertThat().timesInLog(0, MessageType.INFO, "Cannot load.*");
     assertThat(transformation).isNotNull();
   }
 
@@ -421,7 +427,8 @@ public class PatchTransformationTest {
             )
             """);
 
-    console.assertThat().onceInLog(MessageType.INFO, "Cannot load: missing.patch");
+    console.assertThat().onceInLog(MessageType.VERBOSE, "Cannot load: missing.patch");
+    console.assertThat().timesInLog(0, MessageType.INFO, "Cannot load.*");
     assertThat(transformation).isNotNull();
   }
 
