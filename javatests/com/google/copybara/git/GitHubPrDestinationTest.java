@@ -655,7 +655,7 @@ public class GitHubPrDestinationTest {
                     new GitIntegrateChanges(
                         DEFAULT_INTEGRATE_LABEL,
                         Strategy.FAKE_MERGE_AND_INCLUDE_FILES,
-                        /*ignoreErrors=*/ false))));
+                        /*ignoreErrors=*/ true))));
 
     d = skylark.eval("r", "r = git.github_pr_destination("
         + "    url = '" + "https://github.com/foo" + "',"

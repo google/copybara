@@ -189,7 +189,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     boolean failIfCommonBaselineNotFound =
         options
             .get(GeneralOptions.class)
-            .isTemporaryFeature("GIT_INTEGRATE_FAIL_IF_COMMON_BASELINE_NOT_FOUND", true);
+            .isTemporaryFeature("GIT_INTEGRATE_FAIL_IF_COMMON_BASELINE_NOT_FOUND", false);
     boolean ignoreErrors = !failIfCommonBaselineNotFound;
     this.defaultGitIntegrate =
         StarlarkList.of(
