@@ -241,13 +241,7 @@ public class SkylarkParser {
       ImmutableMap<String, String> fileToLoad =
           prog.getLoads().stream()
               .distinct()
-              .collect(
-                  toImmutableMap(
-                      l ->
-                          ALLOWED_LOAD_EXTENSIONS.stream().anyMatch(l::endsWith)
-                              ? l
-                              : l + DEFAULT_EXTENSION,
-                      l -> l));
+              .collect(toImmutableMap(l -> normalizeLoad(content, l), l -> l));
 
       for (Entry<String, ConfigFile> entry :
           content
@@ -370,6 +364,30 @@ public class SkylarkParser {
     }
     env.put("visibility", VISIBILITY_FUNC);
     return ImmutableMap.copyOf(env);
+  }
+
+  private static String normalizeLoad(ConfigFile content, String load) {
+    if (content.path().endsWith(".scl")) {
+      return normalizeSclLoad(load);
+    } else {
+      if (ALLOWED_LOAD_EXTENSIONS.stream().anyMatch(load::endsWith)) {
+        return load;
+      }
+      return load + DEFAULT_EXTENSION;
+    }
+  }
+
+  // `load()` statements in scl files must not fail if they are valid in Blaze, but validation
+  // is not required. Simply replacing the last `:` with `/` is legal.
+  private static String normalizeSclLoad(String path) {
+    int colon = path.lastIndexOf(':');
+    if (colon == -1) {
+      return path;
+    }
+    if (colon == 0) {
+      return path.substring(1);
+    }
+    return path.substring(0, colon) + "/" + path.substring(colon + 1);
   }
 
   private static String getModuleName(Class<?> cls) {

@@ -502,6 +502,32 @@ other += [4, 5]
     assertThat(val).isEqualTo(StarlarkInt.of(42));
   }
 
+  @Test
+  public void testLoadSclTargetLabel() throws Exception {
+    parser.addConfigFile(
+        "foo/dep.scl",
+        """
+        val = 42
+        """);
+    parser.addConfigFile(
+        "foo/helper.scl",
+        """
+        load('//foo:dep.scl', 'val')
+        def get_val():
+          return val
+        """);
+
+    String content =
+        """
+        load('//foo/helper.scl', 'get_val')
+        val = get_val()
+        """
+            + NON_IMPORTANT_WORKFLOW;
+
+    StarlarkInt val = parser.eval("val", content);
+    assertThat(val).isEqualTo(StarlarkInt.of(42));
+  }
+
   @StarlarkBuiltin(
       name = "mock_labels_aware_module",
       doc = "LabelsAwareModule for testing purposes",
