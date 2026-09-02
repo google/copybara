@@ -35,6 +35,7 @@ import com.google.copybara.revision.Revision;
 import com.google.copybara.transform.SkylarkConsole;
 import java.util.Map;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
@@ -56,7 +57,7 @@ public class FinishHookContext extends ActionContext<FinishHookContext> implemen
 
   private final LazyResourceLoader<Endpoint> origin;
   private final LazyResourceLoader<Endpoint> destination;
-  private final SkylarkRevision resolvedRevision;
+  @Nullable private final SkylarkRevision resolvedRevision;
   private final ImmutableList<DestinationEffect> destinationEffects;
 
   public FinishHookContext(
@@ -65,7 +66,7 @@ public class FinishHookContext extends ActionContext<FinishHookContext> implemen
       LazyResourceLoader<Endpoint> destination,
       ImmutableList<DestinationEffect> destinationEffects,
       ImmutableMap<String, String> labels,
-      Revision resolvedRevision,
+      @Nullable Revision resolvedRevision,
       SkylarkConsole console) {
     this(
         action,
@@ -75,7 +76,7 @@ public class FinishHookContext extends ActionContext<FinishHookContext> implemen
         labels,
         console,
         Dict.empty(),
-        new SkylarkRevision(resolvedRevision));
+        resolvedRevision == null ? null : new SkylarkRevision(resolvedRevision));
   }
 
   private FinishHookContext(
@@ -86,7 +87,7 @@ public class FinishHookContext extends ActionContext<FinishHookContext> implemen
       ImmutableMap<String, String> labels,
       SkylarkConsole console,
       Dict<?, ?> params,
-      SkylarkRevision resolvedRevision) {
+      @Nullable SkylarkRevision resolvedRevision) {
     super(currentAction, console, labels, params);
     this.origin = Preconditions.checkNotNull(origin);
     this.destination = Preconditions.checkNotNull(destination);
@@ -122,8 +123,12 @@ public class FinishHookContext extends ActionContext<FinishHookContext> implemen
     return StarlarkList.immutableCopyOf(destinationEffects);
   }
 
-  @StarlarkMethod(name = "revision", doc = "Get the requested/resolved revision",
-      structField = true)
+  @Nullable
+  @StarlarkMethod(
+      name = "revision",
+      doc = "Get the requested/resolved revision",
+      structField = true,
+      allowReturnNones = true)
   public SkylarkRevision getRevision() {
     return resolvedRevision;
   }
@@ -148,10 +153,11 @@ public class FinishHookContext extends ActionContext<FinishHookContext> implemen
         ((FinishHookContext) context).getNewDestinationEffects());
   }
 
+  /** A wrapper around the Revision object that can be used in Skylark. */
   @StarlarkBuiltin(
       name = "feedback.revision_context",
       doc = "Information about the revision request/resolved for the migration")
-  private static class SkylarkRevision implements StarlarkValue {
+  public static class SkylarkRevision implements StarlarkValue {
 
     private final Revision revision;
 
