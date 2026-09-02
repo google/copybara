@@ -49,6 +49,7 @@ import com.google.copybara.authoring.Authoring;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.EmptyChangeException;
+import com.google.copybara.exception.MissingPreconditionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitOrigin.ReaderImpl;
@@ -310,8 +311,13 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
       }
     }
     String stateClause = requiredState == StateFilter.ALL ? "" : (requiredState + " state and ");
-    throw new EmptyChangeException(
-        String.format("Could not find a pr with %shead being equal to sha %s", stateClause, sha));
+    ImmutableList.Builder<String> refs = ImmutableList.<String>builder().add(sha);
+    for (Long prNumber : prNumbers) {
+      refs.add(Long.toString(prNumber));
+    }
+    throw new MissingPreconditionException(
+        String.format("Could not find a pr with %shead being equal to sha %s", stateClause, sha),
+        refs.build());
   }
 
   /** Given a PR number, use the GitHub API to look up the PR info. */
@@ -481,7 +487,7 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
   /** Check that the branch name of the PR matches the provided value of the `branch` param */
   private void checkPrBranch(String project, PullRequest prData) throws ValidationException {
     if (!forceImport() && branch != null && !Objects.equals(prData.getBase().getRef(), branch)) {
-      throw new EmptyChangeException(
+      throw new MissingPreconditionException(
           String.format(
               "Cannot migrate http://%s/%s/pull/%d because its base branch is '%s', but"
                   + " the workflow is configured to only migrate changes for branch '%s'",
@@ -489,7 +495,8 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
               project,
               prData.getNumber(),
               prData.getBase().getRef(),
-              branch));
+              branch),
+          ImmutableList.of(prData.getHead().getSha(), Long.toString(prData.getNumber())));
     }
   }
 
@@ -520,11 +527,12 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
       retryCount++;
     } while (retryCount < RETRY_COUNT);
     if (!requiredButNotPresent.isEmpty()) {
-      throw new EmptyChangeException(
+      throw new MissingPreconditionException(
           String.format(
               "Cannot migrate http://%s/%s/pull/%d because it is missing the following"
                   + " labels: %s",
-              gitHubIdentifier.getHostName(), project, prData.getNumber(), requiredButNotPresent));
+              gitHubIdentifier.getHostName(), project, prData.getNumber(), requiredButNotPresent),
+          ImmutableList.of(prData.getHead().getSha(), Long.toString(prData.getNumber())));
     }
   }
 
@@ -551,14 +559,12 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
       requiredButNotPresent.removeAll(
           Collections2.transform(successStatuses.build(), Status::getContext));
       if (!requiredButNotPresent.isEmpty()) {
-        throw new EmptyChangeException(
+        throw new MissingPreconditionException(
             String.format(
                 "Cannot migrate http://%s/%s/pull/%d because the following ci labels "
                     + "have not been passed: %s",
-                gitHubIdentifier.getHostName(),
-                project,
-                prData.getNumber(),
-                requiredButNotPresent));
+                gitHubIdentifier.getHostName(), project, prData.getNumber(), requiredButNotPresent),
+            ImmutableList.of(prData.getHead().getSha(), Long.toString(prData.getNumber())));
       }
     }
   }
@@ -637,14 +643,15 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
     }
 
     if (!missingCheckRunsAggregator.build().isEmpty()) {
-      throw new EmptyChangeException(
+      throw new MissingPreconditionException(
           String.format(
               "Cannot migrate http://%s/%s/pull/%d because the following check runs "
                   + "have not been passed: %s",
               gitHubIdentifier.getHostName(),
               project,
               prData.getNumber(),
-              missingCheckRunsAggregator.build()));
+              missingCheckRunsAggregator.build()),
+          ImmutableList.of(prData.getHead().getSha(), Long.toString(prData.getNumber())));
     }
   }
 
@@ -702,11 +709,12 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
                     .map(e -> String.format("User %s - Association: %s", e.getKey(), e.getValue()))
                     .collect(joining("\n")));
       }
-      throw new EmptyChangeException(
+      throw new MissingPreconditionException(
           String.format(
               "Cannot migrate http://%s/%s/pull/%d because it is missing the required"
                   + " approvals (origin is configured as %s).%s",
-              gitHubIdentifier.getHostName(), project, prData.getNumber(), reviewState, rejected));
+              gitHubIdentifier.getHostName(), project, prData.getNumber(), reviewState, rejected),
+          ImmutableList.of(prData.getHead().getSha(), Long.toString(prData.getNumber())));
     }
     Set<String> approvers = new HashSet<>();
     Set<String> others = new HashSet<>();

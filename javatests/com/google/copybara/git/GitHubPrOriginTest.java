@@ -62,6 +62,7 @@ import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
 import com.google.copybara.config.MapConfigFile;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.EmptyChangeException;
+import com.google.copybara.exception.MissingPreconditionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitCredential.UserPassword;
@@ -268,16 +269,16 @@ public class GitHubPrOriginTest {
   @Test
   public void testGitResolveRequiredLabelsNotFound() throws Exception {
     MockPullRequest.create(gitUtil).setState("open").setPrNumber(125).addLabels("bar: yes").mock();
-    EmptyChangeException thrown =
+    MissingPreconditionException thrown =
         assertThrows(
-            EmptyChangeException.class,
+            MissingPreconditionException.class,
             () ->
-              checkResolve(
-                  githubPrOrigin(
-                      "url = 'https://github.com/google/example'",
-                      "required_labels = ['foo: yes', 'bar: yes']"),
-                  "125",
-                  125));
+                checkResolve(
+                    githubPrOrigin(
+                        "url = 'https://github.com/google/example'",
+                        "required_labels = ['foo: yes', 'bar: yes']"),
+                    "125",
+                    125));
     assertThat(thrown)
         .hasMessageThat()
         .contains(
@@ -295,9 +296,9 @@ public class GitHubPrOriginTest {
         .addCommitStatus("foo/two", "failure")
         .mock();
 
-    EmptyChangeException thrown =
+    MissingPreconditionException thrown =
         assertThrows(
-            EmptyChangeException.class,
+            MissingPreconditionException.class,
             () ->
                 checkResolve(
                     githubPrOrigin(
@@ -323,9 +324,9 @@ public class GitHubPrOriginTest {
         .addCheckRun("foo/two", "failure")
         .mock();
 
-    EmptyChangeException thrown =
+    MissingPreconditionException thrown =
         assertThrows(
-            EmptyChangeException.class,
+            MissingPreconditionException.class,
             () ->
                 checkResolve(
                     githubPrOrigin(
@@ -339,6 +340,7 @@ public class GitHubPrOriginTest {
         .contains(
             "Cannot migrate http://github.com/google/example/pull/125 because the following check"
                 + " runs have not been passed: [foo/two]");
+    assertThat(thrown.getRefs()).containsExactly(sha, "125");
   }
 
   @Test
@@ -366,9 +368,9 @@ public class GitHubPrOriginTest {
         .addLabels("bar: yes")
         .mock();
 
-    EmptyChangeException thrown =
+    MissingPreconditionException thrown =
         assertThrows(
-            EmptyChangeException.class,
+            MissingPreconditionException.class,
             () ->
                 checkResolve(
                     githubPrOrigin(
@@ -380,6 +382,7 @@ public class GitHubPrOriginTest {
     assertThat(thrown)
         .hasMessageThat()
         .contains("Could not find a pr with OPEN state and head being equal to sha " + sha);
+    assertThat(thrown.getRefs()).containsExactly(sha, "125");
   }
 
   @Test
@@ -512,9 +515,9 @@ public class GitHubPrOriginTest {
         .addCheckRun("foo/two", "failure")
         .mock();
 
-    EmptyChangeException thrown =
+    MissingPreconditionException thrown =
         assertThrows(
-            EmptyChangeException.class,
+            MissingPreconditionException.class,
             () ->
                 checkResolve(
                     githubPrOrigin(
@@ -528,6 +531,7 @@ public class GitHubPrOriginTest {
         .contains(
             "Cannot migrate http://github.com/google/example/pull/125 because the following check"
                 + " runs have not been passed: [foo/two]");
+    assertThat(thrown.getRefs()).containsExactly(sha, "125");
     verify(gitUtil.httpTransport(), times(1))
         .buildRequest("POST", "https://api.github.com/graphql");
     verify(gitUtil.httpTransport(), never()).buildRequest(eq("GET"), contains("/check-runs"));
@@ -582,14 +586,15 @@ public class GitHubPrOriginTest {
             "url = 'https://github.com/google/example'",
             "required_check_runs = ['foo/one', 'foo/two', 'foo/three', 'foo/four',"
                 + " 'foo/five', 'foo/six']");
-    EmptyChangeException thrown =
-        assertThrows(EmptyChangeException.class, () -> checkResolve(origin, sha, 125));
+    MissingPreconditionException thrown =
+        assertThrows(MissingPreconditionException.class, () -> checkResolve(origin, sha, 125));
 
     assertThat(thrown)
         .hasMessageThat()
         .contains(
             "Cannot migrate http://github.com/google/example/pull/125 because the following check"
                 + " runs have not been passed: [foo/six]");
+    assertThat(thrown.getRefs()).containsExactly(sha, "125");
   }
 
   @Test
@@ -663,19 +668,20 @@ public class GitHubPrOriginTest {
         125);
 
     MockPullRequest.create(gitUtil).setState("open").setPrNumber(126).addLabels("bar: yes").mock();
-    EmptyChangeException e =
+    MissingPreconditionException e =
         assertThrows(
-            EmptyChangeException.class,
+            MissingPreconditionException.class,
             () ->
-              checkResolve(
-                  githubPrOrigin("url = 'https://github.com/google/example'", "branch = 'other'"),
-                  "126",
-                  126));
+                checkResolve(
+                    githubPrOrigin("url = 'https://github.com/google/example'", "branch = 'other'"),
+                    "126",
+                    126));
     assertThat(e)
         .hasMessageThat()
         .contains(
             "because its base branch is 'main', but the workflow is configured to only migrate"
                 + " changes for branch 'other'");
+    assertThat(e.getRefs()).containsExactly(sha, "126");
   }
 
   @Test
@@ -703,9 +709,9 @@ public class GitHubPrOriginTest {
   @Test
   public void testGitResolveRequiredLabelsNotRetryable() throws Exception {
     MockPullRequest.create(gitUtil).setState("open").setPrNumber(125).mock();
-    EmptyChangeException thrown =
+    MissingPreconditionException thrown =
         assertThrows(
-            EmptyChangeException.class,
+            MissingPreconditionException.class,
             () ->
                 checkResolve(
                     githubPrOrigin(
@@ -718,6 +724,7 @@ public class GitHubPrOriginTest {
         .contains(
             "Cannot migrate http://github.com/google/example/pull/125 because it is missing the"
                 + " following labels: [foo: yes]");
+    assertThat(thrown.getRefs()).containsExactly(sha, "125");
   }
 
   @Test
@@ -1221,9 +1228,9 @@ public class GitHubPrOriginTest {
     assertThat(any.associatedLabels().get(GitHubPrOrigin.GITHUB_PR_REVIEWER_OTHER))
         .containsExactly("COMMENTED_OTHER");
 
-    EmptyChangeException e =
+    MissingPreconditionException e =
         assertThrows(
-            EmptyChangeException.class,
+            MissingPreconditionException.class,
             () ->
                 checkReviewApprovers(
                     "review_state = 'HEAD_COMMIT_APPROVED'",
@@ -1234,6 +1241,9 @@ public class GitHubPrOriginTest {
     assertThat(e).hasMessageThat()
         .contains("User APPROVED_COLLABORATOR - Association: COLLABORATOR");
     assertThat(e).hasMessageThat().contains("User COMMENTED_OTHER - Association: NONE");
+    assertThat(e.getRefs()).hasSize(2);
+    assertThat(e.getRefs().get(0)).matches("[a-f0-9]{40}");
+    assertThat(e.getRefs().get(1)).isEqualTo("123");
 
     GitRevision hasReviewers = checkReviewApprovers("review_state = 'ANY_COMMIT_APPROVED'",
         "review_approvers = [\"MEMBER\", \"OWNER\"]");
@@ -2039,7 +2049,8 @@ public class GitHubPrOriginTest {
 
                     String pattern =
                         String.format(
-                            "filter_(\\d+):\\s*checkRuns\\([^\\)]*checkName:\\s*\\\\?\"%s\\\\?\"", checkName);
+                            "filter_(\\d+):\\s*checkRuns\\([^\\)]*checkName:\\s*\\\\?\"%s\\\\?\"",
+                            checkName);
                     java.util.regex.Pattern r = java.util.regex.Pattern.compile(pattern);
                     java.util.regex.Matcher m = r.matcher(requestBody);
                     if (m.find()) {
