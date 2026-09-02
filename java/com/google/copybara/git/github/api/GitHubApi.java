@@ -19,6 +19,7 @@ package com.google.copybara.git.github.api;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.git.github.api.GitHubApiException.ResponseCode.CONFLICT;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.joining;
 
 import com.google.common.base.Ascii;
@@ -38,6 +39,7 @@ import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.errorprone.annotations.FormatMethod;
 import com.google.errorprone.annotations.FormatString;
 import java.lang.reflect.Type;
+import java.net.URLEncoder;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
@@ -558,7 +560,7 @@ public class GitHubApi {
             projectId,
             ref,
             MAX_PER_PAGE,
-            checkName);
+            URLEncoder.encode(checkName, UTF_8));
       }
     }
   }

@@ -78,6 +78,7 @@ import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import java.io.IOException;
+import java.net.URLDecoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -338,6 +339,23 @@ public class GitHubPrOriginTest {
         .contains(
             "Cannot migrate http://github.com/google/example/pull/125 because the following check"
                 + " runs have not been passed: [foo/two]");
+  }
+
+  @Test
+  public void gitResolveRequiredCheckRunsWithSpecialCharacters() throws Exception {
+    MockPullRequest.create(gitUtil)
+        .setState("open")
+        .setPrNumber(125)
+        .addLabels("bar: yes")
+        .addCheckRun("All Blocking Tests (fork)", "success")
+        .mock();
+
+    checkResolve(
+        githubPrOrigin(
+            "url = 'https://github.com/google/example'",
+            "required_check_runs = ['All Blocking Tests (fork)']"),
+        sha,
+        125);
   }
 
   @Test
@@ -1965,7 +1983,8 @@ public class GitHubPrOriginTest {
               String checkNameParam = "check_name=";
               int idx = url.indexOf(checkNameParam);
               if (idx != -1) {
-                String queryCheckName = url.substring(idx + checkNameParam.length());
+                String rawCheckName = url.substring(idx + checkNameParam.length());
+                String queryCheckName = URLDecoder.decode(rawCheckName, UTF_8);
                 JsonObject specResponse = new JsonObject();
                 JsonArray specTestStatuses = new JsonArray();
                 if (checkRuns.containsKey(queryCheckName)) {

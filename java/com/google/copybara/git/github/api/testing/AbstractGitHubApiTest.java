@@ -73,6 +73,7 @@ import com.google.copybara.profiler.LogProfilerListener;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.testing.git.GitTestUtil.JsonValidator;
 import java.io.IOException;
+import java.net.URLEncoder;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -624,6 +625,19 @@ public abstract class AbstractGitHubApiTest {
         getResource("get_check_runs_testdata.json"));
     ImmutableList<CheckRun> checkRuns =
         api.getCheckRuns("example/project", "12345", "mighty_readme");
+    assertThat(checkRuns).hasSize(1);
+    assertThat(checkRuns.get(0).getStatus()).isEqualTo("completed");
+    assertThat(checkRuns.get(0).getConclusion()).isEqualTo("neutral");
+  }
+
+  @Test
+  public void test_getCheckRunsWithCheckName_specialCharacters() throws Exception {
+    trainMockGet(
+        "/repos/example/project/commits/12345/check-runs?per_page=100&check_name="
+            + URLEncoder.encode("All Blocking Tests (fork)", UTF_8),
+        getResource("get_check_runs_testdata.json"));
+    ImmutableList<CheckRun> checkRuns =
+        api.getCheckRuns("example/project", "12345", "All Blocking Tests (fork)");
     assertThat(checkRuns).hasSize(1);
     assertThat(checkRuns.get(0).getStatus()).isEqualTo("completed");
     assertThat(checkRuns.get(0).getConclusion()).isEqualTo("neutral");
