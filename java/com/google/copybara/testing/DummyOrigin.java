@@ -78,6 +78,14 @@ public class DummyOrigin implements Origin<DummyRevision> {
     this.author = DEFAULT_AUTHOR;
   }
 
+  private ValidationException resolveException;
+
+  @CanIgnoreReturnValue
+  public DummyOrigin setResolveException(ValidationException resolveException) {
+    this.resolveException = resolveException;
+    return this;
+  }
+
   public static final String LABEL_NAME = "DummyOrigin-RevId";
 
   public final List<DummyRevision> changes = new ArrayList<>();
@@ -220,7 +228,10 @@ public class DummyOrigin implements Origin<DummyRevision> {
 
   @Override
   public DummyRevision resolve(@Nullable String reference)
-      throws RepoException, CannotResolveRevisionException {
+      throws RepoException, ValidationException {
+    if (resolveException != null) {
+      throw resolveException;
+    }
     if (HEAD.equals(reference)) {
       if (changes.isEmpty()) {
         throw new IllegalStateException("Empty respository");

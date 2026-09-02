@@ -16,6 +16,7 @@
 
 package com.google.copybara;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.copybara.LazyResourceLoader.memoized;
 import static com.google.copybara.WorkflowMode.CHANGE_REQUEST;
 import static com.google.copybara.WorkflowMode.CHANGE_REQUEST_FROM_SOT;
@@ -40,6 +41,7 @@ import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.Migration;
 import com.google.copybara.effect.DestinationEffect;
 import com.google.copybara.exception.CommandLineException;
+import com.google.copybara.exception.MissingPreconditionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.feedback.FinishHookContext;
@@ -48,6 +50,7 @@ import com.google.copybara.monitor.EventMonitor.EventMonitors;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.revision.Change;
+import com.google.copybara.revision.OriginRef;
 import com.google.copybara.revision.Revision;
 import com.google.copybara.templatetoken.Token;
 import com.google.copybara.templatetoken.Token.TokenType;
@@ -294,9 +297,40 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     try (ProfilerTask ignore = profiler().start("run/" + name)) {
       console.progress("Getting last revision: "
           + "Resolving " + ((sourceRef == null) ? "origin reference" : sourceRef));
-      O resolvedRef = generalOptions.repoTask("origin.resolve_source_ref",
-          () -> origin.resolve(sourceRef));
-
+      O resolvedRef = null;
+      try (var _ = profiler().start("origin.resolve_source_ref")) {
+        resolvedRef = origin.resolve(sourceRef);
+      } catch (MissingPreconditionException e) {
+        if (!getGeneralOptions().dryRunMode) {
+          try (ProfilerTask ignored = profiler().start("after_all_migration")) {
+            console.infoFmt(
+                "Failed to resolve source ref %s, running after_all_migration hooks", sourceRef);
+            // Create a synthetic DestinationEffect for the cases where we did not fetch from the
+            // origin
+            ImmutableList<DestinationEffect> effects =
+                runHooks(
+                    ImmutableList.of(
+                        new DestinationEffect(
+                            DestinationEffect.Type.INSUFFICIENT_APPROVALS,
+                            e.getMessage(),
+                            e.getRefs().stream().map(OriginRef::new).collect(toImmutableList()),
+                            /* destinationRef= */ null)),
+                    getAfterAllMigrationActions(),
+                    memoized(
+                        c ->
+                            getOrigin()
+                                .newReader(getOriginFiles(), getAuthoring())
+                                .getFeedbackEndPoint(c)),
+                    memoized(c -> null),
+                    /* resolvedRef= */ null);
+            if (effects.size() != 1) {
+              console.warn(
+                  "DestinationEffects where created in after_workflow, but they are ignored.");
+            }
+          }
+        }
+        throw e;
+      }
       if (!Strings.isNullOrEmpty(expectedFixedRef) && !Strings.isNullOrEmpty(pinnedFixedRef)) {
         throw new CommandLineException(
             "Using --expected-fixed-ref and --pinned-fixed-ref together is not supported.");
@@ -724,7 +758,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       ImmutableList<Action> actions,
       LazyResourceLoader<Endpoint> originEndpoint,
       LazyResourceLoader<Endpoint> destinationEndpoint,
-      Revision resolvedRef)
+      @Nullable Revision resolvedRef)
       throws ValidationException, RepoException {
     SkylarkConsole console = new SkylarkConsole(getConsole());
 

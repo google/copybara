@@ -69,6 +69,7 @@ import com.google.copybara.effect.DestinationEffect;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.ChangeRejectedException;
 import com.google.copybara.exception.EmptyChangeException;
+import com.google.copybara.exception.MissingPreconditionException;
 import com.google.copybara.exception.NotADestinationFileException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -2003,7 +2004,7 @@ public class WorkflowTest {
     assertThat(matcher.matches(workdir.resolve("bar/indir"))).isFalse();
   }
 
-  private String resolveHead() throws RepoException, CannotResolveRevisionException {
+  private String resolveHead() throws RepoException, ValidationException {
     return origin.resolve(HEAD).asString();
   }
 
@@ -4683,6 +4684,45 @@ public class WorkflowTest {
     };
     verifyHookForException(
         RepoException.class, DestinationEffect.Type.TEMPORARY_ERROR, "Repo exception!");
+  }
+
+  @Test
+  public void testOnFinishHook_missingPreconditionException() throws Exception {
+    origin.setResolveException(
+        new MissingPreconditionException("Missing required approvals!", ImmutableList.of("12345")));
+
+    String config =
+        ""
+            + "def test(ctx):\n"
+            + "  for effect in ctx.effects:\n"
+            + "    ctx.origin.message(\n"
+            + "        'hook called: type=' + effect.type\n"
+            + "        + ', summary=' + effect.summary\n"
+            + "        + ', origin_ref=' + effect.origin_refs[0].ref\n"
+            + "        + ', revision=' + str(ctx.revision))\n"
+            + "\n"
+            + "core.workflow(\n"
+            + "  name = 'default',\n"
+            + "  origin = testing.origin(),\n"
+            + "  destination = testing.destination(),\n"
+            + "  transformations = [],\n"
+            + "  authoring = "
+            + authoring
+            + ",\n"
+            + "  after_workflow = [test]\n"
+            + ")\n";
+
+    Migration migration = loadConfig(config).getMigration("default");
+    MissingPreconditionException expected =
+        assertThrows(
+            MissingPreconditionException.class,
+            () -> migration.run(workdir, ImmutableList.of("12345")));
+    assertThat(expected).hasMessageThat().contains("Missing required approvals!");
+
+    assertThat(origin.getEndpoint().getMessages())
+        .containsExactly(
+            "hook called: type=INSUFFICIENT_APPROVALS, summary=Missing required approvals!,"
+                + " origin_ref=12345, revision=None");
   }
 
   private <T extends Exception> void verifyHookForException(
