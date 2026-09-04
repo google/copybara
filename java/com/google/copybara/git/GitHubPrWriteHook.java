@@ -93,7 +93,8 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
     if (skipPush || generalOptions.allowEmptyDiff(allowEmptyDiff)) {
       return;
     }
-    for (Change<?> originalChange : originChanges) {
+    if (!originChanges.isEmpty()) {
+      Change<?> originalChange = originChanges.get(0);
       String projectName = ghHost.getProjectNameFromUrl(repoUrl);
       GitHubApi api =
           gitHubOptions.newGitHubRestApi(ghHost.getHost(), projectName, null, creds, console);
