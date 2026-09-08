@@ -187,7 +187,7 @@ public class GerritOptions implements Option {
 
   @VisibleForTesting
   protected GitRepository getCredentialsRepo() throws RepoException {
-    return gitOptions.cachedBareRepoForUrl("just_for_github_api");
+    return gitOptions.cachedBareRepoForUrl("just_for_github_api", /* fetchUrl= */ (String) null);
   }
 
   @VisibleForTesting

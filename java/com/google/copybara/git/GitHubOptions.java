@@ -180,7 +180,8 @@ public class GitHubOptions implements Option {
   @VisibleForTesting
   protected GitRepository getCredentialsRepo(@Nullable CredentialFileHandler creds)
       throws RepoException {
-    GitRepository repo = gitOptions.cachedBareRepoForUrl("just_for_github_api");
+    GitRepository repo =
+        gitOptions.cachedBareRepoForUrl("just_for_github_api", /* fetchUrl= */ (String) null);
     if (creds != null) {
       try {
         creds.install(repo, gitOptions.getConfigCredsFile(generalOptions));

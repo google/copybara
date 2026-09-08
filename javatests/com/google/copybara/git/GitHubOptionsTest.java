@@ -18,6 +18,8 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
 import com.google.copybara.testing.OptionsBuilder;
 import org.junit.Before;
@@ -43,5 +45,17 @@ public class GitHubOptionsTest {
             mock(CredentialFileHandler.class));
 
     assertThat(hook).isInstanceOf(GitHubRepositoryHook.class);
+  }
+
+  @Test
+  public void getCredentialsRepo_doesNotPassFetchUrl() throws Exception {
+    OptionsBuilder optionsBuilder = new OptionsBuilder().setOutputRootToTmpDir();
+    GitOptions gitOptions = spy(optionsBuilder.git);
+    GitHubOptions options = new GitHubOptions(optionsBuilder.general, gitOptions);
+
+    GitRepository repo = options.getCredentialsRepo(/* creds= */ null);
+
+    assertThat(repo).isNotNull();
+    verify(gitOptions).cachedBareRepoForUrl("just_for_github_api", (String) null);
   }
 }

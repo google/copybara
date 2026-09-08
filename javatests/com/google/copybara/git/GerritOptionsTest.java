@@ -18,6 +18,8 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
@@ -81,5 +83,21 @@ public class GerritOptionsTest {
         .hasMessageThat()
         .contains(
             "'I0123456789DEADBEEFBC0123456789DEADBEEFBC' does not match Gerrit Change ID pattern");
+  }
+
+  @Test
+  public void getCredentialsRepo_doesNotPassFetchUrl() throws Exception {
+    GeneralOptions generalOptions =
+        new GeneralOptions(
+            System.getenv(),
+            FileSystems.getDefault(),
+            LogConsole.writeOnlyConsole(System.out, /* verbose= */ true));
+    GitOptions gitOptions = spy(new GitOptions(generalOptions));
+    GerritOptions gerritOptions = new GerritOptions(generalOptions, gitOptions);
+
+    GitRepository repo = gerritOptions.getCredentialsRepo();
+
+    assertThat(repo).isNotNull();
+    verify(gitOptions).cachedBareRepoForUrl("just_for_github_api", (String) null);
   }
 }
