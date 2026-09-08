@@ -131,4 +131,54 @@ public final class StarlarkDateTimeModuleTest {
                 epochSeconds, formatString));
     assertThat(actualTimeString).isEqualTo(expectedTimeString);
   }
+
+  @Test
+  @SuppressWarnings("GoodTime")
+  public void testStarlarkDateTimePlusTimeDelta() throws Exception {
+    long initialEpoch = 1664663728;
+    // Test both DateTime + TimeDelta and TimeDelta + DateTime
+    StarlarkInt result1 =
+        executor.eval(
+            "result",
+            String.format(
+                """
+                my_datetime = datetime.fromtimestamp(timestamp = %s)
+                delta = datetime.fromtimestamp(timestamp = 200) - datetime.fromtimestamp(timestamp = 100)
+                result = (my_datetime + delta).in_epoch_seconds()\
+                """,
+                initialEpoch));
+
+    StarlarkInt result2 =
+        executor.eval(
+            "result",
+            String.format(
+                """
+                my_datetime = datetime.fromtimestamp(timestamp = %s)
+                delta = datetime.fromtimestamp(timestamp = 200) - datetime.fromtimestamp(timestamp = 100)
+                result = (delta + my_datetime).in_epoch_seconds()\
+                """,
+                initialEpoch));
+
+    assertThat(result1.toLong(null)).isEqualTo(initialEpoch + 100);
+    assertThat(result2.toLong(null)).isEqualTo(initialEpoch + 100);
+  }
+
+  @Test
+  public void testStarlarkDateTimePlusTimeDeltaNanoseconds() throws Exception {
+    Boolean nanosEqual =
+        executor.eval(
+            "result",
+            """
+            my_datetime = datetime.now()
+            nanos_before = my_datetime.strftime(format = 'n')
+            
+            delta = datetime.fromtimestamp(timestamp = 200) - datetime.fromtimestamp(timestamp = 100)
+            my_datetime_plus_delta = my_datetime + delta
+            nanos_after = my_datetime_plus_delta.strftime(format = 'n')
+            
+            result = (nanos_before == nanos_after)
+            """);
+
+    assertThat(nanosEqual).isTrue();
+  }
 }

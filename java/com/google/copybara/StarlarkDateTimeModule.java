@@ -16,7 +16,6 @@ package com.google.copybara;
  * limitations under the License.
  */
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.copybara.exception.ValidationException;
 import java.time.DateTimeException;
@@ -34,6 +33,7 @@ import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.HasBinary;
+import net.starlark.java.eval.Starlark;
 import net.starlark.java.eval.StarlarkInt;
 import net.starlark.java.eval.StarlarkValue;
 import net.starlark.java.syntax.TokenKind;
@@ -100,21 +100,28 @@ public class StarlarkDateTimeModule implements StarlarkValue {
       this.zonedDateTime = Instant.ofEpochSecond(timeInEpochSeconds).atZone(zoneId);
     }
 
+    private StarlarkDateTime(ZonedDateTime zonedDateTime) {
+      this.zonedDateTime = zonedDateTime;
+    }
+
     @Override
     public final Object binaryOp(TokenKind operator, Object rightSideOperand, boolean thisLeft)
         throws EvalException {
-      Preconditions.checkArgument(
-          rightSideOperand instanceof StarlarkDateTime,
-          "Binary operators are supported between StarkDateTime objects only.");
-      StarlarkDateTime otherDateTime = (StarlarkDateTime) rightSideOperand;
-      switch (operator) {
-        case MINUS:
-          return new StarlarkTimeDelta(
-              ChronoUnit.SECONDS.between(otherDateTime.zonedDateTime, zonedDateTime));
-          // TODO(linjordan) - PLUS between StarklarkDatetime and StarlarkTimeDelta in the future
-        default:
-          throw new EvalException(String.format("Glob does not support %s operator", operator));
+      if (operator == TokenKind.MINUS && thisLeft && rightSideOperand instanceof StarlarkDateTime otherDateTime) {
+        return new StarlarkTimeDelta(
+            ChronoUnit.SECONDS.between(otherDateTime.zonedDateTime, zonedDateTime));
       }
+
+      if (operator == TokenKind.PLUS && rightSideOperand instanceof StarlarkTimeDelta starlarkTimeDelta) {
+        return new StarlarkDateTime(zonedDateTime.plus(starlarkTimeDelta.duration));
+      }
+
+      throw new EvalException(
+          String.format(
+              "Unsupported binary operation: %s %s %s",
+              thisLeft ? "StarlarkDateTime" : Starlark.type(rightSideOperand),
+              operator,
+              thisLeft ? Starlark.type(rightSideOperand) : "StarlarkDateTime"));
     }
 
     private ZoneId convertStringToZoneId(String zoneIdString) throws ValidationException {
@@ -175,10 +182,13 @@ public class StarlarkDateTimeModule implements StarlarkValue {
 
     @Override
     public boolean equals(Object obj) {
-      if (!(obj instanceof StarlarkDateTime)) {
+      if (obj == this) {
+        return true;
+      }
+      if (!(obj instanceof StarlarkDateTime that)) {
         return false;
       }
-      return obj == this || this.zonedDateTime.equals(((StarlarkDateTime) obj).zonedDateTime);
+      return this.zonedDateTime.equals(that.zonedDateTime);
     }
 
     @Override
@@ -201,9 +211,7 @@ public class StarlarkDateTimeModule implements StarlarkValue {
     @SuppressWarnings("GoodTime")
     @StarlarkMethod(name = "total_seconds", doc = "Total number of seconds in a timedelta object.")
     public long totalSeconds() {
-      return duration.getSeconds();
+      return duration.toSeconds();
     }
-
-    // TODO(linjordan) - implement timedelta + StarlarkDatetime
   }
 }
