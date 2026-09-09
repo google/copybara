@@ -59,7 +59,7 @@ public final class GlobAtom {
   }
 
   public String root(boolean allowFiles) {
-    return type.root(pattern, allowFiles).getRoot();
+    return type.root(pattern, allowFiles).root();
   }
 
   public Root annotatedRoot(boolean allowFiles) {
@@ -150,7 +150,7 @@ public final class GlobAtom {
         } else {
           root = Joiner.on('/').join(components);
         }
-        return new Root(isRecursive, root);
+        return new Root(isRecursive, isSingleFile && allowFiles, root);
       }
     },
 
@@ -169,11 +169,14 @@ public final class GlobAtom {
 
       @Override
       Root root(String pattern, boolean allowFiles) {
+        if (allowFiles) {
+          return new Root(false, true, pattern);
+        }
         int lastSlash = pattern.lastIndexOf('/');
         if (lastSlash == -1) {
-          return new Root(false, "");
+          return new Root(false, false, "");
         }
-        return new Root(false, pattern.substring(0, lastSlash));
+        return new Root(false, false, pattern.substring(0, lastSlash));
       }
     };
 
@@ -203,39 +206,12 @@ public final class GlobAtom {
     abstract Root root(String pattern, boolean allowFiles);
   }
 
-  static class Root {
-    private final boolean isRecursive;
-    private final String root;
-
-  Root(boolean isRecursive, String root) {
-    this.isRecursive = isRecursive;
-    this.root = root;
-  }
-
-    public boolean isRecursive() {
-      return isRecursive;
-    }
-
-
-    public String getRoot() {
-      return root;
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(root, isRecursive);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (!(o instanceof Root that)) {
-        return false;
-      }
-      return Objects.equals(root, that.root)
-          && isRecursive == that.isRecursive;
-    }
-  }
+  /**
+   * A root and its properties.
+   *
+   * @param isRecursive whether the root is recursive, e.g. contains a non-terminal wildcard
+   * @param isSingleFile whether the root is a single file
+   * @param root the root path string
+   */
+  public static record Root(boolean isRecursive, boolean isSingleFile, String root) {}
 }

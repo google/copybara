@@ -398,6 +398,36 @@ public class GlobTest {
   }
 
   @Test
+  public void testRootsWithProperties() {
+    Glob glob = createGlob(ImmutableList.of("foo/bar/file.txt", "dir/*", "recursive/**"));
+    assertThat(glob.rootsWithProperties(true))
+        .containsExactly(
+            new GlobAtom.Root(
+                /* isRecursive= */ false, /* isSingleFile= */ true, "foo/bar/file.txt"),
+            new GlobAtom.Root(/* isRecursive= */ false, /* isSingleFile= */ false, "dir"),
+            new GlobAtom.Root(/* isRecursive= */ true, /* isSingleFile= */ false, "recursive"));
+
+    assertThat(glob.rootsWithProperties(false))
+        .containsExactly(
+            new GlobAtom.Root(/* isRecursive= */ false, /* isSingleFile= */ false, "foo/bar"),
+            new GlobAtom.Root(/* isRecursive= */ false, /* isSingleFile= */ false, "dir"),
+            new GlobAtom.Root(/* isRecursive= */ true, /* isSingleFile= */ false, "recursive"));
+
+    Glob sequenceGlob =
+        Glob.createSingleFilesGlob(ImmutableList.of("foo/bar/file.txt", "other/file.txt"));
+    assertThat(sequenceGlob.rootsWithProperties(true))
+        .containsExactly(
+            new GlobAtom.Root(
+                /* isRecursive= */ false, /* isSingleFile= */ true, "foo/bar/file.txt"),
+            new GlobAtom.Root(
+                /* isRecursive= */ false, /* isSingleFile= */ true, "other/file.txt"));
+    assertThat(sequenceGlob.rootsWithProperties(false))
+        .containsExactly(
+            new GlobAtom.Root(/* isRecursive= */ false, /* isSingleFile= */ false, "foo/bar"),
+            new GlobAtom.Root(/* isRecursive= */ false, /* isSingleFile= */ false, "other"));
+  }
+
+  @Test
   public void testTips() {
     assertThat(createGlob(ImmutableList.of("foo/*", "bar/**", "bar/foobar/*")).tips())
         .containsExactly("bar", "foo");

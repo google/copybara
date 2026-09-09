@@ -290,7 +290,18 @@ public class Glob implements StarlarkValue, HasBinary {
   }
 
   /**
-   * Similar to #roots, but returns the longest shared paths for single files with the shortes
+   * If {@code allowFiles} is set to true, then Paths containing no meta characters are retained
+   * exactly as they are - for example, {@code foo/bar.txt} is output unmodified and not shortened
+   * to {@code foo}.
+   */
+  public ImmutableSet<String> roots(boolean allowFiles) {
+    return computeRootsFromIncludes(getIncludes(), allowFiles).stream()
+        .map(Root::root)
+        .collect(toImmutableSet());
+  }
+
+  /**
+   * Similar to #roots, but returns the longest shared paths for single files with the shortest
    * wildcards instead. This is intended as a better static approximation for git cones. It will
    * treat any expression with a wildcard as being a "tip". <br>
    * [ foo/bar, foo/bar/baz] -> foo/bar/baz <br>
@@ -310,8 +321,11 @@ public class Glob implements StarlarkValue, HasBinary {
    * If {@code allowFiles} is set to true, then Paths containing no meta characters are retained
    * exactly as they are - for example, {@code foo/bar.txt} is output unmodified and not shortened
    * to {@code foo}.
+   *
+   * @param allowFiles whether to return single files and generalized prefixes, or just generalized
+   *     prefixes for prefix matching.
    */
-  public ImmutableSet<String> roots(boolean allowFiles) {
+  public ImmutableSet<Root> rootsWithProperties(boolean allowFiles) {
     return computeRootsFromIncludes(getIncludes(), allowFiles);
   }
 
@@ -328,22 +342,23 @@ public class Glob implements StarlarkValue, HasBinary {
         include, Iterables.concat(Iterables.transform(globInclude, Glob::getIncludes)));
   }
 
-  private static ImmutableSet<String> computeRootsFromIncludes(
+  private static ImmutableSet<Root> computeRootsFromIncludes(
       Iterable<GlobAtom> includes, boolean allowFiles) {
-    List<String> roots = new ArrayList<>();
-
+    List<Root> roots = new ArrayList<>();
     for (GlobAtom atom : includes) {
-      roots.add(atom.root(allowFiles));
+      roots.add(atom.annotatedRoot(allowFiles));
     }
-
-    // Remove redundant roots - e.g. "foo" covers all paths that start with "foo/"
+    if (roots.stream().anyMatch(r -> r.root().isEmpty())) {
+      return ImmutableSet.of(new Root(true, false, ""));
+    }
+    // Remove redundant roots - e.g. "foo" covers all paths that start with "foo/" if "foo" is
+    // recursive or if allowFiles is false. E.g. the roots can only be used for prefix matching if
+    // allowFiles is false.
     Collections.sort(roots, Glob::compareRoots);
-    if (roots.contains("")) {
-      return ImmutableSet.of("");
-    }
     int r = 0;
     while (r < roots.size() - 1) {
-      if (roots.get(r + 1).startsWith(roots.get(r) + "/")) {
+      if (roots.get(r + 1).root().startsWith(roots.get(r).root() + "/")
+          && (roots.get(r).isRecursive() || !allowFiles)) {
         roots.remove(r + 1);
       } else {
         r++;
@@ -351,7 +366,12 @@ public class Glob implements StarlarkValue, HasBinary {
     }
 
     return roots.stream()
-        .map(s -> s.replaceAll("//+", "/").replaceAll("/$", ""))
+        .map(
+            root ->
+                new Root(
+                    root.isRecursive(),
+                    root.isSingleFile(),
+                    root.root().replaceAll("//+", "/").replaceAll("/$", "")))
         .collect(toImmutableSet());
   }
 
@@ -361,9 +381,9 @@ public class Glob implements StarlarkValue, HasBinary {
     for (GlobAtom atom : includes) {
       Root root = atom.annotatedRoot(false);
       if (!root.isRecursive()) {
-        singleFiles.add(root.getRoot());
+        singleFiles.add(root.root());
       } else {
-        wildcards.add(root.getRoot());
+        wildcards.add(root.root());
       }
     }
     // Remove redundant wildcards - e.g. "foo/**" covers all paths that start with "foo/bar/**"
@@ -416,6 +436,10 @@ public class Glob implements StarlarkValue, HasBinary {
       }
     }
     return len1 - len2;
+  }
+
+  private static int compareRoots(Root s1, Root s2) {
+    return compareRoots(s1.root(), s2.root());
   }
 
   @Override
