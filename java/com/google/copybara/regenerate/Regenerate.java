@@ -16,7 +16,6 @@
 
 package com.google.copybara.regenerate;
 
-import static com.google.copybara.exception.ValidationException.checkCondition;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -160,13 +159,10 @@ public class Regenerate<O extends Revision, D extends Revision> {
     AutoPatchfileConfiguration autopatchConfig = workflow.getAutoPatchfileConfiguration();
 
     Optional<String> regenBaseline = Optional.empty();
-    if (workflow.isConsistencyFileMergeImport()) {
+    if (workflow.isConsistencyFileMergeImport() && !workflow.disableConsistencyMergeImport()) {
       regenBaseline = regenerateOptions.getRegenBaseline();
       if (regenBaseline.isEmpty()) {
         regenBaseline = patchRegenerator.inferRegenBaseline();
-      }
-      if (regenBaseline.isEmpty()) {
-        console.info("Regen baseline could not be inferred. Falling back to import baseline");
       }
     }
 
@@ -182,11 +178,12 @@ public class Regenerate<O extends Revision, D extends Revision> {
       }
     }
 
-    if (regenBaseline.isPresent()) {
-      checkCondition(
-          consistencyFileExists(
-              destinationWriter, regenBaseline.get(), workflow.getConsistencyFilePath()),
-          "Regenerating a consistency file merge import change but no consistency file found.");
+    boolean hasConsistencyBaseline =
+        regenBaseline.isPresent()
+            && consistencyFileExists(
+                destinationWriter, regenBaseline.get(), workflow.getConsistencyFilePath());
+
+    if (hasConsistencyBaseline) {
       prepareDiffWithConsistencyFileBaseline(
           autopatchConfig,
           workflow,
@@ -197,6 +194,11 @@ public class Regenerate<O extends Revision, D extends Revision> {
           regenBaseline.get(),
           regenTarget);
     } else {
+      if (workflow.isConsistencyFileMergeImport()) {
+        console.info(
+            "Unable to reconstruct baseline using consistency file. Falling back to import"
+                + " baseline");
+      }
       previousPath =
           prepareDiffWithImportBaseline(
               patchRegenerator,

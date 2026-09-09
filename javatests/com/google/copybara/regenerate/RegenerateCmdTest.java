@@ -486,7 +486,7 @@ public class RegenerateCmdTest {
     origin.singleFileChange(0, "foo description", testfile, "foo");
     writeDestination("bar", testfile, "bar");
 
-    options.regenerateOptions.setRegenImportBaseline(true);
+    options.workflowOptions.disableConsistencyMergeImport = true;
     when(patchRegenerator.inferImportBaseline(any(), any()))
         .thenReturn(Optional.of(origin.getLatestChange().asString()));
 
@@ -548,7 +548,7 @@ public class RegenerateCmdTest {
         """;
     origin.singleFileChange(0, "foo description", testfile, originalContent);
     writeDestination("bar", testfile, modifiedContent);
-    options.regenerateOptions.setRegenImportBaseline(true);
+    options.workflowOptions.disableConsistencyMergeImport = true;
     when(patchRegenerator.inferImportBaseline(any(), any()))
         .thenReturn(Optional.of(origin.getLatestChange().asString()));
     RegenerateCmd cmd = getCmd(getNonMergeConsistencyFileConfigString());
@@ -576,7 +576,7 @@ public class RegenerateCmdTest {
     origin.singleFileChange(0, "foo description", testfile, "bar");
     writeDestination("bar", testfile, "bar");
 
-    options.regenerateOptions.setRegenImportBaseline(true);
+    options.workflowOptions.disableConsistencyMergeImport = true;
     when(patchRegenerator.inferImportBaseline(any(), any()))
         .thenReturn(Optional.of(origin.getLatestChange().asString()));
 
@@ -594,6 +594,57 @@ public class RegenerateCmdTest {
         .updateChange(
             any(),
             argThat(path -> !Files.exists(path.resolve("AUTOPATCH").resolve(testfile + ".patch"))),
+            eq(Glob.ALL_FILES),
+            eq("bar"));
+  }
+
+  @Test
+  public void testRegenerate_fallbackToImportBaseline_whenConsistencyFileMissing()
+      throws Exception {
+    setupTarget("bar");
+    setupBaseline("foo");
+    String testfile = "asdf.txt";
+    origin.singleFileChange(0, "foo description", testfile, "foo");
+    writeDestination("bar", testfile, "bar");
+    when(patchRegenerator.inferImportBaseline(any(), any()))
+        .thenReturn(Optional.of(origin.getLatestChange().asString()));
+    RegenerateCmd cmd = getCmd(getImportAutopatchesConfigString());
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()), cmd);
+
+    ExitCode exitCode = cmd.run(commandEnv);
+
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
+    verify(patchRegenerator)
+        .updateChange(
+            any(),
+            argThat(path -> Files.exists(path.resolve("AUTOPATCH").resolve(testfile + ".patch"))),
+            eq(Glob.ALL_FILES),
+            eq("bar"));
+  }
+
+  @Test
+  public void testRegenerate_usesImportBaseline_whenDisableConsistencyMergeImport()
+      throws Exception {
+    setupTarget("bar");
+    setupBaseline("foo");
+    options.workflowOptions.disableConsistencyMergeImport = true;
+    String testfile = "asdf.txt";
+    origin.singleFileChange(0, "foo description", testfile, "foo");
+    writeDestination("bar", testfile, "bar");
+    when(patchRegenerator.inferImportBaseline(any(), any()))
+        .thenReturn(Optional.of(origin.getLatestChange().asString()));
+    RegenerateCmd cmd = getCmd(getImportAutopatchesConfigString());
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()), cmd);
+
+    ExitCode exitCode = cmd.run(commandEnv);
+
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
+    verify(patchRegenerator)
+        .updateChange(
+            any(),
+            argThat(path -> Files.exists(path.resolve("AUTOPATCH").resolve(testfile + ".patch"))),
             eq(Glob.ALL_FILES),
             eq("bar"));
   }
