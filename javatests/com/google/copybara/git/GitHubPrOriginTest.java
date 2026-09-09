@@ -281,9 +281,7 @@ public class GitHubPrOriginTest {
                     125));
     assertThat(thrown)
         .hasMessageThat()
-        .contains(
-            "Cannot migrate http://github.com/google/example/pull/125 because it is missing the"
-                + " following labels: [foo: yes]");
+        .contains("Missing labels: [foo: yes] - Cannot migrate http://github.com/google/example/pull/125");
   }
 
   @Test
@@ -310,8 +308,7 @@ public class GitHubPrOriginTest {
     assertThat(thrown)
         .hasMessageThat()
         .contains(
-            "Cannot migrate http://github.com/google/example/pull/125 because the following ci"
-                + " labels have not been passed: [foo/two]");
+            "Missing statuses: [foo/two] - Cannot migrate https://github.com/google/example/pull/125");
   }
 
   @Test
@@ -338,8 +335,7 @@ public class GitHubPrOriginTest {
     assertThat(thrown)
         .hasMessageThat()
         .contains(
-            "Cannot migrate http://github.com/google/example/pull/125 because the following check"
-                + " runs have not been passed: [foo/two]");
+            "Missing checks: [foo/two] - Cannot migrate https://github.com/google/example/pull/125");
     assertThat(thrown.getRefs()).containsExactly(sha, "125");
   }
 
@@ -529,8 +525,7 @@ public class GitHubPrOriginTest {
     assertThat(thrown)
         .hasMessageThat()
         .contains(
-            "Cannot migrate http://github.com/google/example/pull/125 because the following check"
-                + " runs have not been passed: [foo/two]");
+            "Missing checks: [foo/two] - Cannot migrate https://github.com/google/example/pull/125");
     assertThat(thrown.getRefs()).containsExactly(sha, "125");
     verify(gitUtil.httpTransport(), times(1))
         .buildRequest("POST", "https://api.github.com/graphql");
@@ -592,8 +587,7 @@ public class GitHubPrOriginTest {
     assertThat(thrown)
         .hasMessageThat()
         .contains(
-            "Cannot migrate http://github.com/google/example/pull/125 because the following check"
-                + " runs have not been passed: [foo/six]");
+            "Missing checks: [foo/six] - Cannot migrate https://github.com/google/example/pull/125");
     assertThat(thrown.getRefs()).containsExactly(sha, "125");
   }
 
@@ -679,8 +673,8 @@ public class GitHubPrOriginTest {
     assertThat(e)
         .hasMessageThat()
         .contains(
-            "because its base branch is 'main', but the workflow is configured to only migrate"
-                + " changes for branch 'other'");
+            "Invalid base branch: main, but expected other. Cannot migrate"
+                + " http://github.com/google/example/pull/126");
     assertThat(e.getRefs()).containsExactly(sha, "126");
   }
 
@@ -721,9 +715,7 @@ public class GitHubPrOriginTest {
                     125));
     assertThat(thrown)
         .hasMessageThat()
-        .contains(
-            "Cannot migrate http://github.com/google/example/pull/125 because it is missing the"
-                + " following labels: [foo: yes]");
+        .contains("Missing labels: [foo: yes] - Cannot migrate http://github.com/google/example/pull/125");
     assertThat(thrown.getRefs()).containsExactly(sha, "125");
   }
 
@@ -1235,7 +1227,7 @@ public class GitHubPrOriginTest {
                 checkReviewApprovers(
                     "review_state = 'HEAD_COMMIT_APPROVED'",
                     "review_approvers = [\"MEMBER\", \"OWNER\"]"));
-    assertThat(e).hasMessageThat().contains("missing the required approvals");
+    assertThat(e).hasMessageThat().contains("Missing approvals");
     assertThat(e).hasMessageThat().contains("MEMBER");
     assertThat(e).hasMessageThat().contains("OWNER");
     assertThat(e).hasMessageThat()
