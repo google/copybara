@@ -85,7 +85,6 @@ public final class GitHubPreSubmitApprovalsProviderTest {
         gitHubHost,
         new GitHubSecuritySettingsValidator(
             gitHubOptions.newGitHubApiSupplier(PROJECT_URL, null, null, gitHubHost),
-            ImmutableList.copyOf(gitHubOptions.allStarAppIds),
             console),
         new GitHubUserApprovalsValidator(
             gitHubOptions.newGitHubApiSupplier(PROJECT_URL, null, null, gitHubHost),
@@ -141,10 +140,6 @@ public final class GitHubPreSubmitApprovalsProviderTest {
   @Test
   public void testGitHubApprovalsProvider_withFullyCompliantChangeListButWithLabelFinder()
       throws Exception {
-    gitTestUtil.mockApi(
-        eq("GET"),
-        eq("https://api.github.com/orgs/google/installations?per_page=100"),
-        GitTestUtil.mockResponse("{\"installations\":[{\"app_id\": 119816}]}"));
     gitTestUtil.mockApi(
         eq("GET"),
         eq("https://api.github.com/orgs/google"),
@@ -250,11 +245,6 @@ public final class GitHubPreSubmitApprovalsProviderTest {
                 "Whether the organization that the change originated from has two factor"
                     + " authentication requirement enabled.",
                 Iterables.getLast(changes).getChange().getRevision().getUrl()),
-            new StatementPredicate(
-                GitHubSecuritySettingsValidator.ALL_STAR_PREDICATE_TYPE,
-                "Whether the organization that the change originated from has allstar"
-                    + " installed",
-                Iterables.getLast(changes).getChange().getRevision().getUrl()),
             new UserPredicate(
                 "copybaraauthor",
                 UserPredicate.UserPredicateType.OWNER,
@@ -271,10 +261,6 @@ public final class GitHubPreSubmitApprovalsProviderTest {
 
   @Test
   public void testGitHubApprovalsProvider_withFullyCompliantChangeList() throws Exception {
-    gitTestUtil.mockApi(
-        eq("GET"),
-        eq("https://api.github.com/orgs/google/installations?per_page=100"),
-        GitTestUtil.mockResponse("{\"installations\":[{\"app_id\": 119816}]}"));
     gitTestUtil.mockApi(
         eq("GET"),
         eq("https://api.github.com/orgs/google"),
@@ -379,11 +365,6 @@ public final class GitHubPreSubmitApprovalsProviderTest {
                 "Whether the organization that the change originated from has two factor"
                     + " authentication requirement enabled.",
                 Iterables.getLast(changes).getChange().getRevision().getUrl()),
-            new StatementPredicate(
-                GitHubSecuritySettingsValidator.ALL_STAR_PREDICATE_TYPE,
-                "Whether the organization that the change originated from has allstar"
-                    + " installed",
-                Iterables.getLast(changes).getChange().getRevision().getUrl()),
             new UserPredicate(
                 "copybaraauthor",
                 UserPredicate.UserPredicateType.OWNER,
@@ -402,10 +383,6 @@ public final class GitHubPreSubmitApprovalsProviderTest {
   public void
       testGitHubApprovalsProvider_withFullyCompliantOrgSettingsButNoApprovalAtPullRequestHead()
           throws Exception {
-    gitTestUtil.mockApi(
-        eq("GET"),
-        eq("https://api.github.com/orgs/google/installations?per_page=100"),
-        GitTestUtil.mockResponse("{\"installations\":[{\"app_id\": 119816}]}"));
     gitTestUtil.mockApi(
         eq("GET"),
         eq("https://api.github.com/orgs/google"),
@@ -506,11 +483,6 @@ public final class GitHubPreSubmitApprovalsProviderTest {
                 "Whether the organization that the change originated from has two factor"
                     + " authentication requirement enabled.",
                 Iterables.getLast(changes).getChange().getRevision().getUrl()),
-            new StatementPredicate(
-                GitHubSecuritySettingsValidator.ALL_STAR_PREDICATE_TYPE,
-                "Whether the organization that the change originated from has allstar"
-                    + " installed",
-                Iterables.getLast(changes).getChange().getRevision().getUrl()),
             new UserPredicate(
                 "copybaraauthor",
                 UserPredicate.UserPredicateType.OWNER,
@@ -524,11 +496,6 @@ public final class GitHubPreSubmitApprovalsProviderTest {
                 GitHubSecuritySettingsValidator.TWO_FACTOR_PREDICATE_TYPE,
                 "Whether the organization that the change originated from has two factor"
                     + " authentication requirement enabled.",
-                Iterables.getLast(changes).getChange().getRevision().getUrl()),
-            new StatementPredicate(
-                GitHubSecuritySettingsValidator.ALL_STAR_PREDICATE_TYPE,
-                "Whether the organization that the change originated from has allstar"
-                    + " installed",
                 Iterables.getLast(changes).getChange().getRevision().getUrl()),
             new UserPredicate(
                 "copybaraauthor",
@@ -544,13 +511,8 @@ public final class GitHubPreSubmitApprovalsProviderTest {
                     + " '5a4c8dae133a7e12407449296b06a9a4f09443d3'."));
   }
 
-  // 119816 is the hard coded GitHub app id, see GitHubApprovalsProvider.java
   @Test
   public void validateChanges_withUnTrustWorthyOrgAndRepoSettings() throws Exception {
-    gitTestUtil.mockApi(
-        "GET",
-        "https://api.github.com/orgs/google/installations?per_page=100",
-        GitTestUtil.mockResponse("{\"installations\":[{\"app_id\": -1}]}"));
     gitTestUtil.mockApi(
         "GET",
         "https://api.github.com/orgs/google",

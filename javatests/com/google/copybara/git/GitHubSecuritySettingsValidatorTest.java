@@ -75,7 +75,6 @@ public final class GitHubSecuritySettingsValidatorTest {
     GitHubHost githubHost = new GitHubHost("github.com");
     return new GitHubSecuritySettingsValidator(
         options.newGitHubApiSupplier(PROJECT_URL, null, null, githubHost),
-        ImmutableList.copyOf(options.allStarAppIds),
         console);
   }
 
@@ -151,84 +150,6 @@ public final class GitHubSecuritySettingsValidatorTest {
         .logContains(
             MessageType.WARNING,
             "Copybara could not confirm that 2FA requirement is being enforced *");
-  }
-
-  @Test
-  public void testGitHubSecuritySettingsValidator_withAllStarInstalled() throws Exception {
-    gitTestUtil.mockApi(
-        eq("GET"),
-        eq("https://api.github.com/orgs/google/installations?per_page=100"),
-        GitTestUtil.mockResponse("{\"installations\":[{\"app_id\": 119816}]}"));
-    GitHubSecuritySettingsValidator validator = getUnitUnderTest(builder.github);
-    ImmutableList<ChangeWithApprovals> changes =
-        generateChangeList(
-            PROJECT_ID, ImmutableListMultimap.of(), "3071d674373ab56d8a7f264d308b39b7773b9e44");
-    ImmutableList<ChangeWithApprovals> approvals = validator.mapAllStar(changes, ORGANIZATION);
-    assertThat(approvals).hasSize(changes.size());
-    assertThat(Iterables.getOnlyElement(approvals).getPredicates()).containsNoDuplicates();
-    assertThat(Iterables.getOnlyElement(approvals).getPredicates())
-        .containsExactly(
-            new StatementPredicate(
-                GitHubSecuritySettingsValidator.ALL_STAR_PREDICATE_TYPE,
-                "Whether the organization that the change originated from has allstar installed",
-                Iterables.getLast(changes).getChange().getRevision().getUrl()));
-  }
-
-  @Test
-  public void testGitHubSecuritySettingsValidator_withAllStarInstalledAndOverriden()
-      throws Exception {
-    builder.github.allStarAppIds = ImmutableList.of(12345);
-    gitTestUtil.mockApi(
-        eq("GET"),
-        eq("https://api.github.com/orgs/google/installations?per_page=100"),
-        GitTestUtil.mockResponse("{\"installations\":[{\"app_id\": 12345}]}"));
-    GitHubSecuritySettingsValidator validator = getUnitUnderTest(builder.github);
-    ImmutableList<ChangeWithApprovals> changes =
-        generateChangeList(
-            PROJECT_ID, ImmutableListMultimap.of(), "3071d674373ab56d8a7f264d308b39b7773b9e44");
-    ImmutableList<ChangeWithApprovals> approvals = validator.mapAllStar(changes, ORGANIZATION);
-    assertThat(approvals).hasSize(changes.size());
-    assertThat(Iterables.getOnlyElement(approvals).getPredicates()).containsNoDuplicates();
-    assertThat(Iterables.getOnlyElement(approvals).getPredicates())
-        .containsExactly(
-            new StatementPredicate(
-                GitHubSecuritySettingsValidator.ALL_STAR_PREDICATE_TYPE,
-                "Whether the organization that the change originated from has allstar installed",
-                Iterables.getLast(changes).getChange().getRevision().getUrl()));
-  }
-
-  @Test
-  public void testGitHubSecuritySettingsValidator_withoutAllStarInstalled() throws Exception {
-    gitTestUtil.mockApi(
-        eq("GET"),
-        eq("https://api.github.com/orgs/google/installations?per_page=100"),
-        GitTestUtil.mockResponse("{\"installations\":[{\"app_id\": -1}]}"));
-    GitHubSecuritySettingsValidator validator = getUnitUnderTest(builder.github);
-    ImmutableList<ChangeWithApprovals> changes =
-        generateChangeList(
-            PROJECT_ID, ImmutableListMultimap.of(), "3071d674373ab56d8a7f264d308b39b7773b9e44");
-    ImmutableList<ChangeWithApprovals> approvals = validator.mapAllStar(changes, ORGANIZATION);
-    assertThat(approvals).hasSize(changes.size());
-    assertThat(Iterables.getOnlyElement(approvals).getPredicates()).isEmpty();
-  }
-
-  @Test
-  public void
-      testGitHubSecuritySettingsValidator_unableToConfirmAllStarInstallationWithoutAuthorization()
-          throws Exception {
-    gitTestUtil.mockApi(
-        eq("GET"),
-        eq("https://api.github.com/orgs/google/installations?per_page=100"),
-        GitTestUtil.mockGitHubUnauthorized());
-    GitHubSecuritySettingsValidator validator = getUnitUnderTest(builder.github);
-    ImmutableList<ChangeWithApprovals> changes =
-        generateChangeList(
-            PROJECT_ID, ImmutableListMultimap.of(), "3071d674373ab56d8a7f264d308b39b7773b9e44");
-    ValidationException expectedException =
-        assertThrows(ValidationException.class, () -> validator.mapAllStar(changes, ORGANIZATION));
-    assertThat(expectedException)
-        .hasMessageThat()
-        .contains("Please review your copybara app permissions, this request requires admin:read");
   }
 
   private ImmutableList<ChangeWithApprovals> generateChangeList(

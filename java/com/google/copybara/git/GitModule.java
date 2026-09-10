@@ -3555,7 +3555,6 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         gitHubHost,
         new GitHubSecuritySettingsValidator(
             githubOptions.newGitHubApiSupplier(url, null, creds, gitHubHost),
-            ImmutableList.copyOf(githubOptions.allStarAppIds),
             generalOptions.console()),
         new GitHubUserApprovalsValidator(
             githubOptions.newGitHubApiSupplier(url, null, creds, gitHubHost),
@@ -3579,7 +3578,6 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         branch,
         new GitHubSecuritySettingsValidator(
             githubOptions.newGitHubApiSupplier(url, null, creds, gitHubHost),
-            ImmutableList.copyOf(githubOptions.allStarAppIds),
             generalOptions.console()),
         new GitHubUserApprovalsValidator(
             githubOptions.newGitHubApiSupplier(url, null, creds, gitHubHost),

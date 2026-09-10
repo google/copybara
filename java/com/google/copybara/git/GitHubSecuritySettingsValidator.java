@@ -31,20 +31,16 @@ import com.google.copybara.util.console.Console;
 
 /** Provides Statement Predicates for GitHub Security related predicates */
 public class GitHubSecuritySettingsValidator {
-  public static final String ALL_STAR_PREDICATE_TYPE = "github.organization.all_star_installed";
   public static final String TWO_FACTOR_PREDICATE_TYPE =
       "github.organization.2FA_requirement_enabled";
   private final LazyResourceLoader<GitHubApi> apiLoader;
-  private final ImmutableList<Integer> allStarAppIds;
   private final Console console;
 
   public GitHubSecuritySettingsValidator(
       LazyResourceLoader<GitHubApi> apiLoader,
-      ImmutableList<Integer> allStarAppIds,
       Console console) {
     this.apiLoader = apiLoader;
     this.console = console;
-    this.allStarAppIds = allStarAppIds;
   }
 
   /**
@@ -74,31 +70,6 @@ public class GitHubSecuritySettingsValidator {
             Iterables.getLast(changes).getChange().getRevision().getUrl()));
   }
 
-  /**
-   * Provisions {@code StatementPredicate} that describes whether the origin GitHub repository has
-   * AllStar installed to {@code changes}. PreConditions: {@code changes} all originate from the
-   * same GitHub Project
-   *
-   * @param changes the list of changes to apply {@code StatementPredicates} to
-   * @param organization the github organization to check AllStar installation presence for
-   */
-  public ImmutableList<ChangeWithApprovals> mapAllStar(
-      ImmutableList<ChangeWithApprovals> changes, String organization)
-      throws ValidationException, RepoException {
-    if (changes.isEmpty()) {
-      return ImmutableList.of();
-    }
-    if (!hasAllStar(organization)) {
-      return changes;
-    }
-    return appendPredicateToAll(
-        changes,
-        new StatementPredicate(
-            ALL_STAR_PREDICATE_TYPE,
-            "Whether the organization that the change originated from has allstar" + " installed",
-            Iterables.getLast(changes).getChange().getRevision().getUrl()));
-  }
-
   private ImmutableList<ChangeWithApprovals> appendPredicateToAll(
       ImmutableList<ChangeWithApprovals> changes, StatementPredicate predicate) {
     ImmutableList.Builder<ChangeWithApprovals> builder = ImmutableList.builder();
@@ -109,19 +80,6 @@ public class GitHubSecuritySettingsValidator {
       builder.add(newChangeWithApprovals);
     }
     return builder.build();
-  }
-
-  private boolean hasAllStar(String organization) throws ValidationException, RepoException {
-    try {
-      return apiLoader.load(console).getInstallations(organization).stream()
-          .anyMatch(installation -> allStarAppIds.contains(installation.getAppId()));
-    } catch (GitHubApiException e) {
-      throw handleGitHubException(
-          e,
-          "Confirming AllStar app installation",
-          "Please review your copybara app permissions, this request requires admin:read"
-              + " permissions.");
-    }
   }
 
   private boolean hasTwoFactorEnabled(String organization, Console console)

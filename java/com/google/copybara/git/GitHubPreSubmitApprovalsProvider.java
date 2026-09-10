@@ -94,17 +94,6 @@ public class GitHubPreSubmitApprovalsProvider implements ApprovalsProvider {
           "Could not validate GitHub organization security settings for two factor authentication"
               + " requirements. Skipping this step...");
     }
-    try {
-      approvalsInProgress = securitySettingsValidator.mapAllStar(approvalsInProgress, org);
-    } catch (ValidationException | RepoException e) {
-      console.warnFmt(
-          "Could not validate GitHub organization security settings for AllStar installation with"
-              + " error '%s'. Skipping this step...",
-          e.getMessage());
-      logger.atWarning().withCause(e).log(
-          "Could not validate GitHub organization security settings for AllStar installation."
-              + " Skipping this step...");
-    }
 
     // find the branch the pull request is being made against. Need this to find validate postsubmit
     // commits.

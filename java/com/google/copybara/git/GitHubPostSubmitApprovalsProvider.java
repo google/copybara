@@ -114,17 +114,6 @@ public class GitHubPostSubmitApprovalsProvider implements ApprovalsProvider {
               + " requirements. Skipping this step...");
     }
     try {
-      approvalsInProgress = securitySettingsValidator.mapAllStar(approvalsInProgress, organization);
-    } catch (ValidationException | RepoException e) {
-      console.warnFmt(
-          "Could not validate GitHub organization security settings for AllStar installation with"
-              + " error '%s'. Skipping this step...",
-          e.getMessage());
-      logger.atWarning().withCause(e).log(
-          "Could not validate GitHub organization security settings for AllStar installation."
-              + " Skipping this step...");
-    }
-    try {
       approvalsInProgress =
           userApprovalsValidator.mapApprovalsForUserPredicates(approvalsInProgress, branch);
     } catch (ValidationException | RepoException e) {
