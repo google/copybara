@@ -56,14 +56,14 @@ import net.starlark.java.eval.StarlarkValue;
 public class FinishHookContext extends ActionContext<FinishHookContext> implements StarlarkValue {
 
   private final LazyResourceLoader<Endpoint> origin;
-  private final LazyResourceLoader<Endpoint> destination;
+  @Nullable private final LazyResourceLoader<Endpoint> destination;
   @Nullable private final SkylarkRevision resolvedRevision;
   private final ImmutableList<DestinationEffect> destinationEffects;
 
   public FinishHookContext(
       Action action,
       LazyResourceLoader<Endpoint> origin,
-      LazyResourceLoader<Endpoint> destination,
+      @Nullable LazyResourceLoader<Endpoint> destination,
       ImmutableList<DestinationEffect> destinationEffects,
       ImmutableMap<String, String> labels,
       @Nullable Revision resolvedRevision,
@@ -82,7 +82,7 @@ public class FinishHookContext extends ActionContext<FinishHookContext> implemen
   private FinishHookContext(
       Action currentAction,
       LazyResourceLoader<Endpoint> origin,
-      LazyResourceLoader<Endpoint> destination,
+      @Nullable LazyResourceLoader<Endpoint> destination,
       ImmutableList<DestinationEffect> destinationEffects,
       ImmutableMap<String, String> labels,
       SkylarkConsole console,
@@ -90,7 +90,7 @@ public class FinishHookContext extends ActionContext<FinishHookContext> implemen
       @Nullable SkylarkRevision resolvedRevision) {
     super(currentAction, console, labels, params);
     this.origin = Preconditions.checkNotNull(origin);
-    this.destination = Preconditions.checkNotNull(destination);
+    this.destination = destination;
     this.destinationEffects = Preconditions.checkNotNull(destinationEffects);
     this.resolvedRevision = resolvedRevision;
   }
@@ -105,9 +105,18 @@ public class FinishHookContext extends ActionContext<FinishHookContext> implemen
     }
   }
 
-  @StarlarkMethod(name = "destination", doc = "An object representing the destination. Can be used"
-      + " to query or modify the destination state", structField = true)
+  @StarlarkMethod(
+      name = "destination",
+      doc =
+          "An object representing the destination. Can be used"
+              + " to query or modify the destination state",
+      structField = true,
+      allowReturnNones = true)
+  @Nullable
   public Endpoint getDestination() throws EvalException {
+    if (destination == null) {
+      return null;
+    }
     try {
       return destination.load(console);
     } catch (RepoException | ValidationException e) {

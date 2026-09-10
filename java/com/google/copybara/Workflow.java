@@ -321,7 +321,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
                             getOrigin()
                                 .newReader(getOriginFiles(), getAuthoring())
                                 .getFeedbackEndPoint(c)),
-                    memoized(c -> null),
+                    /* destination= */ null,
                     /* resolvedRef= */ null);
             if (effects.size() != 1) {
               console.warn(
