@@ -26,7 +26,20 @@ LOCAL_TESTS = [
     "util/ConsistencyFileTest.java",
     "util/ApplyDestinationPatchTest.java",
     "WorkflowTest.java",
+    "WorkflowPrinterTest.java",
 ]
+
+all_tests(
+    name = "workflow_printer_test",
+    tags = ["local"],
+    tests = ["WorkflowPrinterTest.java"],
+    deps = [
+        "//java/com/google/copybara:copybara_lib",
+        "//java/com/google/copybara/config:base",
+        "//java/com/google/copybara/testing",
+        "//third_party:truth",
+    ],
+)
 
 all_tests(
     name = "info_test",

@@ -90,10 +90,18 @@ public class ValidateCmd implements CopybaraCmd {
   private ValidationResult validate(Options options, ConfigLoader configLoader,
       String migrationName)
       throws IOException {
-    Console console = options.get(GeneralOptions.class).console();
+    GeneralOptions generalOptions = options.get(GeneralOptions.class);
+    Console console = generalOptions.console();
     ValidationResult.Builder resultBuilder = new ValidationResult.Builder();
     try {
       Config config = configLoader.load(console);
+      if (generalOptions.printConfig) {
+        for (Migration migration : config.getMigrations().values()) {
+          if (migrationName == null || migrationName.equals(migration.getName())) {
+            console.infoFmt("%s", WorkflowPrinter.print(migration));
+          }
+        }
+      }
       resultBuilder.append(configValidator.validate(config, migrationName));
     } catch (ValidationException e) {
       // The validate subcommand should not throw Validation exceptions but log a result

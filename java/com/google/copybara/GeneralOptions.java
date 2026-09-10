@@ -565,6 +565,13 @@ public final class GeneralOptions implements Option {
   public boolean infoIncludeDefinition = false;
 
   @Parameter(
+      names = "--print-config",
+      description =
+          "When set, the VALIDATE command will print the resolved configuration. The output is"
+              + " intended for human inspection and is not guaranteed to be stable.")
+  public boolean printConfig = false;
+
+  @Parameter(
       names = {"--event-monitor"},
       description = "Eventmonitors to enable. These must be in the list of available monitors.")
   public List<String> enabledEventMonitors = new ArrayList<>(ImmutableList.of(DEFAULT_MONITOR));
