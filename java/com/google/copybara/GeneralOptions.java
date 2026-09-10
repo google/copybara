@@ -212,6 +212,10 @@ public final class GeneralOptions implements Option {
     return labels;
   }
 
+  public void addLabel(String key, String value) {
+    labels = ImmutableMap.<String, String>builder().putAll(labels).put(key, value).buildOrThrow();
+  }
+
   /**
    * Run a repository task with profiling
    */
