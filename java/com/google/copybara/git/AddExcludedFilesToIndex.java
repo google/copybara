@@ -70,10 +70,6 @@ final class AddExcludedFilesToIndex {
         addPathAndParents(included, relative);
       } else {
         prevExcluded.add(relative);
-        if (Files.isHidden(relative)) {
-          // File is not included but 'git add dir' doesn't work for 'dir/.file'.
-          addPathAndParents(included, relative.getParent());
-        }
       }
     }
 
