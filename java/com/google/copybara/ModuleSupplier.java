@@ -46,6 +46,8 @@ import com.google.copybara.hashing.HashingModule;
 import com.google.copybara.hg.HgModule;
 import com.google.copybara.hg.HgOptions;
 import com.google.copybara.hg.HgOriginOptions;
+import com.google.copybara.perforce.PerforceModule;
+import com.google.copybara.perforce.PerforceOptions;
 import com.google.copybara.html.HtmlModule;
 import com.google.copybara.http.HttpModule;
 import com.google.copybara.http.HttpOptions;
@@ -113,6 +115,7 @@ public class ModuleSupplier {
             folderModule),
         new GitModule(options),
         new HgModule(options),
+        new PerforceModule(options),
         folderModule,
         new FormatModule(
             options.get(WorkflowOptions.class), options.get(BuildifierOptions.class), general),
@@ -167,6 +170,7 @@ public class ModuleSupplier {
             new GitLabOptions(),
             new HgOptions(generalOptions),
             new HgOriginOptions(),
+            new PerforceOptions(generalOptions),
             new PatchingOptions(generalOptions),
             workflowOptions,
             new RemoteFileOptions(),
