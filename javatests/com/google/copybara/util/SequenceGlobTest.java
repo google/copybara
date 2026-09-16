@@ -63,6 +63,22 @@ public class SequenceGlobTest {
   }
 
   @Test
+  public void testRootsWithProperties_overlappingRootsElided() throws Exception {
+    Glob glob =
+        SequenceGlob.ofStarlarkList(
+            getAtomList(ImmutableList.of("foo/bar/file.txt", "foo/bar/other.txt")));
+    assertThat(glob.rootsWithProperties(false))
+        .containsExactly(
+            new GlobAtom.Root(/* isRecursive= */ false, /* isSingleFile= */ false, "foo/bar"));
+    assertThat(glob.rootsWithProperties(true))
+        .containsExactly(
+            new GlobAtom.Root(
+                /* isRecursive= */ false, /* isSingleFile= */ true, "foo/bar/file.txt"),
+            new GlobAtom.Root(
+                /* isRecursive= */ false, /* isSingleFile= */ true, "foo/bar/other.txt"));
+  }
+
+  @Test
   public void testTips() throws Exception {
     Glob glob =
         SequenceGlob.ofStarlarkList(getAtomList(ImmutableList.of("foo/bar", "foo/bar/baz")));

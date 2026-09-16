@@ -22,6 +22,7 @@ import static java.lang.Math.min;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -31,7 +32,9 @@ import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
@@ -344,35 +347,87 @@ public class Glob implements StarlarkValue, HasBinary {
 
   private static ImmutableSet<Root> computeRootsFromIncludes(
       Iterable<GlobAtom> includes, boolean allowFiles) {
-    List<Root> roots = new ArrayList<>();
+    RootTrieNode trieRoot = new RootTrieNode();
     for (GlobAtom atom : includes) {
-      roots.add(atom.annotatedRoot(allowFiles));
-    }
-    if (roots.stream().anyMatch(r -> r.root().isEmpty())) {
-      return ImmutableSet.of(new Root(true, false, ""));
-    }
-    // Remove redundant roots - e.g. "foo" covers all paths that start with "foo/" if "foo" is
-    // recursive or if allowFiles is false. E.g. the roots can only be used for prefix matching if
-    // allowFiles is false.
-    Collections.sort(roots, Glob::compareRoots);
-    int r = 0;
-    while (r < roots.size() - 1) {
-      if (roots.get(r + 1).root().startsWith(roots.get(r).root() + "/")
-          && (roots.get(r).isRecursive() || !allowFiles)) {
-        roots.remove(r + 1);
-      } else {
-        r++;
+      Root root = atom.annotatedRoot(allowFiles);
+      String normalized = root.root().replaceAll("//+", "/").replaceAll("/$", "");
+      if (normalized.isEmpty()) {
+        return ImmutableSet.of(new Root(true, false, ""));
       }
+      RootTrieNode current = trieRoot;
+      for (String segment : Splitter.on('/').split(normalized)) {
+        current = current.children.computeIfAbsent(segment, k -> new RootTrieNode());
+      }
+      current.addRoot(root.isRecursive(), root.isSingleFile());
     }
 
-    return roots.stream()
-        .map(
-            root ->
-                new Root(
-                    root.isRecursive(),
-                    root.isSingleFile(),
-                    root.root().replaceAll("//+", "/").replaceAll("/$", "")))
-        .collect(toImmutableSet());
+    ImmutableSet.Builder<Root> result = ImmutableSet.builder();
+    for (Map.Entry<String, RootTrieNode> entry : trieRoot.children.entrySet()) {
+      collectRoots(
+          entry.getValue(), entry.getKey(), allowFiles, /* coveredByParentDir= */ false, result);
+    }
+    return result.build();
+  }
+
+  private static void collectRoots(
+      RootTrieNode node,
+      String path,
+      boolean allowFiles,
+      boolean coveredByParentDir,
+      ImmutableSet.Builder<Root> result) {
+    if (node.hasRoot) {
+      if (node.isRecursive || !allowFiles) {
+        // Recursive root (or prefix-matching mode) covers this node and its entire subtree.
+        result.add(new Root(node.isRecursive, node.isSingleFile, path));
+        return;
+      }
+      if (!node.isSingleFile || !node.children.isEmpty()) {
+        // Non-recursive directory root (e.g. "foo/*") covers this directory and all immediate
+        // single-file children, but does not cover subdirectories.
+        result.add(new Root(false, false, path));
+        for (Map.Entry<String, RootTrieNode> entry : node.children.entrySet()) {
+          collectRoots(
+              entry.getValue(),
+              path + "/" + entry.getKey(),
+              allowFiles,
+              /* coveredByParentDir= */ true,
+              result);
+        }
+        return;
+      }
+      // Single-file leaf root (node.isSingleFile && node.children.isEmpty()):
+      if (!coveredByParentDir) {
+        result.add(new Root(false, true, path));
+      }
+      return;
+    }
+
+    for (Map.Entry<String, RootTrieNode> entry : node.children.entrySet()) {
+      collectRoots(
+          entry.getValue(),
+          path + "/" + entry.getKey(),
+          allowFiles,
+          /* coveredByParentDir= */ false,
+          result);
+    }
+  }
+
+  private static class RootTrieNode {
+    final Map<String, RootTrieNode> children = new LinkedHashMap<>();
+    boolean hasRoot = false;
+    boolean isRecursive = false;
+    boolean isSingleFile = true;
+
+    void addRoot(boolean recursive, boolean singleFile) {
+      if (!hasRoot) {
+        hasRoot = true;
+        isRecursive = recursive;
+        isSingleFile = singleFile;
+      } else {
+        isRecursive |= recursive;
+        isSingleFile &= singleFile;
+      }
+    }
   }
 
   private static ImmutableSet<String> computeTipsFromIncludes(Iterable<GlobAtom> includes) {
@@ -436,10 +491,6 @@ public class Glob implements StarlarkValue, HasBinary {
       }
     }
     return len1 - len2;
-  }
-
-  private static int compareRoots(Root s1, Root s2) {
-    return compareRoots(s1.root(), s2.root());
   }
 
   @Override
@@ -517,10 +568,9 @@ public class Glob implements StarlarkValue, HasBinary {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof Glob)) {
+    if (!(o instanceof Glob that)) {
       return false;
     }
-    Glob that = (Glob) o;
     return Objects.equals(include, that.include)
         && Objects.equals(globInclude, that.globInclude)
         && Objects.equals(exclude, that.exclude);

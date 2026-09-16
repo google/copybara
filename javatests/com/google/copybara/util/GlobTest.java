@@ -428,6 +428,68 @@ public class GlobTest {
   }
 
   @Test
+  public void testRootsWithProperties_overlappingRootsElided() {
+    // b/562439231: Recursive root should elide non-recursive root with the same path
+    Glob glob = createGlob(ImmutableList.of("foo/**", "foo/.bazelrc"));
+    assertThat(glob.rootsWithProperties(false))
+        .containsExactly(
+            new GlobAtom.Root(/* isRecursive= */ true, /* isSingleFile= */ false, "foo"));
+    assertThat(glob.rootsWithProperties(true))
+        .containsExactly(
+            new GlobAtom.Root(/* isRecursive= */ true, /* isSingleFile= */ false, "foo"));
+
+    // Verify ordering independence (more special pattern listed first)
+    Glob reverseGlob = createGlob(ImmutableList.of("foo/.bazelrc", "foo/**"));
+    assertThat(reverseGlob.rootsWithProperties(false))
+        .containsExactly(
+            new GlobAtom.Root(/* isRecursive= */ true, /* isSingleFile= */ false, "foo"));
+    assertThat(reverseGlob.rootsWithProperties(true))
+        .containsExactly(
+            new GlobAtom.Root(/* isRecursive= */ true, /* isSingleFile= */ false, "foo"));
+
+    // Multiple non-recursive files in the same directory should deduplicate when allowFiles is
+    // false
+    Glob multiFileGlob = createGlob(ImmutableList.of("foo/a.txt", "foo/b.txt"));
+    assertThat(multiFileGlob.rootsWithProperties(false))
+        .containsExactly(
+            new GlobAtom.Root(/* isRecursive= */ false, /* isSingleFile= */ false, "foo"));
+    assertThat(multiFileGlob.rootsWithProperties(true))
+        .containsExactly(
+            new GlobAtom.Root(/* isRecursive= */ false, /* isSingleFile= */ true, "foo/a.txt"),
+            new GlobAtom.Root(/* isRecursive= */ false, /* isSingleFile= */ true, "foo/b.txt"));
+
+    // Recursive root elides nested sub-roots and files regardless of order
+    Glob nestedGlob =
+        createGlob(ImmutableList.of("foo/bar/baz.txt", "foo/bar/**", "foo/**", "foo/other/*"));
+    assertThat(nestedGlob.rootsWithProperties(false))
+        .containsExactly(
+            new GlobAtom.Root(/* isRecursive= */ true, /* isSingleFile= */ false, "foo"));
+    assertThat(nestedGlob.rootsWithProperties(true))
+        .containsExactly(
+            new GlobAtom.Root(/* isRecursive= */ true, /* isSingleFile= */ false, "foo"));
+
+    // Directory wildcard elides single file at the same root when allowFiles is true
+    Glob dirAndFile = createGlob(ImmutableList.of("dir/foo", "dir/foo/*"));
+    assertThat(dirAndFile.rootsWithProperties(true))
+        .containsExactly(
+            new GlobAtom.Root(/* isRecursive= */ false, /* isSingleFile= */ false, "dir/foo"));
+    assertThat(dirAndFile.rootsWithProperties(false))
+        .containsExactly(
+            new GlobAtom.Root(/* isRecursive= */ false, /* isSingleFile= */ false, "dir"));
+
+    // Non-recursive directory wildcard elides immediate single-file children even when
+    // interleaved with deeper subdirectory files (which sort between "foo" and "foo/bar.txt")
+    Glob interleavedGlob = createGlob(ImmutableList.of("foo/*", "foo/a/baz.txt", "foo/bar.txt"));
+    assertThat(interleavedGlob.rootsWithProperties(true))
+        .containsExactly(
+            new GlobAtom.Root(/* isRecursive= */ false, /* isSingleFile= */ false, "foo"),
+            new GlobAtom.Root(/* isRecursive= */ false, /* isSingleFile= */ true, "foo/a/baz.txt"));
+    assertThat(interleavedGlob.rootsWithProperties(false))
+        .containsExactly(
+            new GlobAtom.Root(/* isRecursive= */ false, /* isSingleFile= */ false, "foo"));
+  }
+
+  @Test
   public void testTips() {
     assertThat(createGlob(ImmutableList.of("foo/*", "bar/**", "bar/foobar/*")).tips())
         .containsExactly("bar", "foo");
