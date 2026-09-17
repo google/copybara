@@ -476,7 +476,7 @@ public class ConsistencyFile {
       throw new ValidationException(
           String.format(
               "Encountered files not found in directory but present in ConsistencyFile: %s. %s",
-              consistencyFileHashes, REGENERATE_ERR_PROMPT));
+              consistencyFileOnlyHashes, REGENERATE_ERR_PROMPT));
     }
 
     // verify that all file hashes in the directory match the ConsistencyFile file hashes

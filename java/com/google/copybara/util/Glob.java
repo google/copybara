@@ -378,7 +378,7 @@ public class Glob implements StarlarkValue, HasBinary {
     if (node.hasRoot) {
       if (node.isRecursive || !allowFiles) {
         // Recursive root (or prefix-matching mode) covers this node and its entire subtree.
-        result.add(new Root(node.isRecursive, node.isSingleFile, path));
+        result.add(new Root(true, node.isSingleFile, path));
         return;
       }
       if (!node.isSingleFile || !node.children.isEmpty()) {
@@ -434,11 +434,11 @@ public class Glob implements StarlarkValue, HasBinary {
     List<String> wildcards = new ArrayList<>();
     List<String> singleFiles = new ArrayList<>();
     for (GlobAtom atom : includes) {
-      Root root = atom.annotatedRoot(false);
-      if (!root.isRecursive()) {
-        singleFiles.add(root.root());
+      String root = atom.root(false);
+      if (!atom.annotatedRoot(true).isRecursive()) {
+        singleFiles.add(root);
       } else {
-        wildcards.add(root.root());
+        wildcards.add(root);
       }
     }
     // Remove redundant wildcards - e.g. "foo/**" covers all paths that start with "foo/bar/**"

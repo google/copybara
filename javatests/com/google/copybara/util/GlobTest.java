@@ -409,8 +409,8 @@ public class GlobTest {
 
     assertThat(glob.rootsWithProperties(false))
         .containsExactly(
-            new GlobAtom.Root(/* isRecursive= */ false, /* isSingleFile= */ false, "foo/bar"),
-            new GlobAtom.Root(/* isRecursive= */ false, /* isSingleFile= */ false, "dir"),
+            new GlobAtom.Root(/* isRecursive= */ true, /* isSingleFile= */ false, "foo/bar"),
+            new GlobAtom.Root(/* isRecursive= */ true, /* isSingleFile= */ false, "dir"),
             new GlobAtom.Root(/* isRecursive= */ true, /* isSingleFile= */ false, "recursive"));
 
     Glob sequenceGlob =
@@ -423,8 +423,8 @@ public class GlobTest {
                 /* isRecursive= */ false, /* isSingleFile= */ true, "other/file.txt"));
     assertThat(sequenceGlob.rootsWithProperties(false))
         .containsExactly(
-            new GlobAtom.Root(/* isRecursive= */ false, /* isSingleFile= */ false, "foo/bar"),
-            new GlobAtom.Root(/* isRecursive= */ false, /* isSingleFile= */ false, "other"));
+            new GlobAtom.Root(/* isRecursive= */ true, /* isSingleFile= */ false, "foo/bar"),
+            new GlobAtom.Root(/* isRecursive= */ true, /* isSingleFile= */ false, "other"));
   }
 
   @Test
@@ -452,7 +452,7 @@ public class GlobTest {
     Glob multiFileGlob = createGlob(ImmutableList.of("foo/a.txt", "foo/b.txt"));
     assertThat(multiFileGlob.rootsWithProperties(false))
         .containsExactly(
-            new GlobAtom.Root(/* isRecursive= */ false, /* isSingleFile= */ false, "foo"));
+            new GlobAtom.Root(/* isRecursive= */ true, /* isSingleFile= */ false, "foo"));
     assertThat(multiFileGlob.rootsWithProperties(true))
         .containsExactly(
             new GlobAtom.Root(/* isRecursive= */ false, /* isSingleFile= */ true, "foo/a.txt"),
@@ -475,7 +475,7 @@ public class GlobTest {
             new GlobAtom.Root(/* isRecursive= */ false, /* isSingleFile= */ false, "dir/foo"));
     assertThat(dirAndFile.rootsWithProperties(false))
         .containsExactly(
-            new GlobAtom.Root(/* isRecursive= */ false, /* isSingleFile= */ false, "dir"));
+            new GlobAtom.Root(/* isRecursive= */ true, /* isSingleFile= */ false, "dir"));
 
     // Non-recursive directory wildcard elides immediate single-file children even when
     // interleaved with deeper subdirectory files (which sort between "foo" and "foo/bar.txt")
@@ -486,7 +486,7 @@ public class GlobTest {
             new GlobAtom.Root(/* isRecursive= */ false, /* isSingleFile= */ true, "foo/a/baz.txt"));
     assertThat(interleavedGlob.rootsWithProperties(false))
         .containsExactly(
-            new GlobAtom.Root(/* isRecursive= */ false, /* isSingleFile= */ false, "foo"));
+            new GlobAtom.Root(/* isRecursive= */ true, /* isSingleFile= */ false, "foo"));
   }
 
   @Test

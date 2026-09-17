@@ -150,7 +150,7 @@ public final class GlobAtom {
         } else {
           root = Joiner.on('/').join(components);
         }
-        return new Root(isRecursive, isSingleFile && allowFiles, root);
+        return new Root(isRecursive || !allowFiles, isSingleFile && allowFiles, root);
       }
     },
 
@@ -174,9 +174,9 @@ public final class GlobAtom {
         }
         int lastSlash = pattern.lastIndexOf('/');
         if (lastSlash == -1) {
-          return new Root(false, false, "");
+          return new Root(true, false, "");
         }
-        return new Root(false, false, pattern.substring(0, lastSlash));
+        return new Root(true, false, pattern.substring(0, lastSlash));
       }
     };
 

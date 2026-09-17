@@ -58,24 +58,27 @@ public class SequenceGlobTest {
             new GlobAtom.Root(/* isRecursive= */ false, /* isSingleFile= */ true, "dir/other.txt"));
     assertThat(glob.rootsWithProperties(false))
         .containsExactly(
-            new GlobAtom.Root(/* isRecursive= */ false, /* isSingleFile= */ false, "foo/bar"),
-            new GlobAtom.Root(/* isRecursive= */ false, /* isSingleFile= */ false, "dir"));
+            new GlobAtom.Root(/* isRecursive= */ true, /* isSingleFile= */ false, "foo/bar"),
+            new GlobAtom.Root(/* isRecursive= */ true, /* isSingleFile= */ false, "dir"));
   }
 
   @Test
   public void testRootsWithProperties_overlappingRootsElided() throws Exception {
     Glob glob =
         SequenceGlob.ofStarlarkList(
-            getAtomList(ImmutableList.of("foo/bar/file.txt", "foo/bar/other.txt")));
+            getAtomList(
+                ImmutableList.of("foo/bar/file.txt", "foo/bar/other.txt", "foo/bar/sub/deep.txt")));
     assertThat(glob.rootsWithProperties(false))
         .containsExactly(
-            new GlobAtom.Root(/* isRecursive= */ false, /* isSingleFile= */ false, "foo/bar"));
+            new GlobAtom.Root(/* isRecursive= */ true, /* isSingleFile= */ false, "foo/bar"));
     assertThat(glob.rootsWithProperties(true))
         .containsExactly(
             new GlobAtom.Root(
                 /* isRecursive= */ false, /* isSingleFile= */ true, "foo/bar/file.txt"),
             new GlobAtom.Root(
-                /* isRecursive= */ false, /* isSingleFile= */ true, "foo/bar/other.txt"));
+                /* isRecursive= */ false, /* isSingleFile= */ true, "foo/bar/other.txt"),
+            new GlobAtom.Root(
+                /* isRecursive= */ false, /* isSingleFile= */ true, "foo/bar/sub/deep.txt"));
   }
 
   @Test
