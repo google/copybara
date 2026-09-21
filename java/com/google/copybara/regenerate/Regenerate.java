@@ -670,7 +670,7 @@ public class Regenerate<O extends Revision, D extends Revision> {
     if (lines.isEmpty()) {
       return new byte[0];
     }
-    return String.join("\n", lines).getBytes(UTF_8);
+    return (String.join("\n", lines) + "\n").getBytes(UTF_8);
   }
 
   private WorkflowRunHelper<O, D> createRunHelper(

@@ -746,7 +746,7 @@ public class RegenerateCmdTest {
     String expectedSeriesPath = "test/patches/series";
     assertThatPath(pathArg.getValue()).containsFiles(expectedSeriesPath);
     String seriesContent = Files.readString(pathArg.getValue().resolve(expectedSeriesPath));
-    assertThat(seriesContent.trim()).isEqualTo("local.patch");
+    assertThat(seriesContent).isEqualTo("local.patch\n");
 
     assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
   }
@@ -853,7 +853,7 @@ public class RegenerateCmdTest {
     String expectedSeriesPath = "test/patches/series";
     assertThatPath(pathArg.getValue()).containsFiles(expectedSeriesPath);
     String seriesContent = Files.readString(pathArg.getValue().resolve(expectedSeriesPath));
-    assertThat(seriesContent.trim()).isEqualTo("command_line.patch");
+    assertThat(seriesContent).isEqualTo("command_line.patch\n");
 
     assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
   }
