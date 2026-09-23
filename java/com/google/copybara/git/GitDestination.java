@@ -39,6 +39,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.ChangeMessage;
 import com.google.copybara.Destination;
+import com.google.copybara.DestinationInfo;
 import com.google.copybara.DestinationReader;
 import com.google.copybara.DestinationStatusVisitor;
 import com.google.copybara.Endpoint;
@@ -118,6 +119,8 @@ public class GitDestination implements Destination<GitRevision> {
   @Nullable private final Checker checker;
   private final LazyResourceLoader<GitRepository> localRepo;
   @Nullable private final CredentialFileHandler credentials;
+  @Nullable private final DestinationInfo destinationInfo;
+
   GitDestination(
       String repoUrl,
       String fetch,
@@ -130,6 +133,7 @@ public class GitDestination implements Destination<GitRevision> {
       GitOptions gitOptions,
       GeneralOptions generalOptions,
       WriteHook writerHook,
+      @Nullable DestinationInfo destinationInfo,
       Iterable<GitIntegrateChanges> integrates,
       @Nullable Checker checker,
       @Nullable CredentialFileHandler credentials) {
@@ -148,6 +152,7 @@ public class GitDestination implements Destination<GitRevision> {
     this.checker = checker;
     this.localRepo = memoized(ignored -> destinationOptions.localGitRepo(repoUrl, credentials));
     this.credentials = credentials;
+    this.destinationInfo = destinationInfo;
   }
 
   /**
@@ -201,6 +206,7 @@ public class GitDestination implements Destination<GitRevision> {
         gitOptions.gitTagOverwrite,
         checker,
         destinationOptions,
+        destinationInfo,
         credentials);
   }
 
@@ -252,6 +258,7 @@ public class GitDestination implements Destination<GitRevision> {
     private final boolean rebase;
     private final int visitChangePageSize;
     private final boolean gitTagOverwrite;
+    @Nullable private final DestinationInfo destinationInfo;
     @Nullable private final Checker checker;
     private final GitDestinationOptions destinationOptions;
 
@@ -280,7 +287,9 @@ public class GitDestination implements Destination<GitRevision> {
         boolean gitTagOverwrite,
         Checker checker,
         GitDestinationOptions destinationOptions,
+        @Nullable DestinationInfo destinationInfo,
         @Nullable CredentialFileHandler credentials) {
+      this.destinationInfo = destinationInfo;
       this.skipPush = skipPush;
       this.repoUrl = checkNotNull(repoUrl);
       this.remoteFetch = checkNotNull(remoteFetch);
@@ -306,6 +315,12 @@ public class GitDestination implements Destination<GitRevision> {
       this.gitTagOverwrite = gitTagOverwrite;
       this.checker = checker;
       this.destinationOptions = checkNotNull(destinationOptions);
+    }
+
+    @Override
+    @Nullable
+    public DestinationInfo getDestinationInfo() {
+      return destinationInfo;
     }
 
     @Override

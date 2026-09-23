@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Destination;
+import com.google.copybara.DestinationInfo;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.WriterContext;
@@ -50,6 +51,7 @@ import java.net.URI;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import javax.annotation.Nullable;
 
 /**
  * A destination for creating/updating GitLab Merge Requests.
@@ -149,6 +151,7 @@ public class GitLabMrDestination implements Destination<GitRevision> {
         .setChecker(params.checker())
         .setDestinationOptions(params.destinationOptions())
         .setCredentials(credentialFileHandler)
+        .setDestinationInfo(params.destinationInfo())
         .build()
         .createWriter();
   }
@@ -295,7 +298,8 @@ public class GitLabMrDestination implements Destination<GitRevision> {
       GitDestinationOptions destinationOptions,
       boolean partialFetch,
       Iterable<GitIntegrateChanges> integrates,
-      Optional<Checker> checker) {
+      Optional<Checker> checker,
+      @Nullable DestinationInfo destinationInfo) {
 
     /** A builder for {@link GitLabMrDestinationParams}. */
     @AutoBuilder
@@ -440,6 +444,14 @@ public class GitLabMrDestination implements Destination<GitRevision> {
        * @return a reference to this builder
        */
       public abstract Builder setChecker(Optional<Checker> checker);
+
+      /**
+       * Sets the destination info to be used by the destination object
+       *
+       * @param destinationInfo the destination info
+       * @return a reference to this builder
+       */
+      public abstract Builder setDestinationInfo(@Nullable DestinationInfo destinationInfo);
 
       /**
        * Builds the {@link GitLabMrDestinationParams} object

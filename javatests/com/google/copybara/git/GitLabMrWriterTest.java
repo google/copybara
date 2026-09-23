@@ -22,12 +22,14 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.copybara.DestinationInfo;
 import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.TransformResult;
 import com.google.copybara.WriterContext;
@@ -61,6 +63,7 @@ import java.nio.file.Path;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Optional;
+import javax.annotation.Nullable;
 import net.starlark.java.eval.EvalException;
 import org.junit.Before;
 import org.junit.Rule;
@@ -549,6 +552,40 @@ public final class GitLabMrWriterTest {
         state);
   }
 
+  @Test
+  public void getDestinationInfo_notSet_returnsNull() {
+    GitLabMrWriter underTest =
+        getGitLabMrWriter(
+            new Project(1),
+            /* checker= */ Optional.empty(),
+            Optional.of("titleTemplate"),
+            Optional.of("bodyTemplate"),
+            ImmutableList.of("assignee1"),
+            /* state= */ getWriterState());
+
+    DestinationInfo result = underTest.getDestinationInfo();
+
+    assertThat(result).isNull();
+  }
+
+  @Test
+  public void getDestinationInfo_set_returnsProvidedInstance() {
+    DestinationInfo destinationInfo = mock(DestinationInfo.class);
+    GitLabMrWriter underTest =
+        getGitLabMrWriter(
+            new Project(1),
+            /* checker= */ Optional.empty(),
+            Optional.of("titleTemplate"),
+            Optional.of("bodyTemplate"),
+            ImmutableList.of("assignee1"),
+            /* state= */ getWriterState(),
+            destinationInfo);
+
+    DestinationInfo result = underTest.getDestinationInfo();
+
+    assertThat(result).isSameInstanceAs(destinationInfo);
+  }
+
   private ZonedDateTime getNowDateTime() {
     return ZonedDateTime.now(ZoneId.of("America/Los_Angeles"));
   }
@@ -571,6 +608,24 @@ public final class GitLabMrWriterTest {
       Optional<String> bodyTemplate,
       ImmutableList<String> assigneeTemplates,
       GitLabWriterState state) {
+    return getGitLabMrWriter(
+        project,
+        checker,
+        titleTemplate,
+        bodyTemplate,
+        assigneeTemplates,
+        state,
+        /* destinationInfo= */ null);
+  }
+
+  private GitLabMrWriter getGitLabMrWriter(
+      Project project,
+      Optional<Checker> checker,
+      Optional<String> titleTemplate,
+      Optional<String> bodyTemplate,
+      ImmutableList<String> assigneeTemplates,
+      GitLabWriterState state,
+      @Nullable DestinationInfo destinationInfo) {
     return GitLabMrWriterParams.builder()
         .setGitLabApi(gitLabApi)
         .setTitleTemplate(titleTemplate)
@@ -591,6 +646,7 @@ public final class GitLabMrWriterTest {
         .setChecker(checker)
         .setDestinationOptions(optionsBuilder.gitDestination)
         .setCredentials(credentialFileHandler)
+        .setDestinationInfo(destinationInfo)
         .build()
         .createWriter();
   }

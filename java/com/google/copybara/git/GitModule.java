@@ -49,6 +49,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableSetMultimap.Builder;
+import com.google.copybara.DestinationInfo;
 import com.google.copybara.EndpointProvider;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.LazyResourceLoader;
@@ -1867,11 +1868,21 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         options.get(GitOptions.class),
         generalOptions,
         new DefaultWriteHook(),
+        getDestinationInfo(),
         Starlark.isNullOrNone(integrates)
             ? defaultGitIntegrate
             : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"),
         maybeChecker,
         credentialHandler);
+  }
+
+  /**
+   * Returns the {@link DestinationInfo} to attach to git destinations, or null if not supported.
+   * Subclasses can override this to provide a custom implementation.
+   */
+  @Nullable
+  protected DestinationInfo getDestinationInfo() {
+    return null;
   }
 
   @SuppressWarnings("unused")
@@ -2139,6 +2150,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             gitHubHost,
             credentialHandler,
             pushToFork),
+        getDestinationInfo(),
         Starlark.isNullOrNone(integrates)
             ? defaultGitIntegrate
             : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"),
@@ -2454,7 +2466,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         gitHubHost,
         primaryBranchMigrationMode,
         checkerObj,
-        credentialHandler);
+        credentialHandler,
+        getDestinationInfo());
   }
 
   private ImmutableSetMultimap<String, Conclusion> convertSlugToConclusion(
@@ -2729,6 +2742,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     CredentialFileHandler credentialHandler = getCredentialHandler(url, credentials);
     return GerritDestination.newGerritDestination(
         options,
+        getDestinationInfo(),
         fixHttp(url, thread.getCallerLocation()),
         checkNotEmpty(firstNotNull(options.get(GitDestinationOptions.class).fetch, fetch), "fetch"),
         checkNotEmpty(
@@ -3055,6 +3069,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                 ? defaultGitIntegrate
                 : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"))
         .setChecker(convertToOptional(checker))
+        .setDestinationInfo(getDestinationInfo())
         .build()
         .createDestination();
   }

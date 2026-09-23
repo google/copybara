@@ -21,6 +21,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.copybara.ChangeMessage;
+import com.google.copybara.DestinationInfo;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.LabelFinder;
 import com.google.copybara.TransformResult;
@@ -49,6 +50,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 
 /** A {@link WriterImpl} that writes to GitLab merge requests. */
 public class GitLabMrWriter extends WriterImpl<GitLabMrDestination.GitLabWriterState> {
@@ -79,6 +81,7 @@ public class GitLabMrWriter extends WriterImpl<GitLabMrDestination.GitLabWriterS
         params.gitOptions().gitTagOverwrite,
         params.checker().orElse(null),
         params.destinationOptions(),
+        params.destinationInfo(),
         params.credentials());
     this.params = params;
   }
@@ -321,6 +324,7 @@ public class GitLabMrWriter extends WriterImpl<GitLabMrDestination.GitLabWriterS
    */
   public record GitLabMrWriterParams(
       GitLabApi gitLabApi,
+      @Nullable DestinationInfo destinationInfo,
       Optional<String> titleTemplate,
       Optional<String> bodyTemplate,
       ImmutableList<String> assigneeTemplates,
@@ -501,6 +505,14 @@ public class GitLabMrWriter extends WriterImpl<GitLabMrDestination.GitLabWriterS
        * @return the builder object with the credentials set
        */
       public abstract Builder setCredentials(CredentialFileHandler credentials);
+
+      /**
+       * Sets the destination info to be used by the writer object
+       *
+       * @param destinationInfo the destination info
+       * @return the builder object with the destination info set
+       */
+      public abstract Builder setDestinationInfo(@Nullable DestinationInfo destinationInfo);
 
       /**
        * Returns an instance of {@link GitLabMrWriterParams} with the given parameters.
