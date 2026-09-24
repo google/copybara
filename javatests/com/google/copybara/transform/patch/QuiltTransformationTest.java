@@ -982,4 +982,26 @@ public final class QuiltTransformationTest {
     String content = Files.readString(refreshedPatch, UTF_8);
     assertThat(content).isEqualTo(expectedDiff);
   }
+
+  @Test
+  public void missingQuiltBinaryThrowsValidationExceptionTest() throws Exception {
+    Files.write(checkoutDir.resolve("file1.txt"), "line1\nfoo\nline3".getBytes(UTF_8));
+    patchingOptions.quiltBin = "nonexistent_quilt_binary";
+    QuiltTransformation transform =
+        new QuiltTransformation(
+            Optional.of(seriesFile),
+            ImmutableList.of(patchFile),
+            patchingOptions,
+            /* reverse= */ false,
+            /* directory= */ "",
+            Location.BUILTIN,
+            "patches",
+            /* stripHunkHeaders= */ false);
+
+    ValidationException thrown =
+        assertThrows(
+            ValidationException.class,
+            () -> transform.transform(TransformWorks.of(checkoutDir, "testmsg", console)));
+    assertThat(thrown).hasMessageThat().startsWith("Cannot find the `quilt` binary.");
+  }
 }

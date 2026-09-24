@@ -34,6 +34,7 @@ import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
+import com.google.copybara.shell.ExecFailedException;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -172,6 +173,14 @@ public final class QuiltTransformation implements Transformation {
                 String.join(" ", paramsList), e.getMessage(), e.getOutput().getStdout()),
             e);
       }
+    } catch (ExecFailedException e) {
+      throw new ValidationException(
+          """
+          Cannot find the `quilt` binary.
+          - Make sure quilt is installed.
+          - If quilt is not on the `PATH`, use the `--quilt-bin` flag to specify the path.\
+          """,
+          e);
     } catch (CommandException e) {
       throw new IOException(e);
     }
