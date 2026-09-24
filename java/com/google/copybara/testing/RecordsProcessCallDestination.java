@@ -228,39 +228,11 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
           throws RepoException, EvalException {
         CheckoutPath checkoutPath = convertFromNoneable(path, null);
         Glob glob = Glob.wrapGlob(globObj, null);
-        if (filePrefix != null) {
-          PathMatcher filePrefixMatcher = glob.relativeTo(filePrefix);
-          try (Stream<Path> prefixFiles = Files.walk(filePrefix)) {
-            for (Path file : prefixFiles
-                .filter(Files::isRegularFile)
-                .filter(filePrefixMatcher::matches)
-                .collect(toImmutableList())) {
-              String contents = Files.readString(file);
-              writeFile(checkoutPath.getCheckoutDir().resolve(filePrefix.relativize(file)),
-                  contents);
-            }
-          } catch (IOException e) {
-            throw new RepoException("failed to copy files from filePrefix directory", e);
-          }
-        }
-        if (processed.isEmpty()) {
-          return;
-        }
-        Optional<ProcessedChange> processedChange = getProcessed();
-        if (processedChange.isEmpty()) {
-          return; // nothing to copy
-        }
-
-        PathMatcher absoluteMatcher = glob.relativeTo(Paths.get(""));
-        PathMatcher relativeMatcher = glob.relativeTo(checkoutPath.getCheckoutDir());
-        for (Entry<String, String> e : processedChange.get().getWorkdir().entrySet()) {
-          Path p = Paths.get(e.getKey());
-          if (p.toString().startsWith("/") && absoluteMatcher.matches(p)) {
-            writeFile(checkoutPath.getCheckoutDir().resolve(Paths.get("/").relativize(p)),
-                e.getValue());
-          } else if (relativeMatcher.matches(checkoutPath.getCheckoutDir().resolve(p))) {
-            writeFile(checkoutPath.getCheckoutDir().resolve(p), e.getValue());
-          }
+        if (checkoutPath == null) {
+          copyDestinationFilesToDirectory(glob, workdir);
+        } else {
+          copyDestinationFilesToDirectory(
+              glob, checkoutPath.getCheckoutDir().resolve(checkoutPath.getPath()));
         }
       }
 
@@ -329,7 +301,8 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
       @Override
       public String getHash(String path) throws RepoException {
         if (!supportsGetHash) {
-          throw new RepoException("attempted to call getHash() despite supportsGetHash() being false");
+          throw new RepoException(
+              "attempted to call getHash() despite supportsGetHash() being false");
         }
 
         Optional<ProcessedChange> processedChange = getProcessed();

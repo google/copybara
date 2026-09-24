@@ -5929,4 +5929,63 @@ public class WorkflowTest {
     assertThat(workflow.getConsistencyFileConfig().excludeBuildFiles()).isTrue();
     assertThat(workflow.getConsistencyFilePath()).isEqualTo("do-not-edit.bara.consistency");
   }
+
+  @Test
+  public void mergeImport_copyDestinationFilesInBaselineTransform() throws Exception {
+    String config =
+        """
+        def _copy_from_dest(ctx):
+          ctx.destination_reader().copy_destination_files(glob(['dir/BUILD']))
+          if not ctx.new_path('dir/BUILD').exists():
+            fail('dir/BUILD was not copied into current TransformWork directory')
+          ctx.run(core.replace(
+              before = 'deps = []',
+              after = 'deps = ["//copied"]',
+              paths = glob(['dir/BUILD']),
+          ))
+
+        core.workflow(
+            name = 'default',
+            origin = testing.origin(),
+            destination = testing.destination(),
+            origin_files = glob(['dir/**'], exclude = ['dir/BUILD']),
+            destination_files = glob(['dir/**']),
+            authoring = authoring.pass_thru('Foo <foo@foo.com>'),
+            mode = 'SQUASH',
+            merge_import = core.merge_import_config(
+                package_path = 'dir',
+                paths = glob(['dir/**']),
+                use_consistency_file = False,
+            ),
+            transformations = [
+                core.dynamic_transform(_copy_from_dest),
+            ],
+        )
+        """;
+    Path testDir = Files.createTempDirectory("merge_import_dest_reader");
+    Path base1 = Files.createDirectories(testDir.resolve("base1"));
+    writeFile(base1, "dir/foo.txt", "v1\n");
+    origin.addChange(0, base1, "Initial import", /* matchesGlob= */ true);
+    Path destInit = Files.createDirectories(testDir.resolve("destInit"));
+    writeFile(destInit, "dir/foo.txt", "v1\n");
+    writeFile(destInit, "dir/BUILD", "deps = []\n");
+    WriterContext ctx =
+        new WriterContext("", null, false, new DummyRevision("0"), Glob.ALL_FILES.roots());
+    Writer<Revision> wr = destination.newWriter(ctx);
+    wr.write(TransformResults.of(destInit, new DummyRevision("0")), Glob.ALL_FILES, console());
+    Path base2 = Files.createDirectories(testDir.resolve("base2"));
+    writeFile(base2, "dir/foo.txt", "v2\n");
+    origin.addChange(1, base2, "Second import", /* matchesGlob= */ true);
+    Workflow<?, ?> workflow = (Workflow<?, ?>) loadConfig(config).getMigration("default");
+
+    workflow.run(workdir, ImmutableList.of("1"));
+
+    assertThat(destination.processed).hasSize(2);
+    assertThat(destination.processed.get(1).getContent("dir/foo.txt")).isEqualTo("v2\n");
+    assertThatPath(workdir.resolve("checkout"))
+        .containsFile("dir/BUILD", "deps = [\"//copied\"]\n");
+    assertThatPath(workdir.resolve("baseline"))
+        .containsFile("dir/BUILD", "deps = [\"//copied\"]\n");
+  }
 }
+
