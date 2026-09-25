@@ -1224,9 +1224,11 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       // Remove excluded origin files.
       PathMatcher originFiles = getOriginFiles().relativeTo(checkoutDir);
       processConsole.progress("Removing excluded origin files");
-
-      int deleted = FileUtil.deleteFilesRecursively(
-          checkoutDir, FileUtil.notPathMatcher(originFiles));
+      int deleted = 0;
+      try (var _ = profiler().start("remove_excluded_origin_files")) {
+        deleted =
+            FileUtil.deleteFilesRecursively(checkoutDir, FileUtil.notPathMatcher(originFiles));
+      }
       if (deleted != 0) {
         processConsole.infoFmt(
             "Removed %d files from workdir that do not match origin_files", deleted);
