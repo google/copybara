@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2016 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.gerritapi.GerritApiException.ResponseCode;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -192,6 +193,7 @@ public class GerritApi {
     }
   }
 
+  @CanIgnoreReturnValue
   public ChangeInfo submitChange(String changeId, SubmitInput submitInput)
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("gerrit_submit_change")) {

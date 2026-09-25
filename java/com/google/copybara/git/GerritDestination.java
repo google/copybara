@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2016 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -334,7 +334,7 @@ public final class GerritDestination implements Destination<GitRevision> {
           }
         }
         String tripletId = changeInfo.getTripletId();
-        ChangeInfo resultInfo = gerritApi.submitChange(tripletId, new SubmitInput(null));
+        gerritApi.submitChange(tripletId, new SubmitInput(null));
         console.infoFmt("Submitted change : %s/changes/%s", repoUrl, tripletId);
       } catch (RepoException e) {
         Matcher matcher = USER_ERROR_REGEX_PATTERN.matcher(e.getMessage());
