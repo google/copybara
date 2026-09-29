@@ -18,10 +18,36 @@ licenses(["notice"])
 
 package(default_visibility = ["//visibility:public"])
 
+CORE = [
+    "JjRepository.java",
+]
+
+JAVACOPTS = [
+    "-Xlint:unchecked",
+]
+
+java_library(
+    name = "jj",
+    srcs = glob(
+        ["*.java"],
+        exclude = CORE,
+    ),
+    javacopts = JAVACOPTS,
+    deps = [
+        ":core",
+        "//java/com/google/copybara:base",
+        "//java/com/google/copybara:general_options",
+        "//java/com/google/copybara/exception",
+        "//java/com/google/copybara/util/console",
+        "//third_party:guava",
+        "//third_party:jcommander",
+    ],
+)
+
 java_library(
     name = "core",
-    srcs = ["JjRepository.java"],
-    javacopts = ["-Xlint:unchecked"],
+    srcs = CORE,
+    javacopts = JAVACOPTS,
     deps = [
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/util",

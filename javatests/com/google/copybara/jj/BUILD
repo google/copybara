@@ -22,10 +22,13 @@ all_tests(
     tests = glob(["**/*Test.java"]),
     deps = [
         "//java/com/google/copybara/exception",
+        "//java/com/google/copybara/jj",
         "//java/com/google/copybara/jj:core",
         "//java/com/google/copybara/testing",
         "//java/com/google/copybara/util",
+        "//java/com/google/copybara/util/console/testing",
         "//third_party:guava",
+        "//third_party:jcommander",
         "//third_party:shell",
         "//third_party:testparameterinjector",
         "//third_party:truth",

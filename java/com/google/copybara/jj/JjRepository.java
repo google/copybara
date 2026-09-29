@@ -67,7 +67,6 @@ public class JjRepository {
   private final boolean verbose;
   private final Duration repoTimeout;
 
-  // TODO(b/562925326): Add a JjOptions class to configure and inject jjBin and other settings.
   public JjRepository(
       Path repoDir,
       String jjBin,
