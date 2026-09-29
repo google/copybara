@@ -48,6 +48,7 @@ import com.google.copybara.hg.HgOptions;
 import com.google.copybara.hg.HgOriginOptions;
 import com.google.copybara.http.HttpOptions;
 import com.google.copybara.onboard.GeneratorOptions;
+import com.google.copybara.onboard.ai.AiOnboardOptions;
 import com.google.copybara.regenerate.RegenerateOptions;
 import com.google.copybara.remotefile.RemoteFileOptions;
 import com.google.copybara.testing.TestingModule.TestingOptions;
@@ -90,6 +91,7 @@ public class OptionsBuilder {
   public RemoteFileOptions remoteFile = new RemoteFileOptions();
   public BuildifierOptions buildifier = new BuildifierOptions();
   public GeneratorOptions generator = new GeneratorOptions();
+  public AiOnboardOptions aiOnboard = new AiOnboardOptions();
   public CredentialOptions credentialOptions = new CredentialOptions();
 
   public String buildozerBin = null;
@@ -217,6 +219,7 @@ public class OptionsBuilder {
         buildifier,
         buildozer,
         generator,
+        aiOnboard,
         http,
         regenerateOptions,
         credentialOptions);
