@@ -21,8 +21,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.copybara.CommandEnv;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.onboard.core.AskInputProvider.Mode;
 import com.google.copybara.testing.FakeLlmClient;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.util.ExitCode;
@@ -67,8 +69,13 @@ public final class AiOnboardCmdTest {
           public LlmClient getLlmClient() {
             return llmClient;
           }
+
+          @Override
+          public String getArchetype() {
+            return ARCHETYPE;
+          }
         };
-    cmd = new AiOnboardCmd(ARCHETYPE);
+    cmd = new AiOnboardCmd();
   }
 
   @Test
@@ -78,6 +85,52 @@ public final class AiOnboardCmdTest {
     ValidationException e = assertThrows(ValidationException.class, () -> run());
 
     assertThat(e).hasMessageThat().contains("No LLM backend is configured");
+  }
+
+  @Test
+  public void failsWithoutArchetype() {
+    optionsBuilder.aiOnboard =
+        new AiOnboardOptions() {
+          @Override
+          public LlmClient getLlmClient() {
+            return llmClient;
+          }
+        };
+
+    ValidationException e = assertThrows(ValidationException.class, () -> run());
+
+    assertThat(e).hasMessageThat().contains("No archetype is configured");
+  }
+
+  @Test
+  public void inputsFlagAnswersWithoutAsking() throws Exception {
+    optionsBuilder.generator.inputs =
+        ImmutableMap.of(
+            "ai_origin_path", "third_party/example",
+            "ai_destination_url", "https://github.com/example/dest",
+            "ai_default_author", "Example <example@example.com>");
+    // FAIL never asks, so this also checks that --generator-ask is respected.
+    optionsBuilder.generator.askMode = Mode.FAIL;
+    llmClient.respondWith(CONFIG);
+
+    assertThat(run()).isEqualTo(ExitCode.SUCCESS);
+
+    String prompt = llmClient.getPrompts().get(0);
+    assertThat(prompt).contains("origin_path: \"third_party/example\"");
+    assertThat(prompt).contains("default_author: \"Example <example@example.com>\"");
+    assertThat(prompt).contains("destination_branch: \"main\"");
+  }
+
+  @Test
+  public void missingRequiredInputInFailModeReturnsCommandLineError() throws Exception {
+    optionsBuilder.generator.askMode = Mode.FAIL;
+
+    assertThat(run()).isEqualTo(ExitCode.COMMAND_LINE_ERROR);
+
+    console
+        .assertThat()
+        .onceInLog(MessageType.ERROR, "Cannot resolve input field: .*ai_origin_path.*");
+    assertThat(llmClient.getPrompts()).isEmpty();
   }
 
   @Test

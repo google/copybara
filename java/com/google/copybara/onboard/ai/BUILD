@@ -30,6 +30,7 @@ java_library(
         "//java/com/google/copybara:general_options",
         "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/exception",
+        "//java/com/google/copybara/onboard:options",
         "//java/com/google/copybara/onboard/core",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",

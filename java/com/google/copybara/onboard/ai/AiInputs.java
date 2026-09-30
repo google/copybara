@@ -16,6 +16,7 @@
 
 package com.google.copybara.onboard.ai;
 
+import com.google.common.collect.ImmutableList;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.AuthorParser;
 import com.google.copybara.authoring.InvalidAuthorException;
@@ -105,4 +106,16 @@ public final class AiInputs {
   public static final Input<String> OTHER_REQUESTS =
       Input.create(
           "ai_other_requests", "Anything else Copybara should do", "none", String.class, ANY);
+
+  public static ImmutableList<Input<?>> all() {
+    return ImmutableList.of(
+        ORIGIN_PATH,
+        DESTINATION_URL,
+        DESTINATION_BRANCH,
+        DEFAULT_AUTHOR,
+        ORIGIN_FILES,
+        DESTINATION_FILES,
+        TRANSFORMATIONS,
+        OTHER_REQUESTS);
+  }
 }

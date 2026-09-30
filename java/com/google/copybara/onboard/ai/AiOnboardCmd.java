@@ -16,7 +16,6 @@
 
 package com.google.copybara.onboard.ai;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.beust.jcommander.Parameters;
@@ -27,12 +26,13 @@ import com.google.copybara.CommandEnv;
 import com.google.copybara.CopybaraCmd;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.onboard.core.AskInputProvider.Mode;
+import com.google.copybara.onboard.GeneratorOptions;
 import com.google.copybara.onboard.core.CannotConvertException;
 import com.google.copybara.onboard.core.CannotProvideException;
 import com.google.copybara.onboard.core.InputProvider;
 import com.google.copybara.onboard.core.InputProviderResolver;
 import com.google.copybara.onboard.core.InputProviderResolverImpl;
+import com.google.copybara.onboard.core.MapBasedInputProvider;
 import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.console.Console;
 import com.google.re2j.Matcher;
@@ -55,18 +55,11 @@ public class AiOnboardCmd implements CopybaraCmd {
   private static final Pattern FENCED_BLOCK =
       Pattern.compile("```(?:starlark|python|sky|bzl)?\\s*\\n(.*?)```", Pattern.DOTALL);
 
-  private final String archetype;
-
-  /**
-   * @param archetype Markdown describing the target workflow macro, its parameters, and examples
-   */
-  public AiOnboardCmd(String archetype) {
-    this.archetype = checkNotNull(archetype);
-  }
-
   @Override
   public ExitCode run(CommandEnv commandEnv) throws ValidationException, IOException {
-    LlmClient llmClient = commandEnv.getOptions().get(AiOnboardOptions.class).getLlmClient();
+    AiOnboardOptions aiOnboardOptions = commandEnv.getOptions().get(AiOnboardOptions.class);
+    LlmClient llmClient = aiOnboardOptions.getLlmClient();
+    String archetype = aiOnboardOptions.getArchetype();
     GeneralOptions generalOptions = commandEnv.getOptions().get(GeneralOptions.class);
     Console console = generalOptions.console();
     Path outputPath = resolveOutputPath(commandEnv, generalOptions);
@@ -77,6 +70,8 @@ public class AiOnboardCmd implements CopybaraCmd {
       return ExitCode.NO_OP;
     }
 
+    // Registers the inputs so that --inputs can refer to them by name.
+    var _ = AiInputs.all();
     ImmutableMap<String, String> answers;
     try {
       answers =
@@ -86,7 +81,7 @@ public class AiOnboardCmd implements CopybaraCmd {
                   (value, resolver) -> {
                     throw new CannotConvertException("Starlark values are not supported.");
                   },
-                  Mode.CONFIRM,
+                  commandEnv.getOptions().get(GeneratorOptions.class).askMode,
                   console));
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
@@ -100,7 +95,7 @@ public class AiOnboardCmd implements CopybaraCmd {
     String response;
     try {
       console.progress("Generating Copybara config...");
-      response = llmClient.generate(buildPrompt(answers));
+      response = llmClient.generate(buildPrompt(archetype, answers));
     } catch (LlmException e) {
       console.errorFmt("Failed to generate config: %s", e.getMessage());
       return ExitCode.ENVIRONMENT_ERROR;
@@ -122,12 +117,15 @@ public class AiOnboardCmd implements CopybaraCmd {
 
   /**
    * Returns providers that can infer survey answers. Answers without a provider are asked to the
-   * user.
+   * user. By default, answers can be given with {@code --inputs}.
    *
    * <p>Subclasses can override this to infer environment-specific answers (e.g. depot paths).
    */
   protected ImmutableList<InputProvider> getInputProviders(CommandEnv commandEnv) {
-    return ImmutableList.of();
+    return ImmutableList.of(
+        new MapBasedInputProvider(
+            commandEnv.getOptions().get(GeneratorOptions.class).inputs,
+            InputProvider.COMMAND_LINE_PRIORITY));
   }
 
   /**
@@ -149,7 +147,7 @@ public class AiOnboardCmd implements CopybaraCmd {
   }
 
   /** Builds the prompt: the archetype followed by the user's answers. */
-  String buildPrompt(Map<String, String> answers) {
+  static String buildPrompt(String archetype, Map<String, String> answers) {
     StringBuilder prompt =
         new StringBuilder(archetype).append("\n\n---\n## User Onboarding Input\n");
     answers.forEach((field, answer) -> prompt.append(String.format("%s: \"%s\"\n", field, answer)));

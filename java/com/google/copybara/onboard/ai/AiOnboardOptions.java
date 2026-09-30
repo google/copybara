@@ -31,4 +31,12 @@ public class AiOnboardOptions implements Option {
   public LlmClient getLlmClient() throws ValidationException {
     throw new ValidationException("No LLM backend is configured for AI-assisted onboarding.");
   }
+
+  /**
+   * Returns Markdown describing the target workflow macro, its parameters, and examples. It is sent
+   * to the model ahead of the user's answers. Environments that provide an archetype override this.
+   */
+  public String getArchetype() throws ValidationException {
+    throw new ValidationException("No archetype is configured for AI-assisted onboarding.");
+  }
 }
