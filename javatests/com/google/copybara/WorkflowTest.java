@@ -331,6 +331,17 @@ public class WorkflowTest {
     return config;
   }
 
+  private String getConfigString(
+      String name, WorkflowMode mode, ImmutableList<String> extraFields) {
+    ImmutableList<String> previousExtraFields = this.extraWorkflowFields;
+    try {
+      this.extraWorkflowFields = extraFields;
+      return getConfigString(name, mode);
+    } finally {
+      this.extraWorkflowFields = previousExtraFields;
+    }
+  }
+
   private Workflow<?, ?> iterativeWorkflow(String workflowName, @Nullable String previousRef)
       throws ValidationException, IOException {
     options.workflowOptions.lastRevision = previousRef;
@@ -5986,6 +5997,73 @@ public class WorkflowTest {
         .containsFile("dir/BUILD", "deps = [\"//copied\"]\n");
     assertThatPath(workdir.resolve("baseline"))
         .containsFile("dir/BUILD", "deps = [\"//copied\"]\n");
+  }
+
+  // Verifies that for workflows sharing 'shared.bara.consistency', running 'default_service' writes
+  // '# Workflow: copy.bara.sky:default_service' to the consistency file header.
+  @Test
+  public void workflow_consistencyFileConfig_sharedPathUsesSecondaryWorkflowName()
+      throws Exception {
+    var shared =
+        ImmutableList.of(
+            "consistency_file = core.consistency_file_config(path = 'shared.bara.consistency')");
+    var other =
+        ImmutableList.of(
+            "consistency_file = core.consistency_file_config(path = 'other.bara.consistency')");
+    String configContent =
+        getConfigString("default", SQUASH, shared)
+            + "\n"
+            + getConfigString("default_service", SQUASH, shared)
+            + "\n"
+            + getConfigString("other", SQUASH, other);
+    Config config = loadConfig(configContent);
+    Workflow<?, ?> serviceWorkflow = (Workflow<?, ?>) config.getMigration("default_service");
+    origin.addSimpleChange(/* timestamp= */ 1);
+
+    serviceWorkflow.run(workdir, ImmutableList.of("HEAD"));
+
+    ProcessedChange change = Iterables.getOnlyElement(destination.processed);
+    String consistencyFile = change.getContent("shared.bara.consistency");
+    assertThat(consistencyFile).contains("# Workflow: copy.bara.sky:default_service\n");
+  }
+
+  // Sharing consistency_file_path = 'foo.bara.consistency' across 'default' and 'default_service'
+  // succeeds, and running a merge import with use_consistency_file = True on 'default_service'
+  // writes '# Workflow: dir/copy.bara.sky:default_service' to the consistency file header.
+  @Test
+  public void mergeImport_consistencyFile_sharedPathUsesSecondaryWorkflowName()
+      throws Exception {
+    skylark = new SkylarkTestExecutor(options);
+    Path testDir = Files.createTempDirectory("testDir");
+    Path base1 = Files.createDirectories(testDir.resolve("base1"));
+    writeFile(base1, "dir/foo.txt", "a\nb\nc\n");
+    origin.addChange(0, base1, "One Change\n", /* matchesGlob= */ true);
+
+    transformations = ImmutableList.of();
+    Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+    mergeImport =
+        """
+        core.merge_import_config(
+          package_path = "",
+          use_consistency_file = True,
+        )\
+        """;
+    consistencyFilePath = "\"foo.bara.consistency\"";
+    Path base2 = Files.createDirectories(testDir.resolve("base2"));
+    FileUtil.copyFilesRecursively(base1, base2, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
+    writeFile(base2, "dir/bar.txt", "Another file");
+    origin.addChange(1, base2, "change 1", /* matchesGlob= */ true);
+    String configContent =
+        getConfigString("default", SQUASH) + "\n" + getConfigString("default_service", SQUASH);
+    Config config = loadConfigInDirectory(configContent, "dir/");
+    Workflow<?, ?> serviceWorkflow = (Workflow<?, ?>) config.getMigration("default_service");
+
+    serviceWorkflow.run(workdir, ImmutableList.of("HEAD"));
+
+    String consistencyFileContent =
+        Iterables.getLast(destination.processed).getWorkdir().get("foo.bara.consistency");
+    assertThat(consistencyFileContent).contains("# Workflow: dir/copy.bara.sky:default_service\n");
   }
 }
 
