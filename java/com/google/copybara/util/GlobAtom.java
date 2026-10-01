@@ -213,5 +213,15 @@ public final class GlobAtom {
    * @param isSingleFile whether the root is a single file
    * @param root the root path string
    */
-  public static record Root(boolean isRecursive, boolean isSingleFile, String root) {}
+  public static record Root(boolean isRecursive, boolean isSingleFile, String root) {
+    public String type() {
+      if (isRecursive) {
+        return "recursive";
+      }
+      if (isSingleFile) {
+        return "file";
+      }
+      return "meta";
+    }
+  }
 }

@@ -30,8 +30,10 @@ import com.google.api.client.http.HttpTransport;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.copybara.ChangeVisitable.VisitResult;
@@ -49,9 +51,7 @@ import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
-import com.google.common.collect.ImmutableMap;
 import com.google.copybara.exception.ValidationException;
-
 import com.google.copybara.git.GitCredential.UserPassword;
 import com.google.copybara.git.GitRevision.GitHashAlgorithm;
 import com.google.copybara.revision.Change;
@@ -2257,6 +2257,24 @@ public class GitOriginTest {
     assertThat(actual.get("repoType")).containsExactly("GIT");
     assertThat(actual.get("partialFetch")).isEmpty();
     assertThat(actual.get("root")).isEmpty();
+  }
+
+  @Test
+  public void testDescribe_withTopLevelFiles_hasSpecificRootsDefined()
+      throws RepoException, ValidationException {
+    // TODO(b/548593484): Remove temporary feature flag.
+    options.general.setTemporaryFeaturesForTest(ImmutableMap.of("root_with_files", "true"));
+
+    Glob glob =
+        createGlob(
+            ImmutableList.of(
+                "foo/bar/file.txt", "dir/*", "recursive/**", "meta/dir/*.java", "license"));
+    ImmutableSetMultimap<String, String> actual = origin.describe(glob);
+
+    assertThat(actual.get("root")).isEmpty();
+    assertThat(actual.get("fileRoot")).containsExactly("foo/bar/file.txt", "license");
+    assertThat(actual.get("recursiveRoot")).containsExactly("recursive");
+    assertThat(actual.get("metaRoot")).containsExactly("dir", "meta/dir");
   }
 
   @Test

@@ -82,6 +82,8 @@ public class GitOrigin implements Origin<GitRevision> {
   /** Supported hex lengths for Git commit hashes: 40 character SHA-1 and 64 character SHA-256. */
   private static final ImmutableSet<Integer> SUPPORTED_HASH_LENGTHS = ImmutableSet.of(40, 64);
 
+  private static final int MAX_SPECIFIC_ROOTS = 100;
+
   /** How downloading submodules should be handled by Git origins. */
   public enum SubmoduleStrategy {
     /** Don't download any submodule. */
@@ -868,6 +870,15 @@ public class GitOrigin implements Origin<GitRevision> {
             .put("primaryBranchMigrationMode", "" + primaryBranchMigrationMode);
     if (!originFiles.roots().isEmpty() && !originFiles.roots().contains("")) {
       builder.putAll("root", originFiles.roots());
+    }
+    // TODO(b/548593484): Remove temporary feature flag and console print statements.
+    if (generalOptions.isTemporaryFeature("root_with_files", false)) {
+      builder.putAll(
+          originFiles.rootsWithProperties(true).stream()
+              .limit(MAX_SPECIFIC_ROOTS)
+              .collect(
+                  ImmutableSetMultimap.toImmutableSetMultimap(
+                      r -> String.format("%sRoot", r.type()), r -> r.root())));
     }
     if (partialFetch) {
       builder.put("partialFetch", Boolean.toString(partialFetch));
