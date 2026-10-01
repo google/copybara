@@ -2630,6 +2630,20 @@ public class CoreModule implements LabelsAwareModule, StarlarkValue {
             },
             defaultValue = "None",
             named = true,
+            positional = false),
+        @Param(
+            name = "workflow_name",
+            doc =
+                """
+                The authoritative workflow name to be used in the header of the consistency file.\
+                """,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
+            documented = false,
+            defaultValue = "None",
+            named = true,
             positional = false)
       })
   public ConsistencyFileConfiguration consistencyFileConfig(
@@ -2637,7 +2651,8 @@ public class CoreModule implements LabelsAwareModule, StarlarkValue {
       boolean excludeBuildFiles,
       Object patchFilePathObj,
       Object patchPathPrefixToStripObj,
-      Object patchFileDescriptionObj)
+      Object patchFileDescriptionObj,
+      Object workflowNameObj)
       throws EvalException {
     try {
       checkCondition(
@@ -2649,13 +2664,19 @@ public class CoreModule implements LabelsAwareModule, StarlarkValue {
     String patchFilePath = convertFromNoneable(patchFilePathObj, null);
     String patchPathPrefixToStrip = convertFromNoneable(patchPathPrefixToStripObj, null);
     String patchFileDescription = convertFromNoneable(patchFileDescriptionObj, null);
+    String workflowName = convertFromNoneable(workflowNameObj, null);
     try {
       DiffUtil.validatePatchDescription(Optional.ofNullable(patchFileDescription));
     } catch (ValidationException e) {
       throw new EvalException(e.getMessage());
     }
     return ConsistencyFileConfiguration.create(
-        path, excludeBuildFiles, patchFilePath, patchPathPrefixToStrip, patchFileDescription);
+        path,
+        excludeBuildFiles,
+        workflowName,
+        patchFilePath,
+        patchPathPrefixToStrip,
+        patchFileDescription);
   }
 
   @SuppressWarnings("unused")
@@ -2777,6 +2798,7 @@ public class CoreModule implements LabelsAwareModule, StarlarkValue {
             ConsistencyFileConfiguration.create(
                 /* path= */ "do-not-edit.bara.consistency",
                 /* excludeBuildFiles= */ false,
+                /* workflow= */ null,
                 /* patchFilePath= */ null,
                 /* patchPathPrefixToStrip= */ null,
                 /* patchFileDescription= */ null);
@@ -2800,6 +2822,7 @@ public class CoreModule implements LabelsAwareModule, StarlarkValue {
           ConsistencyFileConfiguration.create(
               consistencyFilePath,
               /* excludeBuildFiles= */ false,
+              /* workflow= */ null,
               /* patchFilePath= */ null,
               /* patchPathPrefixToStrip= */ null,
               /* patchFileDescription= */ null);

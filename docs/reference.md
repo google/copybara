@@ -1058,7 +1058,7 @@ Parameter | Description
 
 Describes the configuration for consistency file options
 
-<code><a href="#coreconsistency_file_config">core.consistency_file_config</a></code> <code>core.consistency_file_config(<a href=#core.consistency_file_config.path>path</a>="do-not-edit.bara.consistency", <a href=#core.consistency_file_config.exclude_build_files>exclude_build_files</a>=False, <a href=#core.consistency_file_config.patch_file_path>patch_file_path</a>=None, <a href=#core.consistency_file_config.patch_path_prefix_to_strip>patch_path_prefix_to_strip</a>=None, <a href=#core.consistency_file_config.patch_file_description>patch_file_description</a>=None)</code>
+<code><a href="#coreconsistency_file_config">core.consistency_file_config</a></code> <code>core.consistency_file_config(<a href=#core.consistency_file_config.path>path</a>="do-not-edit.bara.consistency", <a href=#core.consistency_file_config.exclude_build_files>exclude_build_files</a>=False, <a href=#core.consistency_file_config.patch_file_path>patch_file_path</a>=None, <a href=#core.consistency_file_config.patch_path_prefix_to_strip>patch_path_prefix_to_strip</a>=None, <a href=#core.consistency_file_config.patch_file_description>patch_file_description</a>=None, <a href=#core.consistency_file_config.workflow_name>workflow_name</a>=None)</code>
 
 
 <h4 id="parameters.core.consistency_file_config">Parameters:</h4>

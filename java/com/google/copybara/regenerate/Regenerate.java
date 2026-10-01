@@ -228,7 +228,7 @@ public class Regenerate<O extends Revision, D extends Revision> {
                 workflow.getGeneralOptions().getEnvironment(),
                 workflow.isVerbose(),
                 workflow.getMainConfigFile().getIdentifier(),
-                workflow.getName(),
+                workflow.getConsistencyFileConfig().workflowOrDefault(workflow.getName()),
                 excludeBuildFiles,
                 excludedFilesBuilder.build());
       } catch (InsideGitDirException e) {

@@ -815,7 +815,9 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                       checkoutDir,
                       getWorkflow().getDestination().getHashFunction(),
                       getWorkflow().getMainConfigFile().getIdentifier(),
-                      getWorkflow().getName(),
+                      getWorkflow()
+                          .getConsistencyFileConfig()
+                          .workflowOrDefault(getWorkflow().getName()),
                       excludeBuildFiles)
                   .toBytes();
           Files.createDirectories(
@@ -1042,7 +1044,9 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                           getWorkflow().getGeneralOptions().getEnvironment(),
                           getWorkflow().isVerbose(),
                           getWorkflow().getMainConfigFile().getIdentifier(),
-                          getWorkflow().getName(),
+                          getWorkflow()
+                              .getConsistencyFileConfig()
+                              .workflowOrDefault(getWorkflow().getName()),
                           excludeBuildFiles,
                           /* excludedFiles= */ null)
                       .toBytes());

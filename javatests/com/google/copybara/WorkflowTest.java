@@ -6065,5 +6065,156 @@ public class WorkflowTest {
         Iterables.getLast(destination.processed).getWorkdir().get("foo.bara.consistency");
     assertThat(consistencyFileContent).contains("# Workflow: dir/copy.bara.sky:default_service\n");
   }
+
+  @Test
+  public void workflow_consistencyFileConfig_reverseDefinitionOrder_usesAuthoritativeWorkflowName()
+      throws Exception {
+    var shared =
+        ImmutableList.of(
+            "consistency_file = core.consistency_file_config("
+                + "path = 'shared.bara.consistency', workflow_name = 'default')");
+    String configContent =
+        getConfigString("default_service", SQUASH, shared)
+            + "\n"
+            + getConfigString("default", SQUASH, shared);
+    Config config = loadConfig(configContent);
+    Workflow<?, ?> serviceWorkflow = (Workflow<?, ?>) config.getMigration("default_service");
+    origin.addSimpleChange(/* timestamp= */ 1);
+
+    serviceWorkflow.run(workdir, ImmutableList.of("HEAD"));
+
+    ProcessedChange change = Iterables.getOnlyElement(destination.processed);
+    String consistencyFile = change.getContent("shared.bara.consistency");
+    assertThat(consistencyFile).contains("# Workflow: copy.bara.sky:default\n");
+  }
+
+  @Test
+  public void workflow_consistencyFileConfig_sharedPathWithoutWorkflowName_defaultsToOwnWorkflow()
+      throws Exception {
+    var shared =
+        ImmutableList.of(
+            "consistency_file = core.consistency_file_config(path = 'shared.bara.consistency')");
+    String configContent =
+        getConfigString("default", SQUASH, shared)
+            + "\n"
+            + getConfigString("default_service", SQUASH, shared);
+
+    Config config = loadConfig(configContent);
+
+    Workflow<?, ?> defaultWorkflow = (Workflow<?, ?>) config.getMigration("default");
+    Workflow<?, ?> serviceWorkflow = (Workflow<?, ?>) config.getMigration("default_service");
+    assertThat(defaultWorkflow.getConsistencyFileConfig().workflow()).isNull();
+    assertThat(serviceWorkflow.getConsistencyFileConfig().workflow()).isNull();
+    assertThat(
+            defaultWorkflow.getConsistencyFileConfig().workflowOrDefault(defaultWorkflow.getName()))
+        .isEqualTo("default");
+    assertThat(
+            serviceWorkflow.getConsistencyFileConfig().workflowOrDefault(serviceWorkflow.getName()))
+        .isEqualTo("default_service");
+    origin.addSimpleChange(/* timestamp= */ 1);
+
+    serviceWorkflow.run(workdir, ImmutableList.of("HEAD"));
+
+    ProcessedChange change = Iterables.getOnlyElement(destination.processed);
+    assertThat(change.getContent("shared.bara.consistency"))
+        .contains("# Workflow: copy.bara.sky:default_service\n");
+  }
+
+  @Test
+  public void workflow_consistencyFileConfig_nonexistentWorkflowNameThrows() {
+    var configFields =
+        ImmutableList.of(
+            "consistency_file = core.consistency_file_config("
+                + "path = 'shared.bara.consistency', workflow_name = 'nonexistent')");
+    String configContent = getConfigString("default", SQUASH, configFields);
+
+    ValidationException ve =
+        assertThrows(ValidationException.class, () -> loadConfig(configContent));
+
+    assertThat(ve)
+        .hasMessageThat()
+        .contains(
+            "consistency_file workflow_name 'nonexistent' in workflow 'default' must refer to a"
+                + " workflow defined in the same config that uses consistency file"
+                + " 'shared.bara.consistency'");
+  }
+
+  @Test
+  public void workflow_consistencyFileConfig_workflowNameWithDifferentConsistencyPathThrows() {
+    var defaultFields =
+        ImmutableList.of(
+            "consistency_file = core.consistency_file_config("
+                + "path = 'shared.bara.consistency', workflow_name = 'other')");
+    var otherFields =
+        ImmutableList.of(
+            "consistency_file = core.consistency_file_config(path = 'other.bara.consistency')");
+    String configContent =
+        getConfigString("default", SQUASH, defaultFields)
+            + "\n"
+            + getConfigString("other", SQUASH, otherFields);
+
+    ValidationException ve =
+        assertThrows(ValidationException.class, () -> loadConfig(configContent));
+
+    assertThat(ve)
+        .hasMessageThat()
+        .contains(
+            "consistency_file workflow_name 'other' in workflow 'default' must refer to a workflow"
+                + " defined in the same config that uses consistency file"
+                + " 'shared.bara.consistency'");
+  }
+
+  @Test
+  public void workflow_consistencyFileConfig_sharedPathWithDifferentWorkflowNamesThrows() {
+    var defaultConfig =
+        ImmutableList.of(
+            "consistency_file = core.consistency_file_config("
+                + "path = 'shared.bara.consistency', workflow_name = 'default')");
+    var serviceConfig =
+        ImmutableList.of(
+            "consistency_file = core.consistency_file_config("
+                + "path = 'shared.bara.consistency', workflow_name = 'default_service')");
+    String configContent =
+        getConfigString("default", SQUASH, defaultConfig)
+            + "\n"
+            + getConfigString("default_service", SQUASH, serviceConfig);
+
+    ValidationException ve =
+        assertThrows(ValidationException.class, () -> loadConfig(configContent));
+
+    assertThat(ve)
+        .hasMessageThat()
+        .contains(
+            "Using different workflows with a single consistency file requires using a single,"
+                + " authoritative workflow name (using the 'workflow_name' argument in the"
+                + " 'consistency_file' parameter). The two conflicting workflows are"
+                + " 'default' and 'default_service'.");
+  }
+
+  @Test
+  public void workflow_consistencyFileConfig_sharedPathWithOnlyOneWorkflowNameThrows() {
+    var withWorkflowName =
+        ImmutableList.of(
+            "consistency_file = core.consistency_file_config("
+                + "path = 'shared.bara.consistency', workflow_name = 'default')");
+    var withoutWorkflowName =
+        ImmutableList.of(
+            "consistency_file = core.consistency_file_config(path = 'shared.bara.consistency')");
+    String configContent =
+        getConfigString("default", SQUASH, withWorkflowName)
+            + "\n"
+            + getConfigString("default_service", SQUASH, withoutWorkflowName);
+
+    ValidationException ve =
+        assertThrows(ValidationException.class, () -> loadConfig(configContent));
+
+    assertThat(ve)
+        .hasMessageThat()
+        .contains(
+            "Using different workflows with a single consistency file requires using a single,"
+                + " authoritative workflow name (using the 'workflow_name' argument in the"
+                + " 'consistency_file' parameter). The two conflicting workflows are"
+                + " 'default' and 'default_service'.");
+  }
 }
 
