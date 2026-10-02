@@ -32,8 +32,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -215,5 +215,22 @@ public class ProfilerTest {
   public void testTaskType() {
     assertThat(profiler.taskType("profiler_test"))
         .isEqualTo(ImmutableMap.of("type", "profiler_test"));
+  }
+
+  @Test
+  public void testSanitizeAndTruncateDescription() {
+    String longDesc = "a".repeat(80);
+    String expectedTruncated = "a".repeat(64);
+    try (ProfilerTask ignore = profiler.start(longDesc)) {
+      profiler.simpleTask("line1\nline2\r\nline3\rline4\t\u0000\u2603!", 10, 20);
+    }
+    profiler.stop();
+
+    assertThat(recordingCallback.events)
+        .containsAtLeast(
+            new TaskWithType(EventType.START, new Task("//copybara/" + expectedTruncated, 1, -1)),
+            new TaskWithType(
+                EventType.END,
+                new Task("//copybara/" + expectedTruncated + "/line1 line2 line3 line4!", 10, 20)));
   }
 }

@@ -17,6 +17,7 @@
 package com.google.copybara.profiler;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableList;
@@ -35,6 +36,22 @@ public final class Profiler {
   @VisibleForTesting
   public static final String ROOT_NAME = "//copybara";
   public static final String TYPE = "type";
+  public static final int MAX_DESCRIPTION_LENGTH = 64;
+
+  private static final CharMatcher LINE_BREAKS = CharMatcher.anyOf("\r\n");
+  private static final CharMatcher PRINTABLE_ASCII = CharMatcher.inRange(' ', '~');
+
+  /**
+   * Sanitizes a profiler task description by replacing line breaks with spaces, removing other
+   * control and non-printable ASCII characters, and truncating to {@link #MAX_DESCRIPTION_LENGTH}.
+   */
+  public static String sanitizeDescription(String description) {
+    String sanitized =
+        PRINTABLE_ASCII.retainFrom(LINE_BREAKS.replaceFrom(description.replace("\r\n", " "), ' '));
+    return sanitized.length() > MAX_DESCRIPTION_LENGTH
+        ? sanitized.substring(0, MAX_DESCRIPTION_LENGTH)
+        : sanitized;
+  }
 
   private final ProfilerTask nullProfilerTask;
 
@@ -160,7 +177,11 @@ public final class Profiler {
     Deque<Task> tasks = taskQueue.get();
     Preconditions.checkState(!tasks.isEmpty());
     Task parent = tasks.element();
-    Task child = new Task(parent.getDescription() + "/" + description, fields, ticker.read());
+    Task child =
+        new Task(
+            parent.getDescription() + "/" + sanitizeDescription(description),
+            fields,
+            ticker.read());
     tasks.push(child);
     for (Listener listener : listeners) {
       listener.taskStarted(child);
@@ -178,7 +199,8 @@ public final class Profiler {
     Deque<Task> tasks = taskQueue.get();
     Preconditions.checkState(!tasks.isEmpty());
     Task parent = tasks.element();
-    Task child  = new Task(parent.getDescription() + "/" + description, startNanos);
+    Task child =
+        new Task(parent.getDescription() + "/" + sanitizeDescription(description), startNanos);
     Task finishedChild = child.finish(endNanos);
     for (Listener listener : listeners) {
       listener.taskStarted(child);
