@@ -184,7 +184,9 @@ public class Sequence implements Transformation {
 
   @Override
   public String describe() {
-    return "sequence";
+    return name.isPresent()
+        ? String.format("Sequence %s", name.get())
+        : String.format("Sequence of %d transforms", sequence.size());
   }
 
   /**
