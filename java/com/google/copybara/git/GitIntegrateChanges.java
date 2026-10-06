@@ -154,8 +154,12 @@ public class GitIntegrateChanges implements StarlarkValue {
             .console()
             .progressFmt(
                 "Integrating change from '%s' using strategy %s", label.getValue(), strategy);
-        IntegrateLabel integrateLabel =
+        GitHubPrIntegrateLabel gitHubPrIntegrateLabel =
             GitHubPrIntegrateLabel.parse(label.getValue(), repository, generalOptions);
+        IntegrateLabel integrateLabel =
+            gitHubPrIntegrateLabel != null && gitHubPrIntegrateLabel.matchesDestinationUrl(repoUrl)
+                ? gitHubPrIntegrateLabel
+                : null;
         if (integrateLabel == null) {
           integrateLabel = GerritIntegrateLabel.parse(label.getValue(), repository, generalOptions);
           if (integrateLabel == null) {

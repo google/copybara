@@ -42,6 +42,7 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitIntegrateChanges.Strategy;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.GitRevision.GitHashAlgorithm;
+import com.google.copybara.git.github.util.GitHubIdentifier;
 import com.google.copybara.git.testing.GitTesting;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyRevision;
@@ -563,20 +564,28 @@ public class GitDestinationIntegrateTest {
   }
 
   @Test
-  public void testGitHubSemiFakeMerge() throws ValidationException, IOException, RepoException {
+  public void testGitHubSemiFakeMerge(
+      @TestParameter({"github.com", "some.github.enterprise.instance"}) String host)
+      throws ValidationException, IOException, RepoException {
     Path workTree = Files.createTempDirectory("test");
+    GitRepository repo =
+        gitUtil
+            .mockRemoteRepo(String.format("%s/example/test_repo", host), repoFormat)
+            .withWorkTree(workTree);
+    repoGitDir = repo.getGitDir();
+    url = String.format("https://%s/example/test_repo", host);
+
     // Create a common baseline between the two repos
     GitDestination destination = destinationWithDefaultIntegrates();
     migrateOriginChange(destination, "Base change\n", "not important 2");
 
-    GitRepository repo =
-        gitUtil.mockRemoteRepo("github.com/example/test_repo", repoFormat).withWorkTree(workTree);
-    repo.simpleCommand("pull", "file://" + repoGitDir);
+    repo.forceCheckout(primaryBranch);
 
     GitRevision firstChange = singleChange(workTree, repo, "ignore_me", "Feature1 change");
     GitRevision secondChange = singleChange(workTree, repo, "ignore_me2", "Feature2 change");
 
     repo.simpleCommand("update-ref", "refs/pull/20/head", secondChange.getHash());
+    repo.simpleCommand("reset", "--hard", "HEAD~2");
 
     GitLogEntry previous = createBaseDestinationChange(destination);
 
@@ -584,7 +593,7 @@ public class GitDestinationIntegrateTest {
         new GitHubPrIntegrateLabel(
             repo,
             options.general,
-            "example/test_repo",
+            GitHubIdentifier.create(String.format("https://%s/example/test_repo", host)),
             20,
             "some_user:1234-foo.bar.baz%3",
             secondChange.getHash());
@@ -599,9 +608,9 @@ public class GitDestinationIntegrateTest {
 
     assertThat(label)
         .isEqualTo(
-            "https://github.com/example/test_repo/pull/20"
-                + " from some_user:1234-foo.bar.baz%3 "
-                + secondChange.getHash());
+            String.format(
+                "https://%s/example/test_repo/pull/20 from some_user:1234-foo.bar.baz%%3 %s",
+                host, secondChange.getHash()));
 
     migrateOriginChange(
         destination,
@@ -644,16 +653,16 @@ public class GitDestinationIntegrateTest {
         new GitHubPrIntegrateLabel(
                 repo,
                 options.general,
-                "example/test_repo",
+                GitHubIdentifier.create(String.format("https://%s/example/test_repo", host)),
                 20,
                 "some_user:branch",
                 firstChange.getHash())
             .toString();
     assertThat(label)
         .isEqualTo(
-            "https://github.com/example/test_repo/pull/20"
-                + " from some_user:branch "
-                + firstChange.getHash());
+            String.format(
+                "https://%s/example/test_repo/pull/20 from some_user:branch %s",
+                host, firstChange.getHash()));
 
     repo().withWorkTree(workTree).simpleCommand("reset", "--hard", "HEAD~1");
     migrateOriginChange(
@@ -939,10 +948,12 @@ public class GitDestinationIntegrateTest {
   @Test
   public void integrate_fetchingError_throwsWhenTemporaryFeatureEnabled() throws Exception {
     Path repoPath = Files.createTempDirectory("test");
-    GitRepository repo = repo().withWorkTree(repoPath);
     options.general.setTemporaryFeaturesForTest(
         ImmutableMap.of("GIT_INTEGRATE_FAIL_IF_COMMON_BASELINE_NOT_FOUND", "true"));
-    gitUtil.mockRemoteRepo("github.com/example/test_repo", repoFormat).withWorkTree(repoPath);
+    GitRepository repo =
+        gitUtil.mockRemoteRepo("github.com/example/test_repo", repoFormat).withWorkTree(repoPath);
+    repoGitDir = repo.getGitDir();
+    url = "https://github.com/example/test_repo";
 
     GitRevision unused =
         singleChange(repoPath, repo, "base_change.txt", "not important", "Base change\n");
@@ -971,10 +982,12 @@ public class GitDestinationIntegrateTest {
   @Test
   public void integrate_fetchingError_doesNotThrowWhenTemporaryFeatureDisabled() throws Exception {
     Path repoPath = Files.createTempDirectory("test");
-    GitRepository repo = repo().withWorkTree(repoPath);
     options.general.setTemporaryFeaturesForTest(
         ImmutableMap.of("GIT_INTEGRATE_FAIL_IF_COMMON_BASELINE_NOT_FOUND", "false"));
-    gitUtil.mockRemoteRepo("github.com/example/test_repo", repoFormat).withWorkTree(repoPath);
+    GitRepository repo =
+        gitUtil.mockRemoteRepo("github.com/example/test_repo", repoFormat).withWorkTree(repoPath);
+    repoGitDir = repo.getGitDir();
+    url = "https://github.com/example/test_repo";
 
     GitRevision unused =
         singleChange(repoPath, repo, "base_change.txt", "not important", "Base change\n");

@@ -19,33 +19,40 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.GeneralOptions;
-import com.google.copybara.util.console.Console;
+import com.google.copybara.util.console.Message.MessageType;
+import com.google.copybara.util.console.testing.TestingConsole;
+import com.google.testing.junit.testparameterinjector.TestParameter;
+import com.google.testing.junit.testparameterinjector.TestParameterInjector;
 import java.nio.file.FileSystems;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
-@RunWith(JUnit4.class)
+@RunWith(TestParameterInjector.class)
 public class GitHubPrIntegrateLabelTest {
 
   @Rule public final MockitoRule mockito = MockitoJUnit.rule();
 
   @Mock GitRepository repo;
-  @Mock Console console;
+  private final TestingConsole console = new TestingConsole();
 
   @Test
   public void parseLabel_sha1() {
     GeneralOptions options =
         new GeneralOptions(ImmutableMap.of(), FileSystems.getDefault(), console);
 
-    assertThat(GitHubPrIntegrateLabel.parse(
-        "https://github.com/foo/bar/pull/18"
-            + " from copybarrista:main dbb8386719596088dbf7513fad87559b2ff796cc   ", repo, options))
-        .isNotNull();
+    GitHubPrIntegrateLabel label =
+        GitHubPrIntegrateLabel.parse(
+            "https://github.com/foo/bar/pull/18"
+                + " from copybarrista:main dbb8386719596088dbf7513fad87559b2ff796cc   ",
+            repo,
+            options);
+
+    assertThat(label).isNotNull();
+    assertThat(label.matchesDestinationUrl("https://github.com/foo/bar")).isTrue();
   }
 
   @Test
@@ -53,13 +60,113 @@ public class GitHubPrIntegrateLabelTest {
     GeneralOptions options =
         new GeneralOptions(ImmutableMap.of(), FileSystems.getDefault(), console);
 
+    GitHubPrIntegrateLabel label =
+        GitHubPrIntegrateLabel.parse(
+            "https://github.com/foo/bar.cpp/pull/18"
+                + " from copybarrista:main dbb8386719596088dbf7513fad87559b2ff796cc   ",
+            repo,
+            options);
+
+    assertThat(label).isNotNull();
+    assertThat(label.matchesDestinationUrl("https://github.com/foo/bar.cpp")).isTrue();
+  }
+
+  @Test
+  public void parseLabel_customHost() {
+    GeneralOptions options =
+        new GeneralOptions(ImmutableMap.of(), FileSystems.getDefault(), console);
+
+    GitHubPrIntegrateLabel label =
+        GitHubPrIntegrateLabel.parse(
+            "https://some.github.enterprise.instance/foo/bar/pull/18"
+                + " from copybarrista:main dbb8386719596088dbf7513fad87559b2ff796cc   ",
+            repo,
+            options);
+
+    assertThat(label).isNotNull();
+    assertThat(label.matchesDestinationUrl("https://some.github.enterprise.instance/foo/bar"))
+        .isTrue();
+    assertThat(label.getProjectId()).isEqualTo("foo/bar");
+    assertThat(label.toString())
+        .isEqualTo(
+            "https://some.github.enterprise.instance/foo/bar/pull/18"
+                + " from copybarrista:main dbb8386719596088dbf7513fad87559b2ff796cc");
+  }
+
+  @Test
+  public void parseLabel_invalidUrl_returnsNull(
+      @TestParameter({
+            "https://github.com/foo.cpp/bar",
+            "https://github.com/foo",
+            "https://github.com/foo/bar/baz"
+          })
+          String invalidRepoUrl) {
+    GeneralOptions options =
+        new GeneralOptions(ImmutableMap.of(), FileSystems.getDefault(), console);
+
     assertThat(
             GitHubPrIntegrateLabel.parse(
-                "https://github.com/foo.cpp/bar/pull/18"
-                    + " from copybarrista:main dbb8386719596088dbf7513fad87559b2ff796cc   ",
+                invalidRepoUrl
+                    + "/pull/18 from copybarrista:main"
+                    + " dbb8386719596088dbf7513fad87559b2ff796cc",
                 repo,
                 options))
-        .isNotNull();
+        .isNull();
+    console
+        .assertThat()
+        .onceInLog(MessageType.WARNING, "Invalid GitHub URL in integrate label '.*': .*");
+  }
+
+  @Test
+  public void matchesDestinationUrl_mismatchedDestinationUrl_returnsFalse(
+      @TestParameter({
+            "https://some.github.enterprise.instance/foo/bar",
+            "https://github.com/other/bar",
+            "https://github.com/foo/other"
+          })
+          String destinationUrl) {
+    GeneralOptions options =
+        new GeneralOptions(ImmutableMap.of(), FileSystems.getDefault(), console);
+
+    GitHubPrIntegrateLabel label =
+        GitHubPrIntegrateLabel.parse(
+            "https://github.com/foo/bar/pull/18"
+                + " from copybarrista:main dbb8386719596088dbf7513fad87559b2ff796cc",
+            repo,
+            options);
+
+    assertThat(label).isNotNull();
+    assertThat(label.matchesDestinationUrl(destinationUrl)).isFalse();
+    console
+        .assertThat()
+        .onceInLog(
+            MessageType.WARNING,
+            "GitHub PR integrate label URL 'https://github.com/foo/bar' does not match destination"
+                + " URL '"
+                + destinationUrl
+                + "'");
+  }
+
+  @Test
+  public void matchesDestinationUrl_invalidDestinationUrl_returnsFalse() {
+    GeneralOptions options =
+        new GeneralOptions(ImmutableMap.of(), FileSystems.getDefault(), console);
+
+    GitHubPrIntegrateLabel label =
+        GitHubPrIntegrateLabel.parse(
+            "https://github.com/foo/bar/pull/18"
+                + " from copybarrista:main dbb8386719596088dbf7513fad87559b2ff796cc",
+            repo,
+            options);
+
+    assertThat(label).isNotNull();
+    assertThat(label.matchesDestinationUrl("file:///tmp/foo/bar")).isFalse();
+    console
+        .assertThat()
+        .onceInLog(
+            MessageType.WARNING,
+            "Destination URL 'file:///tmp/foo/bar' is not a valid GitHub URL for integrate label"
+                + " '.*': .*");
   }
 
   @Test

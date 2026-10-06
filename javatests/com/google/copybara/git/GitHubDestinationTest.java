@@ -105,7 +105,7 @@ public class GitHubDestinationTest {
     destinationFiles = Glob.createGlob(ImmutableList.of("**"));
     gitUtil = new GitTestUtil(options);
     gitUtil.mockRemoteGitRepos(new CompleteRefValidator());
-    remote = gitUtil.mockRemoteRepo("github.com/foo");
+    remote = gitUtil.mockRemoteRepo("github.com/foo/bar");
     primaryBranch = remote.getPrimaryBranch();
     Path credentialsFile = Files.createTempFile("credentials", "test");
     Files.write(credentialsFile, "https://user:SECRET@github.com".getBytes(UTF_8));
@@ -114,7 +114,7 @@ public class GitHubDestinationTest {
     options.gitDestination = new GitDestinationOptions(options.general, options.git);
     options.gitDestination.committerEmail = "commiter@email";
     options.gitDestination.committerName = "Bara Kopi";
-    url = "https://github.com/foo";
+    url = "https://github.com/foo/bar";
     force = false;
     fetch = primaryBranch;
     push = primaryBranch;
@@ -293,12 +293,12 @@ public class GitHubDestinationTest {
       throws Exception {
     if (expectDeletePrBranch) {
       when(gitUtil.httpTransport().buildRequest(eq("DELETE"),
-          contains("repos/foo/git/refs/heads/other"))).thenReturn(
+          contains("repos/foo/bar/git/refs/heads/other"))).thenReturn(
           mockResponseWithStatus("", 204));
     }
     gitUtil.mockApi(
         "GET",
-        "https://api.github.com/repos/foo/git/refs/heads/other",
+        "https://api.github.com/repos/foo/bar/git/refs/heads/other",
         mockResponse(
             "{\n"
                 + "\"ref\" : \"refs/heads/test_existing_pr\",\n"
@@ -366,7 +366,7 @@ public class GitHubDestinationTest {
   public void testPrToUpdateWithLabel() throws Exception {
     gitUtil.mockApi(
         "GET",
-        "https://api.github.com/repos/foo/git/refs/heads/other_12345",
+        "https://api.github.com/repos/foo/bar/git/refs/heads/other_12345",
         mockResponse(
             "{\n"
                 + "\"ref\" : \"refs/heads/test_existing_12345_pr\",\n"
@@ -382,7 +382,7 @@ public class GitHubDestinationTest {
                 + "}"));
     gitUtil.mockApi(
         "GET",
-        "https://api.github.com/repos/foo/git/refs/heads/other_6789",
+        "https://api.github.com/repos/foo/bar/git/refs/heads/other_6789",
         mockResponse(
             "{\n"
                 + "\"ref\" : \"refs/heads/test_existing_6789_pr\",\n"
@@ -460,7 +460,7 @@ public class GitHubDestinationTest {
 
     gitUtil.mockApi(
         "GET",
-        "https://api.github.com/repos/foo/pulls/1",
+        "https://api.github.com/repos/foo/bar/pulls/1",
         mockResponse(
             "{\"id\": 1,"
                 + "\"number\": 1,"
@@ -476,12 +476,12 @@ public class GitHubDestinationTest {
                 + "ref\": \"pull_request_123\","
                 + "\"repo\": "
                 + "{\"html_url\":"
-                + " \"https://github.com/foo\"}}}\","
+                + " \"https://github.com/foo/bar\"}}}\","
                 + "\"base\": {\"sha\":"
                 + " \"97d3db6a76b017a538812cc27274aa9c9fa55e26\"}}"));
 
     String integrateReviewValue =
-        String.format("https://github.com/foo/pull/1 from foo:pull_request_123 %s", prHeadSha1);
+        String.format("https://github.com/foo/bar/pull/1 from foo:pull_request_123 %s", prHeadSha1);
     String integrateReviewLabel =
         String.format("COPYBARA_INTEGRATE_REVIEW=%s", integrateReviewValue);
 
@@ -597,7 +597,7 @@ public class GitHubDestinationTest {
 
     gitUtil.mockApi(
         "GET",
-        "https://api.github.com/repos/foo/pulls/1",
+        "https://api.github.com/repos/foo/bar/pulls/1",
         mockResponse(
             "{\"id\": 1,"
                 + "\"number\": 1,"
@@ -613,12 +613,12 @@ public class GitHubDestinationTest {
                 + "ref\": \"pull_request_123\","
                 + "\"repo\": "
                 + "{\"html_url\":"
-                + " \"https://github.com/foo\"}}}\","
+                + " \"https://github.com/foo/bar\"}}}\","
                 + "\"base\": {\"sha\":"
                 + " \"97d3db6a76b017a538812cc27274aa9c9fa55e26\"}}"));
 
     String integrateReviewValue =
-        String.format("https://github.com/foo/pull/1 from foo:pull_request_123 %s", prHeadSha1);
+        String.format("https://github.com/foo/bar/pull/1 from foo:pull_request_123 %s", prHeadSha1);
     String integrateReviewLabel =
         String.format("COPYBARA_INTEGRATE_REVIEW=%s", integrateReviewValue);
 
@@ -734,7 +734,7 @@ public class GitHubDestinationTest {
 
     gitUtil.mockApi(
         "GET",
-        "https://api.github.com/repos/foo/pulls/1",
+        "https://api.github.com/repos/foo/bar/pulls/1",
         mockResponse(
             "{\"id\": 1,"
                 + "\"number\": 1,"
@@ -750,7 +750,7 @@ public class GitHubDestinationTest {
                 + "ref\": \"pull_request_123\","
                 + "\"repo\": "
                 + "{\"html_url\":"
-                + " \"https://github.com/foo\"}}}\","
+                + " \"https://github.com/foo/bar\"}}}\","
                 + "\"base\": {\"sha\":"
                 + " \"97d3db6a76b017a538812cc27274aa9c9fa55e26\"}}"));
 
@@ -813,10 +813,10 @@ public class GitHubDestinationTest {
   @Test
   public void testWithRefsNotFound() throws Exception {
     gitUtil.mockApi("GET",
-        "https://api.github.com/repos/foo/git/refs/heads/other_12345",
+        "https://api.github.com/repos/foo/bar/git/refs/heads/other_12345",
         GitTestUtil.mockGitHubNotFound());
     gitUtil.mockApi("GET",
-        "https://api.github.com/repos/foo/git/refs/heads/other_6789",
+        "https://api.github.com/repos/foo/bar/git/refs/heads/other_6789",
         GitTestUtil.mockGitHubNotFound());
     checkRefNotFound();
   }
@@ -824,10 +824,10 @@ public class GitHubDestinationTest {
   @Test
   public void testWithRefsNotFoundUnprocessable() throws Exception {
     gitUtil.mockApi("GET",
-        "https://api.github.com/repos/foo/git/refs/heads/other_12345",
+        "https://api.github.com/repos/foo/bar/git/refs/heads/other_12345",
         GitTestUtil.mockGitHubUnprocessable());
     gitUtil.mockApi("GET",
-        "https://api.github.com/repos/foo/git/refs/heads/other_6789",
+        "https://api.github.com/repos/foo/bar/git/refs/heads/other_6789",
         GitTestUtil.mockGitHubUnprocessable());
     checkRefNotFound();
   }
@@ -875,11 +875,11 @@ public class GitHubDestinationTest {
   public void testWithGitHubApiError() throws Exception {
     gitUtil.mockApi(
         "GET",
-        "https://api.github.com/repos/foo/git/refs/heads/other_12345",
+        "https://api.github.com/repos/foo/bar/git/refs/heads/other_12345",
         mockResponseWithStatus("", 403));
     gitUtil.mockApi(
         "GET",
-        "https://api.github.com/repos/foo/git/refs/other_6789",
+        "https://api.github.com/repos/foo/bar/git/refs/other_6789",
         mockResponseWithStatus("", 403));
     addFiles(
         remote,

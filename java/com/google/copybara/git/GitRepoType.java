@@ -25,6 +25,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.github.util.GitHubHost;
 import com.google.copybara.git.github.util.GitHubHost.GitHubPrUrl;
+import com.google.copybara.git.github.util.GitHubIdentifier;
 import com.google.copybara.git.github.util.GitHubUtil;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
@@ -128,7 +129,7 @@ public enum GitRepoType {
         GitRepository repository, String repoUrl, String ref, GeneralOptions generalOptions,
         boolean describeVersion, boolean partialFetch, Optional<Integer> fetchDepth)
         throws RepoException, ValidationException {
-      if ((ref.startsWith("https://github.com") && ref.startsWith(repoUrl))
+      if ((ref.startsWith("https://") && ref.startsWith(repoUrl))
           || GitHubUtil.maybeParseGithubPrFromMergeOrHeadRef(ref).isPresent()) {
         GitRevision ghPullRequest = maybeFetchGithubPullRequest(repository, repoUrl, ref,
             describeVersion, partialFetch);
@@ -188,14 +189,20 @@ public enum GitRepoType {
   protected static GitRevision maybeFetchGithubPullRequest(GitRepository repository,
       String repoUrl, String ref, boolean describeVersion, boolean partialFetch)
       throws RepoException, ValidationException {
-    GitHubHost gitHubHost = new GitHubHost("github.com");
+    String host = "github.com";
+    try {
+      host = GitHubIdentifier.create(repoUrl).getHostName();
+    } catch (IllegalArgumentException ignored) {
+      // Fallback to github.com when repoUrl is not a GitHub URL.
+    }
+    GitHubHost gitHubHost = new GitHubHost(host);
     Optional<GitHubPrUrl> githubPrUrl = gitHubHost.maybeParseGithubPrUrl(ref);
     if (githubPrUrl.isPresent()) {
       // TODO(malcon): Support merge ref too once we have github pr origin.
       String stableRef = GitHubUtil.asHeadRef(githubPrUrl.get().getPrNumber());
       GitRevision gitRevision =
           repository.fetchSingleRefWithTags(
-              "https://github.com/" + githubPrUrl.get().getProject(),
+              gitHubHost.projectAsUrl(githubPrUrl.get().getProject()),
               stableRef,
               /* fetchTags= */ describeVersion,
               partialFetch,

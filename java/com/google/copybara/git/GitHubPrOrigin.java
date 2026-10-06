@@ -433,7 +433,7 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
 
     String headPrSha = getRepository().resolveReference(LOCAL_PR_HEAD_REF).getHash();
     String integrateLabel = new GitHubPrIntegrateLabel(getRepository(), generalOptions,
-        project, prNumber,
+        gitHubIdentifier, prNumber,
         prData.getHead().getLabel(),
         // The integrate SHA has to be HEAD of the PR not the merge ref, even if use_merge = True
         headPrSha)
