@@ -21,7 +21,9 @@ all_tests(
     tags = ["local"],
     tests = glob(["**/*Test.java"]),
     deps = [
+        "//java/com/google/copybara/exception",
         "//java/com/google/copybara/jj:core",
+        "//java/com/google/copybara/testing",
         "//java/com/google/copybara/util",
         "//third_party:guava",
         "//third_party:shell",

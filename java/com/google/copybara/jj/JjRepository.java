@@ -18,13 +18,18 @@ package com.google.copybara.jj;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.ImmutableList.toImmutableList;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.CommandRunner;
+import com.google.copybara.util.FileUtil;
+import com.google.copybara.util.FileUtil.CopySymlinkStrategy;
+import com.google.copybara.util.Glob;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
@@ -34,6 +39,8 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Stream;
+import javax.annotation.Nullable;
 
 /** A Jujutsu ({@code jj}) repository CLI wrapper. */
 public class JjRepository {
@@ -45,6 +52,14 @@ public class JjRepository {
       checkArgument(!id.isBlank(), "Commit ID cannot be blank");
     }
   }
+
+  /** Repository metadata directories that are never copied into or cleared from a working tree. */
+  private static final ImmutableSet<String> METADATA_DIRS = ImmutableSet.of(".jj", ".git");
+
+  private static final Glob NON_METADATA_GLOB =
+      Glob.createGlob(
+          ImmutableList.of("**"),
+          METADATA_DIRS.stream().map(dir -> dir + "/**").collect(toImmutableList()));
 
   private final Path repoDir;
   private final String jjBin;
@@ -89,6 +104,54 @@ public class JjRepository {
     executeJj(repoDir, ImmutableList.of("git", "init", "--colocate"));
   }
 
+  /**
+   * Snapshots the file tree in {@code sourceDir} as a new commit on top of the current working-copy
+   * parent ({@code @-}).
+   */
+  @CanIgnoreReturnValue
+  public CommitId commitTree(Path sourceDir, String message) throws RepoException, IOException {
+    return commitTree(sourceDir, message, /* parent= */ null);
+  }
+
+  /**
+   * Snapshots the file tree in {@code sourceDir} as a new commit in the {@code jj} repository.
+   *
+   * @param sourceDir directory containing the files to snapshot
+   * @param message commit description message
+   * @param parent optional parent commit to branch from before snapshotting; if {@code null},
+   *     commits on top of the current working-copy parent
+   * @return the {@link CommitId} of the newly created commit
+   */
+  @CanIgnoreReturnValue
+  public CommitId commitTree(Path sourceDir, String message, @Nullable CommitId parent)
+      throws RepoException, IOException {
+    checkNotNull(sourceDir);
+    checkNotNull(message);
+    if (parent != null) {
+      executeJj(repoDir, ImmutableList.of("new", parent.id()));
+    }
+    clearAndCopyWorkingTree(sourceDir, repoDir);
+    executeJj(repoDir, ImmutableList.of("commit", "-m", message));
+    CommandOutputWithStatus output =
+        executeJj(
+            repoDir,
+            ImmutableList.of(
+                "log", "--no-pager", "--color=never", "--no-graph", "-r", "@-", "-T", "commit_id"));
+    return new CommitId(output.getStdout().trim());
+  }
+
+  /**
+   * Materializes the tree of {@code commitId} into {@code targetDir}, excluding {@code .jj} and
+   * {@code .git} metadata directories.
+   */
+  public void checkout(CommitId commitId, Path targetDir) throws RepoException, IOException {
+    checkNotNull(commitId);
+    checkNotNull(targetDir);
+    executeJj(repoDir, ImmutableList.of("new", commitId.id()));
+    Files.createDirectories(targetDir);
+    clearAndCopyWorkingTree(repoDir, targetDir);
+  }
+
   /** Runs a {@code jj} command in the repository directory. */
   @CanIgnoreReturnValue
   public CommandOutputWithStatus simpleCommand(String... argv) throws RepoException {
@@ -131,5 +194,29 @@ public class JjRepository {
     } catch (IOException e) {
       throw new RepoException("Cannot create JJ repository directory: " + e.getMessage(), e);
     }
+  }
+
+  /**
+   * Mirrors the working tree from {@code from} into {@code to} while preserving {@code .jj} and
+   * {@code .git} metadata directories.
+   *
+   * <p>Clears existing non-metadata files and directories in {@code to} before copying so that
+   * deleted files are pruned and directory-to-file replacements do not collide, without wiping
+   * repository metadata in {@code repoDir} or leaking it into {@code targetDir}.
+   */
+  private static void clearAndCopyWorkingTree(Path from, Path to) throws IOException {
+    checkArgument(
+        !from.toAbsolutePath().normalize().equals(to.toAbsolutePath().normalize()),
+        "Source and destination directories must be different: %s",
+        from);
+    try (Stream<Path> entries = Files.list(to)) {
+      for (Path entry : entries.toList()) {
+        if (!METADATA_DIRS.contains(entry.getFileName().toString())) {
+          FileUtil.deleteRecursively(entry);
+        }
+      }
+    }
+    FileUtil.copyFilesRecursively(
+        from, to, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS, NON_METADATA_GLOB);
   }
 }

@@ -17,10 +17,12 @@
 package com.google.copybara.jj;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.jj.JjRepository.CommitId;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
@@ -41,11 +43,15 @@ import org.junit.runner.RunWith;
 public final class JjRepositoryTest {
 
   private Path repoDir;
+  private Path sourceDir;
+  private Path targetDir;
   private JjRepository repo;
 
   @Before
   public void setUp() throws Exception {
     repoDir = Files.createTempDirectory("jj_repo");
+    sourceDir = Files.createTempDirectory("source");
+    targetDir = Files.createTempDirectory("target_root").resolve("target");
     repo =
         new JjRepository(
             repoDir,
@@ -112,7 +118,6 @@ public final class JjRepositoryTest {
     assertThat(Files.isDirectory(repoDir.resolve(".jj/repo"))).isTrue();
     assertThat(Files.isDirectory(repoDir.resolve(".git"))).isTrue();
   }
-
   @Test
   public void simpleCommand_setsAndReadsRepoConfig() throws Exception {
     repo.init();
@@ -125,5 +130,99 @@ public final class JjRepositoryTest {
             .trim();
 
     assertThat(value).isEqualTo("log");
+  }
+
+  @Test
+  public void commitTreeAndCheckout_nonExistentTargetDir_materializesFilesWithoutMetadata()
+      throws Exception {
+    repo.init();
+    writeFile(sourceDir, "a.txt", "v1\n");
+    writeFile(sourceDir, "sub/b.txt", "sub-v1\n");
+    CommitId commitId = repo.commitTree(sourceDir, "commit 1");
+
+    repo.checkout(commitId, targetDir);
+
+    assertThatPath(targetDir)
+        .containsFile("a.txt", "v1\n")
+        .containsFile("sub/b.txt", "sub-v1\n")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void commitTreeAndCheckout_gitColocatedRepo_preservesAndExcludesGitMetadata()
+      throws Exception {
+    repo.initGitColocated();
+    writeFile(sourceDir, "a.txt", "v1\n");
+    CommitId c1 = repo.commitTree(sourceDir, "commit 1");
+    writeFile(sourceDir, "a.txt", "v2\n");
+    CommitId c2 = repo.commitTree(sourceDir, "commit 2");
+
+    repo.checkout(c1, targetDir);
+    repo.checkout(c2, targetDir);
+
+    assertThatPath(targetDir).containsFile("a.txt", "v2\n").containsNoMoreFiles();
+    assertThat(Files.isDirectory(repoDir.resolve(".jj/repo"))).isTrue();
+    assertThat(Files.isDirectory(repoDir.resolve(".git"))).isTrue();
+  }
+
+  @Test
+  public void commitTreeAndCheckout_overExistingTree_prunesStaleFilesAndReplacesDirectories()
+      throws Exception {
+    repo.init();
+    writeFile(sourceDir, "a.txt", "v1\n");
+    writeFile(sourceDir, "sub/b.txt", "sub-v1\n");
+    CommitId c1 = repo.commitTree(sourceDir, "commit 1");
+
+    // Replace "sub" directory with a regular file "sub" and add "c.txt".
+    Files.delete(sourceDir.resolve("sub/b.txt"));
+    Files.delete(sourceDir.resolve("sub"));
+    writeFile(sourceDir, "a.txt", "v2\n");
+    writeFile(sourceDir, "sub", "sub-as-file\n");
+    writeFile(sourceDir, "c.txt", "extra\n");
+    CommitId c2 = repo.commitTree(sourceDir, "commit 2");
+    repo.checkout(c2, targetDir);
+
+    repo.checkout(c1, targetDir);
+
+    assertThatPath(targetDir)
+        .containsFile("a.txt", "v1\n")
+        .containsFile("sub/b.txt", "sub-v1\n")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void commitTree_withParent_branchesFromGivenParent() throws Exception {
+    repo.init();
+    writeFile(sourceDir, "a.txt", "v1\n");
+    CommitId c1 = repo.commitTree(sourceDir, "commit 1");
+    writeFile(sourceDir, "a.txt", "v2\n");
+    repo.commitTree(sourceDir, "commit 2");
+    writeFile(sourceDir, "a.txt", "v3\n");
+
+    CommitId c3 = repo.commitTree(sourceDir, "commit 3", /* parent= */ c1);
+
+    String c3Parent =
+        repo.simpleCommand("log", "--no-graph", "-r", c3.id() + "-", "-T", "commit_id")
+            .getStdout()
+            .trim();
+    assertThat(c3Parent).isEqualTo(c1.id());
+    repo.checkout(c3, targetDir);
+    assertThatPath(targetDir).containsFile("a.txt", "v3\n").containsNoMoreFiles();
+  }
+
+  @Test
+  public void checkout_unknownCommitId_throwsRepoException() throws Exception {
+    repo.init();
+
+    var thrown =
+        assertThrows(RepoException.class, () -> repo.checkout(new CommitId("deadbeef"), targetDir));
+
+    assertThat(thrown).hasMessageThat().contains("deadbeef");
+  }
+
+  private static void writeFile(Path dir, String relativePath, String content) throws IOException {
+    Path file = dir.resolve(relativePath);
+    Files.createDirectories(file.getParent());
+    Files.writeString(file, content);
   }
 }
