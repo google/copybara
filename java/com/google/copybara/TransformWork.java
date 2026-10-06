@@ -185,7 +185,7 @@ public final class TransformWork extends CheckoutFileSystem
    */
   @StarlarkMethod(name = "message", doc = "Message to be used in the change", structField = true)
   public String getMessage() {
-    return metadata.getMessage();
+    return metadata.message();
   }
 
   /** The workflow mode. */
@@ -196,7 +196,7 @@ public final class TransformWork extends CheckoutFileSystem
 
   @StarlarkMethod(name = "author", doc = "Author to be used in the change", structField = true)
   public Author getAuthor() {
-    return metadata.getAuthor();
+    return metadata.author();
   }
 
   @StarlarkMethod(
@@ -379,7 +379,8 @@ public final class TransformWork extends CheckoutFileSystem
             defaultValue = "False"),
       })
   public void removeLabel(String label, Boolean wholeMessage) throws ValidationException {
-    setMessage(parseMessage(wholeMessage).withRemovedLabelByName(label).toString());
+    String newMessage = parseMessage(wholeMessage).withRemovedLabelByName(label).toString();
+    setMessage(newMessage);
   }
 
   public void removeLabelWithValue(String label, String value, Boolean wholeMessage)
@@ -497,7 +498,7 @@ public final class TransformWork extends CheckoutFileSystem
         return StarlarkList.immutableCopyOf(result);
       }
     }
-    ImmutableSet<String> values = metadata.getHiddenLabels().get(label);
+    ImmutableSet<String> values = metadata.hiddenLabels().get(label);
     if (!values.isEmpty()) {
       if (!all) {
         return StarlarkList.immutableCopyOf(ImmutableList.of(Iterables.getLast(values)));
@@ -834,7 +835,7 @@ public final class TransformWork extends CheckoutFileSystem
     labels.put(COPYBARA_CURRENT_MESSAGE, ImmutableList.of(getMessage()));
     labels.put(COPYBARA_AUTHOR, ImmutableList.of(getAuthor().getName(), getAuthor().getEmail()));
     labels.put(COPYBARA_CURRENT_MESSAGE_TITLE,
-        ImmutableList.of(Change.extractFirstLine(metadata.getMessage())));
+        ImmutableList.of(Change.extractFirstLine(metadata.message())));
     return labels;
   }
 
