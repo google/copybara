@@ -1198,6 +1198,12 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             positional = false,
             doc = DESCRIBE_VERSION_FIELD_DOC),
         @Param(
+            name = "enable_lfs",
+            defaultValue = "False",
+            named = true,
+            positional = false,
+            doc = "If true, Large File Storage support is enabled for the origin."),
+        @Param(
             name = "credentials",
             allowedTypes = {
               @ParamType(type = UsernamePasswordIssuer.class),
@@ -1238,6 +1244,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object patch,
       Object branch,
       Object describeVersion,
+      Boolean enableLfs,
       @Nullable Object credentials,
       String gitHubHostName,
       StarlarkThread thread)
@@ -1300,7 +1307,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
           workflowName,
           false,
           githubPostSubmitApprovalsProvider(fixedUrl, ref, credHandler),
-          /* enableLfs= */ false,
+          enableLfs,
           credHandler,
           null);
     }
@@ -1337,6 +1344,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         convertDescribeVersion(describeVersion),
         gitHubHost,
         githubPreSubmitApprovalsProvider(fixedUrl, credHandler),
+        enableLfs,
         credHandler,
         /* gitRepositoryHook= */ null);
   }
