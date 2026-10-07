@@ -355,8 +355,8 @@ public final class TransformWork extends CheckoutFileSystem
         @Param(
             name = "whole_message",
             doc =
-                "By default Copybara only looks in the last paragraph for labels. This flag"
-                    + "make it replace labels in the whole message.",
+                "By default Copybara only looks in the last paragraph for labels to replace. If"
+                    + " True, replace labels in the entire message.",
             defaultValue = "False"),
       })
   public void replaceLabel(String labelName, String value, String separator, Boolean wholeMessage)
@@ -374,8 +374,8 @@ public final class TransformWork extends CheckoutFileSystem
         @Param(
             name = "whole_message",
             doc =
-                "By default Copybara only looks in the last paragraph for labels. This flag"
-                    + "make it replace labels in the whole message.",
+                "By default Copybara only looks in the last paragraph for labels to replace. If"
+                    + " True, replace labels in the entire message.",
             defaultValue = "False"),
       })
   public void removeLabel(String label, Boolean wholeMessage) throws ValidationException {

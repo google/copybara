@@ -8932,7 +8932,7 @@ Remove a label from the message if present
 Parameter | Description
 --------- | -----------
 <span id=ctx.remove_label.label href=#ctx.remove_label.label>label</span> | <code><a href="#string">string</a></code><br><p>The label to delete</p>
-<span id=ctx.remove_label.whole_message href=#ctx.remove_label.whole_message>whole_message</span> | <code><a href="#bool">bool</a></code><br><p>By default Copybara only looks in the last paragraph for labels. This flagmake it replace labels in the whole message.</p>
+<span id=ctx.remove_label.whole_message href=#ctx.remove_label.whole_message>whole_message</span> | <code><a href="#bool">bool</a></code><br><p>By default Copybara only looks in the last paragraph for labels to replace. If True, replace labels in the entire message.</p>
 
 <a id="ctx.replace_label" aria-hidden="true"></a>
 ### ctx.replace_label
@@ -8949,7 +8949,7 @@ Parameter | Description
 <span id=ctx.replace_label.label href=#ctx.replace_label.label>label</span> | <code><a href="#string">string</a></code><br><p>The label to replace</p>
 <span id=ctx.replace_label.value href=#ctx.replace_label.value>value</span> | <code><a href="#string">string</a></code><br><p>The new value for the label</p>
 <span id=ctx.replace_label.separator href=#ctx.replace_label.separator>separator</span> | <code><a href="#string">string</a></code><br><p>The separator to use for the label</p>
-<span id=ctx.replace_label.whole_message href=#ctx.replace_label.whole_message>whole_message</span> | <code><a href="#bool">bool</a></code><br><p>By default Copybara only looks in the last paragraph for labels. This flagmake it replace labels in the whole message.</p>
+<span id=ctx.replace_label.whole_message href=#ctx.replace_label.whole_message>whole_message</span> | <code><a href="#bool">bool</a></code><br><p>By default Copybara only looks in the last paragraph for labels to replace. If True, replace labels in the entire message.</p>
 
 <a id="ctx.run" aria-hidden="true"></a>
 ### ctx.run
