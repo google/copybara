@@ -607,6 +607,7 @@ public class GitDestination implements Destination<GitRevision> {
                 alternate,
                 repoUrl,
                 generalOptions,
+                gitOptions,
                 messageInfo,
                 path -> !pathMatcher.matches(scratchClone.getWorkTree().resolve(path)),
                 transformResult,

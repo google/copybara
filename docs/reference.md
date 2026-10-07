@@ -3218,6 +3218,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--experiment-checkout-affected-files`</span> | *boolean* | If set, copybara will only checkout affected files at git origin. Note that this is experimental.
 <span style="white-space: nowrap;">`--git-credential-helper-store-file`</span> | *string* | Credentials store file to be used. See https://git-scm.com/docs/git-credential-store
 <span style="white-space: nowrap;">`--git-http-follow-redirects`</span> | *string* | Whether git should follow HTTP redirects. For a list of valid options, please see https://git-scm.com/docs/git-config#Documentation/git-config.txt-httpfollowRedirects
+<span style="white-space: nowrap;">`--git-integrate-allow-arbitrary-ref`</span> | *boolean* | If set, allow git.integrate to fetch from arbitrary repositories instead of validating the URL prefix.
 <span style="white-space: nowrap;">`--git-ls-remote-limit`</span> | *integer* | Limit the number of ls-remote rows is visible to Copybara.
 <span style="white-space: nowrap;">`--git-no-verify`</span> | *boolean* | Pass the '--no-verify' option to git pushes and commits to disable git commit hooks.
 <span style="white-space: nowrap;">`--git-origin-fetch-depth`</span> | *integer* | Use a shallow clone of the specified depth for git.origin. If set, only the n most recent changes' tree states are imported with older changes omitted.
@@ -3765,7 +3766,7 @@ Name | Type | Description
 
 Integrate changes from a url present in the migrated change label.
 
-<code>git_integrate</code> <code>git.integrate(<a href=#git.integrate.label>label</a>="COPYBARA_INTEGRATE_REVIEW", <a href=#git.integrate.strategy>strategy</a>="FAKE_MERGE_AND_INCLUDE_FILES", <a href=#git.integrate.ignore_errors>ignore_errors</a>=True, <a href=#git.integrate.allow_unrelated_history>allow_unrelated_history</a>=False, <a href=#git.integrate.merge_commit_message>merge_commit_message</a>="${MERGE_MSG}")</code>
+<code>git_integrate</code> <code>git.integrate(<a href=#git.integrate.label>label</a>="COPYBARA_INTEGRATE_REVIEW", <a href=#git.integrate.strategy>strategy</a>="FAKE_MERGE_AND_INCLUDE_FILES", <a href=#git.integrate.ignore_errors>ignore_errors</a>=True, <a href=#git.integrate.allow_unrelated_history>allow_unrelated_history</a>=False, <a href=#git.integrate.merge_commit_message>merge_commit_message</a>="${MERGE_MSG}", <a href=#git.integrate.allow_protocol_ref>allow_protocol_ref</a>=False)</code>
 
 
 <h4 id="parameters.git.integrate">Parameters:</h4>
@@ -3777,6 +3778,7 @@ Parameter | Description
 <span id=git.integrate.ignore_errors href=#git.integrate.ignore_errors>ignore_errors</span> | <code><a href="#bool">bool</a></code><br><p>If we should ignore integrate errors and continue the migration without the integrate</p>
 <span id=git.integrate.allow_unrelated_history href=#git.integrate.allow_unrelated_history>allow_unrelated_history</span> | <code><a href="#bool">bool</a></code><br><p>If true allow integrates of unrelated histories.</p>
 <span id=git.integrate.merge_commit_message href=#git.integrate.merge_commit_message>merge_commit_message</span> | <code><a href="#string">string</a></code><br><p>The template for the merge commit message. Use ${MERGE_MSG} for default message and ${SUMMARY_FROM_TRANSFORM} for summary of the transform. All other labels from the TransformResult are available, but destination labels might not. It will use the first label value if multiple are defined. See metadata.replace_message for semantics</p>
+<span id=git.integrate.allow_protocol_ref href=#git.integrate.allow_protocol_ref>allow_protocol_ref</span> | <code><a href="#bool">bool</a></code><br><p>If true, allow protocol markers (://) in generic git integrate references. Enabling this might be required for non-GitHub repos when no remote is configured.</p>
 
 
 <h4 id="example.git.integrate">Examples:</h4>
@@ -9127,6 +9129,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--force, --force-update`</span> | *boolean* | Force the migration even if Copybara cannot find in the destination a change that is an ancestor of the one(s) being migrated. This should be used with care, as it could lose changes when migrating a previous/conflicting change.
 <span style="white-space: nowrap;">`--git-credential-helper-store-file`</span> | *string* | Credentials store file to be used. See https://git-scm.com/docs/git-credential-store
 <span style="white-space: nowrap;">`--git-http-follow-redirects`</span> | *string* | Whether git should follow HTTP redirects. For a list of valid options, please see https://git-scm.com/docs/git-config#Documentation/git-config.txt-httpfollowRedirects
+<span style="white-space: nowrap;">`--git-integrate-allow-arbitrary-ref`</span> | *boolean* | If set, allow git.integrate to fetch from arbitrary repositories instead of validating the URL prefix.
 <span style="white-space: nowrap;">`--git-ls-remote-limit`</span> | *integer* | Limit the number of ls-remote rows is visible to Copybara.
 <span style="white-space: nowrap;">`--git-no-verify`</span> | *boolean* | Pass the '--no-verify' option to git pushes and commits to disable git commit hooks.
 <span style="white-space: nowrap;">`--git-origin-fetch-depth`</span> | *integer* | Use a shallow clone of the specified depth for git.origin. If set, only the n most recent changes' tree states are imported with older changes omitted.

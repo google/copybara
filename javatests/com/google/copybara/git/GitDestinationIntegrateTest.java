@@ -155,6 +155,7 @@ public class GitDestinationIntegrateTest {
     GitDestination destination = destinationWithDefaultIntegrates();
     migrateOriginChange(destination, "Base change\n", "not important");
     GitLogEntry previous = getLastMigratedChange(primaryBranch);
+    repo.simpleCommand("push", "file://" + repoGitDir, "feature1");
 
     migrateOriginChange(
         destination,
@@ -162,9 +163,9 @@ public class GitDestinationIntegrateTest {
             """
             Test change
 
-            %s=file://%s feature1
+            %s=feature1
             """,
-            GitModule.DEFAULT_INTEGRATE_LABEL, repo.getWorkTree()),
+            GitModule.DEFAULT_INTEGRATE_LABEL),
         "some content");
 
     GitLogEntry commit = Iterables.getOnlyElement(
@@ -190,6 +191,7 @@ public class GitDestinationIntegrateTest {
     repo.branch("feature1").run();
     GitRevision feature2 = singleChange(repoPath, repo, "ignore_me2", "Feature2 change");
     repo.branch("feature2").run();
+    repo.simpleCommand("push", "file://" + repoGitDir, "feature1", "feature2");
 
     migrateOriginChange(destination, "Base change 2\n", "not important 2");
     GitLogEntry previous = getLastMigratedChange(primaryBranch);
@@ -200,10 +202,10 @@ public class GitDestinationIntegrateTest {
             """
             Test change
 
-            %1$s=file://%2$s feature1
-            %1$s=file://%2$s feature2
+            %1$s=feature1
+            %1$s=feature2
             """,
-            GitModule.DEFAULT_INTEGRATE_LABEL, repo.getWorkTree()),
+            GitModule.DEFAULT_INTEGRATE_LABEL),
         "some content");
 
     // Make sure commit adds new text
@@ -263,8 +265,11 @@ public class GitDestinationIntegrateTest {
     // Just so that the migration doesn't fail since the git repo is a non-bare repo.
     repo.forceCheckout("feature1");
 
-    GitDestination destination = destination("url = 'file://" + repo.getGitDir() + "'",
-        String.format("push='%s'", primaryBranch));
+    GitDestination destination =
+        destination(
+            "url = 'file://" + repo.getGitDir() + "'",
+            String.format("push='%s'", primaryBranch),
+            "integrates = [git.integrate(allow_protocol_ref = True)]");
 
     migrateOriginChange(
         destination,
@@ -294,6 +299,7 @@ public class GitDestinationIntegrateTest {
 
   @Test
   public void testFakeMerge() throws ValidationException, IOException, RepoException {
+    options.git.allowArbitraryIntegrateRef = true;
     Path repoPath = Files.createTempDirectory("test");
     GitDestination destination = destination(FAKE_MERGE);
     migrateOriginChange(destination, "Base change\n", "not important");
@@ -365,6 +371,7 @@ public class GitDestinationIntegrateTest {
         integrates = [git.integrate(
                  ignore_errors = False,
                  allow_unrelated_history = %s,
+                 allow_protocol_ref = True,
                  strategy = '%s',
             ),]\
         """
@@ -385,6 +392,7 @@ public class GitDestinationIntegrateTest {
 
   @Test
   public void testFakeMerge_unrelatedHistoryNotAllowed_skipsMerge() throws Exception {
+    options.git.allowArbitraryIntegrateRef = true;
     Path otherRepoPath = Files.createTempDirectory("otherRepo");
     GitDestination destination = destination(FAKE_MERGE, /* allowUnrelatedHistory= */ false);
     migrateOriginChange(destination, "Base change\n", "not important");
@@ -423,6 +431,7 @@ public class GitDestinationIntegrateTest {
 
   @Test
   public void testFakeMerge_unrelatedHistoryAllowed_createsMerge() throws Exception {
+    options.git.allowArbitraryIntegrateRef = true;
     Path otherRepoPath = Files.createTempDirectory("otherRepo");
     GitDestination destination = destination(FAKE_MERGE, /* allowUnrelatedHistory= */ true);
     migrateOriginChange(destination, "Base change\n", "not important");
@@ -468,6 +477,7 @@ public class GitDestinationIntegrateTest {
 
   @Test
   public void testIncludeFiles() throws ValidationException, IOException, RepoException {
+    options.git.allowArbitraryIntegrateRef = true;
     Path repoPath = Files.createTempDirectory("test");
     GitRepository repo =
         GitRepository.newRepo(/*verbose*/ true, repoPath, getGitEnv()).init(repoFormat);
@@ -809,6 +819,7 @@ public class GitDestinationIntegrateTest {
 
   @Test
   public void testIntegrateWithCustomMergeMessage() throws Exception {
+    options.git.allowArbitraryIntegrateRef = true;
     Path repoPath = Files.createTempDirectory("test");
 
     // Create a common baseline between the two repos
@@ -817,8 +828,9 @@ public class GitDestinationIntegrateTest {
             "url = '" + url + "'",
             String.format("push = '%s'", primaryBranch),
             String.format("fetch = '%s'", primaryBranch),
-            "integrates = [git.integrate(strategy = 'FAKE_MERGE',merge_commit_message = 'Custom:"
-                + " ${SUMMARY_FROM_TRANSFORM} | ${MERGE_MSG} | ${CONTEXT_REFERENCE}')]");
+            "integrates = [git.integrate(strategy = 'FAKE_MERGE', allow_protocol_ref = True,"
+                + " merge_commit_message = 'Custom: ${SUMMARY_FROM_TRANSFORM} | ${MERGE_MSG} |"
+                + " ${CONTEXT_REFERENCE}')]");
     migrateOriginChange(destination, "Base change\n", "not important");
 
     GitRepository repo =
@@ -933,16 +945,117 @@ public class GitDestinationIntegrateTest {
 
   private void runBadLabel(boolean ignoreErrors)
       throws ValidationException, IOException, RepoException {
-    GitDestination destination = destination(
-        "url = '" + url + "'",
-        String.format("fetch = '%s'", primaryBranch),
-        String.format("push = '%s'", primaryBranch),
-        "integrates = [git.integrate( "
-            + "        ignore_errors = " + (ignoreErrors ? "True" : "False")
-            + "    ),]");
+    options.git.allowArbitraryIntegrateRef = true;
+    GitDestination destination =
+        destination(
+            "url = '" + url + "'",
+            String.format("fetch = '%s'", primaryBranch),
+            String.format("push = '%s'", primaryBranch),
+            "integrates = [git.integrate(allow_protocol_ref = True, ignore_errors = "
+                + (ignoreErrors ? "True" : "False")
+                + "),]");
     migrateOriginChange(destination, "Test change\n"
         + "\n"
         + GitModule.DEFAULT_INTEGRATE_LABEL + "=file:///non_existent_repository\n", "some content");
+  }
+
+  @Test
+  public void testIntegrate_protocolRefNotAllowedByDefault() throws Exception {
+    GitDestination destination =
+        destination(
+            "url = '" + url + "'",
+            String.format("fetch = '%s'", primaryBranch),
+            String.format("push = '%s'", primaryBranch),
+            "integrates = [git.integrate(ignore_errors = False)]");
+    migrateOriginChange(destination, "Base change\n", "not important");
+
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                migrateOriginChange(
+                    destination,
+                    String.format(
+                        """
+                        Test change
+
+                        %s=%s %s
+                        """,
+                        GitModule.DEFAULT_INTEGRATE_LABEL, url, primaryBranch),
+                    "some content"));
+    assertThat(e.getMessage())
+        .contains(
+            "Protocol markers (://) are not allowed in integrate ref '"
+                + url
+                + " "
+                + primaryBranch
+                + "' unless 'allow_protocol_ref' is set.");
+  }
+
+  @Test
+  public void testIntegrate_protocolRefRejectedWithMismatchedUrlPrefix() throws Exception {
+    Path otherRepoPath = Files.createTempDirectory("otherRepo");
+    GitRepository otherRepo =
+        GitRepository.newRepo(/* verbose= */ true, otherRepoPath, getGitEnv()).init(repoFormat);
+    GitRevision unused = singleChange(otherRepoPath, otherRepo, "ignore_me", "Feature1 change");
+    otherRepo.branch("feature1").run();
+
+    GitDestination destination = destination(FAKE_MERGE);
+    migrateOriginChange(destination, "Base change\n", "not important");
+
+    String integrateRef = "file://" + otherRepo.getWorkTree() + " feature1";
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                migrateOriginChange(
+                    destination,
+                    String.format(
+                        """
+                        Test change
+
+                        %s=%s
+                        """,
+                        GitModule.DEFAULT_INTEGRATE_LABEL, integrateRef),
+                    "some content"));
+    assertThat(e.getMessage())
+        .contains(
+            "Integrate URL in '"
+                + integrateRef
+                + "' must match or have destination repository URL '"
+                + url
+                + "' as a prefix.");
+  }
+
+  @Test
+  public void testIntegrate_protocolRefAllowedWithMatchingUrlPrefix() throws Exception {
+    Path repoPath = Files.createTempDirectory("test");
+    GitDestination destination = destination(FAKE_MERGE);
+    migrateOriginChange(destination, "Base change\n", "not important");
+
+    GitRepository repo = repo().withWorkTree(repoPath);
+    repo.branch("feature1").run();
+    repo.forceCheckout("feature1");
+    GitRevision feature1 = singleChange(repoPath, repo, "ignore_me", "Feature1 change");
+    repo.forceCheckout(primaryBranch);
+
+    migrateOriginChange(destination, "Base change 2\n", "not important 2");
+    GitLogEntry previous = getLastMigratedChange(primaryBranch);
+
+    migrateOriginChange(
+        destination,
+        String.format(
+            """
+            Test change
+
+            %s=%s feature1
+            """,
+            GitModule.DEFAULT_INTEGRATE_LABEL, url),
+        "some content");
+
+    GitLogEntry feature1Merge = getLastMigratedChange(primaryBranch);
+    assertThat(Lists.transform(feature1Merge.parents(), GitRevision::getHash))
+        .isEqualTo(Lists.newArrayList(previous.commit().getHash(), feature1.getHash()));
   }
 
   @Test

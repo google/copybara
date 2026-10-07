@@ -481,7 +481,15 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + " labels from the TransformResult are available, but destination labels might"
                     + " not. It will use the first label value if multiple are defined. See"
                     + " metadata.replace_message for semantics",
-            defaultValue = "\"${MERGE_MSG}\"")
+            defaultValue = "\"${MERGE_MSG}\""),
+        @Param(
+            name = "allow_protocol_ref",
+            named = true,
+            doc =
+                "If true, allow protocol markers (://) in generic git integrate references."
+                    + " Enabling this might be required for non-GitHub repos when no remote is"
+                    + " configured.",
+            defaultValue = "False")
       })
   @Example(
       title = "Integrate changes from a review url",
@@ -523,14 +531,16 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       String strategy,
       Boolean ignoreErrors,
       Boolean allowUnrelatedHistory,
-      String mergeCommitMessage)
+      String mergeCommitMessage,
+      Boolean allowProtocolRef)
       throws EvalException {
     return new GitIntegrateChanges(
         label,
         stringToEnum("strategy", strategy, Strategy.class),
         ignoreErrors,
         allowUnrelatedHistory != null && allowUnrelatedHistory,
-        new LabelTemplate(mergeCommitMessage));
+        new LabelTemplate(mergeCommitMessage),
+        allowProtocolRef != null && allowProtocolRef);
   }
 
   @SuppressWarnings("unused")
