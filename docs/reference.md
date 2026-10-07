@@ -3218,7 +3218,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--experiment-checkout-affected-files`</span> | *boolean* | If set, copybara will only checkout affected files at git origin. Note that this is experimental.
 <span style="white-space: nowrap;">`--git-credential-helper-store-file`</span> | *string* | Credentials store file to be used. See https://git-scm.com/docs/git-credential-store
 <span style="white-space: nowrap;">`--git-http-follow-redirects`</span> | *string* | Whether git should follow HTTP redirects. For a list of valid options, please see https://git-scm.com/docs/git-config#Documentation/git-config.txt-httpfollowRedirects
-<span style="white-space: nowrap;">`--git-integrate-allow-arbitrary-ref`</span> | *boolean* | If set, allow git.integrate to fetch from arbitrary repositories instead of validating the URL prefix.
+<span style="white-space: nowrap;">`--git-integrate-allow-ref`</span> | *list* | List of repository URL prefixes that git.integrate is allowed to fetch from. If empty, only the destination repository URL is allowed.
 <span style="white-space: nowrap;">`--git-ls-remote-limit`</span> | *integer* | Limit the number of ls-remote rows is visible to Copybara.
 <span style="white-space: nowrap;">`--git-no-verify`</span> | *boolean* | Pass the '--no-verify' option to git pushes and commits to disable git commit hooks.
 <span style="white-space: nowrap;">`--git-origin-fetch-depth`</span> | *integer* | Use a shallow clone of the specified depth for git.origin. If set, only the n most recent changes' tree states are imported with older changes omitted.
@@ -9129,7 +9129,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--force, --force-update`</span> | *boolean* | Force the migration even if Copybara cannot find in the destination a change that is an ancestor of the one(s) being migrated. This should be used with care, as it could lose changes when migrating a previous/conflicting change.
 <span style="white-space: nowrap;">`--git-credential-helper-store-file`</span> | *string* | Credentials store file to be used. See https://git-scm.com/docs/git-credential-store
 <span style="white-space: nowrap;">`--git-http-follow-redirects`</span> | *string* | Whether git should follow HTTP redirects. For a list of valid options, please see https://git-scm.com/docs/git-config#Documentation/git-config.txt-httpfollowRedirects
-<span style="white-space: nowrap;">`--git-integrate-allow-arbitrary-ref`</span> | *boolean* | If set, allow git.integrate to fetch from arbitrary repositories instead of validating the URL prefix.
+<span style="white-space: nowrap;">`--git-integrate-allow-ref`</span> | *list* | List of repository URL prefixes that git.integrate is allowed to fetch from. If empty, only the destination repository URL is allowed.
 <span style="white-space: nowrap;">`--git-ls-remote-limit`</span> | *integer* | Limit the number of ls-remote rows is visible to Copybara.
 <span style="white-space: nowrap;">`--git-no-verify`</span> | *boolean* | Pass the '--no-verify' option to git pushes and commits to disable git commit hooks.
 <span style="white-space: nowrap;">`--git-origin-fetch-depth`</span> | *integer* | Use a shallow clone of the specified depth for git.origin. If set, only the n most recent changes' tree states are imported with older changes omitted.

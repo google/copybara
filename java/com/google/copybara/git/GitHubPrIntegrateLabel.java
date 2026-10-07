@@ -68,7 +68,8 @@ class GitHubPrIntegrateLabel implements IntegrateLabel {
 
   @Nullable
   static GitHubPrIntegrateLabel parse(
-      String str, GitRepository repository, GeneralOptions generalOptions) {
+      String str, GitRepository repository, GeneralOptions generalOptions)
+      throws ValidationException {
     Matcher matcher = LABEL_PATTERN.matcher(str.trim());
     if (!matcher.matches()) {
       return null;
@@ -83,10 +84,8 @@ class GitHubPrIntegrateLabel implements IntegrateLabel {
           matcher.group(3),
           matcher.group(4));
     } catch (IllegalArgumentException e) {
-      generalOptions
-          .console()
-          .warnFmt("Invalid GitHub URL in integrate label '%s': %s", str, e.getMessage());
-      return null;
+      throw new ValidationException(
+          String.format("Invalid GitHub URL in integrate label '%s': %s", str, e.getMessage()), e);
     }
   }
 
@@ -110,6 +109,28 @@ class GitHubPrIntegrateLabel implements IntegrateLabel {
               destinationUrl, this, e.getMessage());
       return false;
     }
+  }
+
+  static Optional<IntegrateLabel> maybeParse(
+      String str,
+      GitRepository repository,
+      String repoUrl,
+      GeneralOptions generalOptions,
+      GitOptions gitOptions)
+      throws ValidationException {
+    GitHubPrIntegrateLabel label = parse(str, repository, generalOptions);
+    if (label == null) {
+      return Optional.empty();
+    }
+    if (gitOptions.allowIntegrateRef.stream().anyMatch(label.gitHubIdentifier.getUrl()::startsWith)
+        || label.matchesDestinationUrl(repoUrl)) {
+      return Optional.of(label);
+    }
+    throw new ValidationException(
+        String.format(
+            "Integrate URL in '%s' does not match destination repository URL '%s' or any allowed"
+                + " prefix (%s).",
+            str.trim(), repoUrl, gitOptions.allowIntegrateRef));
   }
 
   @Override

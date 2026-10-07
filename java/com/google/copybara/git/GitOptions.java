@@ -137,11 +137,11 @@ public class GitOptions implements Option {
   public boolean gitNoVerify = false;
 
   @Parameter(
-      names = "--git-integrate-allow-arbitrary-ref",
+      names = "--git-integrate-allow-ref",
       description =
-          "If set, allow git.integrate to fetch from arbitrary repositories instead of validating"
-              + " the URL prefix.")
-  public boolean allowArbitraryIntegrateRef = false;
+          "List of repository URL prefixes that git.integrate is allowed to fetch from. If empty,"
+              + " only the destination repository URL is allowed.")
+  public List<String> allowIntegrateRef = new ArrayList<>();
 
   @Parameter(
       names = USE_CREDENTIALS_FROM_CONFIG,

@@ -186,52 +186,29 @@ public class GitIntegrateChanges implements StarlarkValue {
             .console()
             .progressFmt(
                 "Integrating change from '%s' using strategy %s", label.getValue(), strategy);
-        GitHubPrIntegrateLabel gitHubPrIntegrateLabel =
-            GitHubPrIntegrateLabel.parse(label.getValue(), repository, generalOptions);
-        IntegrateLabel integrateLabel =
-            gitHubPrIntegrateLabel != null && gitHubPrIntegrateLabel.matchesDestinationUrl(repoUrl)
-                ? gitHubPrIntegrateLabel
-                : null;
-        if (integrateLabel == null) {
-          integrateLabel = GerritIntegrateLabel.parse(label.getValue(), repository, generalOptions);
-          if (integrateLabel == null) {
-            String rawLabel = label.getValue().trim();
-            if (rawLabel.contains("://")) {
-              ValidationException.checkCondition(
-                  allowProtocolRef,
-                  "Protocol markers (://) are not allowed in integrate ref '%s' unless"
-                      + " 'allow_protocol_ref' is set.",
-                  rawLabel);
-              int spaceIdx = rawLabel.lastIndexOf(' ');
-              String labelUrl = spaceIdx != -1 ? rawLabel.substring(0, spaceIdx) : rawLabel;
-              String repoUrlPrefix = repoUrl.endsWith("/") ? repoUrl : repoUrl + "/";
-              ValidationException.checkCondition(
-                  gitOptions.allowArbitraryIntegrateRef
-                      || labelUrl.equals(repoUrl)
-                      || labelUrl.startsWith(repoUrlPrefix),
-                  "Integrate URL in '%s' must match or have destination repository URL '%s' as a"
-                      + " prefix.",
-                  rawLabel,
-                  repoUrl);
-            }
-            // would derive url from repo remote, but there is no guarantee a remote is configured.
-            GitRevision gitRevision =
-                GitRepoType.GIT.resolveRef(
-                    repository,
-                    repoUrl,
-                    rawLabel,
-                    generalOptions,
-                    /* describeVersion= */ false,
-                    /* partialFetch= */ false,
-                    Optional.empty(),
-                    /* recurseSubmodules= */ false);
-            integrateLabel = IntegrateLabel.genericGitRevision(gitRevision);
-          }
+        Optional<IntegrateLabel> integrateLabel =
+            GitHubPrIntegrateLabel.maybeParse(
+                label.getValue(), repository, repoUrl, generalOptions, gitOptions);
+        if (integrateLabel.isEmpty()) {
+          integrateLabel =
+              GerritIntegrateLabel.maybeParse(
+                  label.getValue(), repository, repoUrl, generalOptions, gitOptions);
+        }
+        if (integrateLabel.isEmpty()) {
+          integrateLabel =
+              Optional.of(
+                  IntegrateLabel.genericGitRevision(
+                      repository,
+                      repoUrl,
+                      label.getValue(),
+                      generalOptions,
+                      gitOptions,
+                      allowProtocolRef));
         }
 
         strategy.integrate(
             repository,
-            integrateLabel,
+            integrateLabel.get(),
             externalFiles,
             label,
             messageInfo,
@@ -242,7 +219,7 @@ public class GitIntegrateChanges implements StarlarkValue {
             allowUnrelatedHistory,
             mergeCommitMessage,
             result);
-        optionalIntegrateLabel = Optional.of(integrateLabel);
+        optionalIntegrateLabel = integrateLabel;
       } catch (ValidationException e) {
         throw new CannotIntegrateException(
             "Error resolving " + label.getValue() + ": " + e.getMessage(), e);

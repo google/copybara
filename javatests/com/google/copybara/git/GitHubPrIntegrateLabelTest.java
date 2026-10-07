@@ -16,14 +16,18 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.GeneralOptions;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.testing.junit.testparameterinjector.TestParameter;
 import com.google.testing.junit.testparameterinjector.TestParameterInjector;
 import java.nio.file.FileSystems;
+import java.util.Optional;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -40,7 +44,7 @@ public class GitHubPrIntegrateLabelTest {
   private final TestingConsole console = new TestingConsole();
 
   @Test
-  public void parseLabel_sha1() {
+  public void parseLabel_sha1() throws Exception {
     GeneralOptions options =
         new GeneralOptions(ImmutableMap.of(), FileSystems.getDefault(), console);
 
@@ -56,7 +60,7 @@ public class GitHubPrIntegrateLabelTest {
   }
 
   @Test
-  public void parseLabel_containsDot() {
+  public void parseLabel_containsDot() throws Exception {
     GeneralOptions options =
         new GeneralOptions(ImmutableMap.of(), FileSystems.getDefault(), console);
 
@@ -72,7 +76,7 @@ public class GitHubPrIntegrateLabelTest {
   }
 
   @Test
-  public void parseLabel_customHost() {
+  public void parseLabel_customHost() throws Exception {
     GeneralOptions options =
         new GeneralOptions(ImmutableMap.of(), FileSystems.getDefault(), console);
 
@@ -94,7 +98,7 @@ public class GitHubPrIntegrateLabelTest {
   }
 
   @Test
-  public void parseLabel_invalidUrl_returnsNull(
+  public void parseLabel_invalidUrl_throwsException(
       @TestParameter({
             "https://github.com/foo.cpp/bar",
             "https://github.com/foo",
@@ -104,17 +108,17 @@ public class GitHubPrIntegrateLabelTest {
     GeneralOptions options =
         new GeneralOptions(ImmutableMap.of(), FileSystems.getDefault(), console);
 
-    assertThat(
-            GitHubPrIntegrateLabel.parse(
-                invalidRepoUrl
-                    + "/pull/18 from copybarrista:main"
-                    + " dbb8386719596088dbf7513fad87559b2ff796cc",
-                repo,
-                options))
-        .isNull();
-    console
-        .assertThat()
-        .onceInLog(MessageType.WARNING, "Invalid GitHub URL in integrate label '.*': .*");
+    ValidationException thrown =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                GitHubPrIntegrateLabel.parse(
+                    invalidRepoUrl
+                        + "/pull/18 from copybarrista:main"
+                        + " dbb8386719596088dbf7513fad87559b2ff796cc",
+                    repo,
+                    options));
+    assertThat(thrown).hasMessageThat().contains("Invalid GitHub URL in integrate label");
   }
 
   @Test
@@ -124,7 +128,8 @@ public class GitHubPrIntegrateLabelTest {
             "https://github.com/other/bar",
             "https://github.com/foo/other"
           })
-          String destinationUrl) {
+          String destinationUrl)
+      throws Exception {
     GeneralOptions options =
         new GeneralOptions(ImmutableMap.of(), FileSystems.getDefault(), console);
 
@@ -148,7 +153,7 @@ public class GitHubPrIntegrateLabelTest {
   }
 
   @Test
-  public void matchesDestinationUrl_invalidDestinationUrl_returnsFalse() {
+  public void matchesDestinationUrl_invalidDestinationUrl_returnsFalse() throws Exception {
     GeneralOptions options =
         new GeneralOptions(ImmutableMap.of(), FileSystems.getDefault(), console);
 
@@ -170,7 +175,34 @@ public class GitHubPrIntegrateLabelTest {
   }
 
   @Test
-  public void parseLabel_hyphenatedUser() {
+  public void maybeParse_nonGitHubDestinationUrl_allowedWithAllowIntegrateRef() throws Exception {
+    GeneralOptions options =
+        new GeneralOptions(ImmutableMap.of(), FileSystems.getDefault(), console);
+    GitOptions gitOptions = new GitOptions(options);
+    String rawLabel =
+        "https://github.com/foo/bar/pull/18"
+            + " from copybarrista:main dbb8386719596088dbf7513fad87559b2ff796cc";
+
+    assertThrows(
+        ValidationException.class,
+        () -> GitHubPrIntegrateLabel.maybeParse(rawLabel, repo, "rpc://foo", options, gitOptions));
+
+    gitOptions.allowIntegrateRef = ImmutableList.of("https://github.com/foo/bar");
+    Optional<IntegrateLabel> parsed =
+        GitHubPrIntegrateLabel.maybeParse(rawLabel, repo, "rpc://foo", options, gitOptions);
+    assertThat(parsed).isPresent();
+    assertThat(parsed.get().toString()).isEqualTo(rawLabel);
+
+    gitOptions.allowIntegrateRef = ImmutableList.of("https://github.com/other/repo");
+    Optional<IntegrateLabel> parsedMatchingDest =
+        GitHubPrIntegrateLabel.maybeParse(
+            rawLabel, repo, "https://github.com/foo/bar", options, gitOptions);
+    assertThat(parsedMatchingDest).isPresent();
+    assertThat(parsedMatchingDest.get().toString()).isEqualTo(rawLabel);
+  }
+
+  @Test
+  public void parseLabel_hyphenatedUser() throws Exception {
     GeneralOptions options =
         new GeneralOptions(ImmutableMap.of(), FileSystems.getDefault(), console);
 
@@ -184,7 +216,7 @@ public class GitHubPrIntegrateLabelTest {
   }
 
   @Test
-  public void parseLabel_sha256() {
+  public void parseLabel_sha256() throws Exception {
     GeneralOptions options =
         new GeneralOptions(ImmutableMap.of(), FileSystems.getDefault(), console);
 

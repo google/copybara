@@ -16,6 +16,7 @@
 
 package com.google.copybara.git;
 
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.GeneralOptions;
@@ -79,6 +80,39 @@ class GerritIntegrateLabel implements IntegrateLabel {
                                        : Integer.parseInt(matcher.group(3))),
                                       matcher.group(4))
            : null;
+  }
+
+  static Optional<IntegrateLabel> maybeParse(
+      String str,
+      GitRepository repository,
+      String repoUrl,
+      GeneralOptions generalOptions,
+      GitOptions gitOptions)
+      throws ValidationException {
+    GerritIntegrateLabel label = parse(str, repository, generalOptions);
+    if (label == null) {
+      return Optional.empty();
+    }
+    boolean matchesDestination =
+        CharMatcher.is('/')
+            .trimTrailingFrom(label.url)
+            .equals(CharMatcher.is('/').trimTrailingFrom(repoUrl));
+    if (!matchesDestination) {
+      if (gitOptions.allowIntegrateRef.isEmpty()) {
+        throw new ValidationException(
+            String.format(
+                "Integrate URL in '%s' does not match destination repository URL '%s'.",
+                str.trim(), repoUrl));
+      }
+      ValidationException.checkCondition(
+          gitOptions.allowIntegrateRef.stream().anyMatch(label.url::startsWith),
+          "Integrate URL in '%s' does not match destination repository URL '%s' or any allowed"
+              + " prefix (%s).",
+          str.trim(),
+          repoUrl,
+          gitOptions.allowIntegrateRef);
+    }
+    return Optional.of(label);
   }
 
   @Override
