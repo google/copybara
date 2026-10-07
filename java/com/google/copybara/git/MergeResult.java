@@ -37,7 +37,7 @@ public class MergeResult implements StarlarkValue {
   }
 
   /**
-   * Create a merge result that was succesful.
+   * Create a merge result that was successful.
    */
   public static MergeResult success(){
     return new MergeResult(false, null);
