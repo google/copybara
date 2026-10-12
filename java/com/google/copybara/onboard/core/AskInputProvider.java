@@ -104,12 +104,12 @@ public class AskInputProvider implements InputProvider {
         String askResult =
             console.ask(
                 String.format(
-                    "%s(%s)?%s ",
+                    "%s(%s)? %s ",
                     input.description(),
                     input.name(),
-                    String.format(
-                        " [default: %s]",
-                        defaultVal.map(t -> String.format("'%s'", t)).orElse("none"))),
+                    defaultVal
+                        .map(t -> String.format("[default: '%s']", t))
+                        .orElse("[required]")),
                 defaultVal.isPresent() ? DEFAULT_PLACE_HOLDER : null,
                 s -> {
                   if (s.equals(DEFAULT_PLACE_HOLDER) && defaultVal.isPresent()) {

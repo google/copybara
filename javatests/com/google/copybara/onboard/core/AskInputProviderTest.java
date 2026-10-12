@@ -110,7 +110,7 @@ public class AskInputProviderTest {
     console
         .assertThat()
         .onceInLog(
-            MessageType.INFO, "just for test\\(AskInputProviderTest\\)\\? \\[default: none\\]");
+            MessageType.INFO, "just for test\\(AskInputProviderTest\\)\\? \\[required\\]");
   }
 
   @Test
@@ -125,7 +125,7 @@ public class AskInputProviderTest {
         .timesInLog(
             2,
             MessageType.INFO,
-            "just for test\\(AskInputProviderTestInt\\)\\? \\[default: none\\]");
+            "just for test\\(AskInputProviderTestInt\\)\\? \\[required\\]");
   }
 
   @Test
