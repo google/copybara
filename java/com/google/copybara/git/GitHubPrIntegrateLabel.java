@@ -134,8 +134,16 @@ class GitHubPrIntegrateLabel implements IntegrateLabel {
     String pr =
         "https://" + gitHubIdentifier.getHostName() + "/" + getProjectId() + "/pull/" + prNumber;
     String repoUrl = "https://" + gitHubIdentifier.getHostName() + "/" + getProjectId();
-    GitRevision gitRevision = GitRepoType.GITHUB.resolveRef(repository, repoUrl, pr,
-        generalOptions, /*describeVersion=*/ false, /*partialFetch*/ false, Optional.empty());
+    GitRevision gitRevision =
+        GitRepoType.GITHUB.resolveRef(
+            repository,
+            repoUrl,
+            pr,
+            generalOptions,
+            /* describeVersion= */ false,
+            /* partialFetch= */ false,
+            Optional.empty(),
+            /* recurseSubmodules= */ false);
     if (sha == null) {
       return gitRevision;
     }

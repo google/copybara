@@ -516,8 +516,31 @@ public class GitTestUtil {
         Optional<Integer> depth,
         boolean tags)
         throws RepoException, ValidationException {
+      return fetch(
+          url, prune, force, refspecs, partialFetch, depth, tags, /* recurseSubmodules= */ true);
+    }
+
+    @Override
+    public FetchResult fetch(
+        String url,
+        boolean prune,
+        boolean force,
+        Iterable<String> refspecs,
+        boolean partialFetch,
+        Optional<Integer> depth,
+        boolean tags,
+        boolean recurseSubmodules)
+        throws RepoException, ValidationException {
       validator.validateFetch(url, prune, force, refspecs);
-      return super.fetch(mapUrl(url), prune, force, refspecs, partialFetch, Optional.empty(), tags);
+      return super.fetch(
+          mapUrl(url),
+          prune,
+          force,
+          refspecs,
+          partialFetch,
+          Optional.empty(),
+          tags,
+          recurseSubmodules);
     }
 
     @Override

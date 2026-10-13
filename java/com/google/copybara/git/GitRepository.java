@@ -419,6 +419,18 @@ public class GitRepository {
   public GitRevision fetchSingleRefWithTags(
       String url, String ref, boolean fetchTags, boolean partialFetch, Optional<Integer> depth)
       throws RepoException, ValidationException {
+    return fetchSingleRefWithTags(
+        url, ref, fetchTags, partialFetch, depth, /* recurseSubmodules= */ true);
+  }
+
+  public GitRevision fetchSingleRefWithTags(
+      String url,
+      String ref,
+      boolean fetchTags,
+      boolean partialFetch,
+      Optional<Integer> depth,
+      boolean recurseSubmodules)
+      throws RepoException, ValidationException {
     if (ref.contains(":") || ref.contains("*")) {
       throw new CannotResolveRevisionException("Fetching refspecs that"
           + " contain local ref path locations or wildcards is not supported. Invalid ref: " + ref);
@@ -441,7 +453,8 @@ public class GitRepository {
             ImmutableList.of(),
             partialFetch,
             depth,
-            tags);
+            tags,
+            recurseSubmodules);
       } catch (CannotResolveRevisionException e) {
         // Some servers are configured without HEAD. That is fine, we'll try fetching the SHA
         // instead.
@@ -482,7 +495,8 @@ public class GitRepository {
             fullRefspec.build(),
             partialFetch,
             depth,
-            false);
+            false,
+            recurseSubmodules);
         return resolveReferenceWithContext(
             String.format("%s/%s", COPYBARA_FETCH_NAMESPACE, ref), /* contextRef= */ ref, url);
       } catch (RepoException | CannotResolveRevisionException ignore) {
@@ -490,7 +504,15 @@ public class GitRepository {
       }
     }
 
-    fetch(url, /* prune= */ false, /* force= */ true, refspec.build(), partialFetch, depth, false);
+    fetch(
+        url,
+        /* prune= */ false,
+        /* force= */ true,
+        refspec.build(),
+        partialFetch,
+        depth,
+        false,
+        recurseSubmodules);
     return resolveReferenceWithContext(
         String.format("%s/%s", COPYBARA_FETCH_NAMESPACE, ref), /* contextRef= */ ref, url);
   }
@@ -595,6 +617,36 @@ public class GitRepository {
       Optional<Integer> depth,
       boolean tags)
       throws RepoException, ValidationException {
+    return fetch(
+        url, prune, force, refspecs, partialFetch, depth, tags, /* recurseSubmodules= */ true);
+  }
+
+  /**
+   * Fetch zero or more refspecs in the local repository
+   *
+   * @param url remote git repository url
+   * @param prune if remotely non-present refs should be deleted locally
+   * @param force force updates even for non fast-forward updates
+   * @param refspecs a set refspecs in the form of 'foo' for branches, 'refs/some/ref' or
+   *     'refs/foo/bar:refs/bar/foo'.
+   * @param partialFetch if true, passes --filter=blob:none
+   * @param depth if present, passes --depth
+   * @param tags if true, passes --tags
+   * @param recurseSubmodules if false, passes --no-recurse-submodules
+   * @return the set of fetched references and what action was done ( rejected, new reference,
+   *     updated, etc.)
+   */
+  @CanIgnoreReturnValue
+  public FetchResult fetch(
+      String url,
+      boolean prune,
+      boolean force,
+      Iterable<String> refspecs,
+      boolean partialFetch,
+      Optional<Integer> depth,
+      boolean tags,
+      boolean recurseSubmodules)
+      throws RepoException, ValidationException {
 
     List<String> args = Lists.newArrayList("fetch", validateUrl(url));
     if (tags) {
@@ -605,6 +657,9 @@ public class GitRepository {
     }
     if (partialFetch) {
       args.add("--filter=blob:none");
+    }
+    if (!recurseSubmodules) {
+      args.add("--no-recurse-submodules");
     }
     args.add("--verbose");
     // This shows progress in the log if not attached to a terminal

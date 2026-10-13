@@ -525,6 +525,86 @@ public class GitDestinationIntegrateTest {
   }
 
   @Test
+  public void testIncludeFilesWithSubmoduleUpdate() throws Exception {
+    destinationFiles =
+        Glob.createGlob(
+            ImmutableList.of("**"), ImmutableList.of("ignore*", ".gitmodules", "submodule"));
+
+    GitRepository submodule =
+        GitRepository.newBareRepo(
+                Files.createTempDirectory("submodule-gitdir"),
+                getGitEnv(),
+                /* verbose= */ true,
+                DEFAULT_TIMEOUT,
+                /* noVerify= */ false)
+            .withWorkTree(Files.createTempDirectory("submodule-worktree"))
+            .init(repoFormat);
+    singleChange(submodule.getWorkTree(), submodule, "subfile.txt", "v1", "Submodule v1");
+
+    Path repoPath = Files.createTempDirectory("test");
+    GitRepository repo = repo().withWorkTree(repoPath);
+    singleChange(repoPath, repo, "test.txt", "base", "Base change");
+    repo.simpleCommand(
+        "-c",
+        "protocol.file.allow=always",
+        "submodule",
+        "add",
+        "file://" + submodule.getGitDir(),
+        "submodule");
+    repo.simpleCommand("commit", "-m", "Add submodule");
+    GitLogEntry baseCommit = getLastMigratedChange(primaryBranch);
+
+    GitRevision subCommit2 =
+        singleChange(submodule.getWorkTree(), submodule, "subfile.txt", "v2", "Submodule v2");
+
+    repo.branch("feature").run();
+    repo.forceCheckout("feature");
+    repo.simpleCommand("-c", "protocol.file.allow=always", "submodule", "update", "--remote");
+    repo.add().all().run();
+    singleChange(repoPath, repo, "ignore_me", "external", "Update submodule and external file");
+    repo.forceCheckout(primaryBranch);
+
+    GitDestination destination =
+        destination(
+            "url = '" + url + "'",
+            String.format("fetch = '%s'", primaryBranch),
+            String.format("push = '%s'", primaryBranch),
+            "integrates = [git.integrate(ignore_errors = False, strategy = 'INCLUDE_FILES')]");
+
+    migrateOriginChange(
+        destination,
+        String.format(
+            """
+            Test change
+
+            %s=file://%s feature
+            """,
+            GitModule.DEFAULT_INTEGRATE_LABEL, repo.getGitDir()),
+        "some content");
+
+    GitTesting.assertThatCheckout(repo(), primaryBranch)
+        .containsFile("test.txt", "some content")
+        .containsFile("ignore_me", "external")
+        .containsFiles(".gitmodules", "submodule")
+        .containsNoMoreFiles();
+
+    assertThat(
+            Iterables.getOnlyElement(
+                    repo()
+                        .lsTree(
+                            repo().resolveReference(primaryBranch),
+                            "submodule",
+                            /* recursive= */ false,
+                            /* fullName= */ false))
+                .ref())
+        .isEqualTo(subCommit2.getHash());
+
+    GitLogEntry afterChange = getLastMigratedChange(primaryBranch);
+    assertThat(Lists.transform(afterChange.parents(), GitRevision::getHash))
+        .containsExactly(baseCommit.commit().getHash());
+  }
+
+  @Test
   public void testIncludeFilesOutdatedBranch() throws Exception {
     Path repoPath = Files.createTempDirectory("test");
     GitRepository repo = repo().withWorkTree(repoPath);

@@ -1060,10 +1060,19 @@ public class GitRepositoryTest {
               Iterable<String> refspecs,
               boolean partialFetch,
               Optional<Integer> depth,
-              boolean tags)
+              boolean tags,
+              boolean recurseSubmodules)
               throws RepoException, ValidationException {
             requestedFetches.add(refspecs);
-            return super.fetch(url, prune, force, refspecs, partialFetch, Optional.empty(), tags);
+            return super.fetch(
+                url,
+                prune,
+                force,
+                refspecs,
+                partialFetch,
+                Optional.empty(),
+                tags,
+                recurseSubmodules);
           }
         }.init(repoFormat);
 
@@ -1115,10 +1124,19 @@ public class GitRepositoryTest {
               Iterable<String> refspecs,
               boolean partialFetch,
               Optional<Integer> depth,
-              boolean tags)
+              boolean tags,
+              boolean recurseSubmodules)
               throws RepoException, ValidationException {
             requestedFetches.add(refspecs);
-            return super.fetch(url, prune, force, refspecs, partialFetch, Optional.empty(), tags);
+            return super.fetch(
+                url,
+                prune,
+                force,
+                refspecs,
+                partialFetch,
+                Optional.empty(),
+                tags,
+                recurseSubmodules);
           }
         }.init(repoFormat);
 
@@ -1165,10 +1183,19 @@ public class GitRepositoryTest {
               Iterable<String> refspecs,
               boolean partialFetch,
               Optional<Integer> depth,
-              boolean tags)
+              boolean tags,
+              boolean recurseSubmodules)
               throws RepoException, ValidationException {
             requestedFetches.add(refspecs);
-            return super.fetch(url, prune, force, refspecs, partialFetch, Optional.empty(), tags);
+            return super.fetch(
+                url,
+                prune,
+                force,
+                refspecs,
+                partialFetch,
+                Optional.empty(),
+                tags,
+                recurseSubmodules);
           }
         }.init(repoFormat);
 
