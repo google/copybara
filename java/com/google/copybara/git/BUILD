@@ -25,6 +25,7 @@ JAVACOPTS = [
 CORE = [
     "FetchResult.java",
     "GitCredential.java",
+    "GitFetchOptions.java",
     "GitRefFormat.java",
     "GitRepository.java",
     "GitRepositoryHook.java",
@@ -110,6 +111,7 @@ java_library(
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/revision",
         "//java/com/google/copybara/util",
+        "//third_party:autovalue",
         "//third_party:error_prone",
         "//third_party:flogger",
         "//third_party:guava",

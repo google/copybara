@@ -23,7 +23,6 @@ import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
-import java.util.Optional;
 
 /** A class comparing git tree of a repo's head SHA with any SHA */
 public class SameGitTree {
@@ -63,12 +62,8 @@ public class SameGitTree {
     try (ProfilerTask ignore2 = generalOptions.profiler().start("fetch_remote_sha")) {
       repo.fetch(
           repoUrl,
-          /* prune= */ false,
-          /* force= */ true,
           ImmutableList.of(sha),
-          partialFetch,
-          Optional.empty(),
-          false);
+          GitFetchOptions.builder().setForce(true).setPartialFetch(partialFetch).build());
       return repo.hasSameTree(sha);
     } catch (RepoException | ValidationException e) {
       logger.atWarning().withCause(e).log(

@@ -627,13 +627,13 @@ public class GitOrigin implements Origin<GitRevision> {
               submoduleUrl, submodule.branch(), partialFetch, Optional.empty());
         } else {
           subRepo.fetch(
-              submoduleUrl, /*prune*/
-              true, /*force*/
-              true,
+              submoduleUrl,
               ImmutableList.of("refs/heads/*:refs/heads/*", "refs/tags/*:refs/tags/*"),
-              partialFetch,
-              Optional.empty(),
-              false);
+              GitFetchOptions.builder()
+                  .setPrune(true)
+                  .setForce(true)
+                  .setPartialFetch(partialFetch)
+                  .build());
         }
         GitRevision submoduleRef =
             subRepo.resolveReferenceWithContext(

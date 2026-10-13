@@ -569,8 +569,8 @@ public class GitDestinationIntegrateTest {
             "url = '" + url + "'",
             String.format("fetch = '%s'", primaryBranch),
             String.format("push = '%s'", primaryBranch),
-            "integrates = [git.integrate(ignore_errors = False, allow_protocol_ref = True, strategy"
-                + " = 'INCLUDE_FILES')]");
+            "integrates = [git.integrate(ignore_errors = False, allow_protocol_ref = True,"
+                + " strategy = 'INCLUDE_FILES')]");
 
     migrateOriginChange(
         destination,

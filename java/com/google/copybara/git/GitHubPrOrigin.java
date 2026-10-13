@@ -380,16 +380,10 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
     }
 
     ImmutableList<String> refspec = refSpecBuilder.build();
+    GitFetchOptions fetchOptions =
+        GitFetchOptions.builder().setForce(true).setPartialFetch(partialFetch).build();
     try (ProfilerTask ignore = generalOptions.profiler().start("fetch")) {
-      getRepository()
-          .fetch(
-              ghHost.projectAsUrl(project),
-              /* prune= */ false,
-              /* force= */ true,
-              refspec,
-              partialFetch,
-              Optional.empty(),
-              false);
+      getRepository().fetch(ghHost.projectAsUrl(project), refspec, fetchOptions);
     } catch (CannotResolveRevisionException e) {
 
       if (actuallyUseMerge && prData.isMergeable() == null && forceImport()) {
@@ -397,15 +391,7 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
         actuallyUseMerge = false;
         refspec = refspec.subList(0, refspec.size() - 1);
         try (ProfilerTask ignore = generalOptions.profiler().start("fetch")) {
-          getRepository()
-              .fetch(
-                  ghHost.projectAsUrl(project),
-                  /* prune= */ false,
-                  /* force= */ true,
-                  refspec,
-                  partialFetch,
-                  Optional.empty(),
-                  false);
+          getRepository().fetch(ghHost.projectAsUrl(project), refspec, fetchOptions);
           e = null;
         } catch (CannotResolveRevisionException e2) {
           // Report the error from the second fetch instead of the original fetch

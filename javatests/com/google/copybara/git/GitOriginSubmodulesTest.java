@@ -417,12 +417,8 @@ public class GitOriginSubmodulesTest {
 
     r3.fetch(
         "file://" + r1.getGitDir(),
-        false,
-        true,
         ImmutableList.of("refs/heads/*:refs/heads/*"),
-        false,
-        Optional.empty(),
-        false);
+        GitFetchOptions.builder().setForce(true).build());
     String primaryBranch = r2.getPrimaryBranch();
 
     OptionsBuilder options = new OptionsBuilder()

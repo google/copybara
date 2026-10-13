@@ -24,8 +24,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * The result of executing git fetch command
- * ({@link GitRepository#fetch(String, boolean, boolean, Iterable)}.
+ * The result of executing git fetch command ({@link GitRepository#fetch(String, Iterable,
+ * GitFetchOptions)}).
  */
 public class FetchResult {
 

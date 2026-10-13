@@ -215,12 +215,11 @@ public class GitLabMrOrigin implements Origin<GitRevision> {
     try (ProfilerTask ignore = generalOptions.profiler().start("fetch")) {
       repository.fetch(
           repoUrl.toString(),
-          /* prune= */ false,
-          generalOptions.isForced(),
           refspecs,
-          partialFetch,
-          Optional.empty(),
-          /* tags= */ false);
+          GitFetchOptions.builder()
+              .setForce(generalOptions.isForced())
+              .setPartialFetch(partialFetch)
+              .build());
     }
   }
 

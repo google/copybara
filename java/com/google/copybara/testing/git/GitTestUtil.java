@@ -45,6 +45,7 @@ import com.google.copybara.git.CredentialFileHandler;
 import com.google.copybara.git.FetchResult;
 import com.google.copybara.git.GerritOptions;
 import com.google.copybara.git.GitEnvironment;
+import com.google.copybara.git.GitFetchOptions;
 import com.google.copybara.git.GitHubOptions;
 import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitRepository;
@@ -507,40 +508,11 @@ public class GitTestUtil {
     }
 
     @Override
-    public FetchResult fetch(
-        String url,
-        boolean prune,
-        boolean force,
-        Iterable<String> refspecs,
-        boolean partialFetch,
-        Optional<Integer> depth,
-        boolean tags)
+    public FetchResult fetch(String url, Iterable<String> refspecs, GitFetchOptions options)
         throws RepoException, ValidationException {
-      return fetch(
-          url, prune, force, refspecs, partialFetch, depth, tags, /* recurseSubmodules= */ true);
-    }
-
-    @Override
-    public FetchResult fetch(
-        String url,
-        boolean prune,
-        boolean force,
-        Iterable<String> refspecs,
-        boolean partialFetch,
-        Optional<Integer> depth,
-        boolean tags,
-        boolean recurseSubmodules)
-        throws RepoException, ValidationException {
-      validator.validateFetch(url, prune, force, refspecs);
+      validator.validateFetch(url, options.prune(), options.force(), refspecs);
       return super.fetch(
-          mapUrl(url),
-          prune,
-          force,
-          refspecs,
-          partialFetch,
-          Optional.empty(),
-          tags,
-          recurseSubmodules);
+          mapUrl(url), refspecs, options.toBuilder().setDepth(Optional.empty()).build());
     }
 
     @Override

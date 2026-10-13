@@ -219,12 +219,13 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
     try (ProfilerTask ignored = profiler.start("origin_fetch")) {
       repo.fetch(
           originUrl,
-          prune,
-          force,
           refspecsToFetch.stream().map(Refspec::toString).collect(toImmutableList()),
-          partialFetch,
-          depthOptional,
-          false);
+          GitFetchOptions.builder()
+              .setPrune(prune)
+              .setForce(force)
+              .setPartialFetch(partialFetch)
+              .setDepth(depthOptional)
+              .build());
     } catch (CannotResolveRevisionException e) {
       console.warnFmt("Failed to complete origin_fetch with error '%s'", e.getMessage());
       return false;
@@ -277,12 +278,13 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
     try {
       repo.fetch(
           destinationUrl,
-          prune,
-          force,
           refspecsToFetch.stream().map(Refspec::toString).collect(toImmutableList()),
-          partialFetch,
-          depthOptional,
-          false);
+          GitFetchOptions.builder()
+              .setPrune(prune)
+              .setForce(force)
+              .setPartialFetch(partialFetch)
+              .setDepth(depthOptional)
+              .build());
     } catch (CannotResolveRevisionException e) {
       return false;
     }

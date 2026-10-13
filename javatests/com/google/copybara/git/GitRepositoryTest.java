@@ -49,6 +49,7 @@ import com.google.copybara.git.GitRevision.GitHashAlgorithm;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.CommandOutput;
+import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.Glob;
 import com.google.testing.junit.testparameterinjector.TestParameter;
 import com.google.testing.junit.testparameterinjector.TestParameterInjector;
@@ -785,12 +786,8 @@ public class GitRepositoryTest {
     FetchResult result =
         dest.fetch(
             fetchUrl,
-            /* prune= */ true,
-            /* force= */ true,
             ImmutableList.of("refs/*:refs/*"),
-            false,
-            Optional.empty(),
-            false);
+            GitFetchOptions.builder().setPrune(true).setForce(true).build());
 
     assertThat(result.getDeleted()).isEmpty();
     assertThat(result.getUpdated()).isEmpty();
@@ -806,12 +803,8 @@ public class GitRepositoryTest {
     result =
         dest.fetch(
             fetchUrl,
-            /* prune= */ true,
-            /* force= */ true,
             ImmutableList.of("refs/*:refs/*"),
-            false,
-            Optional.empty(),
-            false);
+            GitFetchOptions.builder().setPrune(true).setForce(true).build());
 
     assertThat(result.getDeleted().keySet()).containsExactly("refs/heads/deleted");
     assertThat(result.getUpdated().keySet()).containsExactly("refs/heads/" + defaultBranch);
@@ -931,12 +924,8 @@ public class GitRepositoryTest {
 
     local.fetch(
         fetchUrl,
-        /* prune= */ true,
-        /* force= */ true,
         ImmutableList.of("refs/*:refs/*"),
-        true,
-        Optional.empty(),
-        false);
+        GitFetchOptions.builder().setPrune(true).setForce(true).setPartialFetch(true).build());
     CommandOutput commandOutput =
         local.simpleCommand("config", "--get-regexp", "remote..*.partialclonefilter");
     assertThat(commandOutput.getStdout()).contains("blob:none");
@@ -982,12 +971,8 @@ public class GitRepositoryTest {
 
     local.fetch(
         fetchUrl,
-        /* prune= */ true,
-        /* force= */ true,
         ImmutableList.of("refs/*:refs/*"),
-        false,
-        Optional.empty(),
-        false);
+        GitFetchOptions.builder().setPrune(true).setForce(true).build());
     local
         .withWorkTree(localWorkdir)
         .forceCheckout(defaultBranch, ImmutableSet.of("a"), DEFAULT_TIMEOUT);
@@ -1023,12 +1008,8 @@ public class GitRepositoryTest {
     String fetchUrl = "file://" + repository.getGitDir();
     local.fetch(
         fetchUrl,
-        /* prune= */ true,
-        /* force= */ true,
         ImmutableList.of("refs/*:refs/*"),
-        false,
-        Optional.of(2),
-        false);
+        GitFetchOptions.builder().setPrune(true).setForce(true).setDepth(2).build());
 
     assertThat(local.simpleCommand("rev-list", "--count", "HEAD").getStdout().trim())
         .isEqualTo("2");
@@ -1054,25 +1035,11 @@ public class GitRepositoryTest {
 
           @Override
           public FetchResult fetch(
-              String url,
-              boolean prune,
-              boolean force,
-              Iterable<String> refspecs,
-              boolean partialFetch,
-              Optional<Integer> depth,
-              boolean tags,
-              boolean recurseSubmodules)
+              String url, Iterable<String> refspecs, GitFetchOptions options)
               throws RepoException, ValidationException {
             requestedFetches.add(refspecs);
             return super.fetch(
-                url,
-                prune,
-                force,
-                refspecs,
-                partialFetch,
-                Optional.empty(),
-                tags,
-                recurseSubmodules);
+                url, refspecs, options.toBuilder().setDepth(Optional.empty()).build());
           }
         }.init(repoFormat);
 
@@ -1118,25 +1085,11 @@ public class GitRepositoryTest {
 
           @Override
           public FetchResult fetch(
-              String url,
-              boolean prune,
-              boolean force,
-              Iterable<String> refspecs,
-              boolean partialFetch,
-              Optional<Integer> depth,
-              boolean tags,
-              boolean recurseSubmodules)
+              String url, Iterable<String> refspecs, GitFetchOptions options)
               throws RepoException, ValidationException {
             requestedFetches.add(refspecs);
             return super.fetch(
-                url,
-                prune,
-                force,
-                refspecs,
-                partialFetch,
-                Optional.empty(),
-                tags,
-                recurseSubmodules);
+                url, refspecs, options.toBuilder().setDepth(Optional.empty()).build());
           }
         }.init(repoFormat);
 
@@ -1177,25 +1130,11 @@ public class GitRepositoryTest {
 
           @Override
           public FetchResult fetch(
-              String url,
-              boolean prune,
-              boolean force,
-              Iterable<String> refspecs,
-              boolean partialFetch,
-              Optional<Integer> depth,
-              boolean tags,
-              boolean recurseSubmodules)
+              String url, Iterable<String> refspecs, GitFetchOptions options)
               throws RepoException, ValidationException {
             requestedFetches.add(refspecs);
             return super.fetch(
-                url,
-                prune,
-                force,
-                refspecs,
-                partialFetch,
-                Optional.empty(),
-                tags,
-                recurseSubmodules);
+                url, refspecs, options.toBuilder().setDepth(Optional.empty()).build());
           }
         }.init(repoFormat);
 
@@ -1225,12 +1164,8 @@ public class GitRepositoryTest {
         () ->
             dest.fetch(
                 fetchUrl,
-                /* prune= */ true,
-                /* force= */ true,
                 ImmutableList.of("refs/*:refs/*"),
-                false,
-                Optional.empty(),
-                false));
+                GitFetchOptions.builder().setPrune(true).setForce(true).build()));
   }
 
   @Test
@@ -2195,6 +2130,98 @@ public class GitRepositoryTest {
     assertThat(newRepo.isReftable()).isFalse();
     assertThat(Files.exists(newGitDir.resolve("refs"))).isTrue();
     assertThat(Files.exists(newGitDir.resolve("reftable"))).isFalse();
+  }
+
+  @Test
+  public void gitFetchOptions_defaults() {
+    GitFetchOptions defaults = GitFetchOptions.DEFAULT;
+    assertThat(defaults.prune()).isFalse();
+    assertThat(defaults.force()).isFalse();
+    assertThat(defaults.partialFetch()).isFalse();
+    assertThat(defaults.depth()).isEmpty();
+    assertThat(defaults.tags()).isFalse();
+    assertThat(defaults.recurseSubmodules()).isTrue();
+    assertThat(GitFetchOptions.builder().build()).isEqualTo(defaults);
+  }
+
+  @Test
+  public void gitFetchOptions_builderAndToBuilder() {
+    GitFetchOptions options =
+        GitFetchOptions.builder()
+            .setPrune(true)
+            .setForce(true)
+            .setPartialFetch(true)
+            .setDepth(5)
+            .setTags(true)
+            .setRecurseSubmodules(false)
+            .build();
+    assertThat(options.prune()).isTrue();
+    assertThat(options.force()).isTrue();
+    assertThat(options.partialFetch()).isTrue();
+    assertThat(options.depth()).hasValue(5);
+    assertThat(options.tags()).isTrue();
+    assertThat(options.recurseSubmodules()).isFalse();
+
+    GitFetchOptions modified =
+        options.toBuilder().setDepth(Optional.empty()).setRecurseSubmodules(true).build();
+    assertThat(modified.prune()).isTrue();
+    assertThat(modified.force()).isTrue();
+    assertThat(modified.partialFetch()).isTrue();
+    assertThat(modified.depth()).isEmpty();
+    assertThat(modified.tags()).isTrue();
+    assertThat(modified.recurseSubmodules()).isTrue();
+  }
+
+  @Test
+  public void gitFetchOptions_nullDepthThrowsNpe() {
+    assertThrows(
+        NullPointerException.class,
+        () -> new GitFetchOptions(false, false, false, null, false, true));
+    assertThrows(
+        NullPointerException.class,
+        () -> GitFetchOptions.builder().setDepth((Optional<Integer>) null).build());
+  }
+
+  @Test
+  public void fetch_withGitFetchOptionsRecurseSubmodulesFalse_passesNoRecurseSubmodulesFlag()
+      throws Exception {
+    List<ImmutableList<String>> gitCommands = new ArrayList<>();
+    GitRepository dest =
+        new GitRepository(
+            Files.createTempDirectory("destDir"),
+            /* workTree= */ null,
+            /* verbose= */ true,
+            getGitEnv(),
+            DEFAULT_TIMEOUT,
+            /* noVerify= */ false,
+            /* pushOptionsValidator= */ new GitRepository.PushOptionsValidator(Optional.empty()),
+            /* gitRepositoryHook= */ null) {
+          @Override
+          protected CommandOutputWithStatus gitAllowNonZeroExit(
+              byte[] stdin, Iterable<String> params, Duration defaultTimeout, int maxLogLines)
+              throws RepoException {
+            gitCommands.add(ImmutableList.copyOf(params));
+            return super.gitAllowNonZeroExit(stdin, params, defaultTimeout, maxLogLines);
+          }
+        }.init(repoFormat);
+
+    Files.write(workdir.resolve("foo.txt"), "aaa".getBytes(UTF_8));
+    repository.add().files("foo.txt").run();
+    repository.simpleCommand("commit", "foo.txt", "-m", "message 1");
+
+    FetchResult result =
+        dest.fetch(
+            "file://" + repository.getGitDir(),
+            ImmutableList.of("refs/heads/*:refs/heads/*"),
+            GitFetchOptions.builder()
+                .setPrune(true)
+                .setForce(true)
+                .setRecurseSubmodules(false)
+                .build());
+
+    assertThat(result.getInserted().keySet()).containsExactly("refs/heads/" + defaultBranch);
+    assertThat(gitCommands.stream().anyMatch(cmd -> cmd.contains("--no-recurse-submodules")))
+        .isTrue();
   }
 
   private GitRepository mockRepository(Path gitDir, Path workTree) throws RepoException {
