@@ -350,7 +350,7 @@ public class GitDestinationTest {
 
   @Test
   public void parseGithubHostName() throws Exception {
-    String customHost = "ghes.example.com";
+    String customHost = "ghop.example.com";
     String orgAndRepoName = "my-org/my-repo";
     String url = "https://" + customHost + "/" + orgAndRepoName;
     GitDestination destination =

@@ -1453,7 +1453,7 @@ public class GitOriginTest {
 
   @Test
   public void testParseGithubHostName() throws Exception {
-    String customHost = "ghes.example.com";
+    String customHost = "ghop.example.com";
     String url = "https://" + customHost + "/my-org/my-repo";
     origin =
         skylark.eval(
@@ -1467,7 +1467,7 @@ public class GitOriginTest {
 
   @Test
   public void testCorrectGithubUrlGitOrigin() throws Exception {
-    String customHost = "ghes.example.com";
+    String customHost = "ghop.example.com";
     String orgAndRepoName = "my-org/my-repo";
     String url = "https://" + customHost + "/" + orgAndRepoName;
     GitOrigin origin =
@@ -1482,7 +1482,7 @@ public class GitOriginTest {
 
   @Test
   public void testInvalidGithubUrlGitOrigin() throws Exception {
-    String customHost = "ghes.example.com";
+    String customHost = "ghop.example.com";
     String orgAndRepoName = "my-org/my-repo";
     String url = "https://" + customHost + "/" + orgAndRepoName;
 

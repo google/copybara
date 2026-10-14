@@ -38,10 +38,10 @@ public final class GitHubIdentifierTest {
   }
 
   @Test
-  public void testApiUrl_githubEnterprise() {
-    String ghesUrl = "https://depot.code.corp.goog/ownername/reponame";
+  public void testApiUrl_githubOnPrem() {
+    String ghopUrl = "https://depot.code.corp.goog/ownername/reponame";
 
-    GitHubIdentifier identifier = GitHubIdentifier.create(ghesUrl);
+    GitHubIdentifier identifier = GitHubIdentifier.create(ghopUrl);
 
     assertThat(identifier.getApiUrl()).isEqualTo("https://depot.code.corp.goog/api/v3");
   }
@@ -166,16 +166,16 @@ public final class GitHubIdentifierTest {
   }
 
   @Test
-  public void standardFormats_ghes() {
-    String ghes = "depot.code.corp.goog";
+  public void standardFormats_ghop() {
+    String ghop = "depot.code.corp.goog";
     String path = "foo/bar";
     ImmutableList<String> acceptedFormats =
         ImmutableList.of(
-            "http://" + ghes + "/" + path,
-            "https://" + ghes + "/" + path,
-            "http://www." + ghes + "/" + path,
-            "https://www." + ghes + "/" + path,
-            "http://" + ghes + "/" + path + ".git");
+            "http://" + ghop + "/" + path,
+            "https://" + ghop + "/" + path,
+            "http://www." + ghop + "/" + path,
+            "https://www." + ghop + "/" + path,
+            "http://" + ghop + "/" + path + ".git");
 
     for (String acceptedFormat : acceptedFormats) {
       GitHubIdentifier unused = GitHubIdentifier.create(acceptedFormat);

@@ -70,7 +70,7 @@ public class GitHubHostTest {
   }
 
   @Test
-  public void testGetProjectNameFromUrlEnterpriseHost() throws Exception {
+  public void testGetProjectNameFromUrlOnPremHost() throws Exception {
     GitHubHost host = new GitHubHost("some.company.example.com");
     assertThat(host.getProjectNameFromUrl("https://some.company.example.com/foo")).isEqualTo("foo");
     assertThat(host.getProjectNameFromUrl("http://some.company.example.com/foo")).isEqualTo("foo");
@@ -99,7 +99,7 @@ public class GitHubHostTest {
   }
 
   @Test
-  public void testGetUserNameFromUrlEnterpriseHost() throws Exception {
+  public void testGetUserNameFromUrlOnPremHost() throws Exception {
     GitHubHost host = new GitHubHost("some.company.example.com");
     assertThat(host.getUserNameFromUrl("https://some.company.example.com/foo")).isEqualTo("foo");
     assertThat(host.getUserNameFromUrl("https://some.company.example.com/foo/bar"))
@@ -114,8 +114,8 @@ public class GitHubHostTest {
 
   @Test
   public void testIsGithubUrl() throws Exception {
-    GitHubHost ghesHost = new GitHubHost("depot.code.corp.goog");
-    assertThat(ghesHost.isGitHubUrl("git@depot.code.corp.goog:si/copybara")).isTrue();
-    assertThat(ghesHost.isGitHubUrl("git@github.com:foo/bar.git")).isFalse();
+    GitHubHost ghopHost = new GitHubHost("depot.code.corp.goog");
+    assertThat(ghopHost.isGitHubUrl("git@depot.code.corp.goog:si/copybara")).isTrue();
+    assertThat(ghopHost.isGitHubUrl("git@github.com:foo/bar.git")).isFalse();
   }
 }

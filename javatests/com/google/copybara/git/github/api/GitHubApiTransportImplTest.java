@@ -151,14 +151,14 @@ public class GitHubApiTransportImplTest {
   }
 
   @Test
-  public void testGhesUrlsPopulated() throws Exception {
+  public void testGhopUrlsPopulated() throws Exception {
     httpTransport = createMockHttpTransport(new IOException());
     GitHubApiTransportImpl transport =
         new GitHubApiTransportImpl(
-            repo, httpTransport, "store", false, new TestingConsole(), "github.enterprise.com");
+            repo, httpTransport, "store", false, new TestingConsole(), "github.onprem.com");
 
-    assertThat(transport.getApiUrl()).isEqualTo("https://github.enterprise.com/api/v3");
-    assertThat(transport.getWebUrl()).isEqualTo("https://github.enterprise.com");
+    assertThat(transport.getApiUrl()).isEqualTo("https://github.onprem.com/api/v3");
+    assertThat(transport.getWebUrl()).isEqualTo("https://github.onprem.com");
   }
 
   @Test
@@ -182,7 +182,7 @@ public class GitHubApiTransportImplTest {
   }
 
   @Test
-  public void testCredentialErrorPopulatedWithCorrectUrls_ghes() throws Exception {
+  public void testCredentialErrorPopulatedWithCorrectUrls_ghop() throws Exception {
     httpTransport = createMockHttpTransport(new IOException());
     GitHubApiTransportImpl transport =
         new GitHubApiTransportImpl(

@@ -656,7 +656,7 @@ public class GitDestinationIntegrateTest {
 
   @Test
   public void testGitHubSemiFakeMerge(
-      @TestParameter({"github.com", "some.github.enterprise.instance"}) String host)
+      @TestParameter({"github.com", "some.github.onprem.instance"}) String host)
       throws ValidationException, IOException, RepoException {
     Path workTree = Files.createTempDirectory("test");
     GitRepository repo =

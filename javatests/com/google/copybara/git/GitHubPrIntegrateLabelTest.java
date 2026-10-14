@@ -82,18 +82,18 @@ public class GitHubPrIntegrateLabelTest {
 
     GitHubPrIntegrateLabel label =
         GitHubPrIntegrateLabel.parse(
-            "https://some.github.enterprise.instance/foo/bar/pull/18"
+            "https://some.github.onprem.instance/foo/bar/pull/18"
                 + " from copybarrista:main dbb8386719596088dbf7513fad87559b2ff796cc   ",
             repo,
             options);
 
     assertThat(label).isNotNull();
-    assertThat(label.matchesDestinationUrl("https://some.github.enterprise.instance/foo/bar"))
+    assertThat(label.matchesDestinationUrl("https://some.github.onprem.instance/foo/bar"))
         .isTrue();
     assertThat(label.getProjectId()).isEqualTo("foo/bar");
     assertThat(label.toString())
         .isEqualTo(
-            "https://some.github.enterprise.instance/foo/bar/pull/18"
+            "https://some.github.onprem.instance/foo/bar/pull/18"
                 + " from copybarrista:main dbb8386719596088dbf7513fad87559b2ff796cc");
   }
 
@@ -124,7 +124,7 @@ public class GitHubPrIntegrateLabelTest {
   @Test
   public void matchesDestinationUrl_mismatchedDestinationUrl_returnsFalse(
       @TestParameter({
-            "https://some.github.enterprise.instance/foo/bar",
+            "https://some.github.onprem.instance/foo/bar",
             "https://github.com/other/bar",
             "https://github.com/foo/other"
           })

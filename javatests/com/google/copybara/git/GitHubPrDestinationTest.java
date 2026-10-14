@@ -1168,7 +1168,7 @@ public class GitHubPrDestinationTest {
 
   @Test
   public void testParseGithubHostName() throws Exception {
-    String customHost = "ghes.example.com";
+    String customHost = "ghop.example.com";
     String orgAndRepoName = "my-org/my-repo";
     String url = "https://" + customHost + "/" + orgAndRepoName;
     GitHubPrDestination d =
@@ -1187,7 +1187,7 @@ public class GitHubPrDestinationTest {
 
   @Test
   public void asHttpsUrlUsesGitHubHostName() throws Exception {
-    String customHost = "ghes.example.com";
+    String customHost = "ghop.example.com";
     String url = "https://" + customHost + "/" + "my-org/my-repo";
     GitHubPrDestination d =
         skylark.eval(
