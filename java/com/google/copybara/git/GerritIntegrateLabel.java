@@ -25,6 +25,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
+import java.util.List;
 import java.util.Optional;
 import javax.annotation.Nullable;
 
@@ -87,7 +88,7 @@ class GerritIntegrateLabel implements IntegrateLabel {
       GitRepository repository,
       String repoUrl,
       GeneralOptions generalOptions,
-      GitOptions gitOptions)
+      List<String> allowedRefPrefixes)
       throws ValidationException {
     GerritIntegrateLabel label = parse(str, repository, generalOptions);
     if (label == null) {
@@ -98,19 +99,19 @@ class GerritIntegrateLabel implements IntegrateLabel {
             .trimTrailingFrom(label.url)
             .equals(CharMatcher.is('/').trimTrailingFrom(repoUrl));
     if (!matchesDestination) {
-      if (gitOptions.allowIntegrateRef.isEmpty()) {
+      if (allowedRefPrefixes.isEmpty()) {
         throw new ValidationException(
             String.format(
                 "Integrate URL in '%s' does not match destination repository URL '%s'.",
                 str.trim(), repoUrl));
       }
       ValidationException.checkCondition(
-          gitOptions.allowIntegrateRef.stream().anyMatch(label.url::startsWith),
+          allowedRefPrefixes.stream().anyMatch(label.url::startsWith),
           "Integrate URL in '%s' does not match destination repository URL '%s' or any allowed"
               + " prefix (%s).",
           str.trim(),
           repoUrl,
-          gitOptions.allowIntegrateRef);
+          allowedRefPrefixes);
     }
     return Optional.of(label);
   }

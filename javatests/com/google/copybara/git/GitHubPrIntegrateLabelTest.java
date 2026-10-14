@@ -175,28 +175,32 @@ public class GitHubPrIntegrateLabelTest {
   }
 
   @Test
-  public void maybeParse_nonGitHubDestinationUrl_allowedWithAllowIntegrateRef() throws Exception {
+  public void maybeParse_nonGitHubDestinationUrl_allowedWithAllowedRefPrefixes() throws Exception {
     GeneralOptions options =
         new GeneralOptions(ImmutableMap.of(), FileSystems.getDefault(), console);
-    GitOptions gitOptions = new GitOptions(options);
     String rawLabel =
         "https://github.com/foo/bar/pull/18"
             + " from copybarrista:main dbb8386719596088dbf7513fad87559b2ff796cc";
 
     assertThrows(
         ValidationException.class,
-        () -> GitHubPrIntegrateLabel.maybeParse(rawLabel, repo, "rpc://foo", options, gitOptions));
+        () ->
+            GitHubPrIntegrateLabel.maybeParse(
+                rawLabel, repo, "rpc://foo", options, ImmutableList.of()));
 
-    gitOptions.allowIntegrateRef = ImmutableList.of("https://github.com/foo/bar");
     Optional<IntegrateLabel> parsed =
-        GitHubPrIntegrateLabel.maybeParse(rawLabel, repo, "rpc://foo", options, gitOptions);
+        GitHubPrIntegrateLabel.maybeParse(
+            rawLabel, repo, "rpc://foo", options, ImmutableList.of("https://github.com/foo/bar"));
     assertThat(parsed).isPresent();
     assertThat(parsed.get().toString()).isEqualTo(rawLabel);
 
-    gitOptions.allowIntegrateRef = ImmutableList.of("https://github.com/other/repo");
     Optional<IntegrateLabel> parsedMatchingDest =
         GitHubPrIntegrateLabel.maybeParse(
-            rawLabel, repo, "https://github.com/foo/bar", options, gitOptions);
+            rawLabel,
+            repo,
+            "https://github.com/foo/bar",
+            options,
+            ImmutableList.of("https://github.com/other/repo"));
     assertThat(parsedMatchingDest).isPresent();
     assertThat(parsedMatchingDest.get().toString()).isEqualTo(rawLabel);
   }

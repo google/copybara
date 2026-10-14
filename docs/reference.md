@@ -3766,7 +3766,7 @@ Name | Type | Description
 
 Integrate changes from a url present in the migrated change label.
 
-<code>git_integrate</code> <code>git.integrate(<a href=#git.integrate.label>label</a>="COPYBARA_INTEGRATE_REVIEW", <a href=#git.integrate.strategy>strategy</a>="FAKE_MERGE_AND_INCLUDE_FILES", <a href=#git.integrate.ignore_errors>ignore_errors</a>=True, <a href=#git.integrate.allow_unrelated_history>allow_unrelated_history</a>=False, <a href=#git.integrate.merge_commit_message>merge_commit_message</a>="${MERGE_MSG}", <a href=#git.integrate.allow_protocol_ref>allow_protocol_ref</a>=False)</code>
+<code>git_integrate</code> <code>git.integrate(<a href=#git.integrate.label>label</a>="COPYBARA_INTEGRATE_REVIEW", <a href=#git.integrate.strategy>strategy</a>="FAKE_MERGE_AND_INCLUDE_FILES", <a href=#git.integrate.ignore_errors>ignore_errors</a>=True, <a href=#git.integrate.allow_unrelated_history>allow_unrelated_history</a>=False, <a href=#git.integrate.merge_commit_message>merge_commit_message</a>="${MERGE_MSG}", <a href=#git.integrate.allow_protocol_ref>allow_protocol_ref</a>=False, <a href=#git.integrate.allowed_ref_prefixes>allowed_ref_prefixes</a>=[])</code>
 
 
 <h4 id="parameters.git.integrate">Parameters:</h4>
@@ -3779,6 +3779,7 @@ Parameter | Description
 <span id=git.integrate.allow_unrelated_history href=#git.integrate.allow_unrelated_history>allow_unrelated_history</span> | <code><a href="#bool">bool</a></code><br><p>If true allow integrates of unrelated histories.</p>
 <span id=git.integrate.merge_commit_message href=#git.integrate.merge_commit_message>merge_commit_message</span> | <code><a href="#string">string</a></code><br><p>The template for the merge commit message. Use ${MERGE_MSG} for default message and ${SUMMARY_FROM_TRANSFORM} for summary of the transform. All other labels from the TransformResult are available, but destination labels might not. It will use the first label value if multiple are defined. See metadata.replace_message for semantics</p>
 <span id=git.integrate.allow_protocol_ref href=#git.integrate.allow_protocol_ref>allow_protocol_ref</span> | <code><a href="#bool">bool</a></code><br><p>If true, allow protocol markers (://) in generic git integrate references. Enabling this might be required for non-GitHub repos when no remote is configured.</p>
+<span id=git.integrate.allowed_ref_prefixes href=#git.integrate.allowed_ref_prefixes>allowed_ref_prefixes</span> | <code>sequence of <a href="#string">string</a></code><br><p>List of repository URL prefixes that git.integrate is allowed to fetch from. If empty, only the destination repository URL is allowed.</p>
 
 
 <h4 id="example.git.integrate">Examples:</h4>

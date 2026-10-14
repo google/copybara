@@ -1179,7 +1179,8 @@ public class GitDestinationIntegrateTest {
             "url = '" + url + "'",
             String.format("fetch = '%s'", primaryBranch),
             String.format("push = '%s'", primaryBranch),
-            "integrates = [git.integrate(ignore_errors = False, strategy = 'FAKE_MERGE')]");
+            "integrates = [git.integrate(ignore_errors = False, strategy = 'FAKE_MERGE',"
+                + " allowed_ref_prefixes = ['https://github.com/another/repo'])]");
     GitLogEntry previous = createBaseDestinationChange(destination);
 
     repo.simpleCommand("checkout", "-b", "pr_branch", primaryBranch);
@@ -1259,7 +1260,8 @@ public class GitDestinationIntegrateTest {
             "url = '" + url + "'",
             String.format("fetch = '%s'", primaryBranch),
             String.format("push = '%s'", primaryBranch),
-            "integrates = [git.integrate(ignore_errors = False, strategy = 'FAKE_MERGE')]");
+            "integrates = [git.integrate(ignore_errors = False, strategy = 'FAKE_MERGE',"
+                + " allowed_ref_prefixes = ['https://example.com/another_gerrit'])]");
     GitLogEntry previous = createBaseDestinationChange(destination);
 
     repo.simpleCommand("checkout", "-b", "gerrit_branch", primaryBranch);
@@ -1290,13 +1292,14 @@ public class GitDestinationIntegrateTest {
 
   @Test
   public void testGitHubIntegrate_rejectedWhenNotMatchingAllowedRefPrefix() throws Exception {
-    options.git.allowIntegrateRef = ImmutableList.of("https://github.com/allowed_org/");
+    options.git.allowIntegrateRef = ImmutableList.of("https://github.com/cli_allowed/");
     GitDestination destination =
         destination(
             "url = 'https://github.com/example/destination_repo'",
             String.format("fetch = '%s'", primaryBranch),
             String.format("push = '%s'", primaryBranch),
-            "integrates = [git.integrate(ignore_errors = False)]");
+            "integrates = [git.integrate(ignore_errors = False,"
+                + " allowed_ref_prefixes = ['https://github.com/param_allowed/'])]");
     GitRepository unused =
         gitUtil.mockRemoteRepo("github.com/example/destination_repo", repoFormat);
 
@@ -1321,7 +1324,7 @@ public class GitDestinationIntegrateTest {
                 + label
                 + "' does not match destination repository URL"
                 + " 'https://github.com/example/destination_repo' or any allowed prefix"
-                + " ([https://github.com/allowed_org/]).");
+                + " ([https://github.com/param_allowed/, https://github.com/cli_allowed/]).");
   }
 
   @Test
@@ -1374,6 +1377,20 @@ public class GitDestinationIntegrateTest {
                 + url
                 + "' or any allowed prefix ([]).");
 
+    GitDestination destinationWithAllowedRefPrefixesParam =
+        destination(
+            "url = '" + url + "'",
+            String.format("fetch = '%s'", primaryBranch),
+            String.format("push = '%s'", primaryBranch),
+            "integrates = [git.integrate(ignore_errors = False, strategy = 'FAKE_MERGE',"
+                + " allowed_ref_prefixes = ['https://github.com/example/test_repo'])]");
+
+    migrateOriginChange(destinationWithAllowedRefPrefixesParam, changeSummary, "some content");
+
+    GitLogEntry mergeFromParam = getLastMigratedChange(primaryBranch);
+    assertThat(Lists.transform(mergeFromParam.parents(), GitRevision::getHash))
+        .isEqualTo(Lists.newArrayList(previous.commit().getHash(), prChange.getHash()));
+
     options.git.allowIntegrateRef = ImmutableList.of("https://github.com/example/test_repo");
     GitDestination destinationWithAllowRef =
         destination(
@@ -1382,11 +1399,11 @@ public class GitDestinationIntegrateTest {
             String.format("push = '%s'", primaryBranch),
             "integrates = [git.integrate(ignore_errors = False, strategy = 'FAKE_MERGE')]");
 
-    migrateOriginChange(destinationWithAllowRef, changeSummary, "some content");
+    migrateOriginChange(destinationWithAllowRef, changeSummary, "other content");
 
     GitLogEntry merge = getLastMigratedChange(primaryBranch);
     assertThat(Lists.transform(merge.parents(), GitRevision::getHash))
-        .isEqualTo(Lists.newArrayList(previous.commit().getHash(), prChange.getHash()));
+        .isEqualTo(Lists.newArrayList(mergeFromParam.commit().getHash(), prChange.getHash()));
   }
 
   @Test

@@ -489,7 +489,15 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                 "If true, allow protocol markers (://) in generic git integrate references."
                     + " Enabling this might be required for non-GitHub repos when no remote is"
                     + " configured.",
-            defaultValue = "False")
+            defaultValue = "False"),
+        @Param(
+            name = "allowed_ref_prefixes",
+            allowedTypes = {@ParamType(type = Sequence.class, generic1 = String.class)},
+            named = true,
+            doc =
+                "List of repository URL prefixes that git.integrate is allowed to fetch from. If"
+                    + " empty, only the destination repository URL is allowed.",
+            defaultValue = "[]")
       })
   @Example(
       title = "Integrate changes from a review url",
@@ -532,7 +540,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Boolean ignoreErrors,
       Boolean allowUnrelatedHistory,
       String mergeCommitMessage,
-      Boolean allowProtocolRef)
+      Boolean allowProtocolRef,
+      Sequence<?> allowedRefPrefixes)
       throws EvalException {
     return new GitIntegrateChanges(
         label,
@@ -540,7 +549,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         ignoreErrors,
         allowUnrelatedHistory != null && allowUnrelatedHistory,
         new LabelTemplate(mergeCommitMessage),
-        allowProtocolRef != null && allowProtocolRef);
+        allowProtocolRef != null && allowProtocolRef,
+        Sequence.cast(allowedRefPrefixes, String.class, "allowed_ref_prefixes"));
   }
 
   @SuppressWarnings("unused")

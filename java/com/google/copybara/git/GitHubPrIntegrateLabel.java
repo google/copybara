@@ -25,6 +25,7 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.github.util.GitHubIdentifier;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
+import java.util.List;
 import java.util.Optional;
 import javax.annotation.Nullable;
 
@@ -116,13 +117,13 @@ class GitHubPrIntegrateLabel implements IntegrateLabel {
       GitRepository repository,
       String repoUrl,
       GeneralOptions generalOptions,
-      GitOptions gitOptions)
+      List<String> allowedRefPrefixes)
       throws ValidationException {
     GitHubPrIntegrateLabel label = parse(str, repository, generalOptions);
     if (label == null) {
       return Optional.empty();
     }
-    if (gitOptions.allowIntegrateRef.stream().anyMatch(label.gitHubIdentifier.getUrl()::startsWith)
+    if (allowedRefPrefixes.stream().anyMatch(label.gitHubIdentifier.getUrl()::startsWith)
         || label.matchesDestinationUrl(repoUrl)) {
       return Optional.of(label);
     }
@@ -130,7 +131,7 @@ class GitHubPrIntegrateLabel implements IntegrateLabel {
         String.format(
             "Integrate URL in '%s' does not match destination repository URL '%s' or any allowed"
                 + " prefix (%s).",
-            str.trim(), repoUrl, gitOptions.allowIntegrateRef));
+            str.trim(), repoUrl, allowedRefPrefixes));
   }
 
   @Override

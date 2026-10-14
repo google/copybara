@@ -65,6 +65,7 @@ public class GitIntegrateChanges implements StarlarkValue {
   private final boolean allowUnrelatedHistory;
   private final LabelTemplate mergeCommitMessage;
   private final boolean allowProtocolRef;
+  private final ImmutableList<String> allowedRefPrefixes;
 
   GitIntegrateChanges(String label, Strategy strategy, boolean ignoreErrors) {
     this(
@@ -73,7 +74,8 @@ public class GitIntegrateChanges implements StarlarkValue {
         ignoreErrors,
         /* allowUnrelatedHistory= */ false,
         DEFAULT_MERGE_MSG_TEMPLATE,
-        /* allowProtocolRef= */ false);
+        /* allowProtocolRef= */ false,
+        ImmutableList.of());
   }
 
   GitIntegrateChanges(
@@ -84,7 +86,8 @@ public class GitIntegrateChanges implements StarlarkValue {
         ignoreErrors,
         allowUnrelatedHistory,
         DEFAULT_MERGE_MSG_TEMPLATE,
-        /* allowProtocolRef= */ false);
+        /* allowProtocolRef= */ false,
+        ImmutableList.of());
   }
 
   GitIntegrateChanges(
@@ -99,7 +102,8 @@ public class GitIntegrateChanges implements StarlarkValue {
         ignoreErrors,
         allowUnrelatedHistory,
         mergeCommitMessage,
-        /* allowProtocolRef= */ false);
+        /* allowProtocolRef= */ false,
+        ImmutableList.of());
   }
 
   GitIntegrateChanges(
@@ -109,12 +113,31 @@ public class GitIntegrateChanges implements StarlarkValue {
       boolean allowUnrelatedHistory,
       LabelTemplate mergeCommitMessage,
       boolean allowProtocolRef) {
+    this(
+        label,
+        strategy,
+        ignoreErrors,
+        allowUnrelatedHistory,
+        mergeCommitMessage,
+        allowProtocolRef,
+        ImmutableList.of());
+  }
+
+  GitIntegrateChanges(
+      String label,
+      Strategy strategy,
+      boolean ignoreErrors,
+      boolean allowUnrelatedHistory,
+      LabelTemplate mergeCommitMessage,
+      boolean allowProtocolRef,
+      Iterable<String> allowedRefPrefixes) {
     this.label = Preconditions.checkNotNull(label);
     this.strategy = Preconditions.checkNotNull(strategy);
     this.ignoreErrors = ignoreErrors;
     this.allowUnrelatedHistory = allowUnrelatedHistory;
     this.mergeCommitMessage = Preconditions.checkNotNull(mergeCommitMessage);
     this.allowProtocolRef = allowProtocolRef;
+    this.allowedRefPrefixes = ImmutableList.copyOf(allowedRefPrefixes);
   }
 
   /**
@@ -186,13 +209,22 @@ public class GitIntegrateChanges implements StarlarkValue {
             .console()
             .progressFmt(
                 "Integrating change from '%s' using strategy %s", label.getValue(), strategy);
+        ImmutableList<String> effectiveAllowedRefPrefixes =
+            ImmutableList.<String>builder()
+                .addAll(allowedRefPrefixes)
+                .addAll(gitOptions.allowIntegrateRef)
+                .build();
         Optional<IntegrateLabel> integrateLabel =
             GitHubPrIntegrateLabel.maybeParse(
-                label.getValue(), repository, repoUrl, generalOptions, gitOptions);
+                label.getValue(), repository, repoUrl, generalOptions, effectiveAllowedRefPrefixes);
         if (integrateLabel.isEmpty()) {
           integrateLabel =
               GerritIntegrateLabel.maybeParse(
-                  label.getValue(), repository, repoUrl, generalOptions, gitOptions);
+                  label.getValue(),
+                  repository,
+                  repoUrl,
+                  generalOptions,
+                  effectiveAllowedRefPrefixes);
         }
         if (integrateLabel.isEmpty()) {
           integrateLabel =
@@ -202,7 +234,7 @@ public class GitIntegrateChanges implements StarlarkValue {
                       repoUrl,
                       label.getValue(),
                       generalOptions,
-                      gitOptions,
+                      effectiveAllowedRefPrefixes,
                       allowProtocolRef));
         }
 
@@ -582,7 +614,8 @@ public class GitIntegrateChanges implements StarlarkValue {
         && allowProtocolRef == that.allowProtocolRef
         && Objects.equals(label, that.label)
         && strategy == that.strategy
-        && Objects.equals(mergeCommitMessage, that.mergeCommitMessage);
+        && Objects.equals(mergeCommitMessage, that.mergeCommitMessage)
+        && Objects.equals(allowedRefPrefixes, that.allowedRefPrefixes);
   }
 
   public Strategy getStrategy() {
@@ -605,10 +638,20 @@ public class GitIntegrateChanges implements StarlarkValue {
     return allowProtocolRef;
   }
 
+  public ImmutableList<String> getAllowedRefPrefixes() {
+    return allowedRefPrefixes;
+  }
+
   @Override
   public int hashCode() {
     return Objects.hash(
-        label, strategy, ignoreErrors, allowUnrelatedHistory, mergeCommitMessage, allowProtocolRef);
+        label,
+        strategy,
+        ignoreErrors,
+        allowUnrelatedHistory,
+        mergeCommitMessage,
+        allowProtocolRef,
+        allowedRefPrefixes);
   }
 
   @Override
@@ -620,6 +663,7 @@ public class GitIntegrateChanges implements StarlarkValue {
         .add("allowUnrelatedHistory", allowUnrelatedHistory)
         .add("mergeCommitMessage", mergeCommitMessage)
         .add("allowProtocolRef", allowProtocolRef)
+        .add("allowedRefPrefixes", allowedRefPrefixes)
         .toString();
   }
 

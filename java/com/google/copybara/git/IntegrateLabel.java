@@ -23,6 +23,7 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.LabelFinder;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -43,7 +44,7 @@ public interface IntegrateLabel {
       String repoUrl,
       String rawLabelValue,
       GeneralOptions generalOptions,
-      GitOptions gitOptions,
+      List<String> allowedRefPrefixes,
       boolean allowProtocolRef)
       throws RepoException, ValidationException {
     String rawLabel = rawLabelValue.trim();
@@ -58,7 +59,7 @@ public interface IntegrateLabel {
       String repoUrlPrefix = repoUrl.endsWith("/") ? repoUrl : repoUrl + "/";
       boolean matchesDestination = labelUrl.equals(repoUrl) || labelUrl.startsWith(repoUrlPrefix);
       if (!matchesDestination) {
-        if (gitOptions.allowIntegrateRef.isEmpty()) {
+        if (allowedRefPrefixes.isEmpty()) {
           throw new ValidationException(
               String.format(
                   "Integrate URL in '%s' must match or have destination repository URL '%s' as a"
@@ -66,12 +67,12 @@ public interface IntegrateLabel {
                   rawLabel, repoUrl));
         }
         ValidationException.checkCondition(
-            gitOptions.allowIntegrateRef.stream().anyMatch(labelUrl::startsWith),
+            allowedRefPrefixes.stream().anyMatch(labelUrl::startsWith),
             "Integrate URL in '%s' does not match destination repository URL '%s' or any allowed"
                 + " prefix (%s).",
             rawLabel,
             repoUrl,
-            gitOptions.allowIntegrateRef);
+            allowedRefPrefixes);
       }
     }
     // would derive url from repo remote, but there is no guarantee a remote is configured.
