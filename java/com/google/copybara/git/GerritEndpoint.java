@@ -37,10 +37,12 @@ import com.google.copybara.git.gerritapi.GetChangeInput;
 import com.google.copybara.git.gerritapi.IncludeResult;
 import com.google.copybara.git.gerritapi.NotifyType;
 import com.google.copybara.git.gerritapi.ReviewResult;
+import com.google.copybara.git.gerritapi.ReviewerInput;
 import com.google.copybara.git.gerritapi.SetReviewInput;
 import com.google.copybara.git.gerritapi.SubmitInput;
 import com.google.copybara.util.console.Console;
 import java.util.Map;
+import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
@@ -197,6 +199,27 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
           truncatedMessage, reviewInput.getLabels(), reviewInput.getTag(), reviewInput.getNotify());
     }
     return reviewInput;
+  }
+
+  @StarlarkMethod(
+      name = "add_reviewer",
+      doc =
+          "Add a reviewer to a Gerrit change. Fails gracefully and returns the error message if"
+              + " adding the reviewer fails, or None otherwise.\n",
+      parameters = {
+        @Param(name = "change_id", named = true, doc = "The Gerrit change id."),
+        @Param(name = "reviewer", named = true, doc = "The reviewer email or account id to add."),
+      },
+      allowReturnNones = true)
+  @Nullable
+  public String addReviewer(String changeId, String reviewer) {
+    try {
+      GerritApi gerritApi = apiSupplier.load(console);
+      gerritApi.addReviewer(changeId, new ReviewerInput(reviewer));
+      return null;
+    } catch (RepoException | ValidationException | RuntimeException e) {
+      return e.getMessage();
+    }
   }
 
   @StarlarkMethod(

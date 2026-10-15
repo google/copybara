@@ -70,11 +70,12 @@ public class GerritEndpointTest {
   private DummyTrigger dummyTrigger;
   private String url;
   private GitTestUtil gitUtil;
+  private TestingConsole console;
 
   @Before
   public void setup() throws Exception {
     workdir = Jimfs.newFileSystem().getPath("/");
-    TestingConsole console = new TestingConsole();
+    console = new TestingConsole();
     OptionsBuilder options = new OptionsBuilder();
     options.setConsole(console).setOutputRootToTmpDir();
     dummyTrigger = new DummyTrigger();
@@ -796,6 +797,55 @@ public class GerritEndpointTest {
         .hasMessageThat()
         .contains("Request error calling abandon_change. Gerrit returned a request error");
     assertThat(e.getCause()).hasCauseThat().isInstanceOf(GerritApiException.class);
+  }
+
+  @Test
+  public void addReviewer() throws Exception {
+    AtomicBoolean called = new AtomicBoolean(false);
+    gitUtil.mockApi(
+        eq("POST"),
+        startsWith(BASE_URL + "/changes/12345/reviewers"),
+        mockResponseWithStatus(
+            "{}",
+            200,
+            new MockRequestAssertion(
+                "Contains reviewer",
+                s -> {
+                  boolean result = s.contains("foo@google.com");
+                  called.set(result);
+                  return result;
+                })));
+
+    runFeedback(
+        ImmutableList.<String>builder()
+            .add(
+                "res = ctx.destination.add_reviewer(change_id = '12345', reviewer ="
+                    + " 'foo@google.com')")
+            .add("if res != None:")
+            .add("  fail('Expected None, got: ' + str(res))")
+            .build());
+
+    assertThat(called.get()).isTrue();
+  }
+
+  @Test
+  public void addReviewer_gerritApiException_failsGracefully() throws Exception {
+    var unused =
+        gitUtil.mockApi(
+            eq("POST"),
+            startsWith(BASE_URL + "/changes/12345/reviewers"),
+            invocation -> {
+              throw new GerritApiException(400, "invalid reviewer", "", "");
+            });
+
+    runFeedback(
+        ImmutableList.<String>builder()
+            .add(
+                "res = ctx.destination.add_reviewer(change_id = '12345', reviewer ="
+                    + " 'groupagent-review')")
+            .add("if res == None or 'invalid reviewer' not in res:")
+            .add("  fail('Expected error message, got: ' + str(res))")
+            .build());
   }
 
   @Test
