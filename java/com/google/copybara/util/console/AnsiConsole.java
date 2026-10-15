@@ -17,6 +17,7 @@
 package com.google.copybara.util.console;
 
 import static com.google.copybara.util.console.AnsiColor.BLUE;
+import static com.google.copybara.util.console.AnsiColor.CYAN;
 import static com.google.copybara.util.console.AnsiColor.GREEN;
 import static com.google.copybara.util.console.AnsiColor.RED;
 import static com.google.copybara.util.console.AnsiColor.YELLOW;
@@ -39,6 +40,25 @@ public final class AnsiConsole implements Console {
 
   private static final CharMatcher NEWLINE_COUNTER = CharMatcher.is('\n');
   private static final String REMOVE_LINE = AnsiEscapes.oneLineUp() + AnsiEscapes.deleteLine();
+  private static final String COPYBARA_LOGO =
+      """
+              ▗▄▗▄██████████▙▖
+              ██████▄████████▌
+              ▝▜█████████████▘
+               ▐██████████▛▀
+               ▟█████████▘
+             ▗▟██████████
+          ▄▄█████████████▖
+        ▄█████████████████
+       ▟██████████████████
+       ███████████████████
+       ██████████████████▌
+       ▜█████████████████
+       ▝████████████████▌
+        ▝███████▛███▛▐██▌
+          ▀▜██▛  ▝███▄▀██▌
+                   ▝▀▘\
+      """;
 
   private final InputStream input;
   private final PrintStream output;
@@ -57,6 +77,7 @@ public final class AnsiConsole implements Console {
   @Override
   public void startupMessage(String version) {
     // Just because we can!
+    output.println(CYAN.write(COPYBARA_LOGO));
     output.println(BLUE.write("C")
         + RED.write("o")
         + YELLOW.write("p")

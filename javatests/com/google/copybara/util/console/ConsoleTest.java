@@ -259,6 +259,17 @@ public class ConsoleTest {
         .contains("Invalid answer: Hello there!");
   }
 
+  @Test
+  public void ansiConsoleStartupMessagePrintsLogoAndVersion() throws Exception {
+    ByteArrayInputStream in = new ByteArrayInputStream(new byte[0]);
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    Console console = new AnsiConsole(in, new PrintStream(out), /*verbose=*/ false);
+    console.startupMessage("v1");
+    String output = out.toString(StandardCharsets.UTF_8.name());
+    assertThat(output).contains("\n ███████████████████\n");
+    assertThat(output).contains("source mover (Version: v1)");
+  }
+
   private void checkLogConsoleExpectedPrompt(String inputText, boolean expectedResponse)
       throws IOException {
     ByteArrayInputStream in = new ByteArrayInputStream(inputText.getBytes(StandardCharsets.UTF_8));
