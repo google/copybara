@@ -79,51 +79,6 @@ public class GitIntegrateChanges implements StarlarkValue {
   }
 
   GitIntegrateChanges(
-      String label, Strategy strategy, boolean ignoreErrors, boolean allowUnrelatedHistory) {
-    this(
-        label,
-        strategy,
-        ignoreErrors,
-        allowUnrelatedHistory,
-        DEFAULT_MERGE_MSG_TEMPLATE,
-        /* allowProtocolRef= */ false,
-        ImmutableList.of());
-  }
-
-  GitIntegrateChanges(
-      String label,
-      Strategy strategy,
-      boolean ignoreErrors,
-      boolean allowUnrelatedHistory,
-      LabelTemplate mergeCommitMessage) {
-    this(
-        label,
-        strategy,
-        ignoreErrors,
-        allowUnrelatedHistory,
-        mergeCommitMessage,
-        /* allowProtocolRef= */ false,
-        ImmutableList.of());
-  }
-
-  GitIntegrateChanges(
-      String label,
-      Strategy strategy,
-      boolean ignoreErrors,
-      boolean allowUnrelatedHistory,
-      LabelTemplate mergeCommitMessage,
-      boolean allowProtocolRef) {
-    this(
-        label,
-        strategy,
-        ignoreErrors,
-        allowUnrelatedHistory,
-        mergeCommitMessage,
-        allowProtocolRef,
-        ImmutableList.of());
-  }
-
-  GitIntegrateChanges(
       String label,
       Strategy strategy,
       boolean ignoreErrors,
