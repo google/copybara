@@ -442,8 +442,8 @@ public final class GeneralOptions implements Option {
               + " names uppercased and prefixed with "
               + CLI_FLAG_PREFIX
               + " to avoid name clashes with existing labels. I.e. `--labels=label1:value1` will"
-              + " define a label FLAG_LABEL1Format: --labels=flag1:value1,flag2:value2 Or: --labels"
-              + " flag1:value1,flag2:value2 ",
+              + " define a label FLAG_LABEL1. Format: --labels=flag1:value1,flag2:value2 Or:"
+              + " --labels flag1:value1,flag2:value2",
       converter = MapConverter.class)
   ImmutableMap<String, String> labels = ImmutableMap.of();
 
