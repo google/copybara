@@ -24,9 +24,7 @@ import com.google.copybara.Option;
 import com.google.copybara.jcommander.MapConverter;
 import com.google.copybara.onboard.core.AskInputProvider.Mode;
 
-/**
- * Options for the generator command
- */
+/** Options for the generator command */
 @Parameters(separators = "=")
 public class GeneratorOptions implements Option {
 
@@ -48,7 +46,11 @@ public class GeneratorOptions implements Option {
 
   @Parameter(
       names = {"--inputs"},
-      description = "Inputs for code generation",
+      description =
+          "Inputs for code generation, as comma-separated key:value pairs, e.g."
+              + " foo:bar,baz:qux. Wrap a value in double quotes if it contains a comma, e.g."
+              + " foo:\"a, b\". Inside quotes, use \\\" for a literal quote and \\\\ for a"
+              + " literal backslash.",
       converter = MapConverter.class)
   public ImmutableMap<String, String> inputs = ImmutableMap.of();
 
