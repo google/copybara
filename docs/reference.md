@@ -3243,7 +3243,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--git-ref-format`</span> | *`FILES`<br>or `REFTABLE`* | The reference storage format to use when initializing Git repositories (e.g. 'files', 'reftable'). Defaults to 'files'.
 <span style="white-space: nowrap;">`--git-tag-overwrite`</span> | *boolean* | If set, copybara will force update existing git tag
 <span style="white-space: nowrap;">`--nogit-credential-helper-store`</span> | *boolean* | Disable using credentials store. See https://git-scm.com/docs/git-credential-store
-<span style="white-space: nowrap;">`--nogit-prompt`</span> | *boolean* | Disable username/password prompt and fail if no credentials are found. This flag sets the environment variable GIT_TERMINAL_PROMPT which is intended for automated jobs running Git https://git-scm.com/docs/git/2.3.0#git-emGITTERMINALPROMPTem
+<span style="white-space: nowrap;">`--nogit-prompt`</span> | *boolean* | Disable username/password prompt and fail if no credentials are found. This flag sets the environment variable GIT_TERMINAL_PROMPT which is intended for automated jobs running Git https://git-scm.com/docs/git#Documentation/git.txt-GITTERMINALPROMPT
 
 <a id="git.destination" aria-hidden="true"></a>
 ### git.destination
@@ -9160,7 +9160,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--noansi`</span> | *boolean* | Don't use ANSI output for messages
 <span style="white-space: nowrap;">`--nocleanup`</span> | *boolean* | Cleanup the output directories. This includes the workdir, scratch clones of Git repos, etc. By default is set to false and directories will be cleaned prior to the execution. If set to true, the previous run output will not be cleaned up. Keep in mind that running in this mode will lead to an ever increasing disk usage.
 <span style="white-space: nowrap;">`--nogit-credential-helper-store`</span> | *boolean* | Disable using credentials store. See https://git-scm.com/docs/git-credential-store
-<span style="white-space: nowrap;">`--nogit-prompt`</span> | *boolean* | Disable username/password prompt and fail if no credentials are found. This flag sets the environment variable GIT_TERMINAL_PROMPT which is intended for automated jobs running Git https://git-scm.com/docs/git/2.3.0#git-emGITTERMINALPROMPTem
+<span style="white-space: nowrap;">`--nogit-prompt`</span> | *boolean* | Disable username/password prompt and fail if no credentials are found. This flag sets the environment variable GIT_TERMINAL_PROMPT which is intended for automated jobs running Git https://git-scm.com/docs/git#Documentation/git.txt-GITTERMINALPROMPT
 <span style="white-space: nowrap;">`--noprompt`</span> | *boolean* | Don't prompt, this will answer all prompts with 'yes'
 <span style="white-space: nowrap;">`--output-limit`</span> | *int* | Limit the output in the console to a number of records. Each subcommand might use this flag differently. Defaults to 0, which shows all the output.
 <span style="white-space: nowrap;">`--output-root`</span> | *string* | The root directory where to generate output files. If not set, ~/copybara/out is used by default. Use with care, Copybara might remove files inside this root if necessary.
