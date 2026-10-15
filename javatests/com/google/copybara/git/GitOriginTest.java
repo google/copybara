@@ -211,7 +211,7 @@ public class GitOriginTest {
     String urlSha256 = "file://" + remoteSha256.toFile().getAbsolutePath();
     GitRepository cachedRepo = options.git.cachedBareRepoForUrl(urlSha256);
     FileUtil.deleteRecursively(cachedRepo.getGitDir());
-    cachedRepo.init(GitHashAlgorithm.SHA1);
+    cachedRepo.init(GitHashAlgorithm.SHA1, options.git.gitRefFormat);
 
     // origin.resolve() should trigger cache validation and wipe/re-init as sha256
     origin =
@@ -253,7 +253,7 @@ public class GitOriginTest {
     String urlSha1 = "file://" + remoteSha1.toFile().getAbsolutePath();
     GitRepository cachedRepo = options.git.cachedBareRepoForUrl(urlSha1);
     FileUtil.deleteRecursively(cachedRepo.getGitDir());
-    cachedRepo.init(GitHashAlgorithm.SHA256);
+    cachedRepo.init(GitHashAlgorithm.SHA256, options.git.gitRefFormat);
 
     // origin.resolve() should trigger cache validation and wipe/re-init as sha1
     origin =
@@ -291,7 +291,7 @@ public class GitOriginTest {
     String url = "file://" + remote.toFile().getAbsolutePath();
     GitRepository cachedRepo = options.git.cachedBareRepoForUrl(url, /* fetchUrl= */ (String) null);
     FileUtil.deleteRecursively(cachedRepo.getGitDir());
-    cachedRepo.init(GitHashAlgorithm.SHA256);
+    cachedRepo.init(GitHashAlgorithm.SHA256, options.git.gitRefFormat);
 
     // Resolving cachedBareRepoForUrl using null fetchUrl
     GitRepository updatedCachedRepo =
@@ -318,7 +318,7 @@ public class GitOriginTest {
     String url = "file://" + remote.toFile().getAbsolutePath();
     GitRepository cachedRepo = options.git.cachedBareRepoForUrl(url);
     FileUtil.deleteRecursively(cachedRepo.getGitDir());
-    cachedRepo.init(GitHashAlgorithm.SHA256);
+    cachedRepo.init(GitHashAlgorithm.SHA256, options.git.gitRefFormat);
 
     // Resolving using an invalid fetchUrl that throws RepoException
     GitRepository updatedCachedRepo =
