@@ -55,6 +55,12 @@ public class XmlModule implements StarlarkValue {
     DocumentBuilderFactory builderFactory = DocumentBuilderFactory.newInstance();
     DocumentBuilder builder;
     try {
+      // Prevent XML External Entity (XXE) processing: reject DTDs (which also
+      // disables entity resolution) and external entities, since the parsed XML
+      // content may come from an untrusted source (e.g. a migrated repository).
+      builderFactory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+      builderFactory.setXIncludeAware(false);
+      builderFactory.setExpandEntityReferences(false);
       builder = builderFactory.newDocumentBuilder();
     } catch (ParserConfigurationException e) {
       throw new RuntimeException("Error creating document builder for parsing XML");
