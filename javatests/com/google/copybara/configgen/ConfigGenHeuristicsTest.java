@@ -214,7 +214,8 @@ public class ConfigGenHeuristicsTest {
     ConfigGenHeuristics.Result result = createHeuristics().run();
 
     assertThat(result.getTransformations().asList())
-        .containsExactly(new GeneratorMove("fileA", "fileC"), new GeneratorCopy("fileA", "fileB"));
+        .containsExactly(new GeneratorCopy("fileA", "fileB"), new GeneratorMove("fileA", "fileC"))
+        .inOrder();
     assertThat(result.getDestinationExcludePaths().getPaths()).doesNotContain(Path.of("fileB"));
   }
 
@@ -230,7 +231,8 @@ public class ConfigGenHeuristicsTest {
 
     assertThat(result.getTransformations().asList())
         .containsExactly(
-            new GeneratorMove("a/b/c", "x/y/z"), new GeneratorCopy("a/b/c/fileA", "u/v/w/fileB"));
+            new GeneratorCopy("a/b/c/fileA", "u/v/w/fileB"), new GeneratorMove("a/b/c", "x/y/z"))
+        .inOrder();
   }
 
   @Test

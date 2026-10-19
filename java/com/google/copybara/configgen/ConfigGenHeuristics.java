@@ -221,8 +221,8 @@ public class ConfigGenHeuristics {
     ImmutableList<GeneratorMove> moves = generateMoves(similarFiles);
     ImmutableList<GeneratorTransformation> allTransformations =
         ImmutableList.<GeneratorTransformation>builder()
-            .addAll(moves)
             .addAll(copiesBuilder.build())
+            .addAll(moves)
             .build();
 
     DestinationExcludePaths destinationExcludePaths =
