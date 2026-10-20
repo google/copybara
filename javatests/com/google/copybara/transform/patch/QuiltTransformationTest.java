@@ -353,6 +353,32 @@ public final class QuiltTransformationTest {
   }
 
   @Test
+  public void parseSkylarkWithRootRelativeSeriesTest() throws Exception {
+    Files.write(checkoutDir.resolve("file1.txt"), "line1\nfoo\nline3".getBytes(UTF_8));
+    Files.write(checkoutDir.resolve("file2.txt"), "bar\n".getBytes(UTF_8));
+    skylark.addConfigFile("other/patches/diff.patch", patchFile.readContent());
+    skylark.addConfigFile("other/patches/series", seriesFile.readContent());
+    QuiltTransformation transformation =
+        skylark.evalWithConfigFilePath(
+            "r",
+            """
+            r = patch.quilt_apply(
+              series = '//other/patches/series',
+            )
+            """,
+            "sub/dir/copy.bara.sky");
+
+    transformation.transform(TransformWorks.of(checkoutDir, "testmsg", console));
+
+    assertThatPath(checkoutDir)
+        .containsFile("file1.txt", "line1\nbar\nline3")
+        .containsFile("file2.txt", "new bar\n")
+        .containsFile("patches/diff.patch", OLDDIFF)
+        .containsFile("patches/series", SERIES)
+        .containsNoMoreFiles();
+  }
+
+  @Test
   public void parseSkylarkTestNotFoundRelaxedCheck() throws Exception {
     patchingOptions.validateOnLoad = false;
     Files.write(checkoutDir.resolve("file1.txt"), "line1\nfoo\nline3".getBytes(UTF_8));
@@ -875,6 +901,15 @@ public final class QuiltTransformationTest {
         skylark.eval(
             "r", "r = patch.quilt_apply(series = 'foo/foo/bar/series', validation_level = 'NONE')");
     assertThat(r4.getPatchesDirName()).isEqualTo("bar");
+
+    QuiltTransformation r5 =
+        skylark.eval("r", "r = patch.quilt_apply(series = '//series', validation_level = 'NONE')");
+    assertThat(r5.getPatchesDirName()).isEqualTo(".");
+
+    QuiltTransformation r6 =
+        skylark.eval(
+            "r", "r = patch.quilt_apply(series = '//foo/bar/series', validation_level = 'NONE')");
+    assertThat(r6.getPatchesDirName()).isEqualTo("bar");
   }
 
   @Test

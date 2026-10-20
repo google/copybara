@@ -30,7 +30,6 @@ import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.exception.CannotResolveLabel;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.util.FileUtil;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.nio.file.InvalidPathException;
@@ -123,10 +122,12 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "None",
             doc =
                 """
-                A file which contains a list of patches to apply. The patch files to apply are \
-                interpreted relative to this file and must be written one per line. The \
-                patches listed in this file will be applied relative to the checkout dir \
-                and the leading path component will be stripped (via the `-p1` flag).
+                A file which contains a list of patches to apply. The series file is interpreted \
+                relative to the current config file, or the root of the config directory if it \
+                starts with `//`. The patch files to apply are interpreted relative to this file \
+                and must be written one per line. The patches listed in this file will be applied \
+                relative to the checkout dir and the leading path component will be stripped (via \
+                the `-p1` flag).
 
                 You can generate a file which matches this format by running \
                 'find . -name *.patch &#124; sort > series'.
@@ -232,11 +233,12 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
             positional = false,
             doc =
                 """
-                A path to a series file to apply using Quilt, relative to the Copybara config \
-                directory.
+                A path to a series file to apply using Quilt, relative to the current Copybara \
+                config file, or the root of the config directory if it starts with `//`.
 
-                This parameter must represent a simple non-empty relative path. `.` or `..` or \
-                absolute paths are not supported.
+                This parameter must represent a simple non-empty path without `.` or `..` \
+                components. Filesystem absolute paths (starting with a single `/`) are not \
+                supported.
 
                 Quilt's standard path is `patches/series`, but overriding Quilt's patches \
                 directory name is supported by specifying a different directory name here or no \
@@ -344,15 +346,18 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
       throw new ValidationException("Series parameter is required and cannot be empty.");
     }
 
+    boolean isAbsolute;
     try {
-      FileUtil.checkNormalizedRelative(series);
-    } catch (IllegalArgumentException e) {
+      isAbsolute = ConfigFile.isAbsolute(series);
+    } catch (CannotResolveLabel e) {
       throw new ValidationException(e.getMessage(), e);
     }
 
+    String relativeSeries = isAbsolute ? series.substring(2) : series;
     try {
       checkCondition(
-          series != null && Path.of(series).getFileName().toString().equals("series"),
+          !relativeSeries.isEmpty()
+              && Path.of(relativeSeries).getFileName().toString().equals("series"),
           String.format(
               "Custom patch series file names besides `series` are not supported. "
                   + "Please update your series parameter %s to end in `series`.",
@@ -373,8 +378,15 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
     return validationLevel;
   }
 
-  private String getPatchesDirName(String series) {
-    Path parentFolder = Path.of(series).getParent();
+  private String getPatchesDirName(String series) throws ValidationException {
+    boolean isAbsolute;
+    try {
+      isAbsolute = ConfigFile.isAbsolute(series);
+    } catch (CannotResolveLabel e) {
+      throw new ValidationException(e.getMessage(), e);
+    }
+    String relativeSeries = isAbsolute ? series.substring(2) : series;
+    Path parentFolder = Path.of(relativeSeries).getParent();
     if (parentFolder != null) {
       return parentFolder.getFileName().toString();
     }

@@ -286,6 +286,29 @@ public class PatchTransformationTest {
   }
 
   @Test
+  public void testParseSkylarkRootRelativeSeries() throws Exception {
+    Files.write(checkoutDir.resolve("test.txt"), "foo\n".getBytes(UTF_8));
+    skylark.addConfigFile("other/patches/diff.patch", patchFile.readContent());
+    skylark.addConfigFile("other/patches/series", seriesFile.readContent());
+    PatchTransformation transformation =
+        skylark.evalWithConfigFilePath(
+            "r",
+            """
+            r = patch.apply(
+              series = '//other/patches/series',
+              excluded_patch_paths = ['excluded/*'],
+            )
+            """,
+            "sub/dir/copy.bara.sky");
+
+    transformation.transform(TransformWorks.of(checkoutDir, "testmsg", console));
+
+    assertThatPath(checkoutDir)
+        .containsFile("test.txt", "bar\n")
+        .containsNoMoreFiles();
+  }
+
+  @Test
   public void testParseSkylarkSeriesRelaxedCheck() throws Exception {
     patchingOptions.validateOnLoad = false;
     Files.write(checkoutDir.resolve("test.txt"), "foo\n".getBytes(UTF_8));
