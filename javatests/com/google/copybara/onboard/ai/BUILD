@@ -22,6 +22,7 @@ all_tests(
     deps = [
         "//java/com/google/copybara:base",
         "//java/com/google/copybara:copybara_lib",
+        "//java/com/google/copybara/config:base",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/onboard:options",
         "//java/com/google/copybara/onboard/ai",

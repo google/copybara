@@ -16,6 +16,7 @@
 
 package com.google.copybara.onboard.ai;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.beust.jcommander.Parameters;
@@ -23,8 +24,13 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.copybara.CommandEnv;
+import com.google.copybara.ConfigLoaderProvider;
 import com.google.copybara.CopybaraCmd;
 import com.google.copybara.GeneralOptions;
+import com.google.copybara.ValidateCmd;
+import com.google.copybara.config.ConfigValidator;
+import com.google.copybara.config.ValidationResult;
+import com.google.copybara.config.ValidationResult.ValidationMessage;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.onboard.GeneratorOptions;
 import com.google.copybara.onboard.core.CannotConvertException;
@@ -42,6 +48,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
+import javax.annotation.Nullable;
 
 /** Generates a Copybara config from a short survey by asking an LLM to write the Starlark. */
 @Parameters(
@@ -54,6 +61,21 @@ public class AiOnboardCmd implements CopybaraCmd {
 
   private static final Pattern FENCED_BLOCK =
       Pattern.compile("```(?:starlark|python|sky|bzl)?\\s*\\n(.*?)```", Pattern.DOTALL);
+
+  @Nullable private final ConfigValidator configValidator;
+  @Nullable private final ConfigLoaderProvider configLoaderProvider;
+
+  /** Writes the generated config without validating it. */
+  public AiOnboardCmd() {
+    this.configValidator = null;
+    this.configLoaderProvider = null;
+  }
+
+  /** Validates the generated config after writing it, like {@code copybara validate}. */
+  public AiOnboardCmd(ConfigValidator configValidator, ConfigLoaderProvider configLoaderProvider) {
+    this.configValidator = checkNotNull(configValidator);
+    this.configLoaderProvider = checkNotNull(configLoaderProvider);
+  }
 
   @Override
   public ExitCode run(CommandEnv commandEnv) throws ValidationException, IOException {
@@ -109,9 +131,33 @@ public class AiOnboardCmd implements CopybaraCmd {
 
     Files.createDirectories(outputPath.getParent());
     Files.writeString(outputPath, config.get(), UTF_8);
-    console.infoFmt(
-        "Wrote generated config to '%s'. Review it and run 'copybara validate %s' before use.",
-        outputPath, outputPath);
+    if (configLoaderProvider == null) {
+      console.infoFmt(
+          "Wrote generated config to '%s'. Review it and run 'copybara validate %s' before use.",
+          outputPath, outputPath);
+      return ExitCode.SUCCESS;
+    }
+
+    ValidationResult result =
+        ValidateCmd.validate(
+            commandEnv.getOptions(),
+            configLoaderProvider.newLoader(outputPath.toString(), /* sourceRef= */ null),
+            configValidator,
+            /* migrationName= */ null);
+    for (ValidationMessage message : result.getAllMessages()) {
+      switch (message.getLevel()) {
+        case WARNING -> console.warn(message.getMessage());
+        case ERROR -> console.error(message.getMessage());
+      }
+    }
+    if (result.hasErrors()) {
+      console.errorFmt(
+          "Wrote generated config to '%s', but it isn't valid. Fix the errors above, or run"
+              + " ai_onboard again.",
+          outputPath);
+      return ExitCode.CONFIGURATION_ERROR;
+    }
+    console.infoFmt("Wrote a valid config to '%s'. Review it before use.", outputPath);
     return ExitCode.SUCCESS;
   }
 

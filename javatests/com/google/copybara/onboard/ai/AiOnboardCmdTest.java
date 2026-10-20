@@ -23,15 +23,23 @@ import static org.junit.Assert.assertThrows;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.CommandEnv;
+import com.google.copybara.ConfigLoader;
+import com.google.copybara.ConfigLoaderProvider;
+import com.google.copybara.config.Config;
+import com.google.copybara.config.ConfigValidator;
+import com.google.copybara.config.ValidationResult;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.onboard.core.AskInputProvider.Mode;
 import com.google.copybara.testing.FakeLlmClient;
 import com.google.copybara.testing.OptionsBuilder;
+import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -54,6 +62,7 @@ public final class AiOnboardCmdTest {
 
   private final OptionsBuilder optionsBuilder = new OptionsBuilder();
   private final FakeLlmClient llmClient = new FakeLlmClient();
+  private final List<String> loadedPaths = new ArrayList<>();
   private TestingConsole console;
   private Path cwd;
   private AiOnboardCmd cmd;
@@ -241,6 +250,63 @@ public final class AiOnboardCmdTest {
   @Test
   public void name() {
     assertThat(cmd.name()).isEqualTo("ai_onboard");
+  }
+
+  @Test
+  public void validConfigIsValidated() throws Exception {
+    cmd = new AiOnboardCmd(new ConfigValidator() {}, configLoaderProvider());
+    answerSurvey();
+    llmClient.respondWith(CONFIG);
+
+    assertThat(run()).isEqualTo(ExitCode.SUCCESS);
+
+    assertThat(loadedPaths)
+        .containsExactly(cwd.resolve(AiOnboardCmd.DEFAULT_OUTPUT_FILE).toString());
+    console.assertThat().onceInLog(MessageType.INFO, "Wrote a valid config to .*");
+  }
+
+  @Test
+  public void starlarkErrorIsReportedAndFileIsKept() throws Exception {
+    cmd = new AiOnboardCmd(new ConfigValidator() {}, configLoaderProvider());
+    answerSurvey();
+    llmClient.respondWith("core.workflow(name = \"default\", origin = unknown_function())\n");
+
+    assertThat(run()).isEqualTo(ExitCode.CONFIGURATION_ERROR);
+
+    assertThat(readOutput(AiOnboardCmd.DEFAULT_OUTPUT_FILE)).contains("unknown_function");
+    console.assertThat().onceInLog(MessageType.ERROR, "(?s).*unknown_function.*");
+    console.assertThat().onceInLog(MessageType.ERROR, "Wrote generated config to .*isn't valid.*");
+  }
+
+  @Test
+  public void validatorErrorIsReported() throws Exception {
+    ConfigValidator validator =
+        new ConfigValidator() {
+          @Override
+          public ValidationResult validate(Config config, String migrationName) {
+            return new ValidationResult.Builder().error("Authoring not allowed").build();
+          }
+        };
+    cmd = new AiOnboardCmd(validator, configLoaderProvider());
+    answerSurvey();
+    llmClient.respondWith(CONFIG);
+
+    assertThat(run()).isEqualTo(ExitCode.CONFIGURATION_ERROR);
+
+    assertThat(readOutput(AiOnboardCmd.DEFAULT_OUTPUT_FILE)).isEqualTo(CONFIG);
+    console.assertThat().onceInLog(MessageType.ERROR, "Authoring not allowed");
+  }
+
+  /** Loads the config that the command wrote, recording each path it's asked to load. */
+  private ConfigLoaderProvider configLoaderProvider() {
+    SkylarkTestExecutor skylark = new SkylarkTestExecutor(optionsBuilder);
+    return (configPath, sourceRef) -> {
+      loadedPaths.add(configPath);
+      return new ConfigLoader(
+          skylark.createModuleSet(),
+          skylark.createConfigFile("copy.bara.sky", Files.readString(Path.of(configPath))),
+          optionsBuilder.general.getStarlarkMode());
+    };
   }
 
   private void answerSurvey() {

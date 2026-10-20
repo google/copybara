@@ -57,6 +57,7 @@ public class ValidateCmd implements CopybaraCmd {
         validate(
             commandEnv.getOptions(),
             configLoader,
+            configValidator,
             configFileArgs.getWorkflowName());
 
     Console console = commandEnv.getOptions().get(GeneralOptions.class).console();
@@ -87,8 +88,8 @@ public class ValidateCmd implements CopybaraCmd {
    *
    * Returns true iff this configuration is valid.
    */
-  private ValidationResult validate(Options options, ConfigLoader configLoader,
-      String migrationName)
+  public static ValidationResult validate(Options options, ConfigLoader configLoader,
+      ConfigValidator configValidator, String migrationName)
       throws IOException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     Console console = generalOptions.console();
