@@ -22,6 +22,8 @@ all_tests(
     deps = [
         "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/util/console/testing",
+        "//third_party:guava",
+        "//third_party:guava_testlib",
         "//third_party:jimfs",
         "//third_party:mockito",
         "//third_party:truth",
