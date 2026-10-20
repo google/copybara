@@ -47,6 +47,7 @@ import com.google.copybara.git.gitlab.GitLabOptions;
 import com.google.copybara.hg.HgOptions;
 import com.google.copybara.hg.HgOriginOptions;
 import com.google.copybara.http.HttpOptions;
+import com.google.copybara.jj.JjOptions;
 import com.google.copybara.onboard.GeneratorOptions;
 import com.google.copybara.onboard.ai.AiOnboardOptions;
 import com.google.copybara.regenerate.RegenerateOptions;
@@ -128,6 +129,8 @@ public class OptionsBuilder {
 
   public HgOptions hg = new HgOptions(general);
   public HgOriginOptions hgOrigin = new HgOriginOptions();
+
+  public JjOptions jj = new JjOptions(general);
 
   public TestingOptions testingOptions = new TestingOptions();
 
@@ -218,6 +221,7 @@ public class OptionsBuilder {
         gitLabOptions,
         hg,
         hgOrigin,
+        jj,
         workflowOptions,
         testingOptions,
         patch,

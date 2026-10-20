@@ -48,6 +48,7 @@ java_library(
         "//java/com/google/copybara/git/gitlab:git_lab_options",
         "//java/com/google/copybara/hg",
         "//java/com/google/copybara/http",
+        "//java/com/google/copybara/jj",
         "//java/com/google/copybara/monitor",
         "//java/com/google/copybara/onboard:options",
         "//java/com/google/copybara/onboard/ai:options",

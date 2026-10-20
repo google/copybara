@@ -751,6 +751,7 @@ public class CoreModule implements LabelsAwareModule, StarlarkValue {
             wrapGlob(destinationFiles, Glob.ALL_FILES),
             effectiveMode,
             workflowOptions,
+            jjOptions,
             reverseTransform,
             wrapGlob(reversibleCheckIgnoreFiles, null),
             askForConfirmation,

@@ -77,6 +77,7 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
         workflow.getDestinationFiles(),
         workflow.getMode(),
         workflow.getWorkflowOptions(),
+        workflow.getJjOptions(),
         workflow.getReverseTransformForCheck(),
         workflow.getReversibleCheckIgnoreFiles(),
         workflow.isAskForConfirmation(),

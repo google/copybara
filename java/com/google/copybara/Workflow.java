@@ -45,6 +45,7 @@ import com.google.copybara.exception.MissingPreconditionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.feedback.FinishHookContext;
+import com.google.copybara.jj.JjOptions;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
 import com.google.copybara.monitor.EventMonitor.EventMonitors;
 import com.google.copybara.profiler.Profiler;
@@ -105,6 +106,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   private final Glob destinationFiles;
   private final WorkflowMode mode;
   private final WorkflowOptions workflowOptions;
+  private final JjOptions jjOptions;
 
   @Nullable
   private final Transformation reverseTransformForCheck;
@@ -149,6 +151,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       Glob destinationFiles,
       WorkflowMode mode,
       WorkflowOptions workflowOptions,
+      JjOptions jjOptions,
       @Nullable Transformation reverseTransformForCheck,
       Glob reversibleCheckIgnoreFiles,
       boolean askForConfirmation,
@@ -186,6 +189,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     this.destinationFiles = Preconditions.checkNotNull(destinationFiles);
     this.mode = Preconditions.checkNotNull(mode);
     this.workflowOptions = Preconditions.checkNotNull(workflowOptions);
+    this.jjOptions = Preconditions.checkNotNull(jjOptions);
     this.reverseTransformForCheck = reverseTransformForCheck;
     this.verbose = generalOptions.isVerbose();
     this.reversibleCheckIgnoreFiles = reversibleCheckIgnoreFiles;
@@ -743,6 +747,10 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
   public GeneralOptions getGeneralOptions() {
     return generalOptions;
+  }
+
+  public JjOptions getJjOptions() {
+    return jjOptions;
   }
 
   public ImmutableList<Action> getAfterMigrationActions() {

@@ -37,7 +37,6 @@ public final class JjOptionsTest {
   @Rule public final TemporaryFolder tempFolder = new TemporaryFolder();
 
   private OptionsBuilder options;
-  private JjOptions jjOptions;
   private TestingConsole console;
   private Path workdir;
 
@@ -46,36 +45,35 @@ public final class JjOptionsTest {
     workdir = tempFolder.newFolder("workdir").toPath();
     console = new TestingConsole();
     options = new OptionsBuilder().setHomeDir(tempFolder.newFolder("home").toString());
-    jjOptions = new JjOptions(options.general);
-    jjOptions.jjBin = JjRepositoryTest.setUpJjBin();
+    options.jj.jjBin = JjRepositoryTest.setUpJjBin();
   }
 
   @Test
   public void jjBinFlag_parsedByJCommander_updatesJjBin() {
-    JCommander jCommander = new JCommander(jjOptions);
+    JCommander jCommander = new JCommander(options.build().getAll());
 
     jCommander.parse("--jj-bin=/custom/path/to/jj");
 
-    assertThat(jjOptions.jjBin).isEqualTo("/custom/path/to/jj");
+    assertThat(options.jj.jjBin).isEqualTo("/custom/path/to/jj");
   }
 
   @Test
   public void committerFlags_parsedByJCommander_updateCommitterFields() {
-    JCommander jCommander = new JCommander(jjOptions);
+    JCommander jCommander = new JCommander(options.build().getAll());
 
     jCommander.parse(
         "--jj-committer-name=Custom Name", "--jj-committer-email=custom@example.com");
 
-    assertThat(jjOptions.committerName).isEqualTo("Custom Name");
-    assertThat(jjOptions.committerEmail).isEqualTo("custom@example.com");
+    assertThat(options.jj.committerName).isEqualTo("Custom Name");
+    assertThat(options.jj.committerEmail).isEqualTo("custom@example.com");
   }
 
   @Test
   public void createRepo_withCommitterOptions_configuresRepoUserAndEmail() throws Exception {
-    jjOptions.committerName = "Bara Kopi";
-    jjOptions.committerEmail = "bara@kopi.io";
+    options.jj.committerName = "Bara Kopi";
+    options.jj.committerEmail = "bara@kopi.io";
 
-    JjRepository repo = jjOptions.createRepo(workdir, console);
+    JjRepository repo = options.jj.createRepo(workdir, console);
 
     assertThat(getRepoConfig(repo, "user.name")).isEqualTo("Bara Kopi");
     assertThat(getRepoConfig(repo, "user.email")).isEqualTo("bara@kopi.io");
@@ -85,7 +83,7 @@ public final class JjOptionsTest {
 
   @Test
   public void createRepo_withoutCommitterOptions_doesNotSetRepoUserAndEmail() throws Exception {
-    JjRepository repo = jjOptions.createRepo(workdir, console);
+    JjRepository repo = options.jj.createRepo(workdir, console);
 
     String repoConfig = getRepoScopedConfig(repo);
     assertThat(repoConfig).doesNotContain("user.name");
@@ -94,7 +92,7 @@ public final class JjOptionsTest {
 
   @Test
   public void createRepo_initializesNonColocatedRepo() throws Exception {
-    JjRepository repo = jjOptions.createRepo(workdir, console);
+    JjRepository repo = options.jj.createRepo(workdir, console);
 
     assertThat(repo.getRepoDir().toString()).isEqualTo(workdir.resolve("jj_repo").toString());
     assertThat(Files.isDirectory(repo.getRepoDir().resolve(".jj/repo"))).isTrue();

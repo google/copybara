@@ -49,6 +49,7 @@ import com.google.copybara.hg.HgOriginOptions;
 import com.google.copybara.html.HtmlModule;
 import com.google.copybara.http.HttpModule;
 import com.google.copybara.http.HttpOptions;
+import com.google.copybara.jj.JjOptions;
 import com.google.copybara.onboard.GeneratorOptions;
 import com.google.copybara.onboard.ai.AiOnboardOptions;
 import com.google.copybara.python.PythonModule;
@@ -111,7 +112,8 @@ public class ModuleSupplier {
             general,
             options.get(WorkflowOptions.class),
             options.get(DebugOptions.class),
-            folderModule),
+            folderModule,
+            options.get(JjOptions.class)),
         new GitModule(options),
         new HgModule(options),
         folderModule,
@@ -168,6 +170,7 @@ public class ModuleSupplier {
             new GitLabOptions(),
             new HgOptions(generalOptions),
             new HgOriginOptions(),
+            new JjOptions(generalOptions),
             new PatchingOptions(generalOptions),
             workflowOptions,
             new RemoteFileOptions(),
