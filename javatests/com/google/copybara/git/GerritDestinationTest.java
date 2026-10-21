@@ -89,6 +89,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -1684,6 +1685,7 @@ public class GerritDestinationTest {
             ImmutableList.of(),
             ChangeIdPolicy.REPLACE,
             /*allowEmptyDiffPatchSet=*/ true,
+            /* allowEmptyDiffPatchSetCheckLabels= */ ImmutableList.of(),
             /*labels*/ ImmutableList.of(),
             /*endpointChecker=*/ null,
             /*notifyOption*/ null,
@@ -1993,7 +1995,103 @@ public class GerritDestinationTest {
     runAllowEmptyPatchSetFalse(repo.resolveReference("HEAD").getHash());
   }
 
+  @Test
+  public void testNoAllowEmptyPatchSet_allowedWhenCheckedLabelHasNegativeVote() throws Exception {
+    Path workTree = Files.createTempDirectory("populate");
+    GitRepository repo = repo().withWorkTree(workTree);
+
+    writeFile(workTree, "foo.txt", "content 1");
+    repo.add().all().run();
+    repo.simpleCommand("commit", "-m", "Old parent");
+
+    writeFile(workdir, "foo.txt", "content 2");
+
+    mockNoChangesFound();
+    runAllowEmptyPatchSetWithOptions(
+        repo.resolveReference("HEAD").getHash(),
+        "allow_empty_diff_patchset = False,"
+            + " allow_empty_diff_patchset_check_labels = ['Verified']");
+
+    String primaryBranch = repo.getPrimaryBranch();
+
+    GitRevision currentRev = repo.resolveReference(getGerritRef(repo, "refs/for/" + primaryBranch));
+    repo.simpleCommand("update-ref", "refs/changes/10/12310/1", currentRev.getHash());
+    repo.simpleCommand("update-ref", "-d", getGerritRef(repo, "refs/for/" + primaryBranch));
+
+    repo.forceCheckout(primaryBranch);
+    mockChangeFoundWithLabels(
+        currentRev,
+        12310,
+        "\"Verified\": {\"all\": [{\"value\": -1, \"_account_id\": 1000096}],"
+            + " \"default_value\": 0}");
+    runAllowEmptyPatchSetWithOptions(
+        repo.resolveReference("HEAD").getHash(),
+        "allow_empty_diff_patchset = False,"
+            + " allow_empty_diff_patchset_check_labels = ['Verified']");
+
+    console
+        .assertThat()
+        .onceInLog(
+            MessageType.INFO,
+            "Creating a new Gerrit PatchSet for change https://localhost:33333/foo/bar/q/12310"
+                + " even if the diff is the same because label 'Verified' has a negative vote");
+  }
+
+  @Test
+  public void testNoAllowEmptyPatchSet_skipsWhenCheckedLabelHasNoNegativeVote() throws Exception {
+    Path workTree = Files.createTempDirectory("populate");
+    GitRepository repo = repo().withWorkTree(workTree);
+
+    writeFile(workTree, "foo.txt", "content 1");
+    repo.add().all().run();
+    repo.simpleCommand("commit", "-m", "Old parent");
+
+    writeFile(workdir, "foo.txt", "content 2");
+
+    mockNoChangesFound();
+    runAllowEmptyPatchSetWithOptions(
+        repo.resolveReference("HEAD").getHash(),
+        "allow_empty_diff_patchset = False,"
+            + " allow_empty_diff_patchset_check_labels = ['Verified']");
+
+    String primaryBranch = repo.getPrimaryBranch();
+
+    GitRevision currentRev = repo.resolveReference(getGerritRef(repo, "refs/for/" + primaryBranch));
+    repo.simpleCommand("update-ref", "refs/changes/10/12310/1", currentRev.getHash());
+    repo.simpleCommand("update-ref", "-d", getGerritRef(repo, "refs/for/" + primaryBranch));
+
+    repo.forceCheckout(primaryBranch);
+    mockChangeFoundWithLabels(
+        currentRev,
+        12310,
+        "\"Verified\": {\"all\": [{\"value\": 1, \"_account_id\": 1000096}],"
+            + " \"default_value\": 0},"
+            + "\"Code-Review\": {\"all\": [{\"value\": -1, \"_account_id\": 1000096}],"
+            + " \"default_value\": 0}");
+    RedundantChangeException thrown =
+        assertThrows(
+            RedundantChangeException.class,
+            () ->
+                runAllowEmptyPatchSetWithOptions(
+                    repo.resolveReference("HEAD").getHash(),
+                    "allow_empty_diff_patchset = False,"
+                        + " allow_empty_diff_patchset_check_labels = ['Verified']"));
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains(
+            String.format(
+                "Skipping creating a new Gerrit PatchSet for change"
+                    + " https://localhost:33333/foo/bar/q/12310 since the diff is the same from"
+                    + " the previous PatchSet (%s)",
+                currentRev.getHash()));
+  }
+
   private void mockChangeFound(GitRevision currentRev, int changeNum) throws IOException {
+    mockChangeFoundWithLabels(currentRev, changeNum, /* labelsJson= */ null);
+  }
+
+  private void mockChangeFoundWithLabels(
+      GitRevision currentRev, int changeNum, @Nullable String labelsJson) throws IOException {
     when(gitUtil
             .httpTransport()
             .buildRequest(eq("GET"), startsWith("https://localhost:33333/changes/")))
@@ -2001,18 +2099,26 @@ public class GerritDestinationTest {
             (Answer<LowLevelHttpRequest>)
                 invocation -> {
                   String change = changeIdFromRequest((String) invocation.getArguments()[1]);
+                  String labelsField =
+                      labelsJson == null ? "" : String.format(", \"labels\" : {%s}", labelsJson);
                   return mockResponse(
                       String.format(
                           "[{"
                               + "\"change_id\" : \"%s\", "
                               + "\"status\" : \"NEW\", "
                               + "\"_number\" : \"%s\", "
-                              + "\"current_revision\" : \"%s\"}]",
-                          change, changeNum, currentRev.getHash()));
+                              + "\"current_revision\" : \"%s\""
+                              + "%s}]",
+                          change, changeNum, currentRev.getHash(), labelsField));
                 });
   }
 
   private void runAllowEmptyPatchSetFalse(String baseline)
+      throws ValidationException, RepoException, IOException {
+    runAllowEmptyPatchSetWithOptions(baseline, "allow_empty_diff_patchset = False");
+  }
+
+  private void runAllowEmptyPatchSetWithOptions(String baseline, String destinationOptions)
       throws ValidationException, RepoException, IOException {
     fetch = repo().getPrimaryBranch();
     DummyRevision originRef = new DummyRevision("origin_ref");
@@ -2020,7 +2126,7 @@ public class GerritDestinationTest {
         new WriterContext("GerritDestinationTest", "test", false, originRef,
             Glob.ALL_FILES.roots());
     ImmutableList<DestinationEffect> result =
-        destination("allow_empty_diff_patchset = False")
+        destination(destinationOptions)
             .newWriter(writerContext)
             .write(
                 TransformResults.of(workdir, originRef)

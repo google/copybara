@@ -2708,7 +2708,17 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "None",
             named = true,
             positional = false,
-            doc = CREDENTIAL_DOC)
+            doc = CREDENTIAL_DOC),
+        @Param(
+            name = "allow_empty_diff_patchset_check_labels",
+            named = true,
+            defaultValue = "[]",
+            doc =
+                "When `allow_empty_diff_patchset` is False, allow uploading a new PatchSet"
+                    + " even when the diff is the same if any of the specified Gerrit labels"
+                    + " on the existing change has a negative vote (for example, `['Verified']`"
+                    + " to allow retrying failed CI runs).",
+            positional = false)
       },
       useStarlarkThread = true)
   @UsesFlags({GitDestinationOptions.class, GerritOptions.class})
@@ -2732,6 +2742,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Boolean primaryBranchMigrationMode,
       Object checker,
       @Nullable Object credentials,
+      Sequence<?> allowEmptyPatchSetCheckLabelsParam, // <String>
       StarlarkThread thread)
       throws EvalException {
     checkNotEmpty(url, "url");
@@ -2739,6 +2750,9 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Preconditions.checkArgument(submit, "Only set gerrit_submit if submit is true");
     }
 
+    List<String> allowEmptyPatchSetCheckLabels =
+        SkylarkUtil.convertStringList(
+            allowEmptyPatchSetCheckLabelsParam, "allow_empty_diff_patchset_check_labels");
     List<String> newReviewers = SkylarkUtil.convertStringList(reviewers, "reviewers");
     List<String> cc = SkylarkUtil.convertStringList(ccParam, "cc");
     List<String> labels = SkylarkUtil.convertStringList(labelsParam, "labels");
@@ -2776,6 +2790,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         notifyOption,
         stringToEnum("change_id_policy", changeIdPolicy, ChangeIdPolicy.class),
         allowEmptyPatchSet,
+        allowEmptyPatchSetCheckLabels,
         newReviewers,
         cc,
         labels,
