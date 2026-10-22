@@ -206,6 +206,50 @@ public class GitHubPrIntegrateLabelTest {
   }
 
   @Test
+  public void maybeParse_hostSuffixSpoof_rejected() throws Exception {
+    GeneralOptions options =
+        new GeneralOptions(ImmutableMap.of(), FileSystems.getDefault(), console);
+    String rawLabel = "https://github.com.evil.example/foo/bar/pull/18 from copybarrista:main";
+
+    assertThrows(
+        ValidationException.class,
+        () ->
+            GitHubPrIntegrateLabel.maybeParse(
+                rawLabel, repo, "rpc://foo", options, ImmutableList.of("https://github.com")));
+  }
+
+  @Test
+  public void maybeParse_orgSuffixSpoof_rejected() throws Exception {
+    GeneralOptions options =
+        new GeneralOptions(ImmutableMap.of(), FileSystems.getDefault(), console);
+    String rawLabel = "https://github.com/foo-evil/bar/pull/18 from copybarrista:main";
+
+    assertThrows(
+        ValidationException.class,
+        () ->
+            GitHubPrIntegrateLabel.maybeParse(
+                rawLabel,
+                repo,
+                "rpc://foo",
+                options,
+                ImmutableList.of("https://github.com/foo")));
+  }
+
+  @Test
+  public void maybeParse_allowedOrgPrefix() throws Exception {
+    GeneralOptions options =
+        new GeneralOptions(ImmutableMap.of(), FileSystems.getDefault(), console);
+    String rawLabel = "https://github.com/foo/bar/pull/18 from copybarrista:main";
+
+    Optional<IntegrateLabel> parsed =
+        GitHubPrIntegrateLabel.maybeParse(
+            rawLabel, repo, "rpc://foo", options, ImmutableList.of("https://github.com/foo"));
+
+    assertThat(parsed).isPresent();
+    assertThat(parsed.get().toString()).isEqualTo(rawLabel);
+  }
+
+  @Test
   public void parseLabel_hyphenatedUser() throws Exception {
     GeneralOptions options =
         new GeneralOptions(ImmutableMap.of(), FileSystems.getDefault(), console);
@@ -231,5 +275,135 @@ public class GitHubPrIntegrateLabelTest {
                 repo,
                 options))
         .isNotNull();
+  }
+
+  @Test
+  public void matches_hostSuffixSpoof_rejected() throws Exception {
+    assertThat(
+            IntegrateUrlPrefixes.matches(
+                "https://github.com.evil.example/google/repo", "https://github.com"))
+        .isFalse();
+  }
+
+  @Test
+  public void matches_orgSuffixSpoof_rejected() throws Exception {
+    assertThat(
+            IntegrateUrlPrefixes.matches(
+                "https://github.com/google-evil/repo", "https://github.com/google"))
+        .isFalse();
+  }
+
+  @Test
+  public void matches_schemeMismatch_rejected() throws Exception {
+    assertThat(
+            IntegrateUrlPrefixes.matches(
+                "https://github.com/google/repo", "http://github.com/google"))
+        .isFalse();
+    assertThat(
+            IntegrateUrlPrefixes.matches(
+                "http://github.com/google/repo", "https://github.com/google"))
+        .isFalse();
+  }
+
+  @Test
+  public void matches_hostMismatch_rejected() throws Exception {
+    assertThat(
+            IntegrateUrlPrefixes.matches(
+                "https://github.com/google/repo", "https://gitlab.com/google"))
+        .isFalse();
+  }
+
+  @Test
+  public void matches_emptyPrefix_throws() {
+    ValidationException thrown =
+        assertThrows(
+            ValidationException.class,
+            () -> IntegrateUrlPrefixes.matches("https://github.com/google/repo", ""));
+
+    assertThat(thrown).hasMessageThat().contains("Allowed integrate URL prefix cannot be empty");
+  }
+
+  @Test
+  public void matches_pathPrefixWithoutSlashBoundary_rejected() throws Exception {
+    assertThat(
+            IntegrateUrlPrefixes.matches(
+                "https://github.com/google/repo", "https://github.com/goog"))
+        .isFalse();
+    assertThat(
+            IntegrateUrlPrefixes.matches(
+                "https://github.com/google/repo", "https://github.com/google/repo-extra"))
+        .isFalse();
+  }
+
+  @Test
+  public void matches_exactRepo_allowed() throws Exception {
+    assertThat(
+            IntegrateUrlPrefixes.matches(
+                "https://github.com/google/repo", "https://github.com/google/repo"))
+        .isTrue();
+  }
+
+  @Test
+  public void matches_allowedOrgPrefix_allowed() throws Exception {
+    assertThat(
+            IntegrateUrlPrefixes.matches(
+                "https://github.com/google/repo", "https://github.com/google"))
+        .isTrue();
+    assertThat(
+            IntegrateUrlPrefixes.matches(
+                "https://github.com/google/repo", "https://github.com/google/"))
+        .isTrue();
+    assertThat(IntegrateUrlPrefixes.matches("https://github.com/google/repo", "https://github.com"))
+        .isTrue();
+  }
+
+  @Test
+  public void matches_hostIsCaseInsensitive() throws Exception {
+    assertThat(
+            IntegrateUrlPrefixes.matches(
+                "https://GitHub.com/google/repo", "https://github.com/google"))
+        .isTrue();
+  }
+
+  @Test
+  public void matches_defaultPortsAreNormalized() throws Exception {
+    assertThat(
+            IntegrateUrlPrefixes.matches(
+                "https://github.com:443/google/repo", "https://github.com/google"))
+        .isTrue();
+    assertThat(
+            IntegrateUrlPrefixes.matches(
+                "https://github.com:8443/google/repo", "https://github.com/google"))
+        .isFalse();
+    assertThat(
+            IntegrateUrlPrefixes.matches(
+                "https://github.com/google/repo", "https://github.com:8443/google"))
+        .isFalse();
+    assertThat(
+            IntegrateUrlPrefixes.matches(
+                "https://github.com:8443/google/repo", "https://github.com:8443/google"))
+        .isTrue();
+    assertThat(
+            IntegrateUrlPrefixes.matches(
+                "https://github.com:443/google/repo", "https://github.com:443/google"))
+        .isTrue();
+  }
+
+  @Test
+  public void matches_invalidAllowedPrefixes_throw(
+      @TestParameter({
+            "https://github.com/google?owner=evil",
+            "https://github.com/google#fragment",
+            "https://user:pass@github.com/google",
+            "github.com/google",
+            "relative/path"
+          })
+          String prefix) {
+    ValidationException thrown =
+        assertThrows(
+            ValidationException.class,
+            () -> IntegrateUrlPrefixes.matches("https://github.com/google/repo", prefix));
+
+    assertThat(thrown).hasMessageThat().contains("Allowed integrate URL prefix");
   }
 }
