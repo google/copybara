@@ -123,7 +123,7 @@ class GitHubPrIntegrateLabel implements IntegrateLabel {
     if (label == null) {
       return Optional.empty();
     }
-    if (allowedRefPrefixes.stream().anyMatch(label.gitHubIdentifier.getUrl()::startsWith)
+    if (IntegrateUrlPrefixes.matchesAny(label.gitHubIdentifier.getUrl(), allowedRefPrefixes)
         || label.matchesDestinationUrl(repoUrl)) {
       return Optional.of(label);
     }
