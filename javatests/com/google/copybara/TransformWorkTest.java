@@ -27,6 +27,7 @@ import com.google.common.jimfs.Jimfs;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.jj.JjRepository;
 import com.google.copybara.revision.Change;
 import com.google.copybara.revision.Changes;
 import com.google.copybara.testing.DummyOrigin;
@@ -46,6 +47,7 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -53,6 +55,8 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.TimeZone;
+import java.util.concurrent.atomic.AtomicInteger;
+import net.starlark.java.eval.Dict;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -1301,6 +1305,52 @@ transformation = core.transform([test])
 
     assertThat(Files.isExecutable(workdir.resolve("file1.txt"))).isTrue();
     assertThat(Files.isExecutable(workdir.resolve("file2.txt"))).isFalse();
+  }
+
+  @Test
+  public void getJjRepository_notConfigured_throwsValidationException() {
+    TransformWork work = TransformWorks.of(workdir, "test", console);
+
+    ValidationException e = assertThrows(ValidationException.class, work::getJjRepository);
+    assertThat(e).hasMessageThat().contains("jj repository is not available in this context");
+  }
+
+  @Test
+  public void getJjRepository_loadsLazily() throws Exception {
+    JjRepository repo = newUninitializedJjRepo();
+    AtomicInteger loads = new AtomicInteger();
+
+    TransformWork work =
+        TransformWorks.of(workdir, "test", console)
+            .withJjRepository(
+                _ -> {
+                  loads.incrementAndGet();
+                  return repo;
+                });
+
+    assertThat(loads.get()).isEqualTo(0);
+    assertThat(work.getJjRepository()).isSameInstanceAs(repo);
+    assertThat(loads.get()).isEqualTo(1);
+  }
+
+  @Test
+  public void getJjRepository_preservedByTransformationCopies() throws Exception {
+    JjRepository repo = newUninitializedJjRepo();
+    TransformWork work = TransformWorks.of(workdir, "test", console).withJjRepository(_ -> repo);
+
+    assertThat(work.withConsole(new TestingConsole()).getJjRepository()).isSameInstanceAs(repo);
+    assertThat(work.withParams(Dict.empty()).getJjRepository()).isSameInstanceAs(repo);
+    assertThat(work.insideExplicitTransform().getJjRepository()).isSameInstanceAs(repo);
+  }
+
+  /** Returns a {@link JjRepository} that is never initialized on disk; no jj binary is needed. */
+  private JjRepository newUninitializedJjRepo() {
+    return new JjRepository(
+        workdir.resolve("jj_repo"),
+        "jj",
+        ImmutableMap.of(),
+        /* verbose= */ false,
+        Duration.ofMinutes(1));
   }
 
   private void touchFile(Path base, String path) throws IOException {

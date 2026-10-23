@@ -50,6 +50,7 @@ import com.google.copybara.exception.RedundantChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.exception.VoidOperationException;
+import com.google.copybara.jj.JjRepository;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationStartedEvent;
 import com.google.copybara.monitor.EventMonitor.EventMonitors;
@@ -651,6 +652,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       // Lazy loading to avoid running afoul of checks unless the instance is actually used.
       LazyResourceLoader<Endpoint> originApi = c -> reader.getFeedbackEndPoint(c);
       LazyResourceLoader<Endpoint> destinationApi = c -> writer.getFeedbackEndPoint(c);
+      LazyResourceLoader<JjRepository> jjRepo = createJjRepoLoader();
       ResourceSupplier<DestinationReader> destinationReader = () ->
           writer.getDestinationReader(console, destinationBaseline, checkoutDir);
       metadata =
@@ -674,7 +676,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                   getWorkflow().getMode().toString())
               .withLastRev(lastRev)
               .withCurrentRev(rev)
-              .withDestinationInfo(writer.getDestinationInfo());
+              .withDestinationInfo(writer.getDestinationInfo())
+              .withJjRepository(jjRepo);
       transformWork.addLabel(
           COPYBARA_CONFIG_PATH_LABEL, getWorkflow().getMainConfigFile().getIdentifier(), "=", true);
       transformWork.addLabel(COPYBARA_WORKFLOW_NAME_LABEL, getWorkflow().getName(), "=", true);
@@ -714,7 +717,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                               originApi,
                               () -> DestinationReader.NOT_IMPLEMENTED,
                               getWorkflow().getMode().toString())
-                          .withDestinationInfo(writer.getDestinationInfo()));
+                          .withDestinationInfo(writer.getDestinationInfo())
+                          .withJjRepository(jjRepo));
           if (status.isNoop()) {
             console.warnFmt("No-op detected running the transformations in reverse. The most"
                 + " probably cause is that the transformations are not reversible.");
@@ -794,6 +798,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                 originBaselineForPrune,
                 originApi,
                 destinationApi,
+                jjRepo,
                 transformWork);
         if (mergeErrorPaths == null) {
           console.warn(
@@ -842,6 +847,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                   console,
                   originApi,
                   destinationApi,
+                  jjRepo,
                   destinationBaseline);
           try {
             ImmutableList<DiffFile> affectedFiles =
@@ -908,6 +914,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         @Nullable O originBaselineForPrune,
         LazyResourceLoader<Endpoint> originApi,
         LazyResourceLoader<Endpoint> destinationApi,
+        LazyResourceLoader<JjRepository> jjRepo,
         TransformWork transformWork)
         throws IOException, ValidationException, RepoException {
       DestinationReader reader = writer.getDestinationReader(console, destinationBaseline,
@@ -978,6 +985,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                 console,
                 originApi,
                 destinationApi,
+                jjRepo,
                 destinationBaseline);
       }
 
@@ -1152,6 +1160,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         Console console,
         LazyResourceLoader<Endpoint> originApi,
         LazyResourceLoader<Endpoint> destinationApi,
+        LazyResourceLoader<JjRepository> jjRepo,
         @Nullable Baseline<?> destinationBaseline)
         throws IOException, RepoException, ValidationException {
       Path baselineWorkdir = Files.createDirectories(workdir.resolve(subdirName));
@@ -1177,7 +1186,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               // Again, we don't care about this
               .withLastRev(lastRev)
               .withCurrentRev(baseline)
-              .withDestinationInfo(writer.getDestinationInfo());
+              .withDestinationInfo(writer.getDestinationInfo())
+              .withJjRepository(jjRepo);
       try (ProfilerTask ignored = profiler().start("baseline_transforms")) {
         TransformationStatus status = getTransformation().transform(baselineTransformWork);
         if (status.isNoop()
@@ -1239,6 +1249,11 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       }
     }
 
+    private LazyResourceLoader<JjRepository> createJjRepoLoader() {
+      return LazyResourceLoader.memoized(
+          loaderConsole -> getWorkflow().getJjOptions().createRepo(workdir, loaderConsole));
+    }
+
     private void copyForReverseCheck(Path from, Path to) throws IOException, ValidationException {
       try {
         FileUtil.copyFilesRecursively(from, to, FAIL_OUTSIDE_SYMLINKS);
@@ -1271,6 +1286,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         console,
         originApi,
         destinationApi,
+        migrator.createJjRepoLoader(),
         destinationBaseline);
   }
 

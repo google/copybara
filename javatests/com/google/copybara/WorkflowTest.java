@@ -121,6 +121,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import javax.annotation.Nullable;
+import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.StarlarkValue;
@@ -622,6 +623,49 @@ public class WorkflowTest {
     ProcessedChange change = Iterables.getLast(destination.processed);
     assertThat(change.getOriginRef()).isEqualTo(head);
     assertThatPath(workdir).containsNoMoreFiles();
+  }
+
+  @Test
+  public void jjRepoNotCreatedWhenUnused() throws Exception {
+    Workflow<?, ?> workflow = workflow();
+
+    workflow.run(workdir, ImmutableList.of(HEAD));
+
+    assertThat(Files.isDirectory(workdir.resolve("checkout"))).isTrue();
+    assertThat(Files.exists(workdir.resolve("jj_repo"))).isFalse();
+  }
+
+  @Test
+  public void jjRepoCreatedAndMemoizedWhenUsed() throws Exception {
+    // Set jjBin to a non-existent path so JjOptions.createRepo() creates workdir/jj_repo and runs
+    // JjRepository.init() without requiring the //devtools/jj/client:jj binary in workflow_test.
+    options.jj.jjBin = "true";
+    origin.singleFileChange(/* timestamp= */ 42, "one commit", "foo.txt", "1");
+    SkylarkTestExecutor exec = skylark.withStaticModules(ImmutableSet.of(ThrowingCallable.class));
+    Workflow<?, ?> workflow =
+        (Workflow<?, ?>)
+            exec.loadConfig(
+                    """
+                    def use_jj(ctx):
+                      dynamic_test.use_jj_repo(ctx)
+
+                    core.workflow(
+                        name = 'default',
+                        authoring = %s,
+                        origin = testing.origin(),
+                        destination = testing.destination(),
+                        transformations = [use_jj, use_jj],
+                    )
+                    """
+                        .formatted(authoring))
+                .getMigration("default");
+
+    workflow.run(workdir, ImmutableList.of(HEAD));
+
+    assertThat(Files.isDirectory(workdir.resolve("jj_repo"))).isTrue();
+    console()
+        .assertThat()
+        .onceInLog(MessageType.VERBOSE, "Initializing jj repository at .*/jj_repo");
   }
 
   @Test
@@ -4422,6 +4466,16 @@ public class WorkflowTest {
         doc = "Throw repo exception.")
     public String throwRepoException() throws RepoException {
       throw new RepoException("Oh noes");
+    }
+
+    @SuppressWarnings("unused")
+    @StarlarkMethod(
+        name = "use_jj_repo",
+        documented = false,
+        doc = "Initializes and verifies the workflow's jj repository.",
+        parameters = {@Param(name = "ctx")})
+    public void useJjRepo(TransformWork work) throws RepoException, ValidationException {
+      assertThat(work.getJjRepository()).isSameInstanceAs(work.getJjRepository());
     }
   }
 
