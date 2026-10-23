@@ -109,9 +109,9 @@ public class GitMirrorTest {
 
   @Test
   public void testMirror() throws Exception {
-    RecordingListener recordingCallback = installProfiler();
-
     Migration mirror = createMirrorObj();
+
+    RecordingListener recordingCallback = installProfiler();
     mirror.run(workdir, ImmutableList.of());
     String orig = originRepo.simpleCommand("show-ref").getStdout();
     String dest = destRepo.simpleCommand("show-ref").getStdout();

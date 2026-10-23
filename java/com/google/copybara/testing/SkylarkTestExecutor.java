@@ -21,6 +21,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.copybara.ConfigLoader;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.ModuleSet;
 import com.google.copybara.ModuleSupplier;
@@ -192,7 +193,8 @@ public class SkylarkTestExecutor {
   public Config loadConfig(ConfigFile configFile)
       throws IOException, ValidationException {
     try {
-      return skylarkParser.loadConfig(configFile, createModuleSet(), options.general.console());
+      return new ConfigLoader(createModuleSet(), configFile, skylarkParser)
+          .load(options.general.console());
     } catch (ValidationException ve) {
       throw new ValidationException(ve.getMessage() + getLogErrors(), ve);
     }

@@ -16,6 +16,7 @@
 
 package com.google.copybara;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.ConfigFile;
@@ -39,9 +40,14 @@ public class ConfigLoader {
   private final ModuleSet moduleSet;
 
   public ConfigLoader(ModuleSet moduleSet, ConfigFile configFile, StarlarkMode validateStarlark) {
-    this.moduleSet = moduleSet;
-    this.skylarkParser = new SkylarkParser(this.moduleSet.getStaticModules(), validateStarlark);
+    this(moduleSet, configFile, new SkylarkParser(moduleSet.getStaticModules(), validateStarlark));
+  }
+
+  @VisibleForTesting
+  public ConfigLoader(ModuleSet moduleSet, ConfigFile configFile, SkylarkParser skylarkParser) {
+    this.moduleSet = Preconditions.checkNotNull(moduleSet);
     this.configFile = Preconditions.checkNotNull(configFile);
+    this.skylarkParser = Preconditions.checkNotNull(skylarkParser);
   }
 
   /**

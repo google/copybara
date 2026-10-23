@@ -189,7 +189,7 @@ public class ActionMigrationTest {
     ActionMigration actionMigration = loggingFeedback();
     actionMigration.run(workdir, ImmutableList.of());
     console.assertThat()
-        .equalsNext(MessageType.INFO, "Action 'test_action' returned success")
+        .equalsNextSkipAhead(MessageType.INFO, "Action 'test_action' returned success")
         .containsNoMoreMessages();
   }
 
@@ -199,7 +199,7 @@ public class ActionMigrationTest {
     actionMigration.run(workdir, ImmutableList.of("12345", "67890"));
     console
         .assertThat()
-        .matchesNext(MessageType.INFO, ".*Ref: 12345")
+        .matchesNextSkipAhead(MessageType.INFO, ".*Ref: 12345")
         .matchesNext(MessageType.INFO, ".*Feedback name: default")
         .matchesNext(MessageType.INFO, ".*Action name: test_action")
         .matchesNext(MessageType.INFO, ".*Ref: 67890")
@@ -222,7 +222,7 @@ public class ActionMigrationTest {
     actionMigration.run(workdir, ImmutableList.of("12345", "67890"));
     console
         .assertThat()
-        .matchesNext(MessageType.INFO, ".*Ref: 12345")
+        .matchesNextSkipAhead(MessageType.INFO, ".*Ref: 12345")
         .matchesNext(MessageType.INFO, ".*Action 'test_action' returned success.*")
         .containsNoMoreMessages();
   }
@@ -243,7 +243,7 @@ public class ActionMigrationTest {
     actionMigration.run(workdir, ImmutableList.of());
     console
         .assertThat()
-        .matchesNext(MessageType.INFO, ".*foo is: value")
+        .matchesNextSkipAhead(MessageType.INFO, ".*foo is: value")
         .matchesNext(MessageType.INFO, ".*Action 'test_action' returned success.*")
         .containsNoMoreMessages();
   }
@@ -265,7 +265,7 @@ public class ActionMigrationTest {
     actionMigration.run(workdir, ImmutableList.of());
     console
         .assertThat()
-        .matchesNext(MessageType.INFO, ".*Ref: None")
+        .matchesNextSkipAhead(MessageType.INFO, ".*Ref: None")
         .matchesNext(MessageType.INFO, ".*Action 'test_action' returned success.*")
         .containsNoMoreMessages();
   }
@@ -299,7 +299,10 @@ public class ActionMigrationTest {
             """,
             "test_action");
     actionMigration.run(workdir, ImmutableList.of());
-    console.assertThat().equalsNext(MessageType.INFO, "Action 'test_action' returned success");
+    console
+        .assertThat()
+        .equalsNextSkipAhead(MessageType.INFO, "Action 'test_action' returned success")
+        .containsNoMoreMessages();
   }
 
   @Test
@@ -333,7 +336,7 @@ public class ActionMigrationTest {
                 + "Detailed messages: [No effect 1, No effect 2]");
     console
         .assertThat()
-        .equalsNext(MessageType.INFO, "Action 'test_action_1' returned noop: No effect 1")
+        .equalsNextSkipAhead(MessageType.INFO, "Action 'test_action_1' returned noop: No effect 1")
         .equalsNext(MessageType.INFO, "Action 'test_action_2' returned noop: No effect 2");
   }
 
@@ -355,7 +358,9 @@ public class ActionMigrationTest {
                 + "This is an error. Aborting execution.");
     console
         .assertThat()
-        .equalsNext(MessageType.ERROR, "Action 'test_action' returned error: This is an error");
+        .equalsNextSkipAhead(
+            MessageType.ERROR, "Action 'test_action' returned error: This is an error")
+        .containsNoMoreMessages();
   }
 
   @Test
@@ -380,7 +385,8 @@ public class ActionMigrationTest {
                 + "This is an error. Aborting execution.");
     console
         .assertThat()
-        .equalsNext(MessageType.ERROR, "Action 'test_action_1' returned error: This is an error")
+        .equalsNextSkipAhead(
+            MessageType.ERROR, "Action 'test_action_1' returned error: This is an error")
         .containsNoMoreMessages();
   }
 
@@ -401,7 +407,7 @@ public class ActionMigrationTest {
     actionMigration.run(workdir, ImmutableList.of());
     console
         .assertThat()
-        .equalsNext(MessageType.INFO, "Action 'test_action_1' returned noop: No effect")
+        .equalsNextSkipAhead(MessageType.INFO, "Action 'test_action_1' returned noop: No effect")
         .equalsNext(MessageType.INFO, "Action 'test_action_2' returned success")
         .containsNoMoreMessages();
   }
@@ -533,7 +539,10 @@ public class ActionMigrationTest {
       throws IOException, ValidationException, RepoException {
     ActionMigration actionMigration = feedback(actionsCode, "test_action");
     actionMigration.run(workdir, ImmutableList.of());
-    console.assertThat().equalsNext(MessageType.INFO, "Action 'test_action' returned success");
+    console
+        .assertThat()
+        .equalsNextSkipAhead(MessageType.INFO, "Action 'test_action' returned success")
+        .containsNoMoreMessages();
 
     assertThat(eventMonitor.changeMigrationStartedEventCount()).isEqualTo(1);
     assertThat(eventMonitor.changeMigrationFinishedEventCount()).isEqualTo(1);
