@@ -101,13 +101,20 @@ public final class ArchiveUtil {
       case ZIP:
         return new ZipArchiveOutputStream(outputStream);
       case TAR:
-        return new TarArchiveOutputStream(outputStream);
+        return createTarArchiveOutputStream(outputStream);
       case TAR_GZ:
-        return new TarArchiveOutputStream(new GzipCompressorOutputStream(outputStream));
+        return createTarArchiveOutputStream(new GzipCompressorOutputStream(outputStream));
       case TAR_XZ:
-        return new TarArchiveOutputStream(new XZCompressorOutputStream(outputStream));
+        return createTarArchiveOutputStream(new XZCompressorOutputStream(outputStream));
     }
     throw new ValidationException(
         String.format("Failed to get archive output stream for file type: %s", type));
+  }
+
+  private static TarArchiveOutputStream createTarArchiveOutputStream(OutputStream outputStream) {
+    TarArchiveOutputStream tarOutputStream = new TarArchiveOutputStream(outputStream);
+    tarOutputStream.setBigNumberMode(TarArchiveOutputStream.BIGNUMBER_POSIX);
+    tarOutputStream.setLongFileMode(TarArchiveOutputStream.LONGFILE_POSIX);
+    return tarOutputStream;
   }
 }

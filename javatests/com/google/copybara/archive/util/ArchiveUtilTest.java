@@ -27,6 +27,8 @@ import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.util.Glob;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
+import java.time.Instant;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
@@ -264,5 +266,38 @@ public final class ArchiveUtilTest {
         .containsFiles(testFolder.relativize(archivePath).toString());
     // Can refer https://en.wikipedia.org/wiki/ZIP_(file_format)#Limits.
     assertThat(Files.size(archivePath)).isEqualTo(22);
+  }
+
+  @Test
+  public void testCreateArchive_tarFile_withBigNumbersAndLongNames() throws Exception {
+    String longFileName = "a".repeat(120) + ".txt";
+    Path longFilePath = testFolder.resolve("subdir").resolve(longFileName);
+    MoreFiles.asByteSink(longFilePath).asCharSink(UTF_8).write("long_and_big");
+    // Set mtime beyond the 11-octal-digit ustar limit (077777777777L = 8589934591 seconds) to
+    // exercise TarArchiveOutputStream BIGNUMBER_POSIX handling.
+    Files.setLastModifiedTime(longFilePath, FileTime.from(Instant.ofEpochSecond(10_000_000_000L)));
+
+    Path archivePath = testFolder.resolve("test.tar");
+    CheckoutPath checkoutPath =
+        CheckoutPath.createWithCheckoutDir(archivePath.getFileName(), testFolder);
+
+    ArchiveUtil.createArchive(
+        Files.newOutputStream(archivePath),
+        ExtractType.TAR,
+        checkoutPath,
+        Glob.createGlob(ImmutableList.of("subdir/" + longFileName)));
+
+    TarArchiveEntry archiveEntry;
+    try (TarArchiveInputStream inputStream =
+        new TarArchiveInputStream(Files.newInputStream(archivePath))) {
+      while (((archiveEntry = inputStream.getNextEntry()) != null)) {
+        Files.createDirectories(unarchiveResultFolder.resolve(archiveEntry.getName()).getParent());
+        MoreFiles.asByteSink(unarchiveResultFolder.resolve(archiveEntry.getName()))
+            .writeFrom(inputStream);
+      }
+    }
+
+    FileSubjects.assertThatPath(testFolder)
+        .containsFile("unarchive_result/subdir/" + longFileName, "long_and_big");
   }
 }
