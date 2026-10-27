@@ -193,6 +193,8 @@ public class GitRepository {
   protected final PushOptionsValidator pushOptionsValidator;
   protected final boolean noVerify;
   @Nullable protected final GitRepositoryHook gitRepositoryHook;
+  @Nullable private String credentialHelper;
+  @Nullable private String httpFollowRedirects;
 
   private static final Map<Character, StatusCode> CHAR_TO_STATUS_CODE =
       Arrays.stream(StatusCode.values())
@@ -215,6 +217,20 @@ public class GitRepository {
     this.noVerify = noVerify;
     this.pushOptionsValidator = checkNotNull(pushOptionsValidator);
     this.gitRepositoryHook = gitRepositoryHook;
+  }
+
+  protected GitRepository(GitRepository other, @Nullable Path newWorkTree) {
+    this(
+        other.gitDir,
+        newWorkTree,
+        other.verbose,
+        other.gitEnv,
+        other.repoTimeout,
+        other.noVerify,
+        other.pushOptionsValidator,
+        other.gitRepositoryHook);
+    this.credentialHelper = other.credentialHelper;
+    this.httpFollowRedirects = other.httpFollowRedirects;
   }
 
   /** Creates a new repository in the given directory. The new repo is not bare. */
@@ -981,15 +997,7 @@ public class GitRepository {
    * initialize or alter the given work tree.
    */
   public GitRepository withWorkTree(Path newWorkTree) {
-    return new GitRepository(
-        this.gitDir,
-        newWorkTree,
-        this.verbose,
-        this.gitEnv,
-        repoTimeout,
-        this.noVerify,
-        this.pushOptionsValidator,
-        this.gitRepositoryHook);
+    return new GitRepository(this, newWorkTree);
   }
 
   /**
@@ -1853,6 +1861,12 @@ public class GitRepository {
       args.add("--bare");
       git(gitDir, Optional.empty(), args.build());
     }
+    if (credentialHelper != null) {
+      replaceLocalConfigField("credential", "helper", credentialHelper);
+    }
+    if (httpFollowRedirects != null) {
+      replaceLocalConfigField("http", "followRedirects", httpFollowRedirects);
+    }
     return this;
   }
 
@@ -1884,14 +1898,16 @@ public class GitRepository {
 
     if (isInitialized()) {
       GitHashAlgorithm localFormat = GitHashAlgorithm.SHA1;
-      try {
-        String stdout = simpleCommand("config", "extensions.objectFormat").getStdout().trim();
-        if (stdout.contains("sha256")) {
-          localFormat = GitHashAlgorithm.SHA256;
+      if (remoteFormat != null) {
+        try {
+          String stdout = simpleCommand("config", "extensions.objectFormat").getStdout().trim();
+          if (stdout.contains("sha256")) {
+            localFormat = GitHashAlgorithm.SHA256;
+          }
+        } catch (RepoException e) {
+          // Unconfigured, default is sha1
+          logger.atInfo().withCause(e).log("Failed to get local object format, using SHA1");
         }
-      } catch (RepoException e) {
-        // Unconfigured, default is sha1
-        logger.atInfo().withCause(e).log("Failed to get local object format, using SHA1");
       }
       boolean objectFormatMismatch = remoteFormat != null && localFormat != remoteFormat;
       GitRefFormat localRefFormat = isReftable() ? GitRefFormat.REFTABLE : GitRefFormat.FILES;
@@ -1930,12 +1946,30 @@ public class GitRepository {
    * @throws RepoException if git ls-remote fails
    */
   public GitHashAlgorithm getRemoteObjectFormat(String fetchUrl) throws RepoException {
+    String validatedUrl;
+    try {
+      validatedUrl = validateUrl(fetchUrl);
+    } catch (ValidationException e) {
+      throw new RepoException("Invalid url: " + fetchUrl, e);
+    }
     CommandOutputWithStatus output;
     try {
+      ImmutableList.Builder<String> params = ImmutableList.builder();
+      if (isInitialized()) {
+        params.add("--git-dir=" + gitDir);
+      } else {
+        if (credentialHelper != null) {
+          params.add("-c", "credential.helper=" + credentialHelper);
+        }
+        if (httpFollowRedirects != null) {
+          params.add("-c", "http.followRedirects=" + httpFollowRedirects);
+        }
+      }
+      params.add("ls-remote", "--", validatedUrl);
       output =
           executeGit(
               getCwd(),
-              ImmutableList.of("ls-remote", fetchUrl),
+              params.build(),
               gitEnv.withVars(ImmutableMap.of("GIT_TRACE_PACKET", "1")),
               /* verbose= */ false,
               /* maxLogLines= */ DEFAULT_MAX_LOG_LINES,
@@ -1952,13 +1986,19 @@ public class GitRepository {
 
   @CanIgnoreReturnValue
   public GitRepository withCredentialHelper(String credentialHelper) throws RepoException {
-    replaceLocalConfigField("credential", "helper", checkNotNull(credentialHelper));
+    this.credentialHelper = checkNotNull(credentialHelper);
+    if (isInitialized()) {
+      replaceLocalConfigField("credential", "helper", this.credentialHelper);
+    }
     return this;
   }
 
   @CanIgnoreReturnValue
   public GitRepository withHttpFollowRedirectsOption(String option) throws RepoException {
-    replaceLocalConfigField("http", "followRedirects", checkNotNull(option));
+    this.httpFollowRedirects = checkNotNull(option);
+    if (isInitialized()) {
+      replaceLocalConfigField("http", "followRedirects", this.httpFollowRedirects);
+    }
     return this;
   }
 

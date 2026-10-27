@@ -65,6 +65,7 @@ import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -2222,6 +2223,184 @@ public class GitRepositoryTest {
     assertThat(result.getInserted().keySet()).containsExactly("refs/heads/" + defaultBranch);
     assertThat(gitCommands.stream().anyMatch(cmd -> cmd.contains("--no-recurse-submodules")))
         .isTrue();
+  }
+
+  private record TestCredHarness(
+      Path credentialsFile,
+      String expectedHelper,
+      Path recordedHelper,
+      Path recordedFollowRedirects,
+      Path recordedPassword,
+      Map<String, String> env,
+      GitEnvironment gitEnv) {}
+
+  private TestCredHarness createTestCredHarness() throws Exception {
+    Path credentialsFile = Files.createTempFile("credentials", "test");
+    Files.writeString(credentialsFile, "https://user:secret@example.com");
+    String expectedHelper = "store --file=" + credentialsFile;
+
+    Path remoteGitDir = Files.createTempDirectory("remote-sha256-git");
+    GitRepository remoteRepo =
+        GitRepository.newBareRepo(
+            remoteGitDir, getGitEnv(), /* verbose= */ true, DEFAULT_TIMEOUT, /* noVerify= */ false);
+    remoteRepo.init(GitHashAlgorithm.SHA256);
+
+    Path binDir = Files.createTempDirectory("git-remote-bin");
+    Path recordedHelper = Files.createTempFile("recorded-helper", ".txt");
+    Path recordedFollowRedirects = Files.createTempFile("recorded-redirects", ".txt");
+    Path recordedPassword = Files.createTempFile("recorded-password", ".txt");
+    Path helperScript = binDir.resolve("git-remote-testcred");
+    Files.writeString(
+        helperScript,
+        "#!/bin/sh\n"
+            + "git config --get credential.helper > \""
+            + recordedHelper
+            + "\"\n"
+            + "git config --get http.followRedirects > \""
+            + recordedFollowRedirects
+            + "\"\n"
+            + "printf 'protocol=https\\nhost=example.com\\n\\n'"
+            + " | git credential fill | sed -n 's/^password=//p' > \""
+            + recordedPassword
+            + "\"\n"
+            + "exec git-remote-ext \"$1\" \"git %s "
+            + remoteGitDir.toAbsolutePath()
+            + "\"\n");
+    helperScript.toFile().setExecutable(true);
+
+    Map<String, String> env = new HashMap<>(getGitEnv().getEnvironment());
+    env.put("PATH", binDir + ":" + env.getOrDefault("PATH", ""));
+    return new TestCredHarness(
+        credentialsFile,
+        expectedHelper,
+        recordedHelper,
+        recordedFollowRedirects,
+        recordedPassword,
+        env,
+        new GitEnvironment(env));
+  }
+
+  @Test
+  public void initRepo_withCredentialHelperStoreFile_configuresCredentialsBeforeRemoteFormatCheck()
+      throws Exception {
+    TestCredHarness harness = createTestCredHarness();
+
+    OptionsBuilder optionsBuilder = new OptionsBuilder();
+    optionsBuilder.setEnvironment(harness.env());
+    optionsBuilder.git.credentialHelperStorePath = harness.credentialsFile().toString();
+    optionsBuilder.git.httpFollowRedirects = "initial";
+
+    Path localGitDir = Files.createTempDirectory("local-cred-git");
+    Path detachedWorkTree = Files.createTempDirectory("detached-worktree");
+    GitRepository localRepo =
+        GitRepository.newBareRepo(
+                localGitDir,
+                harness.gitEnv(),
+                /* verbose= */ true,
+                DEFAULT_TIMEOUT,
+                /* noVerify= */ false)
+            .withWorkTree(detachedWorkTree);
+
+    // Pre-initialize with SHA-1 so initRepo has to probe the SHA-256 remote, wipe, and re-init.
+    localRepo.init(GitHashAlgorithm.SHA1);
+    optionsBuilder.git.initRepo(localRepo, "testcred::https://example.com/repo.git");
+
+    assertThat(Files.readString(harness.recordedHelper()).trim())
+        .isEqualTo(harness.expectedHelper());
+    assertThat(Files.readString(harness.recordedFollowRedirects()).trim()).isEqualTo("initial");
+    assertThat(Files.readString(harness.recordedPassword()).trim()).isEqualTo("secret");
+    // Even after wiping and re-initializing for SHA-256, credential.helper and http.followRedirects
+    // remain configured.
+    assertThat(localRepo.simpleCommand("config", "extensions.objectformat").getStdout().trim())
+        .isEqualTo("sha256");
+    assertThat(localRepo.simpleCommand("config", "--local", "credential.helper").getStdout().trim())
+        .isEqualTo(harness.expectedHelper());
+    assertThat(
+            localRepo.simpleCommand("config", "--local", "http.followRedirects").getStdout().trim())
+        .isEqualTo("initial");
+    assertThat(localRepo.simpleCommand("config", "--local", "fetch.prune").getStdout().trim())
+        .isEqualTo("false");
+  }
+
+  @Test
+  public void getRemoteObjectFormat_uninitializedRepoWithDetachedWorkTree_passesConfigFlags()
+      throws Exception {
+    TestCredHarness harness = createTestCredHarness();
+
+    Path localGitDir = Files.createTempDirectory("local-uninit-cred-git");
+    Path detachedWorkTree = Files.createTempDirectory("detached-worktree");
+    GitRepository localRepo =
+        GitRepository.newBareRepo(
+                localGitDir,
+                harness.gitEnv(),
+                /* verbose= */ true,
+                DEFAULT_TIMEOUT,
+                /* noVerify= */ false)
+            .withCredentialHelper(harness.expectedHelper())
+            .withHttpFollowRedirectsOption("always")
+            .withWorkTree(detachedWorkTree);
+
+    assertThat(localRepo.isInitialized()).isFalse();
+
+    GitHashAlgorithm format =
+        localRepo.getRemoteObjectFormat("testcred::https://example.com/repo.git");
+    assertThat(format).isEqualTo(GitHashAlgorithm.SHA256);
+    assertThat(Files.readString(harness.recordedHelper()).trim())
+        .isEqualTo(harness.expectedHelper());
+    assertThat(Files.readString(harness.recordedFollowRedirects()).trim()).isEqualTo("always");
+    assertThat(Files.readString(harness.recordedPassword()).trim()).isEqualTo("secret");
+
+    // Initializing the repo afterwards preserves both options across SHA-256 and reftable init.
+    localRepo.init("testcred::https://example.com/repo.git", GitRefFormat.REFTABLE);
+    assertThat(localRepo.isInitialized()).isTrue();
+    assertThat(localRepo.isReftable()).isTrue();
+    assertThat(localRepo.simpleCommand("config", "extensions.objectformat").getStdout().trim())
+        .isEqualTo("sha256");
+    assertThat(localRepo.simpleCommand("config", "--local", "credential.helper").getStdout().trim())
+        .isEqualTo(harness.expectedHelper());
+    assertThat(
+            localRepo.simpleCommand("config", "--local", "http.followRedirects").getStdout().trim())
+        .isEqualTo("always");
+  }
+
+  @Test
+  public void getRemoteObjectFormat_invalidUrl_throwsRepoException() throws Exception {
+    Path localGitDir = Files.createTempDirectory("local-invalid-url-git");
+    GitRepository localRepo =
+        GitRepository.newBareRepo(
+            localGitDir, getGitEnv(), /* verbose= */ true, DEFAULT_TIMEOUT, /* noVerify= */ false);
+
+    RepoException httpThrown =
+        assertThrows(
+            RepoException.class,
+            () -> localRepo.getRemoteObjectFormat("http://example.com/repo.git"));
+    assertThat(httpThrown).hasMessageThat().contains("Invalid url: http://example.com/repo.git");
+
+    RepoException dashThrown =
+        assertThrows(
+            RepoException.class, () -> localRepo.getRemoteObjectFormat("--upload-pack=evil"));
+    assertThat(dashThrown).hasMessageThat().contains("URL '--upload-pack=evil' is not valid");
+  }
+
+  @Test
+  public void initRepo_withNoCredentialHelperStore_stillSetsHttpFollowRedirectsAndFetchPrune()
+      throws Exception {
+    OptionsBuilder optionsBuilder = new OptionsBuilder();
+    optionsBuilder.git.noCredentialHelperStore = true;
+    optionsBuilder.git.httpFollowRedirects = "initial";
+
+    Path localGitDir = Files.createTempDirectory("local-nocred-git");
+    GitRepository localRepo =
+        GitRepository.newBareRepo(
+            localGitDir, getGitEnv(), /* verbose= */ true, DEFAULT_TIMEOUT, /* noVerify= */ false);
+
+    optionsBuilder.git.initRepo(localRepo, /* fetchUrl= */ null);
+
+    assertThat(
+            localRepo.simpleCommand("config", "--local", "http.followRedirects").getStdout().trim())
+        .isEqualTo("initial");
+    assertThat(localRepo.simpleCommand("config", "--local", "fetch.prune").getStdout().trim())
+        .isEqualTo("false");
   }
 
   private GitRepository mockRepository(Path gitDir, Path workTree) throws RepoException {

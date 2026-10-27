@@ -507,6 +507,15 @@ public class GitTestUtil {
       this.forcePushForRefspec = forcePushForRefspec;
     }
 
+    private RewriteUrlGitRepository(RewriteUrlGitRepository other, @Nullable Path newWorkTree) {
+      super(other, newWorkTree);
+      this.generalOptions = other.generalOptions;
+      this.httpsRepos = other.httpsRepos;
+      this.validator = other.validator;
+      this.mappingPrefixes = other.mappingPrefixes;
+      this.forcePushForRefspec = other.forcePushForRefspec;
+    }
+
     @Override
     public FetchResult fetch(String url, Iterable<String> refspecs, GitFetchOptions options)
         throws RepoException, ValidationException {
@@ -560,15 +569,7 @@ public class GitTestUtil {
 
     @Override
     public GitRepository withWorkTree(Path newWorkTree) {
-      return new RewriteUrlGitRepository(
-          getGitDir(),
-          newWorkTree,
-          generalOptions,
-          httpsRepos,
-          validator,
-          mappingPrefixes,
-          forcePushForRefspec,
-          gitRepositoryHook);
+      return new RewriteUrlGitRepository(this, newWorkTree);
     }
 
     private String mapUrl(String url) throws RepoException {

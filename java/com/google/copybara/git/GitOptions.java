@@ -346,18 +346,16 @@ public class GitOptions implements Option {
   @CanIgnoreReturnValue
   protected GitRepository initRepo(GitRepository repo, @Nullable String fetchUrl)
       throws RepoException {
-    repo.init(fetchUrl, gitRefFormat);
-
-    if (noCredentialHelperStore) {
-      return repo;
+    if (!noCredentialHelperStore) {
+      String storePath = getCredentialHelperStorePath();
+      String path = storePath == null ? "" : " --file=" + storePath;
+      repo.withCredentialHelper("store" + path);
     }
-    String storePath = getCredentialHelperStorePath();
-    String path = storePath == null ? "" : " --file=" + storePath;
-    repo.withCredentialHelper("store" + path);
-    repo.replaceLocalConfigField("fetch", "prune", "false");
     if (!Strings.isNullOrEmpty(httpFollowRedirects)) {
       repo.withHttpFollowRedirectsOption(httpFollowRedirects);
     }
+    repo.init(fetchUrl, gitRefFormat);
+    repo.replaceLocalConfigField("fetch", "prune", "false");
     return repo;
   }
 
