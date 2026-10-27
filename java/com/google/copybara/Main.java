@@ -38,9 +38,11 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.MainArguments.CommandWithArgs;
+import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.ConfigValidator;
 import com.google.copybara.config.Migration;
 import com.google.copybara.config.PathBasedConfigFile;
+import com.google.copybara.config.StreamConfigFile;
 import com.google.copybara.exception.CommandLineException;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
@@ -408,9 +410,27 @@ public class Main {
 
   protected ConfigLoaderProvider newConfigLoaderProvider(ModuleSet moduleSet) {
     GeneralOptions generalOptions = moduleSet.getOptions().get(GeneralOptions.class);
-    return (configPath, sourceRef) -> new ConfigLoader(moduleSet,
-        createConfigFileWithHeuristic(validateLocalConfig(generalOptions, configPath),
-            generalOptions.getConfigRoot()), generalOptions.getStarlarkMode());
+    return (configPath, sourceRef) -> {
+      if (generalOptions.isLoadFromStdin()) {
+        Path fallbackPath =
+            generalOptions.getCwd().resolve(COPYBARA_SKYLARK_CONFIG_FILENAME).toAbsolutePath();
+        ConfigFile resolveDelegate =
+            createConfigFileWithHeuristic(fallbackPath, generalOptions.getConfigRoot());
+        return new ConfigLoader(
+            moduleSet,
+            new StreamConfigFile(this::getStdin, resolveDelegate, "stdin"),
+            generalOptions.getStarlarkMode());
+      }
+      return new ConfigLoader(
+          moduleSet,
+          createConfigFileWithHeuristic(
+              validateLocalConfig(generalOptions, configPath), generalOptions.getConfigRoot()),
+          generalOptions.getStarlarkMode());
+    };
+  }
+
+  protected InputStream getStdin() {
+    return System.in;
   }
 
   protected ContextProvider newInfoContextProvider() {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2016 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,6 +48,7 @@ public final class MainArguments {
   private final ImmutableList<String> rawArgs;
 
   public static final String COPYBARA_SKYLARK_CONFIG_FILENAME = "copy.bara.sky";
+  public static final String STDIN_CONFIG_FILENAME = "<stdin>/" + COPYBARA_SKYLARK_CONFIG_FILENAME;
 
   @Parameter(description =
       ""

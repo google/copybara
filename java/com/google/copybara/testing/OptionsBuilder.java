@@ -56,6 +56,7 @@ import com.google.copybara.transform.debug.DebugOptions;
 import com.google.copybara.transform.patch.PatchingOptions;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.testing.TestingConsole;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.util.HashMap;
@@ -183,6 +184,12 @@ public class OptionsBuilder {
 
   public final OptionsBuilder setSquash(boolean squash) {
     general.setSquashForTest(squash);
+    return this;
+  }
+
+  @CanIgnoreReturnValue
+  public final OptionsBuilder setLoadFromStdin(boolean loadFromStdin) {
+    general.setLoadFromStdinForTest(loadFromStdin);
     return this;
   }
 

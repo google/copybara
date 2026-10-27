@@ -31,6 +31,7 @@ java_library(
         "PathBasedConfigFile.java",
         "ResolveDelegateConfigFile.java",
         "SkylarkUtil.java",
+        "StreamConfigFile.java",
         "ValidationResult.java",
     ],
     deps = [

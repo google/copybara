@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Google Inc.
+ * Copyright (C) 2018 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -72,19 +72,32 @@ public class CommandEnv {
       throws CommandLineException {
     Preconditions.checkState(this.configFileArgs == null, "parseConfigFileArgs was already"
         + " called. Only one invocation allowed.");
-    if (args.isEmpty()) {
+    boolean loadFromStdin = options.get(GeneralOptions.class).isLoadFromStdin();
+    ImmutableList<String> effectiveArgs = args;
+    if (loadFromStdin) {
+      if (!args.isEmpty() && args.get(0).endsWith(MainArguments.COPYBARA_SKYLARK_CONFIG_FILENAME)) {
+        throw new CommandLineException(
+            "Cannot specify a configuration file when --load-from-stdin is set.");
+      }
+      effectiveArgs =
+          ImmutableList.<String>builder()
+              .add(MainArguments.STDIN_CONFIG_FILENAME)
+              .addAll(args)
+              .build();
+    }
+    if (effectiveArgs.isEmpty()) {
       throw new CommandLineException(
           String.format("Configuration file missing for '%s' subcommand.", cmd.name()));
     }
 
-    String configPath = args.get(0);
+    String configPath = effectiveArgs.get(0);
 
-    if (args.size() < 2) {
+    if (effectiveArgs.size() < 2) {
       configFileArgs = new ConfigFileArgs(configPath, /*workflowName=*/null);
       return configFileArgs;
     }
-    String workflowName = args.get(1);
-    if (args.size() < 3) {
+    String workflowName = effectiveArgs.get(1);
+    if (effectiveArgs.size() < 3) {
       configFileArgs = new ConfigFileArgs(configPath, workflowName);
       return configFileArgs;
     }
@@ -93,7 +106,9 @@ public class CommandEnv {
       throw new CommandLineException(
           String.format("Too many arguments for subcommand '%s'", cmd.name()));
     }
-    configFileArgs = new ConfigFileArgs(configPath, workflowName, args.subList(2, args.size()));
+    configFileArgs =
+        new ConfigFileArgs(
+            configPath, workflowName, effectiveArgs.subList(2, effectiveArgs.size()));
     return configFileArgs;
   }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2016 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,12 +21,15 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.copybara.config.Config;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.console.Console;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -127,6 +130,35 @@ public class MainTest {
 
     ConfigLoader loader = clp.newLoader("./copy.bara.sky", "test");
     assertThat(loader.location()).isEqualTo("/work/copy.bara.sky");
+  }
+
+  @Test
+  public void testLoadFromStdin() throws IOException, ValidationException {
+    String configContent =
+        """
+        core.workflow(
+            name = "default",
+            origin = git.origin(url = "https://example.com/orig", ref = "main"),
+            destination = folder.destination(),
+            authoring = authoring.pass_thru("Copybara <no-reply@google.com>"),
+        )
+        """;
+    options.general.setLoadFromStdinForTest(true);
+    Main main =
+        new Main(ImmutableMap.of("HOME", Files.createTempDirectory("foo").toString())) {
+          @Override
+          protected InputStream getStdin() {
+            return new ByteArrayInputStream(configContent.getBytes(UTF_8));
+          }
+        };
+
+    ConfigLoaderProvider clp = main.newConfigLoaderProvider(skylark.createModuleSet());
+    ConfigLoader loader = clp.newLoader("<stdin>/copy.bara.sky", null);
+    assertThat(loader.location()).isEqualTo("<stdin>/copy.bara.sky");
+
+    Config config = loader.load(options.general.console());
+    assertThat(config.getLocation()).isEqualTo("<stdin>/copy.bara.sky");
+    assertThat(config.getMigrations()).containsKey("default");
   }
 
   @Test

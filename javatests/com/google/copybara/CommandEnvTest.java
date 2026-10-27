@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Google Inc.
+ * Copyright (C) 2018 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -99,5 +99,38 @@ public class CommandEnvTest {
     assertThat(env.getConfigFileArgs().getConfigPath()).isEqualTo("foo/copy.bara.sky");
     assertThat(env.getConfigFileArgs().getWorkflowName()).isEqualTo("wf");
     assertThat(env.getConfigFileArgs().getSourceRefs()).containsExactly("123", "456");
+  }
+
+  @Test
+  public void testConfigParsingLoadFromStdinNoArgs() throws CommandLineException {
+    options = new OptionsBuilder().setLoadFromStdin(true).build();
+    CommandEnv env = new CommandEnv(workdir, options, ImmutableList.of());
+    env.parseConfigFileArgs(mock(CopybaraCmd.class), /* usesSourceRef= */ true);
+    assertThat(env.getConfigFileArgs().getConfigPath()).isEqualTo("<stdin>/copy.bara.sky");
+    assertThat(env.getConfigFileArgs().getWorkflowName()).isEqualTo("default");
+    assertThat(env.getConfigFileArgs().getSourceRefs()).isEmpty();
+  }
+
+  @Test
+  public void testConfigParsingLoadFromStdinWithWorkflowAndRef() throws CommandLineException {
+    options = new OptionsBuilder().setLoadFromStdin(true).build();
+    CommandEnv env = new CommandEnv(workdir, options, ImmutableList.of("wf", "123"));
+    env.parseConfigFileArgs(mock(CopybaraCmd.class), /* usesSourceRef= */ true);
+    assertThat(env.getConfigFileArgs().getConfigPath()).isEqualTo("<stdin>/copy.bara.sky");
+    assertThat(env.getConfigFileArgs().getWorkflowName()).isEqualTo("wf");
+    assertThat(env.getConfigFileArgs().getSourceRefs()).containsExactly("123");
+  }
+
+  @Test
+  public void testConfigParsingLoadFromStdinWithConfigFileIsError() {
+    options = new OptionsBuilder().setLoadFromStdin(true).build();
+    CommandEnv env = new CommandEnv(workdir, options, ImmutableList.of("foo/copy.bara.sky", "wf"));
+    CommandLineException e =
+        assertThrows(
+            CommandLineException.class,
+            () -> env.parseConfigFileArgs(mock(CopybaraCmd.class), /* usesSourceRef= */ true));
+    assertThat(e)
+        .hasMessageThat()
+        .contains("Cannot specify a configuration file when --load-from-stdin is set.");
   }
 }

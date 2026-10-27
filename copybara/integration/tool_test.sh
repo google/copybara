@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright 2016 Google Inc.
+# Copyright 2016 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -1501,6 +1501,61 @@ EOF
 
   # Verify that the new destination commit has the GitOrigin-RevId of the migrated commit (sha256_2)
   check_copybara_rev_id "${destination}" "${sha256_2}"
+}
+
+function test_load_from_stdin() {
+  remote=$(temp_dir remote)
+  ( cd "$remote" || return
+    run_git init .
+    echo "foo" > test.txt
+    run_git add test.txt
+    run_git commit -m "first commit"
+  )
+  primary=$(get_primary_branch "$remote")
+  mkdir destination
+
+  cat <<EOF | copybara validate --load-from-stdin
+core.workflow(
+    name = "default",
+    origin = git.origin(
+      url = "file://$remote",
+      ref = "$primary",
+    ),
+    destination = folder.destination(),
+    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
+)
+EOF
+  expect_log "Configuration '<stdin>/copy.bara.sky' is valid."
+
+  cat <<EOF | copybara --load-from-stdin --folder-dir destination
+core.workflow(
+    name = "default",
+    origin = git.origin(
+      url = "file://$remote",
+      ref = "$primary",
+    ),
+    destination = folder.destination(),
+    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
+    transformations = [core.replace("foo", "bar")],
+)
+EOF
+  expect_in_file "bar" destination/test.txt
+
+  copybara_with_exit_code $COMMAND_LINE_ERROR copy.bara.sky --load-from-stdin
+  expect_log "Cannot specify a configuration file when --load-from-stdin is set."
+
+  cat <<EOF | copybara_with_exit_code $CONFIGURATION_ERROR validate --load-from-stdin
+core.workflow(
+    name = "default",
+    origin = git.origin(
+      url = "file://$remote",
+      ref = "$primary",
+    ),
+    invalid_syntax_line
+)
+EOF
+  expect_log "<stdin>/copy.bara.sky:7:5: name 'invalid_syntax_line' is not defined"
+  expect_log "Configuration '<stdin>/copy.bara.sky' is invalid."
 }
 
 run_suite "Integration tests for Copybara code sharing tool."
