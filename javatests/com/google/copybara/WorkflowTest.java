@@ -5999,14 +5999,17 @@ public class WorkflowTest {
         .containsFile("dir/BUILD", "deps = [\"//copied\"]\n");
   }
 
-  // Verifies that for workflows sharing 'shared.bara.consistency', running 'default_service' writes
-  // '# Workflow: copy.bara.sky:default_service' to the consistency file header.
+  // Verifies that workflows sharing 'shared.bara.consistency' with workflow_name = 'default'
+  // resolve to 'default' (while an unshared config defaults to its own workflow name), and that
+  // running 'default_service' writes '# Workflow: copy.bara.sky:default' to the consistency file
+  // header.
   @Test
   public void workflow_consistencyFileConfig_sharedPathUsesSecondaryWorkflowName()
       throws Exception {
     var shared =
         ImmutableList.of(
-            "consistency_file = core.consistency_file_config(path = 'shared.bara.consistency')");
+            "consistency_file = core.consistency_file_config("
+                + "path = 'shared.bara.consistency', workflow_name = 'default')");
     var other =
         ImmutableList.of(
             "consistency_file = core.consistency_file_config(path = 'other.bara.consistency')");
@@ -6017,19 +6020,28 @@ public class WorkflowTest {
             + "\n"
             + getConfigString("other", SQUASH, other);
     Config config = loadConfig(configContent);
+    Workflow<?, ?> defaultWorkflow = (Workflow<?, ?>) config.getMigration("default");
     Workflow<?, ?> serviceWorkflow = (Workflow<?, ?>) config.getMigration("default_service");
+    Workflow<?, ?> otherWorkflow = (Workflow<?, ?>) config.getMigration("other");
+    assertThat(defaultWorkflow.getConsistencyFileConfig().workflow()).isEqualTo("default");
+    assertThat(serviceWorkflow.getConsistencyFileConfig().workflow()).isEqualTo("default");
+    assertThat(otherWorkflow.getConsistencyFileConfig().workflow()).isNull();
+    assertThat(otherWorkflow.getConsistencyFileConfig().workflowOrDefault(otherWorkflow.getName()))
+        .isEqualTo("other");
     origin.addSimpleChange(/* timestamp= */ 1);
 
     serviceWorkflow.run(workdir, ImmutableList.of("HEAD"));
 
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
     String consistencyFile = change.getContent("shared.bara.consistency");
-    assertThat(consistencyFile).contains("# Workflow: copy.bara.sky:default_service\n");
+    assertThat(consistencyFile).contains("# Workflow: copy.bara.sky:default\n");
+    assertThat(consistencyFile).doesNotContain("default_service");
   }
 
-  // Sharing consistency_file_path = 'foo.bara.consistency' across 'default' and 'default_service'
-  // succeeds, and running a merge import with use_consistency_file = True on 'default_service'
-  // writes '# Workflow: dir/copy.bara.sky:default_service' to the consistency file header.
+  // Sharing 'foo.bara.consistency' with workflow_name = 'default' across 'default' and
+  // 'default_service' succeeds, and running a merge import with use_consistency_file = True on
+  // 'default_service' writes '# Workflow: dir/copy.bara.sky:default' to the consistency file
+  // header.
   @Test
   public void mergeImport_consistencyFile_sharedPathUsesSecondaryWorkflowName()
       throws Exception {
@@ -6049,13 +6061,18 @@ public class WorkflowTest {
           use_consistency_file = True,
         )\
         """;
-    consistencyFilePath = "\"foo.bara.consistency\"";
+    var shared =
+        ImmutableList.of(
+            "consistency_file = core.consistency_file_config("
+                + "path = 'foo.bara.consistency', workflow_name = 'default')");
     Path base2 = Files.createDirectories(testDir.resolve("base2"));
     FileUtil.copyFilesRecursively(base1, base2, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
     writeFile(base2, "dir/bar.txt", "Another file");
     origin.addChange(1, base2, "change 1", /* matchesGlob= */ true);
     String configContent =
-        getConfigString("default", SQUASH) + "\n" + getConfigString("default_service", SQUASH);
+        getConfigString("default", SQUASH, shared)
+            + "\n"
+            + getConfigString("default_service", SQUASH, shared);
     Config config = loadConfigInDirectory(configContent, "dir/");
     Workflow<?, ?> serviceWorkflow = (Workflow<?, ?>) config.getMigration("default_service");
 
@@ -6063,7 +6080,8 @@ public class WorkflowTest {
 
     String consistencyFileContent =
         Iterables.getLast(destination.processed).getWorkdir().get("foo.bara.consistency");
-    assertThat(consistencyFileContent).contains("# Workflow: dir/copy.bara.sky:default_service\n");
+    assertThat(consistencyFileContent).contains("# Workflow: dir/copy.bara.sky:default\n");
+    assertThat(consistencyFileContent).doesNotContain("default_service");
   }
 
   @Test

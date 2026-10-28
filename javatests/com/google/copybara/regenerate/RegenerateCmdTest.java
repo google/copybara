@@ -1851,7 +1851,8 @@ public class RegenerateCmdTest {
 
   // Runs RegenerateCmd targeting the workflow with the name 'default_service', which shares the
   // consistency file path with a workflow named 'default', defined in
-  // getConsistencyFileConfigString().
+  // getConsistencyFileConfigString(), and verifies that the regenerated consistency file header
+  // contains '# Workflow: copy.bara.sky:default' (and not 'default_service').
   @Test
   public void testConsistencyFile_sharedPathUsesSecondaryWorkflowName() throws Exception {
     String dir1 = "dir1";
@@ -1877,7 +1878,10 @@ public class RegenerateCmdTest {
                   package_path = "",
                   use_consistency_file = True
                 ),
-                consistency_file_path = "%s",
+                consistency_file = core.consistency_file_config(
+                    path = "%s",
+                    workflow_name = "default",
+                ),
             )
             """
                 .formatted(CONSISTENCY_FILE_PATH);
@@ -1893,6 +1897,7 @@ public class RegenerateCmdTest {
     verify(patchRegenerator).updateChange(any(), pathArg.capture(), eq(Glob.ALL_FILES), eq(dir2));
 
     String consistencyFile = Files.readString(pathArg.getValue().resolve(CONSISTENCY_FILE_PATH));
-    assertThat(consistencyFile).contains("# Workflow: copy.bara.sky:default_service\n");
+    assertThat(consistencyFile).contains("# Workflow: copy.bara.sky:default\n");
+    assertThat(consistencyFile).doesNotContain("default_service");
   }
 }
