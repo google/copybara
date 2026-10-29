@@ -50,6 +50,7 @@ import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.folder.FolderModule;
+import com.google.copybara.jj.JjOptions;
 import com.google.copybara.revision.Revision;
 import com.google.copybara.templatetoken.Parser;
 import com.google.copybara.templatetoken.Token;
@@ -140,6 +141,7 @@ public class CoreModule implements LabelsAwareModule, StarlarkValue {
   private final GeneralOptions generalOptions;
   private final WorkflowOptions workflowOptions;
   private final DebugOptions debugOptions;
+  private final JjOptions jjOptions;
   private FolderModule folderModule;
   private ConfigFile mainConfigFile;
   private Supplier<ImmutableMap<String, ConfigFile>> allConfigFiles;
@@ -147,13 +149,38 @@ public class CoreModule implements LabelsAwareModule, StarlarkValue {
   private final HashMap<ConfigFile, HashSet<String>> transformNames = new HashMap<>();
   @Nullable private SkylarkConsole console;
 
+  /**
+   * Creates a {@code CoreModule} with default {@link JjOptions}.
+   *
+   * @deprecated Temporary overload kept so existing callers keep compiling while they migrate to
+   *     {@link #CoreModule(GeneralOptions, WorkflowOptions, DebugOptions, FolderModule,
+   *     JjOptions)}. It will be removed once all callers pass {@link JjOptions} explicitly.
+   */
+  @Deprecated
   public CoreModule(
-      GeneralOptions generalOptions, WorkflowOptions workflowOptions, DebugOptions debugOptions,
-  FolderModule folderModule) {
+      GeneralOptions generalOptions,
+      WorkflowOptions workflowOptions,
+      DebugOptions debugOptions,
+      FolderModule folderModule) {
+    this(
+        generalOptions,
+        workflowOptions,
+        debugOptions,
+        folderModule,
+        new JjOptions(Preconditions.checkNotNull(generalOptions)));
+  }
+
+  public CoreModule(
+      GeneralOptions generalOptions,
+      WorkflowOptions workflowOptions,
+      DebugOptions debugOptions,
+      FolderModule folderModule,
+      JjOptions jjOptions) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.workflowOptions = Preconditions.checkNotNull(workflowOptions);
     this.debugOptions = Preconditions.checkNotNull(debugOptions);
     this.folderModule = Preconditions.checkNotNull(folderModule);
+    this.jjOptions = Preconditions.checkNotNull(jjOptions);
   }
 
   @SuppressWarnings("unused")
