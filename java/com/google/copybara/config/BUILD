@@ -1,4 +1,4 @@
-# Copyright 2016 Google Inc.
+# Copyright 2016 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,10 +19,21 @@ package(default_visibility = ["//visibility:public"])
 licenses(["notice"])
 
 java_library(
+    name = "config_file",
+    srcs = [
+        "ConfigFile.java",
+    ],
+    deps = [
+        "//java/com/google/copybara/exception",
+        "//java/com/google/copybara/util",
+        "//third_party:guava",
+    ],
+)
+
+java_library(
     name = "base",
     srcs = [
         "Config.java",
-        "ConfigFile.java",
         "ConfigValidator.java",
         "LabelsAwareModule.java",
         "MapConfigFile.java",
@@ -34,13 +45,16 @@ java_library(
         "StreamConfigFile.java",
         "ValidationResult.java",
     ],
+    exports = [
+        ":config_file",
+    ],
     deps = [
+        ":config_file",
         "//java/com/google/copybara:base",
         "//java/com/google/copybara:general_options",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/revision",
         "//java/com/google/copybara/starlark",
-        "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
         "//third_party:error_prone",
         "//third_party:flogger",
@@ -82,7 +96,6 @@ java_library(
         ":base",
         ":global_migrations",
         "//java/com/google/copybara:moduleset",
-        "//java/com/google/copybara/doc:annotations",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/util/console",
         "//third_party:flogger",

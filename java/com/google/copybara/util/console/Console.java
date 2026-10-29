@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2016 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,12 +19,14 @@ package com.google.copybara.util.console;
 import static com.google.copybara.util.console.AnsiColor.BLUE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.errorprone.annotations.FormatMethod;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.util.List;
 import java.util.Scanner;
 import java.util.function.Predicate;
 import javax.annotation.Nullable;
@@ -48,6 +50,35 @@ public interface Console extends AutoCloseable {
   @FormatMethod
   default void errorFmt(String format, Object... args) {
     error(String.format(format, args));
+  }
+
+  /**
+   * Prints the context lines around a syntax error in {@code config} to the console.
+   *
+   * <p>The default implementation indents context lines with {@code "   "} and prefixes the error
+   * line with {@code "-> "}.
+   */
+  default void printSyntaxError(
+      String config, String errorMessage, int line, int column, int contextLines) {
+    List<String> lines = Splitter.on('\n').splitToList(config);
+    if (line < 1 || line > lines.size()) {
+      return;
+    }
+    int startLine = Math.max(1, line - contextLines);
+    int endLine = Math.min(lines.size(), line + contextLines);
+    StringBuilder sb = new StringBuilder();
+    for (int i = startLine; i <= endLine; i++) {
+      if (i > startLine) {
+        sb.append('\n');
+      }
+      sb.append(formatSyntaxErrorLine(lines.get(i - 1), i == line));
+    }
+    error(sb.toString());
+  }
+
+  /** Formats a single line of context for {@link #printSyntaxError}. */
+  default String formatSyntaxErrorLine(String line, boolean isErrorLine) {
+    return (isErrorLine ? "-> " : "   ") + line;
   }
 
   /**
@@ -149,7 +180,7 @@ public interface Console extends AutoCloseable {
       @Nullable String defaultAnswer,
       EnhancedPredicate enhancedValidator)
       throws IOException {
-    Scanner scanner = new Scanner(input, UTF_8.name());
+    Scanner scanner = new Scanner(input, UTF_8);
     output.print(colorize(BLUE, "Question: ") + msg);
     while (scanner.hasNextLine()) {
       String answer = scanner.nextLine().trim();

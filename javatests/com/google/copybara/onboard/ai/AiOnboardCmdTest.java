@@ -281,7 +281,7 @@ public final class AiOnboardCmdTest {
     assertThat(run()).isEqualTo(ExitCode.CONFIGURATION_ERROR);
 
     assertThat(readOutput(AiOnboardCmd.DEFAULT_OUTPUT_FILE)).contains("unknown_function");
-    console.assertThat().onceInLog(MessageType.ERROR, "(?s).*unknown_function.*");
+    console.assertThat().logContains(MessageType.ERROR, "(?s).*unknown_function.*");
     console.assertThat().onceInLog(MessageType.ERROR, "Wrote generated config to .*isn't valid.*");
   }
 

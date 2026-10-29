@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2016 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -99,6 +99,11 @@ public final class AnsiConsole implements Console {
   }
 
   @Override
+  public String formatSyntaxErrorLine(String line, boolean isErrorLine) {
+    return isErrorLine ? colorize(RED, line) : line;
+  }
+
+  @Override
   public void warn(String message) {
     synchronized (lock) {
       lastProgressLines = 0;
@@ -118,7 +123,7 @@ public final class AnsiConsole implements Console {
   public String ask(String msg, @Nullable String defaultAnswer, Predicate<String> validator)
       throws IOException {
 
-    Scanner scanner = new Scanner(input, UTF_8.name());
+    Scanner scanner = new Scanner(input, UTF_8);
     output.print(BLUE.write("Question: ") + msg);
     while (scanner.hasNextLine()) {
       String answer = scanner.nextLine().trim();

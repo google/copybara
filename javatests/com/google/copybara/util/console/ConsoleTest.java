@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2016 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -243,9 +243,8 @@ public class ConsoleTest {
         "Say \'Hello World\'",
         "a default",
         EnhancedPredicate.create(x -> x.equals("Hello World"), errorMsg));
-    assertThat(out.toString(StandardCharsets.UTF_8.name()))
-        .contains("Invalid answer: Hello there!");
-    assertThat(out.toString(StandardCharsets.UTF_8.name())).contains(errorMsg);
+    assertThat(out.toString(StandardCharsets.UTF_8)).contains("Invalid answer: Hello there!");
+    assertThat(out.toString(StandardCharsets.UTF_8)).contains(errorMsg);
   }
 
   @Test
@@ -255,8 +254,7 @@ public class ConsoleTest {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     Console console = new AnsiConsole(in, new PrintStream(out), /*verbose=*/ false);
     console.ask("Say \'Hello World\'", "a default", x -> x.equals("Hello World"));
-    assertThat(out.toString(StandardCharsets.UTF_8.name()))
-        .contains("Invalid answer: Hello there!");
+    assertThat(out.toString(StandardCharsets.UTF_8)).contains("Invalid answer: Hello there!");
   }
 
   @Test
@@ -265,9 +263,49 @@ public class ConsoleTest {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     Console console = new AnsiConsole(in, new PrintStream(out), /*verbose=*/ false);
     console.startupMessage("v1");
-    String output = out.toString(StandardCharsets.UTF_8.name());
+    String output = out.toString(StandardCharsets.UTF_8);
     assertThat(output).contains("\n ███████████████████\n");
     assertThat(output).contains("source mover (Version: v1)");
+  }
+
+  @Test
+  public void ansiConsolePrintSyntaxErrorColorsErrorLineInRed() throws Exception {
+    ByteArrayInputStream in = new ByteArrayInputStream(new byte[0]);
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    AnsiConsole console = new AnsiConsole(in, new PrintStream(out), /*verbose=*/ false);
+    String config =
+        """
+        line 1
+        line 2
+        line 3
+        line 4
+        line 5\
+        """;
+    console.printSyntaxError(config, "syntax error", 3, 1, 1);
+    String output = out.toString(StandardCharsets.UTF_8);
+    assertThat(output).doesNotContain("line 1");
+    assertThat(output).doesNotContain("line 5");
+    assertThat(output)
+        .contains("line 2\n" + console.colorize(AnsiColor.RED, "line 3") + "\nline 4");
+  }
+
+  @Test
+  public void logConsolePrintSyntaxErrorPrefixesErrorLineWithArrow() throws Exception {
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    Console console = LogConsole.writeOnlyConsole(new PrintStream(out), /*verbose=*/ false);
+    String config =
+        """
+        line 1
+        line 2
+        line 3
+        line 4
+        line 5\
+        """;
+    console.printSyntaxError(config, "syntax error", 3, 1, 1);
+    String output = out.toString(StandardCharsets.UTF_8);
+    assertThat(output).doesNotContain("line 1");
+    assertThat(output).doesNotContain("line 5");
+    assertThat(output).contains("   line 2\n-> line 3\n   line 4");
   }
 
   private void checkLogConsoleExpectedPrompt(String inputText, boolean expectedResponse)
@@ -283,8 +321,7 @@ public class ConsoleTest {
       Console console, ByteArrayOutputStream out, String inputText, boolean expectedResponse)
       throws IOException {
     boolean prompt = console.promptConfirmation("Do you want to proceed?");
-    assertThat(out.toString(StandardCharsets.UTF_8.name()))
-        .endsWith("Do you want to proceed? [y/n] ");
+    assertThat(out.toString(StandardCharsets.UTF_8)).endsWith("Do you want to proceed? [y/n] ");
     if (expectedResponse) {
       assertWithMessage("Input text '%s' should return true.", inputText).that(prompt).isTrue();
     } else {

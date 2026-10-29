@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Google Inc.
+ * Copyright (C) 2017 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,8 @@
  */
 
 package com.google.copybara;
+
+import static com.google.copybara.starlark.StarlarkUtil.printConfigOnError;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -84,6 +86,9 @@ public class ConfigLoader {
           skylarkParser.getConfigWithTransitiveImports(configFile, moduleSet, console);
       validateConsistencyFileWorkflows(result.getConfig());
       return result;
+    } catch (ValidationException e) {
+      printConfigOnError(console, configFile, e);
+      throw e;
     }
   }
 
@@ -96,6 +101,9 @@ public class ConfigLoader {
       Config config = skylarkParser.loadConfig(configFile, moduleSet, console);
       validateConsistencyFileWorkflows(config);
       return config;
+    } catch (ValidationException e) {
+      printConfigOnError(console, configFile, e);
+      throw e;
     }
   }
 

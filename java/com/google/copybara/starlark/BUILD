@@ -1,4 +1,4 @@
-# Copyright 2022 Google Inc.
+# Copyright 2022 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,7 +27,12 @@ java_library(
     srcs = glob(["**/*.java"]),
     javacopts = JAVACOPTS,
     deps = [
+        "//java/com/google/copybara/config:config_file",
+        "//java/com/google/copybara/exception",
+        "//java/com/google/copybara/util/console",
         "//third_party:error_prone",
+        "//third_party:flogger",
+        "//third_party:guava",
         "//third_party:starlark",
     ],
 )

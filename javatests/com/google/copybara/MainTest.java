@@ -18,18 +18,25 @@ package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.config.Config;
+import com.google.copybara.config.ConfigFile;
+import com.google.copybara.exception.CannotResolveLabel;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.ExitCode;
+import com.google.copybara.util.console.AnsiColor;
+import com.google.copybara.util.console.AnsiConsole;
 import com.google.copybara.util.console.Console;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintStream;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -159,6 +166,224 @@ public class MainTest {
     Config config = loader.load(options.general.console());
     assertThat(config.getLocation()).isEqualTo("<stdin>/copy.bara.sky");
     assertThat(config.getMigrations()).containsKey("default");
+  }
+
+  @Test
+  public void testLoadFromStdinParseErrorColorsErrorLineInRed()
+      throws IOException, ValidationException {
+    String configContent =
+        """
+        # Line 1
+        # Line 2
+        core.workflow(
+            name = "default",
+            origin = git.origin(
+                invalid syntax here
+            ),
+            destination = folder.destination(),
+        )
+        # Line 10\
+        """;
+    options.general.setLoadFromStdinForTest(true);
+    Main main =
+        new Main(ImmutableMap.of("HOME", Files.createTempDirectory("foo").toString())) {
+          @Override
+          protected InputStream getStdin() {
+            return new ByteArrayInputStream(configContent.getBytes(UTF_8));
+          }
+        };
+
+    ByteArrayOutputStream consoleOut = new ByteArrayOutputStream();
+    AnsiConsole ansiConsole =
+        new AnsiConsole(
+            new ByteArrayInputStream(new byte[0]),
+            new PrintStream(consoleOut, true, UTF_8),
+            /* verbose= */ false);
+
+    ConfigLoaderProvider clp = main.newConfigLoaderProvider(skylark.createModuleSet());
+    ConfigLoader loader = clp.newLoader("<stdin>/copy.bara.sky", null);
+
+    assertThrows(ValidationException.class, () -> loader.load(ansiConsole));
+
+    String output = consoleOut.toString(UTF_8);
+    assertThat(output).contains("<stdin>/copy.bara.sky:6:");
+    assertThat(output).doesNotContain("# Line 1");
+    assertThat(output).doesNotContain("# Line 2");
+    assertThat(output).doesNotContain("# Line 10");
+    assertThat(output)
+        .contains(
+            "core.workflow(\n"
+                + "    name = \"default\",\n"
+                + "    origin = git.origin(\n"
+                + ansiConsole.colorize(AnsiColor.RED, "        invalid syntax here")
+                + "\n    ),\n"
+                + "    destination = folder.destination(),\n"
+                + ")");
+  }
+
+  @Test
+  public void testLoadFromStdinEvalErrorColorsErrorLineInRed()
+      throws IOException, ValidationException {
+    String configContent =
+        """
+        # Line 1 comment
+        core.workflow(
+            name = "default",
+            unknown_param = "bad",
+        )\
+        """;
+    options.general.setLoadFromStdinForTest(true);
+    Main main =
+        new Main(ImmutableMap.of("HOME", Files.createTempDirectory("foo").toString())) {
+          @Override
+          protected InputStream getStdin() {
+            return new ByteArrayInputStream(configContent.getBytes(UTF_8));
+          }
+        };
+
+    ByteArrayOutputStream consoleOut = new ByteArrayOutputStream();
+    AnsiConsole ansiConsole =
+        new AnsiConsole(
+            new ByteArrayInputStream(new byte[0]),
+            new PrintStream(consoleOut, true, UTF_8),
+            /* verbose= */ false);
+
+    ConfigLoaderProvider clp = main.newConfigLoaderProvider(skylark.createModuleSet());
+    ConfigLoader loader = clp.newLoader("<stdin>/copy.bara.sky", null);
+
+    assertThrows(ValidationException.class, () -> loader.load(ansiConsole));
+
+    String output = consoleOut.toString(UTF_8);
+    assertThat(output)
+        .contains(
+            "# Line 1 comment\n"
+                + ansiConsole.colorize(AnsiColor.RED, "core.workflow(")
+                + "\n    name = \"default\",\n"
+                + "    unknown_param = \"bad\",\n"
+                + ")");
+  }
+
+  @Test
+  public void testLoadFromStdinMultipleSyntaxErrorsPrintsEachContext()
+      throws IOException, ValidationException {
+    String configContent =
+        """
+        x = undefined_var_one
+        # filler 1
+        # filler 2
+        # filler 3
+        # filler 4
+        # filler 5
+        # filler 6
+        # filler 7
+        y = undefined_var_two\
+        """;
+    options.general.setLoadFromStdinForTest(true);
+    Main main =
+        new Main(ImmutableMap.of("HOME", Files.createTempDirectory("foo").toString())) {
+          @Override
+          protected InputStream getStdin() {
+            return new ByteArrayInputStream(configContent.getBytes(UTF_8));
+          }
+        };
+
+    ByteArrayOutputStream consoleOut = new ByteArrayOutputStream();
+    AnsiConsole ansiConsole =
+        new AnsiConsole(
+            new ByteArrayInputStream(new byte[0]),
+            new PrintStream(consoleOut, true, UTF_8),
+            /* verbose= */ false);
+
+    ConfigLoaderProvider clp = main.newConfigLoaderProvider(skylark.createModuleSet());
+    ConfigLoader loader = clp.newLoader("<stdin>/copy.bara.sky", null);
+
+    assertThrows(ValidationException.class, () -> loader.load(ansiConsole));
+
+    String output = consoleOut.toString(UTF_8);
+    assertThat(output)
+        .contains(
+            ansiConsole.colorize(AnsiColor.RED, "x = undefined_var_one")
+                + "\n# filler 1\n# filler 2\n# filler 3");
+    assertThat(output)
+        .contains(
+            "# filler 5\n# filler 6\n# filler 7\n"
+                + ansiConsole.colorize(AnsiColor.RED, "y = undefined_var_two"));
+  }
+
+  @Test
+  public void testEvalErrorWithWrappedCausePrintsContext()
+      throws IOException, ValidationException {
+    String configContent =
+        """
+        # Line 1 comment
+        pattern = re2.compile("[unclosed")
+        # Line 3 comment\
+        """;
+    options.general.setLoadFromStdinForTest(true);
+    Main main =
+        new Main(ImmutableMap.of("HOME", Files.createTempDirectory("foo").toString())) {
+          @Override
+          protected InputStream getStdin() {
+            return new ByteArrayInputStream(configContent.getBytes(UTF_8));
+          }
+        };
+
+    ByteArrayOutputStream consoleOut = new ByteArrayOutputStream();
+    AnsiConsole ansiConsole =
+        new AnsiConsole(
+            new ByteArrayInputStream(new byte[0]),
+            new PrintStream(consoleOut, true, UTF_8),
+            /* verbose= */ false);
+
+    ConfigLoaderProvider clp = main.newConfigLoaderProvider(skylark.createModuleSet());
+    ConfigLoader loader = clp.newLoader("<stdin>/copy.bara.sky", null);
+
+    assertThrows(ValidationException.class, () -> loader.load(ansiConsole));
+
+    String output = consoleOut.toString(UTF_8);
+    assertThat(output)
+        .contains(
+            "# Line 1 comment\n"
+                + ansiConsole.colorize(AnsiColor.RED, "pattern = re2.compile(\"[unclosed\")")
+                + "\n# Line 3 comment");
+  }
+
+  @Test
+  public void testConfigReadFailureOnErrorDoesNotMaskValidationException() {
+    ConfigFile flakyConfigFile =
+        new ConfigFile() {
+          private boolean firstRead = true;
+
+          @Override
+          public ConfigFile resolve(String path) throws CannotResolveLabel {
+            throw new CannotResolveLabel("Unsupported");
+          }
+
+          @Override
+          public String path() {
+            return "flaky/copy.bara.sky";
+          }
+
+          @Override
+          public String getIdentifier() {
+            return path();
+          }
+
+          @Override
+          public byte[] readContentBytes() throws IOException {
+            if (firstRead) {
+              firstRead = false;
+              return "x = undefined_var\n".getBytes(UTF_8);
+            }
+            throw new IOException("Simulated disk failure while reading error context");
+          }
+        };
+
+    ConfigLoader loader =
+        new ConfigLoader(
+            skylark.createModuleSet(), flakyConfigFile, options.general.getStarlarkMode());
+
+    assertThrows(ValidationException.class, () -> loader.load(options.general.console()));
   }
 
   @Test

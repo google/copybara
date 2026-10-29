@@ -1555,6 +1555,9 @@ core.workflow(
 )
 EOF
   expect_log "<stdin>/copy.bara.sky:7:5: name 'invalid_syntax_line' is not defined"
+  expect_not_log 'name = "default",'
+  expect_log "         url = \"file://$remote\","
+  expect_log "->     invalid_syntax_line"
   expect_log "Configuration '<stdin>/copy.bara.sky' is invalid."
 }
 

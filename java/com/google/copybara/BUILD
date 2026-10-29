@@ -268,6 +268,7 @@ java_library(
         "//java/com/google/copybara/remotefile",
         "//java/com/google/copybara/revision",
         "//java/com/google/copybara/rust",
+        "//java/com/google/copybara/starlark",
         "//java/com/google/copybara/templatetoken",
         "//java/com/google/copybara/toml",
         "//java/com/google/copybara/transform",
