@@ -39,15 +39,22 @@ public final class FakeLlmClient implements LlmClient {
 
   private final Deque<Response> responses = new ArrayDeque<>();
   private final List<String> prompts = new ArrayList<>();
+  private final List<String> schemas = new ArrayList<>();
 
-  /** Queues {@code response} to be returned by the next {@link #generate} call. */
+  /**
+   * Queues {@code response} to be returned by the next {@link #generate} or {@link #generateJson}
+   * call.
+   */
   @CanIgnoreReturnValue
   public FakeLlmClient respondWith(String response) {
     responses.addLast(() -> response);
     return this;
   }
 
-  /** Queues {@code exception} to be thrown by the next {@link #generate} call. */
+  /**
+   * Queues {@code exception} to be thrown by the next {@link #generate} or {@link #generateJson}
+   * call.
+   */
   @CanIgnoreReturnValue
   public FakeLlmClient failWith(LlmException exception) {
     responses.addLast(
@@ -57,9 +64,14 @@ public final class FakeLlmClient implements LlmClient {
     return this;
   }
 
-  /** Returns every prompt passed to {@link #generate}, in order. */
+  /** Returns every prompt passed to {@link #generate} or {@link #generateJson}, in order. */
   public ImmutableList<String> getPrompts() {
     return ImmutableList.copyOf(prompts);
+  }
+
+  /** Returns every schema passed to {@link #generateJson}, in order. */
+  public ImmutableList<String> getSchemas() {
+    return ImmutableList.copyOf(schemas);
   }
 
   @Override
@@ -67,5 +79,11 @@ public final class FakeLlmClient implements LlmClient {
     prompts.add(prompt);
     checkState(!responses.isEmpty(), "No more programmed responses for prompt:\n%s", prompt);
     return responses.removeFirst().get();
+  }
+
+  @Override
+  public String generateJson(String prompt, String jsonSchema) throws LlmException {
+    schemas.add(jsonSchema);
+    return generate(prompt);
   }
 }

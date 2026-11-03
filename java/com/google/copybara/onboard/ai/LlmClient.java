@@ -25,4 +25,15 @@ public interface LlmClient {
    * @throws LlmException if the model could not be reached or returned an unusable response
    */
   String generate(String prompt) throws LlmException;
+
+  /**
+   * Sends {@code prompt} to the model and returns a JSON response that conforms to {@code
+   * jsonSchema}, a JSON Schema document.
+   *
+   * @throws LlmException if the model could not be reached, returned an unusable response, or the
+   *     backend doesn't support structured output
+   */
+  default String generateJson(String prompt, String jsonSchema) throws LlmException {
+    throw new LlmException("This model backend doesn't support structured output.");
+  }
 }
