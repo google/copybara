@@ -26,6 +26,7 @@ java_library(
     ],
     deps = [
         ":options",
+        "//java/com/google/copybara:base",
         "//java/com/google/copybara:copybara_lib",
         "//java/com/google/copybara:general_options",
         "//java/com/google/copybara/authoring",
@@ -48,10 +49,12 @@ java_library(
         "AiOnboardOptions.java",
         "LlmClient.java",
         "LlmException.java",
+        "RepairPolicy.java",
     ],
     deps = [
         "//java/com/google/copybara:base",
         "//java/com/google/copybara/exception",
+        "//third_party:guava",
         "//third_party:jcommander",
     ],
 )

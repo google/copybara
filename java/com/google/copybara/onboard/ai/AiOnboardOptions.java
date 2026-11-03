@@ -16,13 +16,22 @@
 
 package com.google.copybara.onboard.ai;
 
+import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.copybara.Option;
 import com.google.copybara.exception.ValidationException;
+import java.util.Optional;
 
 /** Options for AI-assisted onboarding. */
 @Parameters(separators = "=")
 public class AiOnboardOptions implements Option {
+
+  @Parameter(
+      names = "--ai-onboard-max-repair-attempts",
+      description =
+          "How many times ai_onboard may ask the model to fix a generated config that fails"
+              + " validation. 0 disables repair.")
+  public int maxRepairAttempts = 1;
 
   /**
    * Returns the model backend used to generate configs. Environments that provide a backend
@@ -38,5 +47,13 @@ public class AiOnboardOptions implements Option {
    */
   public String getArchetype() throws ValidationException {
     throw new ValidationException("No archetype is configured for AI-assisted onboarding.");
+  }
+
+  /**
+   * Returns the policy used to fix a generated config that fails validation, or empty if invalid
+   * configs aren't repaired. Environments that support repair override this.
+   */
+  public Optional<RepairPolicy> getRepairPolicy() throws ValidationException {
+    return Optional.empty();
   }
 }

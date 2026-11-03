@@ -17,6 +17,8 @@
 package com.google.copybara.onboard.ai;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.ImmutableList.toImmutableList;
+import static com.google.copybara.exception.ValidationException.checkCondition;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.beust.jcommander.Parameters;
@@ -27,6 +29,7 @@ import com.google.copybara.CommandEnv;
 import com.google.copybara.ConfigLoaderProvider;
 import com.google.copybara.CopybaraCmd;
 import com.google.copybara.GeneralOptions;
+import com.google.copybara.Options;
 import com.google.copybara.ValidateCmd;
 import com.google.copybara.config.ConfigValidator;
 import com.google.copybara.config.ValidationResult;
@@ -40,7 +43,10 @@ import com.google.copybara.onboard.core.InputProviderResolver;
 import com.google.copybara.onboard.core.InputProviderResolverImpl;
 import com.google.copybara.onboard.core.MapBasedInputProvider;
 import com.google.copybara.util.ExitCode;
+import com.google.copybara.util.console.CapturingConsole;
 import com.google.copybara.util.console.Console;
+import com.google.copybara.util.console.Message;
+import com.google.copybara.util.console.Message.MessageType;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.io.IOException;
@@ -80,6 +86,10 @@ public class AiOnboardCmd implements CopybaraCmd {
   @Override
   public ExitCode run(CommandEnv commandEnv) throws ValidationException, IOException {
     AiOnboardOptions aiOnboardOptions = commandEnv.getOptions().get(AiOnboardOptions.class);
+    checkCondition(
+        aiOnboardOptions.maxRepairAttempts >= 0,
+        "--ai-onboard-max-repair-attempts must not be negative, but was %s",
+        aiOnboardOptions.maxRepairAttempts);
     LlmClient llmClient = aiOnboardOptions.getLlmClient();
     String archetype = aiOnboardOptions.getArchetype();
     GeneralOptions generalOptions = commandEnv.getOptions().get(GeneralOptions.class);
@@ -138,9 +148,58 @@ public class AiOnboardCmd implements CopybaraCmd {
       return ExitCode.SUCCESS;
     }
 
+    ImmutableList<String> errors = validate(commandEnv, outputPath, console);
+    Optional<RepairPolicy> repairPolicy = aiOnboardOptions.getRepairPolicy();
+    String currentConfig = config.get();
+    int maxAttempts = aiOnboardOptions.maxRepairAttempts;
+    for (int attempt = 1;
+        !errors.isEmpty() && repairPolicy.isPresent() && attempt <= maxAttempts;
+        attempt++) {
+      Optional<String> repaired =
+          repair(
+              repairPolicy.get(),
+              new RepairPolicy.Request(archetype, answers, currentConfig, errors),
+              attempt,
+              maxAttempts,
+              console);
+      if (repaired.isEmpty()) {
+        break;
+      }
+      Files.writeString(outputPath, repaired.get(), UTF_8);
+      ImmutableList<String> repairedErrors = validate(commandEnv, outputPath, console);
+      if (repairedErrors.equals(errors)) {
+        console.warn("The fixed config fails with the same errors. Not trying again.");
+        break;
+      }
+      errors = repairedErrors;
+      currentConfig = repaired.get();
+    }
+    if (!errors.isEmpty()) {
+      console.errorFmt(
+          "Wrote generated config to '%s', but it isn't valid. Fix the errors above, or run"
+              + " ai_onboard again.",
+          outputPath);
+      return ExitCode.CONFIGURATION_ERROR;
+    }
+    console.infoFmt("Wrote a valid config to '%s'. Review it before use.", outputPath);
+    return ExitCode.SUCCESS;
+  }
+
+  /**
+   * Validates the config at {@code outputPath} and prints the messages. Returns every error,
+   * including the ones the loader only prints, like Starlark syntax errors.
+   */
+  private ImmutableList<String> validate(CommandEnv commandEnv, Path outputPath, Console console)
+      throws ValidationException, IOException {
+    CapturingConsole capturing = CapturingConsole.captureOnlyConsole(console, MessageType.ERROR);
+    GeneralOptions generalOptions =
+        commandEnv.getOptions().get(GeneralOptions.class).withConsole(capturing);
     ValidationResult result =
         ValidateCmd.validate(
-            commandEnv.getOptions(),
+            new Options(
+                commandEnv.getOptions().getAll().stream()
+                    .map(option -> option instanceof GeneralOptions ? generalOptions : option)
+                    .collect(toImmutableList())),
             configLoaderProvider.newLoader(outputPath.toString(), /* sourceRef= */ null),
             configValidator,
             /* migrationName= */ null);
@@ -150,15 +209,50 @@ public class AiOnboardCmd implements CopybaraCmd {
         case ERROR -> console.error(message.getMessage());
       }
     }
-    if (result.hasErrors()) {
-      console.errorFmt(
-          "Wrote generated config to '%s', but it isn't valid. Fix the errors above, or run"
-              + " ai_onboard again.",
-          outputPath);
-      return ExitCode.CONFIGURATION_ERROR;
+    return ImmutableList.<String>builder()
+        .addAll(capturing.getMessages().stream().map(Message::getText).iterator())
+        .addAll(result.getErrors())
+        .build();
+  }
+
+  /**
+   * Asks {@code policy} to fix the config in {@code request}. Returns the fixed config, or empty if
+   * the user needs to fix it, the model didn't change it, or the model failed.
+   */
+  private static Optional<String> repair(
+      RepairPolicy policy,
+      RepairPolicy.Request request,
+      int attempt,
+      int maxAttempts,
+      Console console) {
+    try {
+      console.progressFmt(
+          "Checking whether the errors can be fixed automatically (attempt %d of %d)...",
+          attempt, maxAttempts);
+      RepairPolicy.Classification classification = policy.classify(request);
+      if (!classification.fixable()) {
+        console.errorFmt("ai_onboard can't fix this automatically: %s", classification.reason());
+        if (!classification.userAction().isEmpty()) {
+          console.errorFmt("To fix it: %s", classification.userAction());
+        }
+        return Optional.empty();
+      }
+      console.progressFmt("Fixing the config (attempt %d of %d)...", attempt, maxAttempts);
+      RepairPolicy.Repair repair = policy.repair(request);
+      if (repair.config().isEmpty()) {
+        console.errorFmt("ai_onboard can't fix this automatically: %s", repair.reason());
+        return Optional.empty();
+      }
+      Optional<String> fixed = extractStarlark(repair.config().get());
+      if (fixed.isEmpty() || fixed.get().equals(request.config())) {
+        console.warn("The model didn't change the config. Not trying again.");
+        return Optional.empty();
+      }
+      return fixed;
+    } catch (LlmException e) {
+      console.warnFmt("Couldn't fix the config automatically: %s", e.getMessage());
+      return Optional.empty();
     }
-    console.infoFmt("Wrote a valid config to '%s'. Review it before use.", outputPath);
-    return ExitCode.SUCCESS;
   }
 
   /**

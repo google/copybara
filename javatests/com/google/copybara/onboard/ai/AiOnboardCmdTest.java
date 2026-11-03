@@ -36,10 +36,14 @@ import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -59,6 +63,9 @@ public final class AiOnboardCmdTest {
           authoring = authoring.pass_thru("Example <example@example.com>"),
       )
       """;
+
+  private static final String INVALID_CONFIG =
+      "core.workflow(name = \"default\", origin = unknown_function())\n";
 
   private final OptionsBuilder optionsBuilder = new OptionsBuilder();
   private final FakeLlmClient llmClient = new FakeLlmClient();
@@ -295,6 +302,225 @@ public final class AiOnboardCmdTest {
 
     assertThat(readOutput(AiOnboardCmd.DEFAULT_OUTPUT_FILE)).isEqualTo(CONFIG);
     console.assertThat().onceInLog(MessageType.ERROR, "Authoring not allowed");
+  }
+
+  @Test
+  public void invalidConfigIsRepaired() throws Exception {
+    FakeRepairPolicy policy = new FakeRepairPolicy().fixable().repairWith(CONFIG);
+    useRepairPolicy(policy, 1);
+    answerSurvey();
+    llmClient.respondWith(INVALID_CONFIG);
+
+    assertThat(run()).isEqualTo(ExitCode.SUCCESS);
+
+    assertThat(readOutput(AiOnboardCmd.DEFAULT_OUTPUT_FILE)).isEqualTo(CONFIG);
+    RepairPolicy.Request request = policy.requests.get(0);
+    assertThat(request.archetype()).isEqualTo(ARCHETYPE);
+    assertThat(request.config()).isEqualTo(INVALID_CONFIG);
+    assertThat(request.answers()).containsEntry("origin_path", "third_party/example");
+    // Includes the errors the loader only prints, like Starlark syntax errors.
+    assertThat(String.join("\n", request.errors()))
+        .contains("name 'unknown_function' is not defined");
+    console.assertThat().onceInLog(MessageType.INFO, "Wrote a valid config to .*");
+  }
+
+  @Test
+  public void classifierNeedsUser_stopsWithoutRepairing() throws Exception {
+    FakeRepairPolicy policy =
+        new FakeRepairPolicy().needsUser("The helper isn't in any library", "Create the helper");
+    useRepairPolicy(policy, 2);
+    answerSurvey();
+    llmClient.respondWith(INVALID_CONFIG);
+
+    assertThat(run()).isEqualTo(ExitCode.CONFIGURATION_ERROR);
+
+    assertThat(policy.repairCalls).isEqualTo(0);
+    assertThat(readOutput(AiOnboardCmd.DEFAULT_OUTPUT_FILE)).isEqualTo(INVALID_CONFIG);
+    console
+        .assertThat()
+        .onceInLog(
+            MessageType.ERROR,
+            "ai_onboard can't fix this automatically: The helper isn't in any library")
+        .onceInLog(MessageType.ERROR, "To fix it: Create the helper")
+        .onceInLog(MessageType.ERROR, "Wrote generated config to .*isn't valid.*");
+  }
+
+  @Test
+  public void repairNeedsUser_stops() throws Exception {
+    FakeRepairPolicy policy = new FakeRepairPolicy().fixable().repairNeedsUser("Needs a token");
+    useRepairPolicy(policy, 2);
+    answerSurvey();
+    llmClient.respondWith(INVALID_CONFIG);
+
+    assertThat(run()).isEqualTo(ExitCode.CONFIGURATION_ERROR);
+
+    assertThat(policy.repairCalls).isEqualTo(1);
+    assertThat(readOutput(AiOnboardCmd.DEFAULT_OUTPUT_FILE)).isEqualTo(INVALID_CONFIG);
+    console
+        .assertThat()
+        .onceInLog(MessageType.ERROR, "ai_onboard can't fix this automatically: Needs a token");
+  }
+
+  @Test
+  public void sameErrorsAfterRepair_stops() throws Exception {
+    FakeRepairPolicy policy =
+        new FakeRepairPolicy().fixable().repairWith(INVALID_CONFIG + "# still broken\n");
+    useRepairPolicy(policy, 3);
+    answerSurvey();
+    llmClient.respondWith(INVALID_CONFIG);
+
+    assertThat(run()).isEqualTo(ExitCode.CONFIGURATION_ERROR);
+
+    assertThat(policy.repairCalls).isEqualTo(1);
+    console
+        .assertThat()
+        .onceInLog(MessageType.WARNING, "The fixed config fails with the same errors.*");
+  }
+
+  @Test
+  public void unchangedConfig_stops() throws Exception {
+    FakeRepairPolicy policy = new FakeRepairPolicy().fixable().repairWith(INVALID_CONFIG);
+    useRepairPolicy(policy, 3);
+    answerSurvey();
+    llmClient.respondWith(INVALID_CONFIG);
+
+    assertThat(run()).isEqualTo(ExitCode.CONFIGURATION_ERROR);
+
+    assertThat(policy.repairCalls).isEqualTo(1);
+    console.assertThat().onceInLog(MessageType.WARNING, "The model didn't change the config.*");
+  }
+
+  @Test
+  public void stopsAfterMaxAttempts() throws Exception {
+    FakeRepairPolicy policy =
+        new FakeRepairPolicy()
+            .fixable()
+            .repairWith("core.workflow(name = \"default\", origin = other_function())\n")
+            .repairWith("core.workflow(name = \"default\", origin = third_function())\n");
+    useRepairPolicy(policy, 2);
+    answerSurvey();
+    llmClient.respondWith(INVALID_CONFIG);
+
+    assertThat(run()).isEqualTo(ExitCode.CONFIGURATION_ERROR);
+
+    assertThat(policy.repairCalls).isEqualTo(2);
+    assertThat(readOutput(AiOnboardCmd.DEFAULT_OUTPUT_FILE)).contains("third_function");
+  }
+
+  @Test
+  public void llmFailureDuringRepair_stops() throws Exception {
+    FakeRepairPolicy policy =
+        new FakeRepairPolicy().fixable().failRepairWith(new LlmException("backend unavailable"));
+    useRepairPolicy(policy, 2);
+    answerSurvey();
+    llmClient.respondWith(INVALID_CONFIG);
+
+    assertThat(run()).isEqualTo(ExitCode.CONFIGURATION_ERROR);
+
+    console
+        .assertThat()
+        .onceInLog(
+            MessageType.WARNING, "Couldn't fix the config automatically: backend unavailable");
+  }
+
+  @Test
+  public void zeroAttempts_disablesRepair() throws Exception {
+    FakeRepairPolicy policy = new FakeRepairPolicy().fixable().repairWith(CONFIG);
+    useRepairPolicy(policy, 0);
+    answerSurvey();
+    llmClient.respondWith(INVALID_CONFIG);
+
+    assertThat(run()).isEqualTo(ExitCode.CONFIGURATION_ERROR);
+
+    assertThat(policy.requests).isEmpty();
+  }
+
+  @Test
+  public void negativeAttempts_fails() {
+    useRepairPolicy(new FakeRepairPolicy(), -1);
+
+    ValidationException e = assertThrows(ValidationException.class, this::run);
+
+    assertThat(e)
+        .hasMessageThat()
+        .contains("--ai-onboard-max-repair-attempts must not be negative");
+  }
+
+  /** Validates with the default validator and uses {@code policy} to repair invalid configs. */
+  private void useRepairPolicy(RepairPolicy policy, int maxAttempts) {
+    cmd = new AiOnboardCmd(new ConfigValidator() {}, configLoaderProvider());
+    optionsBuilder.aiOnboard =
+        new AiOnboardOptions() {
+          @Override
+          public LlmClient getLlmClient() {
+            return llmClient;
+          }
+
+          @Override
+          public String getArchetype() {
+            return ARCHETYPE;
+          }
+
+          @Override
+          public Optional<RepairPolicy> getRepairPolicy() {
+            return Optional.of(policy);
+          }
+        };
+    optionsBuilder.aiOnboard.maxRepairAttempts = maxAttempts;
+  }
+
+  /** A {@link RepairPolicy} with programmed answers that records its requests. */
+  private static final class FakeRepairPolicy implements RepairPolicy {
+    private final List<Request> requests = new ArrayList<>();
+    private final Deque<Object> repairs = new ArrayDeque<>();
+    private Classification classification = new Classification(true, "", "");
+    private int repairCalls;
+
+    @CanIgnoreReturnValue
+    FakeRepairPolicy fixable() {
+      classification = new Classification(true, "", "");
+      return this;
+    }
+
+    @CanIgnoreReturnValue
+    FakeRepairPolicy needsUser(String reason, String userAction) {
+      classification = new Classification(false, reason, userAction);
+      return this;
+    }
+
+    @CanIgnoreReturnValue
+    FakeRepairPolicy repairWith(String config) {
+      repairs.addLast(new Repair(Optional.of(config), "fixed"));
+      return this;
+    }
+
+    @CanIgnoreReturnValue
+    FakeRepairPolicy repairNeedsUser(String reason) {
+      repairs.addLast(new Repair(Optional.empty(), reason));
+      return this;
+    }
+
+    @CanIgnoreReturnValue
+    FakeRepairPolicy failRepairWith(LlmException exception) {
+      repairs.addLast(exception);
+      return this;
+    }
+
+    @Override
+    public Classification classify(Request request) {
+      requests.add(request);
+      return classification;
+    }
+
+    @Override
+    public Repair repair(Request request) throws LlmException {
+      repairCalls++;
+      Object next = repairs.removeFirst();
+      if (next instanceof LlmException e) {
+        throw e;
+      }
+      return (Repair) next;
+    }
   }
 
   /** Loads the config that the command wrote, recording each path it's asked to load. */
