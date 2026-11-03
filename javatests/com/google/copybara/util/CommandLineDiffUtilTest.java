@@ -66,7 +66,26 @@ public final class CommandLineDiffUtilTest {
             workdir);
 
     String mergedFile = "foo\na\nb\nc\nbar";
+    assertThat(output.result()).isEqualTo(MergeResultCode.SUCCESS);
     assertThat(output.fileContents().toString(UTF_8)).isEqualTo(mergedFile);
+  }
+
+  @Test
+  public void identicalChangeOnBothSidesWithUnrelatedEditMergesCleanly() throws Exception {
+    writeFile(baseline, "baseline.txt", "a\nb\nc\nd\ne\n");
+    writeFile(left, "left.txt", "left_only\na\nb\nc\nd\nshared_edit\n");
+    writeFile(right, "right.txt", "a\nb\nc\nd\nshared_edit\n");
+
+    MergeResult output =
+        underTest.merge(
+            left.resolve("left.txt"),
+            right.resolve("right.txt"),
+            baseline.resolve("baseline.txt"),
+            workdir);
+
+    assertThat(output.result()).isEqualTo(MergeResultCode.SUCCESS);
+    assertThat(output.fileContents().toString(UTF_8))
+        .isEqualTo("left_only\na\nb\nc\nd\nshared_edit\n");
   }
 
   @Test

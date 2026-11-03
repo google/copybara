@@ -57,6 +57,7 @@ public final class CommandLineDiffUtil implements MergeRunner {
 
     // myfile oldfile yourfile
     String mArg = "-m";
+    String eArg = "-E";
     String labelFlag = "--label";
     ArrayList<String> argv =
         Lists.newArrayList(
@@ -70,7 +71,8 @@ public final class CommandLineDiffUtil implements MergeRunner {
             rhs.toString(),
             labelFlag,
             label(rhs, workDir),
-            mArg);
+            mArg,
+            eArg);
     Command cmd =
         new Command(
             argv.toArray(new String[0]), environmentVariables, workDir.toFile());

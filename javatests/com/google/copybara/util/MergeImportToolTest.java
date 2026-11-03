@@ -215,15 +215,27 @@ public final class MergeImportToolTest {
             d
             e
             f
-            ||||||| baseline/foo.txt
-            a
-            b
-            c
             =======
             g
             h
             i>>>>>>> destination/foo.txt
             """);
+  }
+
+  @Test
+  public void testSameHunkInOriginAndDestinationWithUnrelatedEdit_mergesCleanly() throws Exception {
+    String fileName = "foo.txt";
+    writeFile(baselineWorkdir, fileName, "a\nb\nc\nd\ne\n");
+    writeFile(originWorkdir, fileName, "origin_edit\na\nb\nc\nd\nsame_hunk\n");
+    writeFile(destinationWorkdir, fileName, "a\nb\nc\nd\nsame_hunk\n");
+
+    ImmutableList<String> mergeErrors =
+        underTest.mergeImport(
+            originWorkdir, destinationWorkdir, baselineWorkdir, diffToolWorkdir, glob, packagePath);
+
+    assertThat(mergeErrors).isEmpty();
+    assertThat(Files.readString(originWorkdir.resolve(fileName)))
+        .isEqualTo("origin_edit\na\nb\nc\nd\nsame_hunk\n");
   }
 
   @Test
