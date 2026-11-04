@@ -276,6 +276,29 @@ public class ConsistencyFileTest {
   }
 
   @Test
+  public void testDeserializedObjectIsEquivalent_filePathsWithColons() throws Exception {
+    String pathWithColonAndSpace = "Snippets/${_(u\"___\")} : i18n.tmSnippet";
+    String pathWithColons = "dir/file:with:colons";
+    write(destination, pathWithColonAndSpace, "hello");
+    write(baseline, pathWithColonAndSpace, "hello");
+    write(destination, pathWithColons, "hello");
+    write(baseline, pathWithColons, "hello");
+    ConsistencyFile testConsistencyFile =
+        ConsistencyFile.generate(
+            baseline, destination, Hashing.sha256(), env, /* verbose= */ false);
+    byte[] testPatchBytes = testConsistencyFile.toBytes();
+
+    ConsistencyFile deserializedPatch = ConsistencyFile.fromBytes(testPatchBytes);
+
+    assertThat(deserializedPatch).isEqualTo(testConsistencyFile);
+    assertThat(deserializedPatch.getFileHashes())
+        .containsExactly(pathWithColonAndSpace, HELLO_HASH, pathWithColons, HELLO_HASH);
+    deserializedPatch.validateDirectory(
+        ConsistencyFile.filesInDir(destination),
+        ConsistencyFile.simpleHashGetter(destination, Hashing.sha256()));
+  }
+
+  @Test
   public void testDeserializedObjectNotEquivalent_changedFile() throws Exception {
     write(destination, "test/path", "123457testcontents");
     write(baseline, "test/path", "123457testcontents");

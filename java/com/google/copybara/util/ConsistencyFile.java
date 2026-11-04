@@ -19,7 +19,6 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -44,7 +43,6 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -320,14 +318,16 @@ public class ConsistencyFile {
 
       String line = mustReadUncommentedLine(br);
       while (!line.equals(HASH_DELIMITER)) {
-        List<String> splits = Splitter.on(": ").limit(2).splitToList(line);
-        if (splits.size() != 2) {
+        int delimiterIndex = line.lastIndexOf(": ");
+        if (delimiterIndex == -1) {
           throw new IOException(
               "failed to parse consistency file hashes: unexpected number of elements");
         }
-        validateParsedPathValue(splits.get(0));
-        validateParsedHashValue(splits.get(1));
-        fileHashesBuilder.put(splits.get(0), splits.get(1));
+        String path = line.substring(0, delimiterIndex);
+        String hash = line.substring(delimiterIndex + 2);
+        validateParsedPathValue(path);
+        validateParsedHashValue(hash);
+        fileHashesBuilder.put(path, hash);
 
         line = mustReadUncommentedLine(br);
       }
