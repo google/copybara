@@ -189,6 +189,46 @@ public final class AiOnboardCmdTest {
     assertThat(prompt).contains("desired_destination_files: \"everything except docs\"");
     assertThat(prompt).contains("desired_transformations: \"move the package to the root\"");
     assertThat(prompt).contains("other_requests: \"import GitHub PRs\"");
+    assertThat(prompt).doesNotContain("## Repository Context");
+  }
+
+  @Test
+  public void promptContainsRepoContext() throws Exception {
+    List<ImmutableMap<String, String>> contextAnswers = new ArrayList<>();
+    optionsBuilder.aiOnboard =
+        new AiOnboardOptions() {
+          @Override
+          public LlmClient getLlmClient() {
+            return llmClient;
+          }
+
+          @Override
+          public String getArchetype() {
+            return ARCHETYPE;
+          }
+
+          @Override
+          public Optional<String> getRepoContext(ImmutableMap<String, String> answers) {
+            contextAnswers.add(answers);
+            return Optional.of("src/\n  main.py");
+          }
+        };
+    answerSurvey();
+    llmClient.respondWith(CONFIG);
+
+    assertThat(run()).isEqualTo(ExitCode.SUCCESS);
+
+    assertThat(contextAnswers.get(0)).containsEntry("origin_path", "third_party/example");
+    assertThat(llmClient.getPrompts().get(0))
+        .endsWith(
+            """
+            other_requests: "import GitHub PRs"
+
+            ---
+            ## Repository Context
+            src/
+              main.py
+            """);
   }
 
   @Test

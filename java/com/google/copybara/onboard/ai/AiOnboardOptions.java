@@ -18,6 +18,7 @@ package com.google.copybara.onboard.ai;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
+import com.google.common.collect.ImmutableMap;
 import com.google.copybara.Option;
 import com.google.copybara.exception.ValidationException;
 import java.util.Optional;
@@ -47,6 +48,18 @@ public class AiOnboardOptions implements Option {
    */
   public String getArchetype() throws ValidationException {
     throw new ValidationException("No archetype is configured for AI-assisted onboarding.");
+  }
+
+  /**
+   * Returns extra context about the code being migrated, like a summary of its files, to send to
+   * the model after the user's answers. Returns empty by default. Environments that can read the
+   * origin override this.
+   *
+   * @param answers the survey answers, keyed by the field name used in the prompt
+   */
+  public Optional<String> getRepoContext(ImmutableMap<String, String> answers)
+      throws ValidationException {
+    return Optional.empty();
   }
 
   /**

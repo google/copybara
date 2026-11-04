@@ -125,10 +125,11 @@ public class AiOnboardCmd implements CopybaraCmd {
       return ExitCode.COMMAND_LINE_ERROR;
     }
 
+    String repoContext = aiOnboardOptions.getRepoContext(answers).orElse(null);
     String response;
     try {
       console.progress("Generating Copybara config...");
-      response = llmClient.generate(buildPrompt(archetype, answers));
+      response = llmClient.generate(buildPrompt(archetype, answers, repoContext));
     } catch (LlmException e) {
       console.errorFmt("Failed to generate config: %s", e.getMessage());
       return ExitCode.ENVIRONMENT_ERROR;
@@ -303,11 +304,15 @@ public class AiOnboardCmd implements CopybaraCmd {
         .buildOrThrow();
   }
 
-  /** Builds the prompt: the archetype followed by the user's answers. */
-  static String buildPrompt(String archetype, Map<String, String> answers) {
+  /** Builds the prompt: the archetype, the user's answers, then the repository context if any. */
+  static String buildPrompt(
+      String archetype, Map<String, String> answers, @Nullable String repoContext) {
     StringBuilder prompt =
         new StringBuilder(archetype).append("\n\n---\n## User Onboarding Input\n");
     answers.forEach((field, answer) -> prompt.append(String.format("%s: \"%s\"\n", field, answer)));
+    if (repoContext != null) {
+      prompt.append("\n---\n## Repository Context\n").append(repoContext).append('\n');
+    }
     return prompt.toString();
   }
 
