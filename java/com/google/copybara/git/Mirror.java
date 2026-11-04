@@ -231,8 +231,10 @@ public class Mirror implements Migration {
       ImmutableList<String> destRefPatterns =
           refspec.stream().map(Refspec::getDestination).collect(toImmutableList());
 
+      generalOptions.console().progressFmt("Checking origin refs for %s", origin);
       ImmutableMap<String, String> originRefs =
           ImmutableMap.copyOf(repo.lsRemote(origin, originRefPatterns, LS_REMOTE_FLAGS));
+      generalOptions.console().progressFmt("Checking destination refs for %s", destination);
       ImmutableMap<String, String> destRefs =
           ImmutableMap.copyOf(repo.lsRemote(destination, destRefPatterns, LS_REMOTE_FLAGS));
 

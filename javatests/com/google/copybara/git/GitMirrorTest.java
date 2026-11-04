@@ -1188,6 +1188,7 @@ public class GitMirrorTest {
     Migration mirror = createMirrorObj();
     mirror.run(workdir, ImmutableList.of());
 
+    console.reset();
     RecordingListener recordingCallback = installProfiler();
     mirror.run(workdir, ImmutableList.of());
 
@@ -1199,6 +1200,8 @@ public class GitMirrorTest {
         .assertMatchesNext(EventType.END, "//copybara/run/default");
     console
         .assertThat()
+        .matchesNextSkipAhead(MessageType.PROGRESS, "Checking origin refs for .*")
+        .matchesNextSkipAhead(MessageType.PROGRESS, "Checking destination refs for .*")
         .onceInLog(
             MessageType.INFO,
             "Origin and destination refs are in sync for default. Skipping fetch and push.");
