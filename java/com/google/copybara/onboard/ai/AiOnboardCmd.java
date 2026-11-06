@@ -24,6 +24,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import com.beust.jcommander.Parameters;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.copybara.CommandEnv;
 import com.google.copybara.ConfigLoaderProvider;
@@ -209,10 +210,26 @@ public class AiOnboardCmd implements CopybaraCmd {
         case ERROR -> console.error(message.getMessage());
       }
     }
+    ImmutableSet<String> configLines =
+        ImmutableSet.copyOf(Files.readString(outputPath, UTF_8).split("\n", -1));
     return ImmutableList.<String>builder()
-        .addAll(capturing.getMessages().stream().map(Message::getText).iterator())
+        .addAll(
+            capturing.getMessages().stream()
+                .map(Message::getText)
+                .filter(text -> !isConfigExcerpt(text, configLines))
+                .iterator())
         .addAll(result.getErrors())
         .build();
+  }
+
+  /** Returns whether {@code message} is just config lines, like the context around an error. */
+  private static boolean isConfigExcerpt(String message, ImmutableSet<String> configLines) {
+    return message
+        .lines()
+        .allMatch(
+            line ->
+                (line.startsWith("-> ") || line.startsWith("   "))
+                    && configLines.contains(line.substring(3)));
   }
 
   /**
