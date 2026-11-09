@@ -24,6 +24,7 @@ import com.google.common.flogger.FluentLogger;
 import com.google.copybara.util.Glob;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.util.stream.Collectors;
@@ -172,12 +173,8 @@ public class CheckoutFileSystem implements StarlarkValue {
     Path normalized = resolved.normalize();
     logger.atInfo().log("normalized path: %s", normalized);
     try {
-      if (!normalized.startsWith(checkoutDir)
-          || (Files.exists(normalized)
-              && Files.isSymbolicLink(normalized)
-              && !normalized
-                  .toRealPath()
-                  .startsWith(checkoutDir.toRealPath()))) {
+      Path realCheckoutDir = checkoutDir.toRealPath();
+      if (!isInsideCheckoutDir(normalized, realCheckoutDir)) {
         String realPath = "";
         try {
           realPath = normalized.toRealPath().toString();
@@ -187,12 +184,23 @@ public class CheckoutFileSystem implements StarlarkValue {
         throw Starlark.errorf(
             "%s is not inside the checkout directory or links to a file outside"
                 + " the path. Real path was %s, checkout dir was %s, real checkout dir was %s",
-            path, realPath, checkoutDir, checkoutDir.toRealPath());
+            path, realPath, checkoutDir, realCheckoutDir);
       }
     } catch (IOException ioe) {
       logger.atInfo().withCause(ioe).log("Cannot resolve %s", path);
       throw Starlark.errorf("%s cannot be resolved : %s", path, ioe.getMessage());
     }
     return normalized;
+  }
+
+  private boolean isInsideCheckoutDir(Path normalized, Path realCheckoutDir) throws IOException {
+    if (!normalized.startsWith(checkoutDir)) {
+      return false;
+    }
+    Path probe = normalized;
+    while (probe != null && !Files.exists(probe, LinkOption.NOFOLLOW_LINKS)) {
+      probe = probe.getParent();
+    }
+    return probe != null && probe.toRealPath().startsWith(realCheckoutDir);
   }
 }

@@ -605,7 +605,7 @@ public class TransformWorkTest {
                         ZonedDateTime.ofInstant(
                             Instant.ofEpochSecond(1591743457), ZoneId.of("UTC"))));
     assertThat(work.getLabel("COPYBARA_CURRENT_REV_DATE_TIME")).isEqualTo("2020-06-09T22:57:37Z");
-   }
+  }
 
   @Test
   public void testReversible() throws ValidationException {
@@ -1145,6 +1145,104 @@ transformation = core.transform([test])
             ValidationException.class,
             () -> writeEscapedSymlink.transform(TransformWorks.of(workdir, "test", console)));
     assertThat(veWrite).hasMessageThat().contains("is not inside the checkout directory");
+  }
+
+  @Test
+  public void testSymlinks_directoryEscape_writePath() throws Exception {
+    Path outsideDir = Files.createTempDirectory("outside");
+    Files.createSymbolicLink(workdir.resolve("pwn"), outsideDir);
+
+    Transformation writeThroughEscapedDirSymlink =
+        skylark.eval(
+            "transformation",
+            """
+            def test(ctx):
+                ctx.write_path(ctx.new_path("pwn/nested/hit.txt"), "ESCAPED")
+
+            transformation = core.transform([test])
+            """);
+
+    ValidationException veWrite =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                writeThroughEscapedDirSymlink.transform(
+                    TransformWorks.of(workdir, "test", console)));
+    assertThat(veWrite).hasMessageThat().contains("is not inside the checkout directory");
+    assertThat(Files.exists(outsideDir.resolve("nested/hit.txt"))).isFalse();
+  }
+
+  @Test
+  public void testSymlinks_directoryEscape_readPath() throws Exception {
+    Path outsideDir = Files.createTempDirectory("outside");
+    Files.writeString(outsideDir.resolve("secret.txt"), "SECRET");
+    Files.createSymbolicLink(workdir.resolve("pwn"), outsideDir);
+
+    Transformation readThroughEscapedDirSymlink =
+        skylark.eval(
+            "transformation",
+            """
+            def test(ctx):
+                ctx.console.info(ctx.read_path(ctx.new_path("pwn/secret.txt")))
+
+            transformation = core.transform([test])
+            """);
+
+    ValidationException veRead =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                readThroughEscapedDirSymlink.transform(
+                    TransformWorks.of(workdir, "test", console)));
+    assertThat(veRead).hasMessageThat().contains("is not inside the checkout directory");
+  }
+
+  @Test
+  public void testSymlinks_directoryEscape_setExecutable() throws Exception {
+    Path outsideDir = Files.createTempDirectory("outside");
+    Path outsideScript = Files.writeString(outsideDir.resolve("script.sh"), "#!/bin/sh\n");
+    outsideScript.toFile().setExecutable(false);
+    Files.createSymbolicLink(workdir.resolve("pwn"), outsideDir);
+
+    Transformation chmodThroughEscapedDirSymlink =
+        skylark.eval(
+            "transformation",
+            """
+            def test(ctx):
+                ctx.set_executable(ctx.new_path("pwn/script.sh"), True)
+
+            transformation = core.transform([test])
+            """);
+
+    ValidationException veExec =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                chmodThroughEscapedDirSymlink.transform(
+                    TransformWorks.of(workdir, "test", console)));
+    assertThat(veExec).hasMessageThat().contains("is not inside the checkout directory");
+    assertThat(Files.isExecutable(outsideScript)).isFalse();
+  }
+
+  @Test
+  public void testSymlinks_internalDirectorySymlink_allowed() throws Exception {
+    Path realSubdir = Files.createDirectories(workdir.resolve("real_dir"));
+    Files.createSymbolicLink(workdir.resolve("link_dir"), Path.of("real_dir"));
+
+    Transformation writeAndReadInternalDirSymlink =
+        skylark.eval(
+            "transformation",
+            """
+            def test(ctx):
+                ctx.write_path(ctx.new_path("link_dir/nested/ok.txt"), "INSIDE")
+                ctx.console.info(ctx.read_path(ctx.new_path("link_dir/nested/ok.txt")))
+
+            transformation = core.transform([test])
+            """);
+
+    writeAndReadInternalDirSymlink.transform(TransformWorks.of(workdir, "test", console));
+    assertThat(Files.readString(realSubdir.resolve("nested/ok.txt"))).isEqualTo("INSIDE");
+    console.assertThat().onceInLog(MessageType.INFO, "INSIDE");
   }
 
   @Test
