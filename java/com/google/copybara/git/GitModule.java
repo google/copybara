@@ -543,6 +543,16 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Boolean allowProtocolRef,
       Sequence<?> allowedRefPrefixes)
       throws EvalException {
+    ImmutableList<String> prefixes =
+        ImmutableList.copyOf(
+            Sequence.cast(allowedRefPrefixes, String.class, "allowed_ref_prefixes"));
+    for (String prefix : prefixes) {
+      try {
+        IntegrateUrlPrefixes.validateAllowedRefPrefix(prefix);
+      } catch (ValidationException e) {
+        throw new EvalException(e.getMessage(), e);
+      }
+    }
     return new GitIntegrateChanges(
         label,
         stringToEnum("strategy", strategy, Strategy.class),
@@ -550,7 +560,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         allowUnrelatedHistory != null && allowUnrelatedHistory,
         new LabelTemplate(mergeCommitMessage),
         allowProtocolRef != null && allowProtocolRef,
-        Sequence.cast(allowedRefPrefixes, String.class, "allowed_ref_prefixes"));
+        prefixes);
   }
 
   @SuppressWarnings("unused")
