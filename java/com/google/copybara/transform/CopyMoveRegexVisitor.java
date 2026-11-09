@@ -18,7 +18,9 @@ package com.google.copybara.transform;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.templatetoken.RegexTemplateTokens;
+import com.google.copybara.util.FileUtil;
 import java.io.IOException;
 import java.nio.file.CopyOption;
 import java.nio.file.DirectoryNotEmptyException;
@@ -32,6 +34,7 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
+import javax.annotation.Nullable;
 
 /** A visitor which copy or moves files recursively from the path it is visiting. */
 final class CopyMoveRegexVisitor extends SimpleFileVisitor<Path> {
@@ -43,6 +46,7 @@ final class CopyMoveRegexVisitor extends SimpleFileVisitor<Path> {
   private final CopyOption[] moveMode;
 
   private final List<Action> actionsToTake = new ArrayList<>();
+  @Nullable private ValidationException validationError;
 
   private CopyMoveRegexVisitor(
       RegexTemplateTokens before,
@@ -54,7 +58,7 @@ final class CopyMoveRegexVisitor extends SimpleFileVisitor<Path> {
     this.before = Preconditions.checkNotNull(before);
     this.after = Preconditions.checkNotNull(after);
     this.pathMatcher = Preconditions.checkNotNull(pathMatcher);
-    this.workDir = Preconditions.checkNotNull(workDir);
+    this.workDir = Preconditions.checkNotNull(workDir).normalize();
     this.isCopy = isCopy;
     if (overwrite) {
       moveMode = new CopyOption[] {LinkOption.NOFOLLOW_LINKS, StandardCopyOption.REPLACE_EXISTING};
@@ -73,10 +77,38 @@ final class CopyMoveRegexVisitor extends SimpleFileVisitor<Path> {
         // Either the regex didn't match, or it did match but returned the same file name
         return FileVisitResult.CONTINUE;
       }
-      Path dest = workDir.resolve(relativeDest);
+      Path dest;
+      try {
+        dest = resolveDestination(relativeFile, relativeDest);
+      } catch (ValidationException e) {
+        this.validationError = e;
+        return FileVisitResult.TERMINATE;
+      }
       this.actionsToTake.add(new CopyOrMoveAction(file, dest));
     }
     return FileVisitResult.CONTINUE;
+  }
+
+  private Path resolveDestination(String relativeFile, String relativeDest)
+      throws ValidationException {
+    try {
+      FileUtil.checkNormalizedRelative(relativeDest);
+    } catch (IllegalArgumentException e) {
+      throw new ValidationException(invalidDestMessage(relativeFile, e.getMessage()), e);
+    }
+    Path dest = workDir.resolve(relativeDest).normalize();
+    if (!dest.startsWith(workDir)) {
+      throw new ValidationException(
+          invalidDestMessage(
+              relativeFile, String.format("'%s' is outside the checkout directory", relativeDest)));
+    }
+    return dest;
+  }
+
+  private String invalidDestMessage(String relativeFile, String reason) {
+    return String.format(
+        "Regex substitution on '%s' (with after = '%s') produced invalid destination: %s",
+        relativeFile, after, reason);
   }
 
   @Override
@@ -98,10 +130,13 @@ final class CopyMoveRegexVisitor extends SimpleFileVisitor<Path> {
       Path workDir,
       boolean overwrite,
       boolean isCopy)
-      throws IOException {
+      throws IOException, ValidationException {
     CopyMoveRegexVisitor visitor =
         new CopyMoveRegexVisitor(before, after, pathMatcher, workDir, overwrite, isCopy);
     Files.walkFileTree(root, visitor);
+    if (visitor.validationError != null) {
+      throw visitor.validationError;
+    }
 
     // Start to execute actions only after we finish walking the tree, to make sure we don't
     // copy/move the same file twice.

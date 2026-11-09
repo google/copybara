@@ -22,6 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.jimfs.Configuration;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Transformation;
 import com.google.copybara.TransformationStatus;
@@ -838,6 +839,131 @@ public class CopyOrMoveTest {
     assertThatPath(checkoutDir)
         .containsFiles("other_folder/file")
         .containsNoDirs("folder")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void moveWithRegex_dotDotEscapeOutsideCheckoutDir_throwsAndLeavesTreeUnchanged()
+      throws Exception {
+    CopyOrMove mover =
+        skylark.eval(
+            "m",
+            "m = core.move(before = 'src/${name}.proto', after = '${name}/schema.proto',"
+                + " regex_groups = {'name': '[A-Za-z0-9_.]+'})");
+    touch("src/valid.proto");
+    touch("src/...proto");
+
+    ValidationException e = assertThrows(ValidationException.class, () -> transform(mover));
+
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "Regex substitution on 'src/...proto' (with after = '${name}/schema.proto') produced"
+                + " invalid destination: path has unexpected . or .. components: ../schema.proto");
+    assertThat(Files.exists(checkoutDir.resolveSibling("schema.proto"))).isFalse();
+    assertThatPath(checkoutDir)
+        .containsFiles("src/valid.proto", "src/...proto")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void moveWithRegex_destinationResolvingOutsideCheckoutDir_throwsValidationException()
+      throws Exception {
+    FileSystem windowsFs = Jimfs.newFileSystem(Configuration.windows());
+    checkoutDir = windowsFs.getPath("C:\\test-checkoutDir");
+    Files.createDirectories(checkoutDir);
+    CopyOrMove mover =
+        skylark.eval(
+            "m",
+            "m = core.move(before = '${name}.proto', after = '${name}\\\\schema.proto',"
+                + " regex_groups = {'name': '[A-Za-z0-9_.]+'})");
+    touch("...proto");
+
+    ValidationException e = assertThrows(ValidationException.class, () -> transform(mover));
+
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "Regex substitution on '...proto' (with after = '${name}\\schema.proto') produced"
+                + " invalid destination: '..\\schema.proto' is outside the checkout directory");
+    assertThat(Files.exists(checkoutDir.resolveSibling("schema.proto"))).isFalse();
+    assertThatPath(checkoutDir).containsFiles("...proto").containsNoMoreFiles();
+  }
+
+  @Test
+  public void copyWithRegex_dotDotInSubdirectoryDestination_throwsValidationException()
+      throws Exception {
+    CopyOrMove copier =
+        skylark.eval(
+            "m",
+            "m = core.copy(before = 'src/${name}.proto', after = 'sub/${name}/schema.proto',"
+                + " regex_groups = {'name': '[A-Za-z0-9_.]+'})");
+    touch("src/...proto");
+
+    ValidationException e = assertThrows(ValidationException.class, () -> transform(copier));
+
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "Regex substitution on 'src/...proto' (with after = 'sub/${name}/schema.proto')"
+                + " produced invalid destination: path has unexpected . or .. components:"
+                + " sub/../schema.proto");
+    assertThatPath(checkoutDir).containsFiles("src/...proto").containsNoMoreFiles();
+  }
+
+  @Test
+  public void moveWithRegex_leadingSlashAbsoluteDestination_throwsValidationException()
+      throws Exception {
+    CopyOrMove mover =
+        skylark.eval(
+            "m",
+            "m = core.move(before = 'prefix${x}.txt', after = '${x}', regex_groups = {'x': '.*'})");
+    touch("prefix/tmp/escaped.txt");
+
+    ValidationException e = assertThrows(ValidationException.class, () -> transform(mover));
+
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "Regex substitution on 'prefix/tmp/escaped.txt' (with after = '${x}') produced invalid"
+                + " destination: path must be relative, but it starts with /: /tmp/escaped");
+    assertThat(Files.exists(checkoutDir.getFileSystem().getPath("/tmp/escaped"))).isFalse();
+    assertThatPath(checkoutDir).containsFiles("prefix/tmp/escaped.txt").containsNoMoreFiles();
+  }
+
+  @Test
+  public void moveWithRegex_dotDestination_throwsValidationException() throws Exception {
+    CopyOrMove mover =
+        skylark.eval(
+            "m",
+            "m = core.move(before = '${x}.bazel', after = '${x}', regex_groups = {'x': '.*'})");
+    touch("..bazel");
+
+    ValidationException e = assertThrows(ValidationException.class, () -> transform(mover));
+
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "Regex substitution on '..bazel' (with after = '${x}') produced invalid destination:"
+                + " path has unexpected . or .. components: .");
+    assertThatPath(checkoutDir).containsFiles("..bazel").containsNoMoreFiles();
+  }
+
+  @Test
+  public void moveWithRegex_validDotfileAndTripleDotComponent_succeeds() throws Exception {
+    CopyOrMove mover =
+        skylark.eval(
+            "m",
+            "m = core.move(before = 'src/${x}.bak', after = 'dst/${x}', regex_groups = {'x':"
+                + " '.*'})");
+    touch("src/.gitignore.bak");
+    touch("src/...triple.bak");
+
+    transform(mover);
+
+    assertThatPath(checkoutDir)
+        .containsFiles("dst/.gitignore", "dst/...triple")
+        .containsNoDirs("src")
         .containsNoMoreFiles();
   }
 }
