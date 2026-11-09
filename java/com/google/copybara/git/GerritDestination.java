@@ -391,6 +391,23 @@ public final class GerritDestination implements Destination<GitRevision> {
       }
     }
 
+    /**
+     * Gerrit's {@code refs/for/<branch>%opt=val,opt=val,...} refspec push-option syntax has no
+     * escape mechanism for {@code ,} / {@code %} / {@code =}. A value containing them would be
+     * tokenized by the server as additional push options (e.g. {@code l=Code-Review+2} or {@code
+     * submit}), so ignore them and log a warning rather than passing untrusted bytes through.
+     */
+    private boolean isValidPushOptionValue(String name, String value) {
+      if (value.indexOf(',') != -1 || value.indexOf('%') != -1 || value.indexOf('=') != -1) {
+        console.warnFmt(
+            "Ignoring Gerrit push option '%s' with value '%s', which contains a character (',' /"
+                + " '%%' / '=') that would be interpreted as an additional push option.",
+            name, value);
+        return false;
+      }
+      return true;
+    }
+
     @Override
     public String getPushReference(
         GitRepository repo, String pushToRefsFor, TransformResult transformResult)
@@ -462,11 +479,24 @@ public final class GerritDestination implements Destination<GitRevision> {
           }
         }
       }
+
       if (!options.isEmpty()) {
-        result += "%" + Joiner.on(',').join(options.entries()
-            .stream()
-            .map(e -> e.getKey()+(e.getValue().isPresent()?"="+e.getValue().get():""))
-            .collect(Collectors.toList()));
+        ImmutableList.Builder<String> optionStrings = ImmutableList.builder();
+        for (Entry<String, Optional<String>> e : options.entries()) {
+          if (e.getValue().isPresent()) {
+            String value = e.getValue().get();
+            if (!isValidPushOptionValue(e.getKey(), value)) {
+              continue;
+            }
+            optionStrings.add(e.getKey() + "=" + value);
+          } else {
+            optionStrings.add(e.getKey());
+          }
+        }
+        ImmutableList<String> validOptions = optionStrings.build();
+        if (!validOptions.isEmpty()) {
+          result += "%" + Joiner.on(',').join(validOptions);
+        }
       }
       return result;
     }

@@ -1562,6 +1562,190 @@ public class GerritDestinationTest {
   }
 
   @Test
+  public void testTopicPushOptionInjectionIgnored_commaAndEquals() throws Exception {
+    fetch = "master";
+    options.setForce(true);
+    writeFile(workdir, "file", "some content");
+
+    process(
+        new DummyRevision("origin_ref").withContextReference("x,l=Code-Review+2,submit"),
+        destination("topic = 't_${CONTEXT_REFERENCE}'"));
+
+    assertThat(getGerritRef(repo(), "refs/for/master"))
+        .isEqualTo("refs/for/master%hashtag=copybara_id_origin_ref_commiter@email");
+    console
+        .assertThat()
+        .logContains(
+            MessageType.WARNING,
+            ".*" + Pattern.quote("Ignoring Gerrit push option 'topic' with value"
+                + " 't_x,l=Code-Review+2,submit'") + ".*");
+  }
+
+  @Test
+  public void testTopicPushOptionInjectionIgnored_percent() throws Exception {
+    fetch = "master";
+    options.setForce(true);
+    writeFile(workdir, "file", "some content");
+
+    process(
+        new DummyRevision("origin_ref").withContextReference("x%wip"),
+        destination("topic = 't_${CONTEXT_REFERENCE}'"));
+
+    assertThat(getGerritRef(repo(), "refs/for/master"))
+        .isEqualTo("refs/for/master%hashtag=copybara_id_origin_ref_commiter@email");
+    console
+        .assertThat()
+        .logContains(
+            MessageType.WARNING,
+            ".*" + Pattern.quote("Ignoring Gerrit push option 'topic' with value 't_x%wip'")
+                + ".*");
+  }
+
+  @Test
+  public void testTopicPushOptionInjectionIgnored_equals() throws Exception {
+    fetch = "master";
+    options.setForce(true);
+    writeFile(workdir, "file", "some content");
+
+    process(
+        new DummyRevision("origin_ref").withContextReference("x=y"),
+        destination("topic = 't_${CONTEXT_REFERENCE}'"));
+
+    assertThat(getGerritRef(repo(), "refs/for/master"))
+        .isEqualTo("refs/for/master%hashtag=copybara_id_origin_ref_commiter@email");
+    console
+        .assertThat()
+        .logContains(
+            MessageType.WARNING,
+            ".*" + Pattern.quote("Ignoring Gerrit push option 'topic' with value 't_x=y'") + ".*");
+  }
+
+  @Test
+  public void testReviewerPushOptionInjectionIgnored() throws Exception {
+    pushToRefsFor = "master";
+    fetch = "master";
+    options.setForce(true);
+    writeFile(workdir, "file", "some content");
+    url = "https://localhost:33333/foo/bar";
+    mockNoChangesFound();
+
+    DummyRevision originRef = new DummyRevision("origin_ref");
+    GerritDestination destination =
+        destination("submit = False", "reviewers = [\"${SOME_REVIEWER}\"]");
+    Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
+    WriterContext writerContext =
+        new WriterContext(
+            "GerritDestination", "TEST", false, new DummyRevision("test"), Glob.ALL_FILES.roots());
+
+    List<DestinationEffect> result =
+        destination
+            .newWriter(writerContext)
+            .write(
+                TransformResults.of(workdir, originRef)
+                    .withSummary("Test message")
+                    .withIdentity(originRef.asString())
+                    .withLabelFinder(
+                        e ->
+                            e.equals("SOME_REVIEWER")
+                                ? ImmutableList.of("foo@example.com,submit", "bar@example.com")
+                                : ImmutableList.of()),
+                glob,
+                console);
+    assertThat(result).hasSize(1);
+    assertThat(getGerritRef(repo(), "refs/for/master"))
+        .isEqualTo(
+            "refs/for/master%hashtag=copybara_id_origin_ref_commiter@email,r=bar@example.com");
+    console
+        .assertThat()
+        .logContains(
+            MessageType.WARNING,
+            ".*" + Pattern.quote("Ignoring Gerrit push option 'r' with value"
+                + " 'foo@example.com,submit'") + ".*");
+  }
+
+  @Test
+  public void testCcPushOptionInjectionIgnored() throws Exception {
+    pushToRefsFor = "master";
+    fetch = "master";
+    options.setForce(true);
+    writeFile(workdir, "file", "some content");
+    url = "https://localhost:33333/foo/bar";
+    mockNoChangesFound();
+
+    DummyRevision originRef = new DummyRevision("origin_ref");
+    GerritDestination destination = destination("submit = False", "cc = [\"${SOME_CC}\"]");
+    Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
+    WriterContext writerContext =
+        new WriterContext(
+            "GerritDestination", "TEST", false, new DummyRevision("test"), Glob.ALL_FILES.roots());
+
+    List<DestinationEffect> result =
+        destination
+            .newWriter(writerContext)
+            .write(
+                TransformResults.of(workdir, originRef)
+                    .withSummary("Test message")
+                    .withIdentity(originRef.asString())
+                    .withLabelFinder(
+                        e ->
+                            e.equals("SOME_CC")
+                                ? ImmutableList.of("foo@example.com,l=Code-Review+2")
+                                : ImmutableList.of()),
+                glob,
+                console);
+    assertThat(result).hasSize(1);
+    assertThat(getGerritRef(repo(), "refs/for/master"))
+        .isEqualTo("refs/for/master%hashtag=copybara_id_origin_ref_commiter@email");
+    console
+        .assertThat()
+        .logContains(
+            MessageType.WARNING,
+            ".*" + Pattern.quote("Ignoring Gerrit push option 'cc' with value"
+                + " 'foo@example.com,l=Code-Review+2'") + ".*");
+  }
+
+  @Test
+  public void testLabelPushOptionInjectionIgnored() throws Exception {
+    pushToRefsFor = "master";
+    fetch = "master";
+    options.setForce(true);
+    writeFile(workdir, "file", "some content");
+    url = "https://localhost:33333/foo/bar";
+    mockNoChangesFound();
+
+    DummyRevision originRef = new DummyRevision("origin_ref");
+    GerritDestination destination = destination("submit = False", "labels = [\"${SOME_LABELS}\"]");
+    Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
+    WriterContext writerContext =
+        new WriterContext(
+            "GerritDestination", "TEST", false, new DummyRevision("test"), Glob.ALL_FILES.roots());
+
+    List<DestinationEffect> result =
+        destination
+            .newWriter(writerContext)
+            .write(
+                TransformResults.of(workdir, originRef)
+                    .withSummary("Test message")
+                    .withIdentity(originRef.asString())
+                    .withLabelFinder(
+                        e ->
+                            e.equals("SOME_LABELS")
+                                ? ImmutableList.of("Code-Review+1,submit")
+                                : ImmutableList.of()),
+                glob,
+                console);
+    assertThat(result).hasSize(1);
+    assertThat(getGerritRef(repo(), "refs/for/master"))
+        .isEqualTo("refs/for/master%hashtag=copybara_id_origin_ref_commiter@email");
+    console
+        .assertThat()
+        .logContains(
+            MessageType.WARNING,
+            ".*" + Pattern.quote("Ignoring Gerrit push option 'label' with value"
+                + " 'Code-Review+1,submit'") + ".*");
+  }
+
+  @Test
   public void testEmptyReviewersField() throws Exception {
     pushToRefsFor = "master";
     writeFile(workdir, "file", "some content");
