@@ -9107,7 +9107,7 @@ Set of functions to work with XML in Copybara.
 <a id="xml.xpath" aria-hidden="true"></a>
 ### xml.xpath
 
-Run an xpath expression
+Run an xpath expression. DOCTYPE declarations and external entities are disallowed.
 
 <code>unknown</code> <code>xml.xpath(<a href=#xml.xpath.content>content</a>, <a href=#xml.xpath.expression>expression</a>, <a href=#xml.xpath.type>type</a>)</code>
 

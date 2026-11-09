@@ -16,11 +16,13 @@
 
 package com.google.copybara.xml;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.exception.ValidationException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -36,37 +38,62 @@ import net.starlark.java.eval.StarlarkValue;
 import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
 
-/** Regex functions to work with re2 like regexes in Starlark */
+/** Starlark functions for parsing and querying XML documents in Copybara. */
 @StarlarkBuiltin(name = "xml", doc = "Set of functions to work with XML in Copybara.")
 public class XmlModule implements StarlarkValue {
 
+  /**
+   * Evaluates an XPath 1.0 expression against {@code xmlContent} and returns the typed value.
+   *
+   * <p>{@code DOCTYPE} declarations, external entities, and XInclude processing are disabled.
+   *
+   * @param xmlContent UTF-8 XML document content to parse
+   * @param expression XPath 1.0 expression to evaluate against the parsed document
+   * @param type target XPath return type ({@code STRING}, {@code NUMBER}, or {@code BOOLEAN})
+   * @return the evaluated {@link String}, {@link Double}, or {@link Boolean} result
+   * @throws ValidationException if {@code xmlContent} cannot be parsed (including when a {@code
+   *     DOCTYPE} declaration is present), {@code expression} is invalid, or {@code type} is unknown
+   */
   @StarlarkMethod(
       name = "xpath",
-      doc = "Run an xpath expression",
+      doc = "Run an xpath expression. DOCTYPE declarations and external entities are disallowed.",
       parameters = {
-          @Param(name = "content", doc = "The XML content", named = true),
-          @Param(name = "expression", doc = "XPath expression", named = true),
-          @Param(name = "type", named = true,
-              doc = "The type of the return value, see http://www.w3.org/TR/xpath"
-                  + "for more details. For now we support STRING, BOOLEAN & NUMBER.")
+        @Param(name = "content", doc = "The XML content", named = true),
+        @Param(name = "expression", doc = "XPath expression", named = true),
+        @Param(
+            name = "type",
+            named = true,
+            doc =
+                "The type of the return value, see http://www.w3.org/TR/xpath"
+                    + "for more details. For now we support STRING, BOOLEAN & NUMBER.")
       })
   public Object compile(String xmlContent, String expression, String type)
       throws ValidationException {
-    DocumentBuilderFactory builderFactory = DocumentBuilderFactory.newInstance();
-    DocumentBuilder builder;
+    DocumentBuilder builder = createDocumentBuilder();
     try {
-      builder = builderFactory.newDocumentBuilder();
-    } catch (ParserConfigurationException e) {
-      throw new RuntimeException("Error creating document builder for parsing XML");
-    }
-    try {
-      Document xmlDocument = builder.parse(
-          new ByteArrayInputStream(xmlContent.getBytes(StandardCharsets.UTF_8)));
+      Document xmlDocument = builder.parse(new ByteArrayInputStream(xmlContent.getBytes(UTF_8)));
 
       return SkylarkUtil.stringToEnum("type", type, XPathTypes.class)
           .evaluate(expression, xmlDocument, XPathFactory.newInstance().newXPath());
     } catch (SAXException | IOException | XPathExpressionException | EvalException e) {
       throw new ValidationException("Error parsing XML", e);
+    }
+  }
+
+  private static DocumentBuilder createDocumentBuilder() {
+    DocumentBuilderFactory builderFactory = DocumentBuilderFactory.newInstance();
+    try {
+      builderFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+      builderFactory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+      builderFactory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+      builderFactory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+      builderFactory.setFeature(
+          "http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+      builderFactory.setXIncludeAware(false);
+      builderFactory.setExpandEntityReferences(false);
+      return builderFactory.newDocumentBuilder();
+    } catch (ParserConfigurationException e) {
+      throw new IllegalStateException("Error creating document builder for parsing XML", e);
     }
   }
 
