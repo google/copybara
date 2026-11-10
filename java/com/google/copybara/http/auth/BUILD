@@ -21,8 +21,10 @@ java_library(
     srcs = glob(["*.java"]),
     deps = [
         "//java/com/google/copybara/credentials",
+        "//third_party:flogger",
         "//third_party:google_http_client",
         "//third_party:guava",
+        "//third_party:jsr305",
         "//third_party:starlark",
     ],
 )

@@ -73,16 +73,17 @@ public class GclientHttpStreamFactory implements HttpStreamFactory {
   protected HttpRequest buildHttpRequest(
       URL url, @Nullable AuthInterceptor auth, ImmutableMultimap<String, String> headers)
       throws IOException, CredentialRetrievalException, CredentialIssuingException {
+    GenericUrl genericUrl = new GenericUrl(url);
     HttpRequest req =
         javaNet
             .createRequestFactory()
-            .buildGetRequest(new GenericUrl(url))
+            .buildGetRequest(genericUrl)
             .setReadTimeout((int) timeout.toMillis())
             .setConnectTimeout((int) timeout.toMillis())
             .setUseRawRedirectUrls(true);
     headers.forEach((k, v) -> req.getHeaders().set(k, v));
     if (auth != null) {
-      req.setInterceptor(auth.interceptor());
+      req.setInterceptor(auth.interceptor(genericUrl));
     }
     return req;
   }

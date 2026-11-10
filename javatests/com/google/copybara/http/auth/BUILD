@@ -23,9 +23,13 @@ all_tests(
         "//java/com/google/copybara/credentials",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/http",
+        "//java/com/google/copybara/http/auth",
         "//java/com/google/copybara/http/testing",
         "//java/com/google/copybara/testing",
         "//third_party:google_http_client",
+        "//third_party:google_http_client_test",
+        "//third_party:guava",
+        "//third_party:guava_testlib",
         "//third_party:truth",
     ],
 )

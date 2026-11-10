@@ -28,12 +28,14 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.jimfs.Jimfs;
+import com.google.common.testing.TestLogHandler;
 import com.google.copybara.checks.CheckerException;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.MapConfigFile;
 import com.google.copybara.config.Migration;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.http.HttpOptions;
+import com.google.copybara.http.auth.RedirectLoggingInterceptor;
 import com.google.copybara.http.testing.MockHttpTester;
 import com.google.copybara.testing.DummyChecker;
 import com.google.copybara.testing.DummyTrigger;
@@ -42,7 +44,11 @@ import com.google.copybara.testing.SkylarkTestExecutor;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.logging.Logger;
 import net.starlark.java.eval.Dict;
 import org.junit.Before;
 import org.junit.Test;
@@ -127,6 +133,44 @@ public class HttpEndpointTest {
             """);
     assertThat(resp2.getStatusCode()).isEqualTo(307);
     assertThat(resp2.responseAsString()).isEqualTo("didn't redirect");
+  }
+
+  @Test
+  public void testAuth_redirectToOtherHost_logsAndKeepsCredentials() throws Exception {
+    Logger logger = Logger.getLogger(RedirectLoggingInterceptor.class.getName());
+    TestLogHandler logHandler = new TestLogHandler();
+    logger.addHandler(logHandler);
+    Map<String, Optional<String>> authByUrl = new HashMap<>();
+    http.mockHttp((method, url, req, resp) -> {
+      authByUrl.put(url, Optional.ofNullable(req.getFirstHeaderValue("Authorization")));
+      if (url.equals("http://foo.com/start")) {
+        resp.setStatusCode(302);
+        resp.addHeader("Location", "http://bar.com/file");
+      } else {
+        resp.setStatusCode(200);
+      }
+    });
+
+    try {
+      HttpEndpointResponse resp =
+          starlark.eval(
+              "resp",
+              """
+              endpoint = testing.get_endpoint(http.endpoint(hosts = [
+                http.host(host = 'foo.com', auth = http.bearer_auth(
+                  creds = credentials.static_secret('token', 'foo-token'))),
+              ]))
+              resp = endpoint.get(url = "http://foo.com/start", auth = True)
+              """);
+
+      assertThat(resp.getStatusCode()).isEqualTo(200);
+      assertThat(authByUrl).containsEntry("http://bar.com/file", Optional.of("Bearer foo-token"));
+      assertThat(logHandler.getStoredLogRecords()).hasSize(1);
+      assertThat(logHandler.getStoredLogRecords().get(0).getMessage())
+          .contains("from=foo.com to=bar.com");
+    } finally {
+      logger.removeHandler(logHandler);
+    }
   }
 
   @Test

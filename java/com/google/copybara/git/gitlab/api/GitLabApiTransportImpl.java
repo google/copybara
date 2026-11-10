@@ -113,7 +113,7 @@ public class GitLabApiTransportImpl implements GitLabApiTransport {
               .setHeaders(httpHeaders);
 
       if (authInterceptor.isPresent()) {
-        request.setInterceptor(authInterceptor.get().interceptor());
+        request.setInterceptor(authInterceptor.get().interceptor(url));
       }
 
       return request;
