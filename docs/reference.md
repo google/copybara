@@ -3432,7 +3432,7 @@ Name | Type | Description
 
 Defines a feedback trigger based on updates on a Gerrit change.
 
-<code>trigger</code> <code>git.gerrit_trigger(<a href=#git.gerrit_trigger.url>url</a>, <a href=#git.gerrit_trigger.checker>checker</a>=None, <a href=#git.gerrit_trigger.events>events</a>=[], <a href=#git.gerrit_trigger.allow_submit>allow_submit</a>=False)</code>
+<code>trigger</code> <code>git.gerrit_trigger(<a href=#git.gerrit_trigger.url>url</a>, <a href=#git.gerrit_trigger.checker>checker</a>=None, <a href=#git.gerrit_trigger.events>events</a>=[], <a href=#git.gerrit_trigger.allow_submit>allow_submit</a>=False, <a href=#git.gerrit_trigger.commit_message_label>commit_message_label</a>=None)</code>
 
 
 <h4 id="parameters.git.gerrit_trigger">Parameters:</h4>
@@ -3443,6 +3443,7 @@ Parameter | Description
 <span id=git.gerrit_trigger.checker href=#git.gerrit_trigger.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker for the Gerrit API transport provided by this trigger.</p>
 <span id=git.gerrit_trigger.events href=#git.gerrit_trigger.events>events</span> | <code>sequence of <a href="#string">string</a></code> or <code>dict of sequence</code> or <code>NoneType</code><br><p>Types of events to monitor. Optional. Can either be a list of event types or a dict of event types to particular events of that type, e.g. `['LABELS']` or `{'LABELS': 'my_label_name'}`.<br>Valid values for event types are: `'LABELS'`, `'SUBMIT_REQUIREMENTS'`</p>
 <span id=git.gerrit_trigger.allow_submit href=#git.gerrit_trigger.allow_submit>allow_submit</span> | <code><a href="#bool">bool</a></code><br><p>Enable the submit_change method in the endpoint provided</p>
+<span id=git.gerrit_trigger.commit_message_label href=#git.gerrit_trigger.commit_message_label>commit_message_label</span> | <code><a href="#string">string</a></code> or <code>NoneType</code><br><p>Optional commit message label (for example, `GitOrigin-RevId`) required on Gerrit changes for this trigger.</p>
 
 
 

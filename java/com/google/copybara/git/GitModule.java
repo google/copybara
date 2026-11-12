@@ -52,6 +52,7 @@ import com.google.common.collect.ImmutableSetMultimap.Builder;
 import com.google.copybara.DestinationInfo;
 import com.google.copybara.EndpointProvider;
 import com.google.copybara.GeneralOptions;
+import com.google.copybara.LabelFinder;
 import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
@@ -3235,24 +3236,48 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             doc = "Enable the submit_change method in the endpoint provided",
             defaultValue = "False",
             named = true),
+        @Param(
+            name = "commit_message_label",
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
+            defaultValue = "None",
+            doc =
+                "Optional commit message label (for example, `GitOrigin-RevId`) required on Gerrit"
+                    + " changes for this trigger.",
+            named = true),
       },
       useStarlarkThread = true)
   @UsesFlags(GerritOptions.class)
   public GerritTrigger gerritTrigger(
-      String url, Object checkerObj, Object events, Boolean allowSubmit, StarlarkThread thread)
+      String url,
+      Object checkerObj,
+      Object events,
+      Boolean allowSubmit,
+      Object commitMessageLabelObj,
+      StarlarkThread thread)
       throws EvalException {
     checkNotEmpty(url, "url");
     url = fixHttp(url, thread.getCallerLocation());
     Checker checker = convertFromNoneable(checkerObj, null);
     validateEndpointChecker(checker, GERRIT_TRIGGER);
     ImmutableSet<GerritEventTrigger> parsedEvents = handleGerritEventTypes(events);
+    String commitMessageLabel = convertFromNoneable(commitMessageLabelObj, null);
+    if (commitMessageLabel != null) {
+      check(
+          LabelFinder.VALID_LABEL.matcher(commitMessageLabel).matches(),
+          "Invalid commit_message_label '%s'",
+          commitMessageLabel);
+    }
     GerritOptions gerritOptions = options.get(GerritOptions.class);
     return new GerritTrigger(
         gerritOptions.newGerritApiSupplier(url, checker),
         url,
         parsedEvents,
         getGeneralConsole(),
-        allowSubmit);
+        allowSubmit,
+        commitMessageLabel);
   }
 
   private ImmutableSet<GerritEventTrigger> handleGerritEventTypes(Object events)

@@ -19,6 +19,7 @@ package com.google.copybara.git;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Endpoint;
@@ -27,16 +28,20 @@ import com.google.copybara.Trigger;
 import com.google.copybara.git.gerritapi.GerritApi;
 import com.google.copybara.util.console.Console;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 
 /** A  feedback trigger based on updates on a Gerrit change.
  */
 public class GerritTrigger implements Trigger {
+
+  public static final String COMMIT_MESSAGE_LABEL_KEY = "commitMessageLabel";
 
   private final LazyResourceLoader<GerritApi> apiSupplier;
   private final String url;
   private final ImmutableSet<GerritEventTrigger> events;
   private final Console console;
   private final boolean allowSubmitChange;
+  @Nullable private final String commitMessageLabel;
 
   GerritTrigger(
       LazyResourceLoader<GerritApi> apiSupplier,
@@ -44,11 +49,22 @@ public class GerritTrigger implements Trigger {
       ImmutableSet<GerritEventTrigger> events,
       Console console,
       boolean allowSubmitChange) {
+    this(apiSupplier, url, events, console, allowSubmitChange, /* commitMessageLabel= */ null);
+  }
+
+  GerritTrigger(
+      LazyResourceLoader<GerritApi> apiSupplier,
+      String url,
+      ImmutableSet<GerritEventTrigger> events,
+      Console console,
+      boolean allowSubmitChange,
+      @Nullable String commitMessageLabel) {
     this.apiSupplier = Preconditions.checkNotNull(apiSupplier);
     this.url = Preconditions.checkNotNull(url);
     this.events = Preconditions.checkNotNull(events);
     this.console = console;
     this.allowSubmitChange = allowSubmitChange;
+    this.commitMessageLabel = commitMessageLabel;
   }
 
   @Override
@@ -65,6 +81,10 @@ public class GerritTrigger implements Trigger {
         .putAll("events",
         events.stream().map(s -> s.type().name()).collect(Collectors.toList()));
 
+    if (!Strings.isNullOrEmpty(commitMessageLabel)) {
+      builder.put(COMMIT_MESSAGE_LABEL_KEY, commitMessageLabel);
+    }
+
     for (GerritEventTrigger trigger : events) {
       if (trigger.subtypes().isEmpty()) {
         continue;
@@ -79,8 +99,10 @@ public class GerritTrigger implements Trigger {
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
+        .omitNullValues()
         .add("url", url)
         .add("event_types", Joiner.on(",").join(events))
+        .add("commit_message_label", commitMessageLabel)
         .toString();
   }
 }

@@ -221,6 +221,64 @@ public class GerritTriggerTest {
   }
 
   @Test
+  public void testParsing_commitMessageLabel() throws Exception {
+    GerritTrigger gerritTrigger =
+        skylarkTestExecutor.eval(
+            "e",
+            """
+            e = git.gerrit_trigger(
+                url = 'https://test.googlesource.com/example',
+                events = ['LABELS'],
+                commit_message_label = 'GitOrigin-RevId',
+            )
+            """);
+
+    assertThat(gerritTrigger.describe())
+        .containsExactly(
+            "type", "gerrit_trigger",
+            "url", "https://test.googlesource.com/example",
+            "events", "LABELS",
+            "commitMessageLabel", "GitOrigin-RevId",
+            "gerritSubmit", "false");
+    assertThat(gerritTrigger.getEndpoint().describe())
+        .containsExactly(
+            "type", "gerrit_api",
+            "url", "https://test.googlesource.com/example",
+            "gerritSubmit", "false");
+  }
+
+  @Test
+  public void testParsing_commitMessageLabelNone() throws Exception {
+    GerritTrigger gerritTrigger =
+        skylarkTestExecutor.eval(
+            "e",
+            """
+            e = git.gerrit_trigger(
+                url = 'https://test.googlesource.com/example',
+                commit_message_label = None,
+            )
+            """);
+
+    assertThat(gerritTrigger.describe())
+        .containsExactly(
+            "type", "gerrit_trigger",
+            "url", "https://test.googlesource.com/example",
+            "gerritSubmit", "false");
+  }
+
+  @Test
+  public void testParsing_invalidCommitMessageLabel() {
+    skylarkTestExecutor.evalFails(
+        "git.gerrit_trigger(url = 'https://test.googlesource.com/example',"
+            + " commit_message_label = '')",
+        "Invalid commit_message_label ''");
+    skylarkTestExecutor.evalFails(
+        "git.gerrit_trigger(url = 'https://test.googlesource.com/example',"
+            + " commit_message_label = 'bad label!')",
+        "Invalid commit_message_label 'bad label!'");
+  }
+
+  @Test
   public void testParsingEmptyUrl() {
     skylarkTestExecutor.evalFails("git.gerrit_trigger(url = '')", "Invalid empty field 'url'");
   }
