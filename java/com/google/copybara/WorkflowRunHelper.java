@@ -732,7 +732,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                   originCopy,
                   reverse,
                   getWorkflow().isVerbose(),
-                  getWorkflow().getGeneralOptions().getEnvironment());
+                  getWorkflow().getGeneralOptions().getEnvironment(),
+                  getWorkflow().getGeneralOptions().getDiffMaxLogLines());
 
           // This should be more optimal than parsing a potential huge diff file.
           if (getReversibleCheckIgnoreFiles() != null) {

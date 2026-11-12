@@ -54,6 +54,7 @@ import javax.annotation.Nullable;
 public class DiffUtil {
 
   private static final byte[] EMPTY_DIFF = new byte[] {};
+  public static final int DEFAULT_MAX_LOG_LINES = 1000;
 
   public static final String DIFF_LEFT_PREFIX = "--- a/";
   public static final String DIFF_RIGHT_PREFIX = "+++ b/";
@@ -64,13 +65,30 @@ public class DiffUtil {
   public static final String DIFF_HUNK_HEADER_END = "@@";
 
   /**
-   * Calculates the diff between two sibling directory trees.
+   * Calculates the diff between two sibling directory trees, capping diagnostic log output at
+   * {@link #DEFAULT_MAX_LOG_LINES} lines.
    *
    * <p>Returns the diff as an encoding-independent {@code byte[]}.
    */
   public static byte[] diff(Path one, Path other, boolean verbose, Map<String, String> environment)
       throws IOException, InsideGitDirException {
-    return FoldersDiff.builder(verbose, environment).build().run(one.getParent(), one, other);
+    return diff(one, other, verbose, environment, DEFAULT_MAX_LOG_LINES);
+  }
+
+  /**
+   * Calculates the diff between two sibling directory trees, capping the number of diagnostic
+   * output lines logged ({@code 0} disables logger output; negative values disable the logger line
+   * limit). Does not truncate the returned diff bytes.
+   *
+   * <p>Returns the diff as an encoding-independent {@code byte[]}.
+   */
+  public static byte[] diff(
+      Path one, Path other, boolean verbose, Map<String, String> environment, int maxLogLines)
+      throws IOException, InsideGitDirException {
+    return FoldersDiff.builder(verbose, environment)
+        .setMaxLogLines(maxLogLines)
+        .build()
+        .run(one.getParent(), one, other);
   }
 
   /**
@@ -279,6 +297,7 @@ public class DiffUtil {
       boolean verbose,
       boolean ignoreCrAtEol,
       boolean singleFile,
+      int maxLogLines,
       @Nullable Map<String, String> environment) {
 
     private static final Pattern OUTPUT_ERROR_PATTERN =
@@ -293,7 +312,8 @@ public class DiffUtil {
           .setZOption(false)
           .setNoIndex(false)
           .setIgnoreCrAtEol(false)
-          .setSingleFile(false);
+          .setSingleFile(false)
+          .setMaxLogLines(DEFAULT_MAX_LOG_LINES);
     }
 
     @AutoBuilder(ofClass = FoldersDiff.class)
@@ -311,6 +331,8 @@ public class DiffUtil {
       abstract Builder setIgnoreCrAtEol(boolean ignoreCrAtEol);
 
       abstract Builder setSingleFile(boolean singleFile);
+
+      abstract Builder setMaxLogLines(int maxLogLines);
 
       abstract Builder setEnvironment(@Nullable Map<String, String> environment);
 
@@ -356,7 +378,7 @@ public class DiffUtil {
       params.add(root.relativize(other).toString());
       Command cmd = new Command(params.toArray(new String[] {}), environment, root.toFile());
       try {
-        new CommandRunner(cmd).withVerbose(verbose).execute();
+        new CommandRunner(cmd).withVerbose(verbose).withMaxStdOutLogLines(maxLogLines).execute();
         return EMPTY_DIFF;
       } catch (BadExitStatusWithOutputException e) {
         CommandOutput output = e.getOutput();

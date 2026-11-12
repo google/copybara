@@ -971,6 +971,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--debug-metadata-break`</span> | *boolean* | Stop when message and/or author changes
 <span style="white-space: nowrap;">`--debug-transform-break`</span> | *string* | Stop when transform description matches
 <span style="white-space: nowrap;">`--diff-bin`</span> | *string* | Command line diff tool bin used in merge import. Defaults to diff3, but users can pass in their own diffing tools (along with requisite arg reordering)
+<span style="white-space: nowrap;">`--diff-max-log-lines`</span> | *int* | Maximum number of diff output lines to log during workflow reversible checks (defaults to 1000; 0 disables logger output; negative values disable the logger line limit). Does not truncate the diff itself.
 <span style="white-space: nowrap;">`--disable-reversible-check`</span> | *boolean* | If set, all workflows will be executed without reversible_check, overriding the  workflow config and the normal behavior for CHANGE_REQUEST mode.
 <span style="white-space: nowrap;">`--dry-run`</span> | *boolean* | Run the migration in dry-run mode. Some destination implementations might have some side effects (like creating a code review), but never submit to a main branch.
 <span style="white-space: nowrap;">`--event-monitor`</span> | *list* | Eventmonitors to enable. These must be in the list of available monitors.
@@ -9151,6 +9152,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--debug-metadata-break`</span> | *boolean* | Stop when message and/or author changes
 <span style="white-space: nowrap;">`--debug-transform-break`</span> | *string* | Stop when transform description matches
 <span style="white-space: nowrap;">`--diff-bin`</span> | *string* | Command line diff tool bin used in merge import. Defaults to diff3, but users can pass in their own diffing tools (along with requisite arg reordering)
+<span style="white-space: nowrap;">`--diff-max-log-lines`</span> | *int* | Maximum number of diff output lines to log during workflow reversible checks (defaults to 1000; 0 disables logger output; negative values disable the logger line limit). Does not truncate the diff itself.
 <span style="white-space: nowrap;">`--disable-reversible-check`</span> | *boolean* | If set, all workflows will be executed without reversible_check, overriding the  workflow config and the normal behavior for CHANGE_REQUEST mode.
 <span style="white-space: nowrap;">`--dry-run`</span> | *boolean* | Run the migration in dry-run mode. Some destination implementations might have some side effects (like creating a code review), but never submit to a main branch.
 <span style="white-space: nowrap;">`--event-monitor`</span> | *list* | Eventmonitors to enable. These must be in the list of available monitors.

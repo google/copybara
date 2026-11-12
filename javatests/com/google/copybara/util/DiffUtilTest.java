@@ -32,9 +32,15 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Callable;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
+import java.util.logging.StreamHandler;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -812,6 +818,67 @@ public class DiffUtilTest {
         () -> DiffUtil.validatePatchDescription(Optional.of(description)));
   }
 
+  @Test
+  public void diff_defaultMaxLogLines_capsLoggedStdoutLines() throws Exception {
+    writeFile(left, "large.txt", "left\n".repeat(600));
+    writeFile(right, "large.txt", "right\n".repeat(600));
+    List<String> logLines = new ArrayList<>();
+
+    byte[] diff =
+        runCapturingCommandLogs(
+            logLines, () -> DiffUtil.diff(left, right, /* verbose= */ false, testEnv));
+
+    assertThat(new String(diff, StandardCharsets.UTF_8)).contains("+right\n");
+    List<String> stdoutLogs = logLines.stream().filter(line -> line.contains("STDOUT: ")).toList();
+    assertThat(stdoutLogs).hasSize(DiffUtil.DEFAULT_MAX_LOG_LINES + 1);
+    assertThat(stdoutLogs.getLast()).endsWith("STDOUT: ... truncated after 1000 line(s)");
+  }
+
+  @Test
+  public void diff_customMaxLogLines_capsLoggedStdoutLines() throws Exception {
+    writeFile(left, "large.txt", "left\n".repeat(600));
+    writeFile(right, "large.txt", "right\n".repeat(600));
+    List<String> logLines = new ArrayList<>();
+
+    byte[] diff =
+        runCapturingCommandLogs(
+            logLines, () -> DiffUtil.diff(left, right, /* verbose= */ false, testEnv, 10));
+
+    assertThat(new String(diff, StandardCharsets.UTF_8)).contains("+right\n");
+    List<String> stdoutLogs = logLines.stream().filter(line -> line.contains("STDOUT: ")).toList();
+    assertThat(stdoutLogs).hasSize(11);
+    assertThat(stdoutLogs.getLast()).endsWith("STDOUT: ... truncated after 10 line(s)");
+  }
+
+  @Test
+  public void diff_zeroMaxLogLines_disablesStdoutLogging() throws Exception {
+    writeFile(left, "large.txt", "left\n".repeat(50));
+    writeFile(right, "large.txt", "right\n".repeat(50));
+    List<String> logLines = new ArrayList<>();
+
+    byte[] diff =
+        runCapturingCommandLogs(
+            logLines, () -> DiffUtil.diff(left, right, /* verbose= */ false, testEnv, 0));
+
+    assertThat(new String(diff, StandardCharsets.UTF_8)).contains("+right\n");
+    assertThat(logLines.stream().filter(line -> line.contains("STDOUT: ")).toList()).isEmpty();
+  }
+
+  @Test
+  public void diff_negativeMaxLogLines_disablesLineLimit() throws Exception {
+    writeFile(left, "large.txt", "left\n".repeat(600));
+    writeFile(right, "large.txt", "right\n".repeat(600));
+    List<String> logLines = new ArrayList<>();
+
+    byte[] diff =
+        runCapturingCommandLogs(
+            logLines, () -> DiffUtil.diff(left, right, /* verbose= */ false, testEnv, -1));
+
+    assertThat(new String(diff, StandardCharsets.UTF_8)).contains("+right\n");
+    assertThat(logLines.size()).isGreaterThan(1200);
+    assertThat(String.join("\n", logLines)).doesNotContain("... truncated after");
+  }
+
   private Path createDir(Path parent, String name) throws IOException {
     Path path = parent.resolve(name);
     Files.createDirectories(path);
@@ -836,5 +903,26 @@ public class DiffUtilTest {
     env.put("HOME", foo.toAbsolutePath().toString());
     writeFile(foo, ".gitconfig", contents);
     return env;
+  }
+
+  private static byte[] runCapturingCommandLogs(List<String> logLines, Callable<byte[]> action)
+      throws Exception {
+    Logger logger = Logger.getLogger(CommandRunner.class.getName());
+    boolean useParentLogger = logger.getUseParentHandlers();
+    logger.setUseParentHandlers(false);
+    StreamHandler handler =
+        new StreamHandler() {
+          @Override
+          public synchronized void publish(LogRecord record) {
+            logLines.add(record.getMessage());
+          }
+        };
+    logger.addHandler(handler);
+    try {
+      return action.call();
+    } finally {
+      logger.removeHandler(handler);
+      logger.setUseParentHandlers(useParentLogger);
+    }
   }
 }

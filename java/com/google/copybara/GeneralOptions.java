@@ -42,6 +42,7 @@ import com.google.copybara.monitor.EventMonitor.EventMonitors;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.CommandRunner;
+import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.DirFactory;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.StarlarkMode;
@@ -463,6 +464,18 @@ public final class GeneralOptions implements Option {
 
   public String getDiffBin() {
     return diffBin;
+  }
+
+  @Parameter(
+      names = "--diff-max-log-lines",
+      description =
+          "Maximum number of diff output lines to log during workflow reversible checks (defaults"
+              + " to 1000; 0 disables logger output; negative values disable the logger line"
+              + " limit). Does not truncate the diff itself.")
+  private int diffMaxLogLines = DiffUtil.DEFAULT_MAX_LOG_LINES;
+
+  public int getDiffMaxLogLines() {
+    return diffMaxLogLines;
   }
 
   public static final String PATCH_BIN_FLAG = "--patch-bin";
