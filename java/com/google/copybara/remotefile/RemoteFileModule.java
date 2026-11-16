@@ -78,7 +78,10 @@ public class RemoteFileModule implements LabelsAwareModule, StarlarkValue {
             doc = "Archive type to download, options are 'TARBALL' or 'ZIP'."),
         @Param(
             name = "auth",
-            doc = "Optional, an interceptor for providing credentials.",
+            doc =
+                "Optional, an interceptor for providing credentials. Once a redirect leaves the"
+                    + " archive URL's host or switches from HTTPS to HTTP, credentials are not"
+                    + " sent on that hop or any later hops.",
             named = true,
             defaultValue = "None",
             allowedTypes = {
@@ -181,7 +184,10 @@ public class RemoteFileModule implements LabelsAwareModule, StarlarkValue {
             }),
         @Param(
             name = "auth",
-            doc = "Optional, an interceptor for providing credentials.",
+            doc =
+                "Optional, an interceptor for providing credentials. Once a redirect leaves the"
+                    + " archive URL's host or switches from HTTPS to HTTP, credentials are not"
+                    + " sent on that hop or any later hops.",
             named = true,
             defaultValue = "None",
             allowedTypes = {

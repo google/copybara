@@ -154,7 +154,9 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   public static final String GITLAB_CREDENTIAL_DOC =
       "Read credentials from config file to access the GitLab Repo. This expects a"
           + " `credentials.username_password` specifying the username to use for the remote GitLab"
-          + " host and a password or token.";
+          + " host and a password or token. For GitLab API calls, once a redirect leaves the"
+          + " repository URL's host or switches from HTTPS to HTTP, the token is not sent on that"
+          + " hop or any later hops.";
   private final Sequence<GitIntegrateChanges> defaultGitIntegrate;
   private static final String GERRIT_TRIGGER = "gerrit_trigger";
   private static final String GERRIT_API = "gerrit_api";

@@ -5738,8 +5738,8 @@ Parameter | Description
 --------- | -----------
 <span id=http.endpoint.host href=#http.endpoint.host>host</span> | <code><a href="#string">string</a></code><br><p>DEPRECATED. A single host to allow HTTP traffic to.</p>
 <span id=http.endpoint.checker href=#http.endpoint.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker that will check calls made by the endpoint</p>
-<span id=http.endpoint.hosts href=#http.endpoint.hosts>hosts</span> | <code>sequence</code><br><p>A list of hosts to allow HTTP traffic to.</p>
-<span id=http.endpoint.issuers href=#http.endpoint.issuers>issuers</span> | <code><a href="#dict">dict</a></code> or <code>NoneType</code><br><p>A dictionaty of credential issuers.</p>
+<span id=http.endpoint.hosts href=#http.endpoint.hosts>hosts</span> | <code>sequence</code><br><p>A list of hosts to allow HTTP traffic to. Redirect target hosts must also be listed.</p>
+<span id=http.endpoint.issuers href=#http.endpoint.issuers>issuers</span> | <code><a href="#dict">dict</a></code> or <code>NoneType</code><br><p>A dictionary of credential issuers. When following redirects, once a hop leaves the original request's host or switches from HTTPS to HTTP, headers containing resolved issuer secrets are removed for that hop and any later hops, and redirects that would resend a request body containing one fail.</p>
 
 <a id="http.host" aria-hidden="true"></a>
 ### http.host
@@ -5754,7 +5754,7 @@ Wraps a host and potentially credentials for http auth.
 Parameter | Description
 --------- | -----------
 <span id=http.host.host href=#http.host.host>host</span> | <code><a href="#string">string</a></code><br><p>The host to be contacted.</p>
-<span id=http.host.auth href=#http.host.auth>auth</span> | <code>AuthInterceptor</code> or <code>UsernamePasswordIssuer</code> or <code>NoneType</code><br><p>Optional, an interceptor for providing credentials. Also accepts a username_password.</p>
+<span id=http.host.auth href=#http.host.auth>auth</span> | <code>AuthInterceptor</code> or <code>UsernamePasswordIssuer</code> or <code>NoneType</code><br><p>Optional, an interceptor for providing credentials. Also accepts a username_password. Only used when the initial request targets this host; once a redirect leaves this host or switches from HTTPS to HTTP, credentials are not sent on that hop or any later hops.</p>
 
 <a id="http.json" aria-hidden="true"></a>
 ### http.json
@@ -5828,8 +5828,8 @@ Trigger for http endpoint
 
 Parameter | Description
 --------- | -----------
-<span id=http.trigger.hosts href=#http.trigger.hosts>hosts</span> | <code>sequence</code><br><p>A list of hosts to allow HTTP traffic to.</p>
-<span id=http.trigger.issuers href=#http.trigger.issuers>issuers</span> | <code><a href="#dict">dict</a></code> or <code>NoneType</code><br><p>A dictionary of credential issuers.</p>
+<span id=http.trigger.hosts href=#http.trigger.hosts>hosts</span> | <code>sequence</code><br><p>A list of hosts to allow HTTP traffic to. Redirect target hosts must also be listed.</p>
+<span id=http.trigger.issuers href=#http.trigger.issuers>issuers</span> | <code><a href="#dict">dict</a></code> or <code>NoneType</code><br><p>A dictionary of credential issuers. When following redirects, once a hop leaves the original request's host or switches from HTTPS to HTTP, headers containing resolved issuer secrets are removed for that hop and any later hops, and redirects that would resend a request body containing one fail.</p>
 <span id=http.trigger.checker href=#http.trigger.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker that will check calls made by the endpoint</p>
 
 <a id="http.url_encode" aria-hidden="true"></a>
@@ -5906,7 +5906,7 @@ Parameter | Description
 <a id="http_endpoint.followRedirects" aria-hidden="true"></a>
 ### http_endpoint.followRedirects
 
-Sets whether to follow redirects automatically
+Sets whether to follow redirects automatically. When following redirects, each hop must match an entry in `hosts`. Once a redirect leaves the original request's host or switches from HTTPS to HTTP, credentials and headers containing `issuers` secrets are withheld for that hop and any later hops, and redirects that would resend a request body containing an `issuers` secret fail.
 
 <code>http_endpoint.followRedirects(<a href=#http_endpoint.followRedirects.followRedirects>followRedirects</a>)</code>
 
@@ -7406,7 +7406,7 @@ Parameter | Description
 <span id=remotefiles.origin.version_list href=#remotefiles.origin.version_list>version_list</span> | <code>VersionList</code> or <code>NoneType</code><br><p>Version list to select versions on. Omit to create a versionless origin.</p>
 <span id=remotefiles.origin.origin_version_selector href=#remotefiles.origin.origin_version_selector>origin_version_selector</span> | <code><a href="#versionselector">VersionSelector</a></code> or <code>NoneType</code><br><p>Version selector used to select on version_list. Omit to create a versionless origin.</p>
 <span id=remotefiles.origin.version_resolver href=#remotefiles.origin.version_resolver>version_resolver</span> | <code>VersionResolver</code> or <code>NoneType</code><br><p>Version resolvers are used to resolve refs to specific versions. Primarily used when command line refs are provided and accompanied by the '--force' or '--version-selector-use-cli-ref' flag.</p>
-<span id=remotefiles.origin.auth href=#remotefiles.origin.auth>auth</span> | <code>AuthInterceptor</code> or <code>NoneType</code><br><p>Optional, an interceptor for providing credentials.</p>
+<span id=remotefiles.origin.auth href=#remotefiles.origin.auth>auth</span> | <code>AuthInterceptor</code> or <code>NoneType</code><br><p>Optional, an interceptor for providing credentials. Once a redirect leaves the archive URL's host or switches from HTTPS to HTTP, credentials are not sent on that hop or any later hops.</p>
 
 
 

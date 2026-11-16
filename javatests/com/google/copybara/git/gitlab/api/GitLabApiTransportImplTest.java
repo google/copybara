@@ -367,6 +367,89 @@ public class GitLabApiTransportImplTest {
         .containsEntry("authorization", ImmutableList.of("Bearer example-access-token"));
   }
 
+  /**
+   * Verifies that same-host redirects (case-insensitive, ignoring port) retain GitLab bearer
+   * credentials.
+   */
+  @Test
+  public void testGetRedirect_sameHostDifferentCaseAndPort_keepsCredentials() throws Exception {
+    Map<String, Optional<String>> authByUrl = new HashMap<>();
+    MockHttpTransport httpTransport =
+        getMockRedirectHttpTransport(
+            authByUrl,
+            "https://gitlab.copybara.io/api/v4/projects/12345/test_request",
+            "https://GITLAB.copybara.io:8443/api/v4/projects/12345/moved");
+    GitLabApiTransport underTest =
+        getApiTransport(
+            httpTransport, "https://gitlab.copybara.io/capybara/project", getBearerInterceptor());
+
+    Optional<TestResponse> response =
+        underTest.get(
+            "/projects/12345/test_request", TestResponse.class, ImmutableListMultimap.of());
+
+    assertThat(response).isPresent();
+    assertThat(authByUrl)
+        .containsEntry(
+            "https://gitlab.copybara.io/api/v4/projects/12345/test_request",
+            Optional.of("Bearer example-access-token"));
+    assertThat(authByUrl)
+        .containsEntry(
+            "https://GITLAB.copybara.io:8443/api/v4/projects/12345/moved",
+            Optional.of("Bearer example-access-token"));
+  }
+
+  /**
+   * Verifies that cross-host redirects follow the redirect without forwarding GitLab bearer
+   * credentials.
+   */
+  @Test
+  public void testGetRedirect_otherHost_withholdsCredentialsAndFollows() throws Exception {
+    Map<String, Optional<String>> authByUrl = new HashMap<>();
+    MockHttpTransport httpTransport =
+        getMockRedirectHttpTransport(
+            authByUrl,
+            "https://gitlab.copybara.io/api/v4/projects/12345/test_request",
+            "https://cdn.example.com/projects/12345/test_request");
+    GitLabApiTransport underTest =
+        getApiTransport(
+            httpTransport, "https://gitlab.copybara.io/capybara/project", getBearerInterceptor());
+
+    Optional<TestResponse> response =
+        underTest.get(
+            "/projects/12345/test_request", TestResponse.class, ImmutableListMultimap.of());
+
+    assertThat(response).isPresent();
+    assertThat(authByUrl)
+        .containsEntry(
+            "https://gitlab.copybara.io/api/v4/projects/12345/test_request",
+            Optional.of("Bearer example-access-token"));
+    assertThat(authByUrl)
+        .containsEntry("https://cdn.example.com/projects/12345/test_request", Optional.empty());
+  }
+
+  private static MockHttpTransport getMockRedirectHttpTransport(
+      Map<String, Optional<String>> authByUrl, String redirectFromUrl, String redirectToUrl) {
+    return new MockHttpTransport() {
+      @Override
+      public LowLevelHttpRequest buildRequest(String method, String url) {
+        return new MockLowLevelHttpRequest() {
+          @Override
+          public LowLevelHttpResponse execute() {
+            authByUrl.put(url, Optional.ofNullable(getFirstHeaderValue("authorization")));
+            MockLowLevelHttpResponse response = new MockLowLevelHttpResponse();
+            if (url.equals(redirectFromUrl)) {
+              response.setStatusCode(HttpStatusCodes.STATUS_CODE_FOUND);
+              response.addHeader("Location", redirectToUrl);
+              return response;
+            }
+            response.setContent(getExampleTestResponseJson());
+            return response;
+          }
+        };
+      }
+    };
+  }
+
   private static BearerInterceptor getBearerInterceptor() {
     CredentialIssuer credentialIssuer =
         ConstantCredentialIssuer.createConstantSecret("test", "example-access-token");

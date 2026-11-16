@@ -29,7 +29,9 @@ import java.io.OutputStream;
 class HttpContentInterceptor implements HttpContent {
   private final HttpContent content;
   private final String outputStr;
+  private final boolean resolvedSecret;
 
+  /** Constructs an {@link HttpContentInterceptor} that resolves {@code issuers} secrets in body. */
   public HttpContentInterceptor(HttpContent content, HttpSecretInterceptor secretInterceptor)
       throws IOException, CredentialIssuingException, CredentialRetrievalException {
     this.content = content;
@@ -38,7 +40,14 @@ class HttpContentInterceptor implements HttpContent {
       content.writeTo(stream);
     }
     String httpContent = stream.toString(UTF_8);
-    this.outputStr = secretInterceptor.resolveStringSecrets(httpContent);
+    HttpSecretInterceptor.ResolvedString resolved = secretInterceptor.resolve(httpContent);
+    this.outputStr = resolved.value();
+    this.resolvedSecret = resolved.resolvedSecret();
+  }
+
+  /** Returns {@code true} if at least one issuer secret placeholder was resolved in the body. */
+  boolean hasResolvedSecret() {
+    return resolvedSecret;
   }
 
   @Override

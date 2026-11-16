@@ -43,6 +43,7 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -135,17 +136,140 @@ public class HttpEndpointTest {
     assertThat(resp2.responseAsString()).isEqualTo("didn't redirect");
   }
 
+  /**
+   * Verifies that redirecting to a host outside {@code hosts} throws {@link ValidationException}
+   * without sending any request to the unlisted host.
+   */
   @Test
-  public void testAuth_redirectToOtherHost_logsAndKeepsCredentials() throws Exception {
+  public void testRedirect_unlistedHost_throwsValidationExceptionWithoutSendingRequest() {
+    List<String> requestedUrls = new ArrayList<>();
+    http.mockHttp((method, url, req, resp) -> {
+      requestedUrls.add(url);
+      resp.setStatusCode(302);
+      resp.addHeader("Location", "https://unlisted.example/path");
+    });
+
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                starlark.eval(
+                    "resp",
+                    """
+                    endpoint = testing.get_endpoint(
+                        http.endpoint(
+                            hosts = [
+                                http.host(
+                                    host = 'foo.com',
+                                    auth = http.bearer_auth(
+                                        creds = credentials.static_secret('token', 'foo-token'),
+                                    ),
+                                ),
+                                'allowed.com',
+                            ],
+                        ),
+                    )
+                    resp = endpoint.get(url = "https://foo.com/start", auth = True)
+                    """));
+
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "Illegal host: redirect from foo.com to unlisted.example matches none of endpoint hosts"
+                + " {foo.com,allowed.com}");
+    assertThat(requestedUrls).containsExactly("https://foo.com/start");
+  }
+
+  /**
+   * Verifies that {@code http.trigger} checks {@code hosts} on each redirect hop and never contacts
+   * an unlisted redirect target.
+   */
+  @Test
+  public void testTriggerRedirect_unlistedHost_throwsValidationExceptionWithoutSendingRequest()
+      throws Exception {
+    List<String> requestedUrls = new ArrayList<>();
+    http.mockHttp((method, url, req, resp) -> {
+      requestedUrls.add(url);
+      resp.setStatusCode(302);
+      resp.addHeader("Location", "https://unlisted.example/path");
+    });
+
+    String config =
+        """
+        def test_action(ctx):
+            ctx.origin.get(url = "https://foo.com/start")
+            return ctx.success()
+
+        core.action_migration(
+            name = 'default',
+            origin = http.trigger(
+                hosts = ["foo.com"],
+            ),
+            endpoints = struct(
+                destination = http.endpoint(host = "foo.com"),
+            ),
+            action = test_action,
+        )
+        """;
+    Migration migration = loadConfig(config).getMigration("default");
+
+    ValidationException e =
+        assertThrows(
+            ValidationException.class, () -> migration.run(workdir, ImmutableList.of("1")));
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "Illegal host: redirect from foo.com to unlisted.example matches none of endpoint"
+                + " hosts");
+    assertThat(requestedUrls).containsExactly("https://foo.com/start");
+  }
+
+  /** Verifies that redirect hop host matching is case-insensitive against {@code hosts}. */
+  @Test
+  public void testRedirect_caseInsensitiveListedHost_followsRedirect() throws Exception {
+    http.mockHttp((method, url, req, resp) -> {
+      if (url.equals("https://Foo.COM/start")) {
+        resp.setStatusCode(302);
+        resp.addHeader("Location", "https://BAR.example/final");
+      } else {
+        resp.setStatusCode(200);
+      }
+    });
+
+    HttpEndpointResponse resp =
+        starlark.eval(
+            "resp",
+            """
+            endpoint = testing.get_endpoint(
+                http.endpoint(
+                    hosts = [
+                        "Foo.COM",
+                        "Bar.Example",
+                    ],
+                ),
+            )
+            resp = endpoint.get(url = "https://Foo.COM/start")
+            """);
+
+    assertThat(resp.getStatusCode()).isEqualTo(200);
+  }
+
+  /**
+   * Verifies that redirecting to another listed host with no configured credentials withholds the
+   * initial host's credentials and logs the cross-host redirect warning once.
+   */
+  @Test
+  public void testAuth_redirectToListedHostWithoutCreds_withholdsCredentialsAndLogs()
+      throws Exception {
     Logger logger = Logger.getLogger(RedirectLoggingInterceptor.class.getName());
     TestLogHandler logHandler = new TestLogHandler();
     logger.addHandler(logHandler);
     Map<String, Optional<String>> authByUrl = new HashMap<>();
     http.mockHttp((method, url, req, resp) -> {
       authByUrl.put(url, Optional.ofNullable(req.getFirstHeaderValue("Authorization")));
-      if (url.equals("http://foo.com/start")) {
+      if (url.equals("https://foo.com/start")) {
         resp.setStatusCode(302);
-        resp.addHeader("Location", "http://bar.com/file");
+        resp.addHeader("Location", "https://bar.com/file");
       } else {
         resp.setStatusCode(200);
       }
@@ -156,21 +280,640 @@ public class HttpEndpointTest {
           starlark.eval(
               "resp",
               """
-              endpoint = testing.get_endpoint(http.endpoint(hosts = [
-                http.host(host = 'foo.com', auth = http.bearer_auth(
-                  creds = credentials.static_secret('token', 'foo-token'))),
-              ]))
-              resp = endpoint.get(url = "http://foo.com/start", auth = True)
+              endpoint = testing.get_endpoint(
+                  http.endpoint(
+                      hosts = [
+                          http.host(
+                              host = 'foo.com',
+                              auth = http.bearer_auth(
+                                  creds = credentials.static_secret('token', 'foo-token'),
+                              ),
+                          ),
+                          'bar.com',
+                      ],
+                  ),
+              )
+              resp = endpoint.get(url = "https://foo.com/start", auth = True)
               """);
 
       assertThat(resp.getStatusCode()).isEqualTo(200);
-      assertThat(authByUrl).containsEntry("http://bar.com/file", Optional.of("Bearer foo-token"));
+      assertThat(authByUrl).containsEntry("https://foo.com/start", Optional.of("Bearer foo-token"));
+      assertThat(authByUrl).containsEntry("https://bar.com/file", Optional.empty());
       assertThat(logHandler.getStoredLogRecords()).hasSize(1);
       assertThat(logHandler.getStoredLogRecords().get(0).getMessage())
-          .contains("from=foo.com to=bar.com");
+          .contains(
+              "Authenticated request redirected: from=foo.com to=bar.com other_host=true"
+                  + " https_to_http=false signed_url=false");
     } finally {
       logger.removeHandler(logHandler);
     }
+  }
+
+  /**
+   * Verifies that redirecting to another listed host withholds credentials even when that target
+   * host has its own {@code http.host} credentials configured.
+   */
+  @Test
+  public void testAuth_redirectToListedHostWithOwnCreds_withholdsCredentialsAndLogs()
+      throws Exception {
+    Logger logger = Logger.getLogger(RedirectLoggingInterceptor.class.getName());
+    TestLogHandler logHandler = new TestLogHandler();
+    logger.addHandler(logHandler);
+    Map<String, Optional<String>> authByUrl = new HashMap<>();
+    http.mockHttp((method, url, req, resp) -> {
+      authByUrl.put(url, Optional.ofNullable(req.getFirstHeaderValue("Authorization")));
+      if (url.equals("https://foo.com/start")) {
+        resp.setStatusCode(302);
+        resp.addHeader("Location", "https://BAR.COM/file");
+      } else {
+        resp.setStatusCode(200);
+      }
+    });
+
+    try {
+      HttpEndpointResponse resp =
+          starlark.eval(
+              "resp",
+              """
+              endpoint = testing.get_endpoint(
+                  http.endpoint(
+                      hosts = [
+                          http.host(
+                              host = 'foo.com',
+                              auth = http.bearer_auth(
+                                  creds = credentials.static_secret('token', 'foo-token'),
+                              ),
+                          ),
+                          http.host(
+                              host = 'bar.com',
+                              auth = http.bearer_auth(
+                                  creds = credentials.static_secret('token', 'bar-token'),
+                              ),
+                          ),
+                      ],
+                  ),
+              )
+              resp = endpoint.get(url = "https://foo.com/start", auth = True)
+              """);
+
+      assertThat(resp.getStatusCode()).isEqualTo(200);
+      assertThat(authByUrl).containsEntry("https://foo.com/start", Optional.of("Bearer foo-token"));
+      assertThat(authByUrl).containsEntry("https://BAR.COM/file", Optional.empty());
+      assertThat(logHandler.getStoredLogRecords()).hasSize(1);
+      assertThat(logHandler.getStoredLogRecords().get(0).getMessage())
+          .contains("from=foo.com to=bar.com other_host=true https_to_http=false");
+    } finally {
+      logger.removeHandler(logHandler);
+    }
+  }
+
+  /**
+   * Verifies that same-host redirects (case-insensitive, ignoring port) retain the host's
+   * credentials without logging a warning.
+   */
+  @Test
+  public void testAuth_redirectToSameHostDifferentCaseAndPort_keepsCredentials() throws Exception {
+    Logger logger = Logger.getLogger(RedirectLoggingInterceptor.class.getName());
+    TestLogHandler logHandler = new TestLogHandler();
+    logger.addHandler(logHandler);
+    Map<String, Optional<String>> authByUrl = new HashMap<>();
+    http.mockHttp((method, url, req, resp) -> {
+      authByUrl.put(url, Optional.ofNullable(req.getFirstHeaderValue("Authorization")));
+      if (url.equals("https://foo.com/start")) {
+        resp.setStatusCode(302);
+        resp.addHeader("Location", "https://FOO.COM:8443/file");
+      } else {
+        resp.setStatusCode(200);
+      }
+    });
+
+    try {
+      HttpEndpointResponse resp =
+          starlark.eval(
+              "resp",
+              """
+              endpoint = testing.get_endpoint(
+                  http.endpoint(
+                      hosts = [
+                          http.host(
+                              host = 'foo.com',
+                              auth = http.bearer_auth(
+                                  creds = credentials.static_secret('token', 'foo-token'),
+                              ),
+                          ),
+                      ],
+                  ),
+              )
+              resp = endpoint.get(url = "https://foo.com/start", auth = True)
+              """);
+
+      assertThat(resp.getStatusCode()).isEqualTo(200);
+      assertThat(authByUrl)
+          .containsEntry("https://FOO.COM:8443/file", Optional.of("Bearer foo-token"));
+      assertThat(logHandler.getStoredLogRecords()).isEmpty();
+    } finally {
+      logger.removeHandler(logHandler);
+    }
+  }
+
+  /**
+   * Verifies that same-host {@code https} to {@code http} redirects withhold credentials on the
+   * {@code http} hop and any subsequent hop, and log the redirect warning once.
+   */
+  @Test
+  public void testAuth_redirectHttpsToHttpSameHost_withholdsCredentialsStickilyAndLogs()
+      throws Exception {
+    Logger logger = Logger.getLogger(RedirectLoggingInterceptor.class.getName());
+    TestLogHandler logHandler = new TestLogHandler();
+    logger.addHandler(logHandler);
+    Map<String, Optional<String>> authByUrl = new HashMap<>();
+    http.mockHttp((method, url, req, resp) -> {
+      authByUrl.put(url, Optional.ofNullable(req.getFirstHeaderValue("Authorization")));
+      switch (url) {
+        case "https://foo.com/start" -> {
+          resp.setStatusCode(302);
+          resp.addHeader("Location", "http://foo.com/same");
+        }
+        case "http://foo.com/same" -> {
+          resp.setStatusCode(302);
+          resp.addHeader("Location", "https://foo.com/back");
+        }
+        default -> resp.setStatusCode(200);
+      }
+    });
+
+    try {
+      HttpEndpointResponse resp =
+          starlark.eval(
+              "resp",
+              """
+              endpoint = testing.get_endpoint(
+                  http.endpoint(
+                      hosts = [
+                          http.host(
+                              host = 'foo.com',
+                              auth = http.bearer_auth(
+                                  creds = credentials.static_secret('token', 'foo-token'),
+                              ),
+                          ),
+                      ],
+                  ),
+              )
+              resp = endpoint.get(url = "https://foo.com/start", auth = True)
+              """);
+
+      assertThat(resp.getStatusCode()).isEqualTo(200);
+      assertThat(authByUrl).containsEntry("https://foo.com/start", Optional.of("Bearer foo-token"));
+      assertThat(authByUrl).containsEntry("http://foo.com/same", Optional.empty());
+      assertThat(authByUrl).containsEntry("https://foo.com/back", Optional.empty());
+      assertThat(logHandler.getStoredLogRecords()).hasSize(1);
+      assertThat(logHandler.getStoredLogRecords().get(0).getMessage())
+          .contains("from=foo.com to=foo.com other_host=false https_to_http=true");
+    } finally {
+      logger.removeHandler(logHandler);
+    }
+  }
+
+  /**
+   * Verifies that when {@code auth = False}, no redirect hop receives credentials even if the
+   * target host has credentials configured in {@code hosts}.
+   */
+  @Test
+  public void testNoAuth_redirectToHostWithConfiguredCreds_neverSendsCredentials()
+      throws Exception {
+    Logger logger = Logger.getLogger(RedirectLoggingInterceptor.class.getName());
+    TestLogHandler logHandler = new TestLogHandler();
+    logger.addHandler(logHandler);
+    Map<String, Optional<String>> authByUrl = new HashMap<>();
+    http.mockHttp((method, url, req, resp) -> {
+      authByUrl.put(url, Optional.ofNullable(req.getFirstHeaderValue("Authorization")));
+      if (url.equals("https://foo.com/start")) {
+        resp.setStatusCode(302);
+        resp.addHeader("Location", "https://bar.com/file");
+      } else {
+        resp.setStatusCode(200);
+      }
+    });
+
+    try {
+      HttpEndpointResponse resp =
+          starlark.eval(
+              "resp",
+              """
+              endpoint = testing.get_endpoint(
+                  http.endpoint(
+                      hosts = [
+                          http.host(
+                              host = 'foo.com',
+                              auth = http.bearer_auth(
+                                  creds = credentials.static_secret('token', 'foo-token'),
+                              ),
+                          ),
+                          http.host(
+                              host = 'bar.com',
+                              auth = http.bearer_auth(
+                                  creds = credentials.static_secret('token', 'bar-token'),
+                              ),
+                          ),
+                      ],
+                  ),
+              )
+              resp = endpoint.get(url = "https://foo.com/start", auth = False)
+              """);
+
+      assertThat(resp.getStatusCode()).isEqualTo(200);
+      assertThat(authByUrl).containsEntry("https://foo.com/start", Optional.empty());
+      assertThat(authByUrl).containsEntry("https://bar.com/file", Optional.empty());
+      assertThat(logHandler.getStoredLogRecords()).isEmpty();
+    } finally {
+      logger.removeHandler(logHandler);
+    }
+  }
+
+  /**
+   * Verifies that headers resolved from {@code issuers} are kept on same-host HTTPS redirects,
+   * removed on cross-host listed redirects and all subsequent hops, and never sent to unlisted
+   * redirect targets.
+   */
+  @Test
+  public void testIssuersSecretHeader_keptOnSameHostAndDroppedOnCrossHostChain() throws Exception {
+    Map<String, Optional<String>> apiKeyByUrl = new HashMap<>();
+    Map<String, Optional<String>> cookieByUrl = new HashMap<>();
+    Map<String, Optional<String>> publicHeaderByUrl = new HashMap<>();
+    http.mockHttp((method, url, req, resp) -> {
+      apiKeyByUrl.put(url, Optional.ofNullable(req.getFirstHeaderValue("X-Api-Key")));
+      cookieByUrl.put(url, Optional.ofNullable(req.getFirstHeaderValue("Cookie")));
+      publicHeaderByUrl.put(url, Optional.ofNullable(req.getFirstHeaderValue("X-Public")));
+      switch (url) {
+        case "https://example.com/same-1" -> {
+          resp.setStatusCode(302);
+          resp.addHeader("Location", "https://EXAMPLE.com:8443/same-2");
+        }
+        case "https://example.com/cross-1" -> {
+          resp.setStatusCode(302);
+          resp.addHeader("Location", "https://other.example/cross-2");
+        }
+        case "https://other.example/cross-2" -> {
+          resp.setStatusCode(302);
+          resp.addHeader("Location", "https://example.com/cross-3");
+        }
+        case "https://example.com/unlisted" -> {
+          resp.setStatusCode(302);
+          resp.addHeader("Location", "https://unlisted.example/path");
+        }
+        default -> resp.setStatusCode(200);
+      }
+    });
+
+    HttpEndpointResponse sameHostResp =
+        starlark.eval(
+            "resp",
+            """
+            endpoint = testing.get_endpoint(
+                http.endpoint(
+                    hosts = [
+                        "example.com",
+                        "other.example",
+                    ],
+                    issuers = {
+                        "api_key": credentials.static_secret("secret", "api-key-value"),
+                    },
+                ),
+            )
+            resp = endpoint.get(
+                url = "https://example.com/same-1",
+                headers = {
+                    "X-Api-Key": "${{api_key}}",
+                    "Cookie": "sid=${{api_key}}",
+                    "X-Public": "public-value",
+                },
+            )
+            """);
+    assertThat(sameHostResp.getStatusCode()).isEqualTo(200);
+    assertThat(apiKeyByUrl)
+        .containsEntry("https://EXAMPLE.com:8443/same-2", Optional.of("api-key-value"));
+    assertThat(cookieByUrl)
+        .containsEntry("https://EXAMPLE.com:8443/same-2", Optional.of("sid=api-key-value"));
+    assertThat(publicHeaderByUrl)
+        .containsEntry("https://EXAMPLE.com:8443/same-2", Optional.of("public-value"));
+
+    HttpEndpointResponse crossHostResp =
+        starlark.eval(
+            "resp",
+            """
+            endpoint = testing.get_endpoint(
+                http.endpoint(
+                    hosts = [
+                        "example.com",
+                        "other.example",
+                    ],
+                    issuers = {
+                        "api_key": credentials.static_secret("secret", "api-key-value"),
+                    },
+                ),
+            )
+            resp = endpoint.get(
+                url = "https://example.com/cross-1",
+                headers = {
+                    "X-Api-Key": "${{api_key}}",
+                    "Cookie": "sid=${{api_key}}",
+                    "X-Public": "public-value",
+                },
+            )
+            """);
+    assertThat(crossHostResp.getStatusCode()).isEqualTo(200);
+    assertThat(apiKeyByUrl)
+        .containsEntry("https://example.com/cross-1", Optional.of("api-key-value"));
+    assertThat(apiKeyByUrl).containsEntry("https://other.example/cross-2", Optional.empty());
+    assertThat(apiKeyByUrl).containsEntry("https://example.com/cross-3", Optional.empty());
+    assertThat(cookieByUrl)
+        .containsEntry("https://example.com/cross-1", Optional.of("sid=api-key-value"));
+    assertThat(cookieByUrl).containsEntry("https://other.example/cross-2", Optional.empty());
+    assertThat(cookieByUrl).containsEntry("https://example.com/cross-3", Optional.empty());
+    assertThat(publicHeaderByUrl)
+        .containsEntry("https://other.example/cross-2", Optional.of("public-value"));
+    assertThat(publicHeaderByUrl)
+        .containsEntry("https://example.com/cross-3", Optional.of("public-value"));
+
+    assertThrows(
+        ValidationException.class,
+        () ->
+            starlark.eval(
+                "resp",
+                """
+                endpoint = testing.get_endpoint(
+                    http.endpoint(
+                        hosts = [
+                            "example.com",
+                            "other.example",
+                        ],
+                        issuers = {
+                            "api_key": credentials.static_secret("secret", "api-key-value"),
+                        },
+                    ),
+                )
+                resp = endpoint.get(
+                    url = "https://example.com/unlisted",
+                    headers = {"X-Api-Key": "${{api_key}}"},
+                )
+                """));
+    assertThat(apiKeyByUrl).doesNotContainKey("https://unlisted.example/path");
+  }
+
+  /**
+   * Verifies that headers resolved from {@code issuers} are dropped when an {@code https} request
+   * redirects to {@code http} on the same host and remain dropped on later {@code https} hops.
+   */
+  @Test
+  public void testIssuersSecretHeader_droppedAfterHttpsToHttpRedirect() throws Exception {
+    Map<String, Optional<String>> apiKeyByUrl = new HashMap<>();
+    Map<String, Optional<String>> publicHeaderByUrl = new HashMap<>();
+    http.mockHttp((method, url, req, resp) -> {
+      apiKeyByUrl.put(url, Optional.ofNullable(req.getFirstHeaderValue("X-Api-Key")));
+      publicHeaderByUrl.put(url, Optional.ofNullable(req.getFirstHeaderValue("X-Public")));
+      switch (url) {
+        case "https://example.com/start" -> {
+          resp.setStatusCode(302);
+          resp.addHeader("Location", "http://example.com/plain");
+        }
+        case "http://example.com/plain" -> {
+          resp.setStatusCode(302);
+          resp.addHeader("Location", "https://example.com/back");
+        }
+        default -> resp.setStatusCode(200);
+      }
+    });
+
+    HttpEndpointResponse resp =
+        starlark.eval(
+            "resp",
+            """
+            endpoint = testing.get_endpoint(
+                http.endpoint(
+                    hosts = ["example.com"],
+                    issuers = {
+                        "api_key": credentials.static_secret("secret", "api-key-value"),
+                    },
+                ),
+            )
+            resp = endpoint.get(
+                url = "https://example.com/start",
+                headers = {
+                    "X-Api-Key": "${{api_key}}",
+                    "X-Public": "public-value",
+                },
+            )
+            """);
+
+    assertThat(resp.getStatusCode()).isEqualTo(200);
+    assertThat(apiKeyByUrl)
+        .containsEntry("https://example.com/start", Optional.of("api-key-value"));
+    assertThat(apiKeyByUrl).containsEntry("http://example.com/plain", Optional.empty());
+    assertThat(apiKeyByUrl).containsEntry("https://example.com/back", Optional.empty());
+    assertThat(publicHeaderByUrl)
+        .containsEntry("http://example.com/plain", Optional.of("public-value"));
+    assertThat(publicHeaderByUrl)
+        .containsEntry("https://example.com/back", Optional.of("public-value"));
+  }
+
+  /**
+   * Verifies that a 307 cross-host redirect on a request whose body contains an {@code issuers}
+   * secret throws {@link ValidationException} without contacting the redirect target, while a
+   * same-host HTTPS 307 redirect succeeds.
+   */
+  @Test
+  public void testIssuersSecretBody_307CrossHostRedirect_throwsValidationException()
+      throws Exception {
+    List<String> requestedUrls = new ArrayList<>();
+    http.mockHttp((method, url, req, resp) -> {
+      requestedUrls.add(url);
+      switch (url) {
+        case "https://example.com/same-1" -> {
+          resp.setStatusCode(307);
+          resp.addHeader("Location", "https://example.com/same-2");
+        }
+        case "https://example.com/same-2" -> resp.setStatusCode(200);
+        case "https://example.com/cross" -> {
+          resp.setStatusCode(307);
+          resp.addHeader("Location", "https://other.example/receive");
+        }
+        default -> resp.setStatusCode(200);
+      }
+    });
+
+    HttpEndpointResponse sameHostResp =
+        starlark.eval(
+            "resp",
+            """
+            endpoint = testing.get_endpoint(
+                http.endpoint(
+                    hosts = [
+                        "example.com",
+                        "other.example",
+                    ],
+                    issuers = {
+                        "api_key": credentials.static_secret("secret", "api-key-value"),
+                    },
+                ),
+            )
+            resp = endpoint.post(
+                url = "https://example.com/same-1",
+                content = http.json({"token": "${{api_key}}"}),
+            )
+            """);
+    assertThat(sameHostResp.getStatusCode()).isEqualTo(200);
+
+    requestedUrls.clear();
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                starlark.eval(
+                    "resp",
+                    """
+                    endpoint = testing.get_endpoint(
+                        http.endpoint(
+                            hosts = [
+                                "example.com",
+                                "other.example",
+                            ],
+                            issuers = {
+                                "api_key": credentials.static_secret("secret", "api-key-value"),
+                            },
+                        ),
+                    )
+                    resp = endpoint.post(
+                        url = "https://example.com/cross",
+                        content = http.urlencoded_form({"token": "${{api_key}}"}),
+                    )
+                    """));
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "Redirect from example.com to other.example would resend a request body containing"
+                + " secrets; use followRedirects(False) to handle the redirect manually");
+    assertThat(requestedUrls).containsExactly("https://example.com/cross");
+  }
+
+  /**
+   * Verifies that a 303 cross-host redirect on a request whose body contains an {@code issuers}
+   * secret succeeds as a body-less GET on the redirect target.
+   */
+  @Test
+  public void testIssuersSecretBody_303CrossHostRedirect_succeedsWithNoBody() throws Exception {
+    List<String> seenMethodsAndBodies = new ArrayList<>();
+    http.mockHttp((method, url, req, resp) -> {
+      seenMethodsAndBodies.add(method + ":" + req.getContentAsString());
+      if (url.equals("https://example.com/submit")) {
+        resp.setStatusCode(303);
+        resp.addHeader("Location", "https://other.example/done");
+      } else {
+        resp.setStatusCode(200);
+      }
+    });
+
+    HttpEndpointResponse resp =
+        starlark.eval(
+            "resp",
+            """
+            endpoint = testing.get_endpoint(
+                http.endpoint(
+                    hosts = [
+                        "example.com",
+                        "other.example",
+                    ],
+                    issuers = {
+                        "api_key": credentials.static_secret("secret", "api-key-value"),
+                    },
+                ),
+            )
+            resp = endpoint.post(
+                url = "https://example.com/submit",
+                content = http.json({"token": "${{api_key}}"}),
+            )
+            """);
+
+    assertThat(resp.getStatusCode()).isEqualTo(200);
+    assertThat(seenMethodsAndBodies)
+        .containsExactly("POST:{\"token\":\"api-key-value\"}", "GET:")
+        .inOrder();
+  }
+
+  /**
+   * Verifies that {@code followRedirects(False)} returns a 3xx pointing to an unlisted host
+   * untouched without throwing, redirect-budget exhaustion returns the final 3xx, and 303 converts
+   * POST to GET.
+   */
+  @Test
+  public void testRedirectUnchangedBehaviors_followFalseBudgetExhaustionAnd303PostToGet()
+      throws Exception {
+    List<String> seenMethodsAndBodies = new ArrayList<>();
+    http.mockHttp((method, url, req, resp) -> {
+      if (url.equals("https://foo.com/no-follow")) {
+        resp.setStatusCode(302);
+        resp.addHeader("Location", "https://unlisted.com/target");
+        return;
+      }
+      if (url.startsWith("https://foo.com/loop/")) {
+        int hop = Integer.parseInt(url.substring("https://foo.com/loop/".length()));
+        resp.setStatusCode(302);
+        resp.addHeader("Location", "https://foo.com/loop/" + (hop + 1));
+        return;
+      }
+      seenMethodsAndBodies.add(method + ":" + req.getContentAsString());
+      if (url.equals("https://foo.com/submit")) {
+        resp.setStatusCode(303);
+        resp.addHeader("Location", "https://bar.com/done");
+      } else {
+        resp.setStatusCode(200);
+      }
+    });
+
+    HttpEndpointResponse unfollowed =
+        starlark.eval(
+            "resp",
+            """
+            endpoint = testing.get_endpoint(
+                http.endpoint(host = "foo.com"),
+            )
+            endpoint.followRedirects(False)
+            resp = endpoint.get(url = "https://foo.com/no-follow")
+            """);
+    assertThat(unfollowed.getStatusCode()).isEqualTo(302);
+    assertThat(unfollowed.responseHeader("Location"))
+        .containsExactly("https://unlisted.com/target");
+
+    HttpEndpointResponse exhausted =
+        starlark.eval(
+            "resp",
+            """
+            endpoint = testing.get_endpoint(
+                http.endpoint(host = "foo.com"),
+            )
+            resp = endpoint.get(url = "https://foo.com/loop/0")
+            """);
+    assertThat(exhausted.getStatusCode()).isEqualTo(302);
+    assertThat(exhausted.responseHeader("Location")).containsExactly("https://foo.com/loop/11");
+
+    HttpEndpointResponse postToGet =
+        starlark.eval(
+            "resp",
+            """
+            endpoint = testing.get_endpoint(
+                http.endpoint(
+                    hosts = [
+                        "foo.com",
+                        "bar.com",
+                    ],
+                ),
+            )
+            resp = endpoint.post(
+                url = "https://foo.com/submit",
+                content = http.json({"k": "v"}),
+            )
+            """);
+    assertThat(postToGet.getStatusCode()).isEqualTo(200);
+    assertThat(seenMethodsAndBodies).containsExactly("POST:{\"k\":\"v\"}", "GET:").inOrder();
   }
 
   @Test

@@ -32,12 +32,14 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 /**
- * Wraps an authentication interceptor and logs when an authenticated request follows a redirect to
- * a different host, or from https to http. This helps debug authentication failures on redirects.
- * It does not change what the wrapped interceptor does.
+ * Wraps an authentication interceptor so credentials are sent only until a redirect leaves the
+ * original request's host or switches from {@code https} to non-{@code https}, and logs when an
+ * authenticated request follows a redirect to a different host or from {@code https} to {@code
+ * http}.
  *
- * <p>Only host names are logged, never paths, query values, or headers. Each log line includes a
- * stack trace so that the caller can be identified.
+ * <p>Once credentials are withheld on a hop, they remain withheld for every subsequent hop in that
+ * redirect chain. Only host names are logged, never paths, query values, or headers. Each log line
+ * includes a stack trace so that the caller can be identified.
  */
 public final class RedirectLoggingInterceptor implements HttpExecuteInterceptor {
 
@@ -50,6 +52,7 @@ public final class RedirectLoggingInterceptor implements HttpExecuteInterceptor 
   private final String initialHost;
   private final boolean initialIsHttps;
   private final Set<String> logged = new HashSet<>();
+  private boolean withholdCredentials = false;
 
   private RedirectLoggingInterceptor(HttpExecuteInterceptor delegate, GenericUrl initialUrl) {
     this.delegate = checkNotNull(delegate);
@@ -58,8 +61,11 @@ public final class RedirectLoggingInterceptor implements HttpExecuteInterceptor 
   }
 
   /**
-   * Returns an interceptor that runs {@code delegate} on every request hop, and logs hops that go
-   * to a different host than {@code initialUrl} or from https to http.
+   * Returns a per-request interceptor that runs {@code delegate} until a redirect hop targets a
+   * different host than {@code initialUrl} (matched case-insensitively, ignoring port) or switches
+   * from {@code https} to non-{@code https}, after which credentials are withheld for the rest of
+   * the redirect chain. Logs hops that go to a different host than {@code initialUrl} or from
+   * {@code https} to non-{@code https}.
    *
    * @param delegate the interceptor that adds authentication to the request
    * @param initialUrl the URL of the request before any redirect
@@ -71,13 +77,17 @@ public final class RedirectLoggingInterceptor implements HttpExecuteInterceptor 
 
   @Override
   public void intercept(HttpRequest request) throws IOException {
-    delegate.intercept(request);
-
     GenericUrl url = request.getUrl();
     String host = normalizeHost(url.getHost());
     boolean otherHost = !host.equals(initialHost);
     boolean httpsToHttp =
-        initialIsHttps && Ascii.equalsIgnoreCase("http", nullToEmpty(url.getScheme()));
+        initialIsHttps && !Ascii.equalsIgnoreCase("https", nullToEmpty(url.getScheme()));
+    if (otherHost || httpsToHttp) {
+      withholdCredentials = true;
+    }
+    if (!withholdCredentials) {
+      delegate.intercept(request);
+    }
     if (!otherHost && !httpsToHttp) {
       return;
     }

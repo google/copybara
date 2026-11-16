@@ -83,14 +83,20 @@ public class HttpModule implements StarlarkValue {
       parameters = {
         @Param(
             name = "hosts",
-            doc = "A list of hosts to allow HTTP traffic to.",
+            doc =
+                "A list of hosts to allow HTTP traffic to. Redirect target hosts must also be"
+                    + " listed.",
             named = true,
             allowedTypes = {@ParamType(type = Sequence.class)},
             defaultValue = "[]",
             positional = false),
         @Param(
             name = "issuers",
-            doc = "A dictionary of credential issuers.",
+            doc =
+                "A dictionary of credential issuers. When following redirects, once a hop leaves"
+                    + " the original request's host or switches from HTTPS to HTTP, headers"
+                    + " containing resolved issuer secrets are removed for that hop and any later"
+                    + " hops, and redirects that would resend a request body containing one fail.",
             named = true,
             allowedTypes = {@ParamType(type = Dict.class), @ParamType(type = NoneType.class)},
             defaultValue = "{}",
@@ -145,14 +151,20 @@ public class HttpModule implements StarlarkValue {
             positional = false),
         @Param(
             name = "hosts",
-            doc = "A list of hosts to allow HTTP traffic to.",
+            doc =
+                "A list of hosts to allow HTTP traffic to. Redirect target hosts must also be"
+                    + " listed.",
             named = true,
             allowedTypes = {@ParamType(type = Sequence.class)},
             defaultValue = "[]",
             positional = false),
         @Param(
             name = "issuers",
-            doc = "A dictionaty of credential issuers.",
+            doc =
+                "A dictionary of credential issuers. When following redirects, once a hop leaves"
+                    + " the original request's host or switches from HTTPS to HTTP, headers"
+                    + " containing resolved issuer secrets are removed for that hop and any later"
+                    + " hops, and redirects that would resend a request body containing one fail.",
             named = true,
             allowedTypes = {@ParamType(type = Dict.class), @ParamType(type = NoneType.class)},
             defaultValue = "{}",
@@ -332,8 +344,11 @@ public class HttpModule implements StarlarkValue {
             positional = false),
         @Param(
             name = "auth",
-            doc = "Optional, an interceptor for providing credentials. Also accepts a "
-                + "username_password.",
+            doc =
+                "Optional, an interceptor for providing credentials. Also accepts a"
+                    + " username_password. Only used when the initial request targets this host;"
+                    + " once a redirect leaves this host or switches from HTTPS to HTTP,"
+                    + " credentials are not sent on that hop or any later hops.",
             named = true,
             defaultValue = "None",
             allowedTypes = {

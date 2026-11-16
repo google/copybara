@@ -16,13 +16,19 @@
 
 package com.google.copybara.http.endpoint;
 
+import static com.google.common.base.Strings.nullToEmpty;
+import static com.google.common.collect.ImmutableSet.toImmutableSet;
+
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpContent;
+import com.google.api.client.http.HttpExecuteInterceptor;
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpTransport;
+import com.google.common.base.Ascii;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Endpoint;
 import com.google.copybara.checks.Checker;
@@ -44,9 +50,15 @@ import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.NoneType;
 
 /**
- * Endpoint capable of making http requests.
+ * Endpoint capable of making HTTP requests to configured {@code hosts} on both the initial request
+ * and every followed redirect hop.
  *
- * <p>This endpoint is currently bound to a specific host, as a security restriction.
+ * <p>Once a followed redirect leaves the original request's host (matched case-insensitively,
+ * ignoring port) or switches from {@code https} to non-{@code https}, host credentials from {@code
+ * http.host(auth=...)} are withheld and request headers containing {@code issuers} secrets ({@code
+ * ${{name}}} placeholders) are removed for that hop and all subsequent hops. If such a redirect
+ * would resend a request body containing an {@code issuers} secret, execution fails with {@link
+ * ValidationException}.
  */
 @StarlarkBuiltin(name = "http_endpoint", doc = "Calls via HTTP.")
 public class HttpEndpoint implements Endpoint {
@@ -57,6 +69,7 @@ public class HttpEndpoint implements Endpoint {
   private final ImmutableMap<String, CredentialIssuer> issuers;
 
   private final ImmutableMap<String, Optional<AuthInterceptor>> hosts;
+  private final ImmutableSet<String> allowedHostsLowercase;
   HttpTransport transport;
   Console console;
   @Nullable Checker checker;
@@ -64,6 +77,11 @@ public class HttpEndpoint implements Endpoint {
   /** Whether to automatically follow redirects, true by default. */
   private boolean followRedirects = true;
 
+  /**
+   * Constructs an {@link HttpEndpoint} restricted to {@code hosts}.
+   *
+   * @param checker outbound request checker, or {@code null} if no checker is configured
+   */
   public HttpEndpoint(
       Console console,
       HttpTransport transport,
@@ -71,6 +89,8 @@ public class HttpEndpoint implements Endpoint {
       ImmutableMap<String, CredentialIssuer> issuers,
       @Nullable Checker checker) {
     this.hosts = hosts;
+    this.allowedHostsLowercase =
+        hosts.keySet().stream().map(Ascii::toLowerCase).collect(toImmutableSet());
     this.transport = transport;
     this.console = console;
     this.checker = checker;
@@ -175,17 +195,24 @@ public class HttpEndpoint implements Endpoint {
     HttpSecretInterceptor secretInterceptor = new HttpSecretInterceptor(issuers);
     Dict<String, String> headersDict = Dict.cast(headersIn, String.class, String.class, "headers");
     HttpHeaders headers = new HttpHeaders();
+    ImmutableSet.Builder<String> secretHeaderNames = ImmutableSet.builder();
     for (Entry<String, String> e : headersDict.entrySet()) {
-      String val = e.getValue();
-      val = secretInterceptor.resolveStringSecrets(val);
-      headers.set(e.getKey(), ImmutableList.of(val));
+      HttpSecretInterceptor.ResolvedString resolved = secretInterceptor.resolve(e.getValue());
+      if (resolved.resolvedSecret()) {
+        secretHeaderNames.add(e.getKey());
+      }
+      headers.set(e.getKey(), ImmutableList.of(resolved.value()));
     }
 
     @Nullable
     HttpEndpointBody endpointContent = SkylarkUtil.convertFromNoneable(endpointContentIn, null);
     HttpContent content = null;
+    boolean contentHasSecrets = false;
     if (endpointContent != null) {
-      content = new HttpContentInterceptor(endpointContent.getContent(), secretInterceptor);
+      HttpContentInterceptor contentInterceptor =
+          new HttpContentInterceptor(endpointContent.getContent(), secretInterceptor);
+      content = contentInterceptor;
+      contentHasSecrets = contentInterceptor.hasResolvedSecret();
     }
 
     @Nullable AuthInterceptor creds = null;
@@ -214,7 +241,77 @@ public class HttpEndpoint implements Endpoint {
     }
     HttpRequest request = req.build();
     request.setFollowRedirects(this.followRedirects);
-    return new HttpEndpointResponse(request.execute());
+    request.setInterceptor(
+        buildHopInterceptor(
+            url, request.getInterceptor(), secretHeaderNames.build(), contentHasSecrets));
+    try {
+      return new HttpEndpointResponse(request.execute());
+    } catch (RedirectValidationException e) {
+      throw e.validationException();
+    }
+  }
+
+  private HttpExecuteInterceptor buildHopInterceptor(
+      GenericUrl initialUrl,
+      @Nullable HttpExecuteInterceptor authInterceptor,
+      ImmutableSet<String> secretHeaderNames,
+      boolean contentHasSecrets) {
+    String initialHost = Ascii.toLowerCase(nullToEmpty(initialUrl.getHost()));
+    boolean initialIsHttps = Ascii.equalsIgnoreCase("https", nullToEmpty(initialUrl.getScheme()));
+    return new HttpExecuteInterceptor() {
+      private boolean firstHop = true;
+      private boolean withholdSecrets = false;
+      private String previousHost = nullToEmpty(initialUrl.getHost());
+
+      @Override
+      public void intercept(HttpRequest request) throws IOException {
+        GenericUrl currentUrl = request.getUrl();
+        String currentHost = nullToEmpty(currentUrl.getHost());
+        if (firstHop) {
+          firstHop = false;
+        } else {
+          if (!allowedHostsLowercase.contains(Ascii.toLowerCase(currentHost))) {
+            throw new RedirectValidationException(
+                new ValidationException(
+                    String.format(
+                        "Illegal host: redirect from %s to %s matches none of endpoint hosts {%s}",
+                        previousHost, currentHost, String.join(",", hosts.keySet()))));
+          }
+          boolean otherHost = !Ascii.toLowerCase(currentHost).equals(initialHost);
+          boolean httpsToHttp =
+              initialIsHttps
+                  && !Ascii.equalsIgnoreCase("https", nullToEmpty(currentUrl.getScheme()));
+          if (otherHost || httpsToHttp) {
+            withholdSecrets = true;
+          }
+          if (withholdSecrets) {
+            for (String headerName : secretHeaderNames) {
+              removeHeader(request.getHeaders(), headerName);
+            }
+            if (contentHasSecrets && request.getContent() != null) {
+              throw new RedirectValidationException(
+                  new ValidationException(
+                      String.format(
+                          "Redirect from %s to %s would resend a request body containing secrets;"
+                              + " use followRedirects(False) to handle the redirect manually",
+                          previousHost, currentHost)));
+            }
+          }
+        }
+        previousHost = currentHost;
+        if (authInterceptor != null) {
+          authInterceptor.intercept(request);
+        }
+      }
+    };
+  }
+
+  private static void removeHeader(HttpHeaders headers, String headerName) {
+    if (headers.getClassInfo().getFieldInfo(headerName) != null) {
+      headers.set(headerName, null);
+    } else {
+      headers.remove(headerName);
+    }
   }
 
   public void validateUrl(GenericUrl url) throws ValidationException {
@@ -227,7 +324,12 @@ public class HttpEndpoint implements Endpoint {
 
   @StarlarkMethod(
       name = "followRedirects",
-      doc = "Sets whether to follow redirects automatically",
+      doc =
+          "Sets whether to follow redirects automatically. When following redirects, each hop"
+              + " must match an entry in `hosts`. Once a redirect leaves the original request's"
+              + " host or switches from HTTPS to HTTP, credentials and headers containing"
+              + " `issuers` secrets are withheld for that hop and any later hops, and redirects"
+              + " that would resend a request body containing an `issuers` secret fail.",
       parameters = {
         @Param(
             name = "followRedirects",
@@ -273,5 +375,18 @@ public class HttpEndpoint implements Endpoint {
     }
 
     return list.build();
+  }
+
+  private static final class RedirectValidationException extends IOException {
+    private final ValidationException validationException;
+
+    private RedirectValidationException(ValidationException validationException) {
+      super(validationException);
+      this.validationException = validationException;
+    }
+
+    private ValidationException validationException() {
+      return validationException;
+    }
   }
 }

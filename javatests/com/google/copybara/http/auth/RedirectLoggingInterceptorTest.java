@@ -112,25 +112,68 @@ public class RedirectLoggingInterceptorTest {
     assertThat(message).doesNotContain("/file");
   }
 
+  /**
+   * Verifies that cross-host redirects withhold credentials on that hop and any later hops, even if
+   * a subsequent hop returns to the initial host.
+   */
   @Test
-  public void redirectToOtherHost_stillRunsDelegate() throws Exception {
-    mockRedirects(ImmutableMap.of("https://foo.com/start", "https://bar.com/file"));
+  public void redirectToOtherHostAndBack_withholdsCredentialsStickily() throws Exception {
+    mockRedirects(
+        ImmutableMap.of(
+            "https://foo.com/start", "https://bar.com/hop",
+            "https://bar.com/hop", "https://foo.com/final"));
 
     execute("https://foo.com/start");
 
     assertThat(authByUrl).containsEntry("https://foo.com/start", Optional.of("Bearer token"));
-    assertThat(authByUrl).containsEntry("https://bar.com/file", Optional.of("Bearer token"));
+    assertThat(authByUrl).containsEntry("https://bar.com/hop", Optional.empty());
+    assertThat(authByUrl).containsEntry("https://foo.com/final", Optional.empty());
+    assertThat(loggedMessages()).hasSize(1);
+    assertThat(loggedMessages().get(0))
+        .contains("from=foo.com to=bar.com other_host=true https_to_http=false signed_url=false");
   }
 
+  /**
+   * Verifies that {@code https}-to-{@code http} redirects on the same host log a warning and
+   * withhold credentials on the {@code http} hop and any subsequent {@code https} hop.
+   */
   @Test
-  public void redirectFromHttpsToHttpOnSameHost_logs() throws Exception {
-    mockRedirects(ImmutableMap.of("https://foo.com/start", "http://foo.com/file"));
+  public void redirectFromHttpsToHttpAndBackToHttps_withholdsCredentialsStickilyAndLogs()
+      throws Exception {
+    mockRedirects(
+        ImmutableMap.of(
+            "https://foo.com/start", "http://foo.com/hop",
+            "http://foo.com/hop", "https://foo.com/final"));
 
     execute("https://foo.com/start");
 
+    assertThat(authByUrl).containsEntry("https://foo.com/start", Optional.of("Bearer token"));
+    assertThat(authByUrl).containsEntry("http://foo.com/hop", Optional.empty());
+    assertThat(authByUrl).containsEntry("https://foo.com/final", Optional.empty());
     assertThat(loggedMessages()).hasSize(1);
     assertThat(loggedMessages().get(0))
-        .contains("from=foo.com to=foo.com other_host=false https_to_http=true");
+        .contains("from=foo.com to=foo.com other_host=false https_to_http=true signed_url=false");
+  }
+
+  /**
+   * Verifies that a redirect chain starting on {@code http} and staying on the same host continues
+   * delegating credentials across {@code http} and {@code https} hops without logging.
+   */
+  @Test
+  public void redirectHttpInitialSameHostChain_alwaysDelegates() throws Exception {
+    mockRedirects(
+        ImmutableMap.of(
+            "http://foo.com/start", "http://foo.com/hop",
+            "http://foo.com/hop", "https://foo.com/upgraded",
+            "https://foo.com/upgraded", "http://foo.com/final"));
+
+    execute("http://foo.com/start");
+
+    assertThat(authByUrl).containsEntry("http://foo.com/start", Optional.of("Bearer token"));
+    assertThat(authByUrl).containsEntry("http://foo.com/hop", Optional.of("Bearer token"));
+    assertThat(authByUrl).containsEntry("https://foo.com/upgraded", Optional.of("Bearer token"));
+    assertThat(authByUrl).containsEntry("http://foo.com/final", Optional.of("Bearer token"));
+    assertThat(loggedMessages()).isEmpty();
   }
 
   @Test

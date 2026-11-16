@@ -26,27 +26,41 @@ import java.util.regex.Pattern;
 /** HttpSecretInterceptor replaces secrets with their corresponding values. */
 class HttpSecretInterceptor {
 
+  private static final Pattern SECRET_PATTERN = Pattern.compile("\\$\\{\\{(.*?)\\}\\}");
+  private static final Pattern ENCODED_SECRET_PATTERN =
+      Pattern.compile("\\%24\\%7B\\%7B(.*?)\\%7D\\%7D");
+
   private final ImmutableMap<String, CredentialIssuer> issuers;
 
+  /** Result of resolving {@code issuers} secret placeholders in a string. */
+  record ResolvedString(String value, boolean resolvedSecret) {}
+
+  /** Constructs an {@link HttpSecretInterceptor} backed by {@code issuers}. */
   public HttpSecretInterceptor(ImmutableMap<String, CredentialIssuer> issuers) {
     this.issuers = issuers;
   }
 
+  /** Resolves {@code ${{...}}} and URL-encoded secret placeholders in {@code value}. */
   public String resolveStringSecrets(String value)
       throws CredentialIssuingException, CredentialRetrievalException {
-    String template = "\\$\\{\\{(.*?)\\}\\}";
-    Matcher matcher = Pattern.compile(template).matcher(value);
-    value = replaceMatchesWithSecrets(value, matcher);
-
-    String encodedTemplate = "\\%24\\%7B\\%7B(.*?)\\%7D\\%7D";
-    Matcher encodedMatcher = Pattern.compile(encodedTemplate).matcher(value);
-    value = replaceMatchesWithSecrets(value, encodedMatcher);
-
-    return value;
+    return resolve(value).value();
   }
 
-  private String replaceMatchesWithSecrets(String value, Matcher matcher)
+  /**
+   * Resolves {@code ${{...}}} and URL-encoded {@code %24%7B%7B...%7D%7D} secret placeholders in
+   * {@code value} and reports whether at least one secret placeholder was resolved.
+   */
+  ResolvedString resolve(String value)
       throws CredentialIssuingException, CredentialRetrievalException {
+    ResolvedString plain = replaceMatchesWithSecrets(value, SECRET_PATTERN.matcher(value));
+    ResolvedString encoded =
+        replaceMatchesWithSecrets(plain.value(), ENCODED_SECRET_PATTERN.matcher(plain.value()));
+    return new ResolvedString(encoded.value(), plain.resolvedSecret() || encoded.resolvedSecret());
+  }
+
+  private ResolvedString replaceMatchesWithSecrets(String value, Matcher matcher)
+      throws CredentialIssuingException, CredentialRetrievalException {
+    boolean resolvedSecret = false;
     while (matcher.find()) {
       String issuerName = matcher.group(1);
       CredentialIssuer issuer = this.issuers.get(issuerName);
@@ -55,7 +69,8 @@ class HttpSecretInterceptor {
             String.format("Credential issuer %s is not found", issuerName));
       }
       value = value.replace(matcher.group(0), issuer.issue().provideSecret());
+      resolvedSecret = true;
     }
-    return value;
+    return new ResolvedString(value, resolvedSecret);
   }
 }
