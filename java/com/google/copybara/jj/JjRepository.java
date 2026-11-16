@@ -115,6 +115,9 @@ public class JjRepository {
   /**
    * Snapshots the file tree in {@code sourceDir} as a new commit in the {@code jj} repository.
    *
+   * <p>Every file in {@code sourceDir} is committed, including files matched by {@code .gitignore}
+   * and files larger than jj's new-file size limit.
+   *
    * @param sourceDir directory containing the files to snapshot
    * @param message commit description message
    * @param parent optional parent commit to branch from before snapshotting; if {@code null},
@@ -130,6 +133,9 @@ public class JjRepository {
       executeJj(repoDir, ImmutableList.of("new", parent.id()));
     }
     clearAndCopyWorkingTree(sourceDir, repoDir);
+    // Snapshots skip ignored files (.gitignore, git excludes) and new files over
+    // snapshot.max-new-file-size, so track every path explicitly.
+    executeJj(repoDir, ImmutableList.of("file", "track", "--include-ignored", "."));
     executeJj(repoDir, ImmutableList.of("commit", "-m", message));
     CommandOutputWithStatus output =
         executeJj(

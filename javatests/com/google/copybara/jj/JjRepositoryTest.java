@@ -21,6 +21,8 @@ import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static org.junit.Assert.assertThrows;
 
+import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.jj.JjRepository.CommitId;
@@ -191,6 +193,27 @@ public final class JjRepositoryTest {
   }
 
   @Test
+  public void commitTree_gitignoredFile_isCommitted() throws Exception {
+    repo.init();
+    writeFile(sourceDir, ".gitignore", "gen/\n");
+    writeFile(sourceDir, "gen/x.txt", "x\n");
+
+    CommitId commit = repo.commitTree(sourceDir, "commit");
+
+    assertThat(listFiles(commit)).containsExactly(".gitignore", "gen/x.txt");
+  }
+
+  @Test
+  public void commitTree_fileOverOneMebibyte_isCommitted() throws Exception {
+    repo.init();
+    writeFile(sourceDir, "big.txt", "x".repeat(1024 * 1024 + 1));
+
+    CommitId commit = repo.commitTree(sourceDir, "commit");
+
+    assertThat(listFiles(commit)).containsExactly("big.txt");
+  }
+
+  @Test
   public void commitTree_withParent_branchesFromGivenParent() throws Exception {
     repo.init();
     writeFile(sourceDir, "a.txt", "v1\n");
@@ -218,6 +241,14 @@ public final class JjRepositoryTest {
         assertThrows(RepoException.class, () -> repo.checkout(new CommitId("deadbeef"), targetDir));
 
     assertThat(thrown).hasMessageThat().contains("deadbeef");
+  }
+
+  /** Returns the paths in {@code commit}'s tree, as recorded by jj. */
+  private ImmutableList<String> listFiles(CommitId commit) throws RepoException {
+    return ImmutableList.copyOf(
+        Splitter.on('\n')
+            .omitEmptyStrings()
+            .split(repo.simpleCommand("file", "list", "-r", commit.id()).getStdout()));
   }
 
   private static void writeFile(Path dir, String relativePath, String content) throws IOException {
