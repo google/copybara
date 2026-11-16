@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.jj.JjRepository.CommitId;
+import com.google.copybara.jj.JjRepository.RebaseResult;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
 import com.google.testing.junit.testparameterinjector.TestParameter;
@@ -103,6 +104,21 @@ public final class JjRepositoryTest {
   public void commitId_blankId_throwsIllegalArgumentException(
       @TestParameter({"", " ", "   ", "\t\n"}) String blankId) {
     assertThrows(IllegalArgumentException.class, () -> new CommitId(blankId));
+  }
+
+  @Test
+  public void rebaseResult_validInputs_succeeds(@TestParameter boolean hasConflicts) {
+    CommitId tip = new CommitId("abc123def456");
+
+    RebaseResult result = new RebaseResult(hasConflicts, tip);
+
+    assertThat(result.hasConflicts()).isEqualTo(hasConflicts);
+    assertThat(result.tipCommitId()).isEqualTo(tip);
+  }
+
+  @Test
+  public void rebaseResult_nullTipCommitId_throwsNullPointerException() {
+    assertThrows(NullPointerException.class, () -> new RebaseResult(false, null));
   }
 
   @Test
@@ -193,6 +209,241 @@ public final class JjRepositoryTest {
   }
 
   @Test
+  public void rebase_cleanThreeWayMerge_mergesChangesWithoutConflict() throws Exception {
+    repo.init();
+    writeFile(sourceDir, "file.txt", "line1\nline2\nline3\n");
+    CommitId baseline = repo.commitTree(sourceDir, "baseline");
+
+    writeFile(sourceDir, "file.txt", "line1\nline2\npatched3\n");
+    CommitId patch1 = repo.commitTree(sourceDir, "patch 1", baseline);
+
+    writeFile(sourceDir, "file.txt", "imported1\nline2\nline3\n");
+    CommitId imported = repo.commitTree(sourceDir, "imported", baseline);
+
+    RebaseResult result = repo.rebase(patch1, patch1, imported);
+    repo.checkout(result.tipCommitId(), targetDir);
+
+    assertThat(result.hasConflicts()).isFalse();
+    assertThatPath(targetDir)
+        .containsFile("file.txt", "imported1\nline2\npatched3\n")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void rebase_multiCommitPatchStack_returnsNewestTipCommitId() throws Exception {
+    // Upstream and each patch change a different file, so every change merges cleanly and the
+    // tip must contain all of them.
+    repo.init();
+    writeFile(sourceDir, "upstream.txt", "base\n");
+    writeFile(sourceDir, "patch1.txt", "base\n");
+    writeFile(sourceDir, "patch2.txt", "base\n");
+    writeFile(sourceDir, "patch3.txt", "base\n");
+    CommitId baseline = repo.commitTree(sourceDir, "baseline");
+
+    writeFile(sourceDir, "patch1.txt", "patched\n");
+    CommitId patch1 = repo.commitTree(sourceDir, "patch 1", baseline);
+
+    writeFile(sourceDir, "patch2.txt", "patched\n");
+    repo.commitTree(sourceDir, "patch 2");
+
+    writeFile(sourceDir, "patch3.txt", "patched\n");
+    CommitId patch3 = repo.commitTree(sourceDir, "patch 3");
+
+    writeFile(sourceDir, "upstream.txt", "imported\n");
+    writeFile(sourceDir, "patch1.txt", "base\n");
+    writeFile(sourceDir, "patch2.txt", "base\n");
+    writeFile(sourceDir, "patch3.txt", "base\n");
+    CommitId imported = repo.commitTree(sourceDir, "imported", baseline);
+
+    RebaseResult result = repo.rebase(patch1, patch3, imported);
+    repo.checkout(result.tipCommitId(), targetDir);
+
+    assertThat(result.hasConflicts()).isFalse();
+    assertThatPath(targetDir)
+        .containsFile("upstream.txt", "imported\n")
+        .containsFile("patch1.txt", "patched\n")
+        .containsFile("patch2.txt", "patched\n")
+        .containsFile("patch3.txt", "patched\n")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void rebase_conflictInIntermediateCommit_setsHasConflictsTrue() throws Exception {
+    repo.init();
+    writeFile(sourceDir, "foo.txt", "base\n");
+    CommitId baseline = repo.commitTree(sourceDir, "baseline");
+
+    // Patch 1 conflicts with imported ("patch1" vs "imported"), while Patch 2 overwrites foo.txt
+    // with "imported" so the tip commit is conflict-free while Patch 1 remains conflicted.
+    writeFile(sourceDir, "foo.txt", "patch1\n");
+    CommitId patch1 = repo.commitTree(sourceDir, "patch 1", baseline);
+
+    writeFile(sourceDir, "foo.txt", "imported\n");
+    CommitId patch2 = repo.commitTree(sourceDir, "patch 2");
+
+    writeFile(sourceDir, "foo.txt", "imported\n");
+    CommitId imported = repo.commitTree(sourceDir, "imported", baseline);
+
+    RebaseResult result = repo.rebase(patch1, patch2, imported);
+
+    assertThat(result.hasConflicts()).isTrue();
+  }
+
+  @Test
+  public void rebaseOnto_cleanMerge_writesMergedTipIntoDir() throws Exception {
+    repo.init();
+    writeFile(sourceDir, "file.txt", "line1\nline2\nline3\n");
+    writeFile(sourceDir, "removed_upstream.txt", "old\n");
+    CommitId baseline = repo.commitTree(sourceDir, "baseline");
+    writeFile(sourceDir, "file.txt", "line1\nline2\npatched3\n");
+    writeFile(sourceDir, "added_by_patch.txt", "patch\n");
+    CommitId patch1 = repo.commitTree(sourceDir, "patch 1", baseline);
+    Path upstreamDir = Files.createTempDirectory("upstream");
+    writeFile(upstreamDir, "file.txt", "imported1\nline2\nline3\n");
+
+    RebaseResult result = repo.rebaseOnto(upstreamDir, "imported", patch1, patch1);
+
+    assertThat(result.hasConflicts()).isFalse();
+    assertThatPath(upstreamDir)
+        .containsFile("file.txt", "imported1\nline2\npatched3\n")
+        .containsFile("added_by_patch.txt", "patch\n")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void rebaseOnto_parentsNewBaseOnStackRootParent() throws Exception {
+    repo.init();
+    writeFile(sourceDir, "file.txt", "base\n");
+    CommitId baseline = repo.commitTree(sourceDir, "baseline");
+    writeFile(sourceDir, "patch.txt", "patch\n");
+    CommitId patch1 = repo.commitTree(sourceDir, "patch 1", baseline);
+    Path upstreamDir = Files.createTempDirectory("upstream");
+    writeFile(upstreamDir, "file.txt", "imported\n");
+
+    RebaseResult result = repo.rebaseOnto(upstreamDir, "imported", patch1, patch1);
+
+    // With a 1-commit stack, the rebased tip's grandparent is the new base's parent.
+    String newBaseParent =
+        repo.simpleCommand(
+                "log", "--no-graph", "-r", result.tipCommitId().id() + "--", "-T", "commit_id")
+            .getStdout()
+            .trim();
+    assertThat(newBaseParent).isEqualTo(baseline.id());
+  }
+
+  @Test
+  public void rebaseOnto_withConflict_setsHasConflictsAndLeavesDirUnchanged() throws Exception {
+    repo.init();
+    writeFile(sourceDir, "foo.txt", "base line\n");
+    CommitId baseline = repo.commitTree(sourceDir, "baseline");
+    writeFile(sourceDir, "foo.txt", "patch line\n");
+    writeFile(sourceDir, "added_by_patch.txt", "patch\n");
+    CommitId patch1 = repo.commitTree(sourceDir, "patch 1", baseline);
+    Path upstreamDir = Files.createTempDirectory("upstream");
+    writeFile(upstreamDir, "foo.txt", "imported line\n");
+
+    RebaseResult result = repo.rebaseOnto(upstreamDir, "imported", patch1, patch1);
+
+    assertThat(result.hasConflicts()).isTrue();
+    assertThatPath(upstreamDir).containsFile("foo.txt", "imported line\n").containsNoMoreFiles();
+    // The conflicted tip is still in the repository.
+    assertThat(logTemplate(result.tipCommitId().id(), "conflict")).isEqualTo("true");
+  }
+
+  @Test
+  public void rebaseOnto_patchAlreadyUpstream_keepsEmptyTipWithoutConflict() throws Exception {
+    repo.init();
+    writeFile(sourceDir, "file.txt", "line1\nline2\nline3\n");
+    CommitId baseline = repo.commitTree(sourceDir, "baseline");
+    writeFile(sourceDir, "file.txt", "line1\nline2\npatched3\n");
+    CommitId patch1 = repo.commitTree(sourceDir, "patch 1", baseline);
+    Path upstreamDir = Files.createTempDirectory("upstream");
+    writeFile(upstreamDir, "file.txt", "line1\nline2\npatched3\n");
+
+    RebaseResult result = repo.rebaseOnto(upstreamDir, "imported", patch1, patch1);
+
+    assertThat(result.hasConflicts()).isFalse();
+    assertThatPath(upstreamDir)
+        .containsFile("file.txt", "line1\nline2\npatched3\n")
+        .containsNoMoreFiles();
+    // jj keeps commits that become empty, so the tip is still the rebased patch.
+    assertThat(logTemplate(result.tipCommitId().id(), "description")).isEqualTo("patch 1");
+    assertThat(logTemplate(result.tipCommitId().id(), "empty")).isEqualTo("true");
+  }
+
+  @Test
+  public void rebaseOnto_firstPatchAlreadyUpstream_appliesRemainingPatches() throws Exception {
+    repo.init();
+    writeFile(sourceDir, "patch1.txt", "base\n");
+    writeFile(sourceDir, "patch2.txt", "base\n");
+    CommitId baseline = repo.commitTree(sourceDir, "baseline");
+    writeFile(sourceDir, "patch1.txt", "patched\n");
+    CommitId patch1 = repo.commitTree(sourceDir, "patch 1", baseline);
+    writeFile(sourceDir, "patch2.txt", "patched\n");
+    CommitId patch2 = repo.commitTree(sourceDir, "patch 2");
+    Path upstreamDir = Files.createTempDirectory("upstream");
+    writeFile(upstreamDir, "patch1.txt", "patched\n");
+    writeFile(upstreamDir, "patch2.txt", "base\n");
+
+    RebaseResult result = repo.rebaseOnto(upstreamDir, "imported", patch1, patch2);
+
+    assertThat(result.hasConflicts()).isFalse();
+    assertThatPath(upstreamDir)
+        .containsFile("patch1.txt", "patched\n")
+        .containsFile("patch2.txt", "patched\n")
+        .containsNoMoreFiles();
+    String rebasedPatch1 = result.tipCommitId().id() + "-";
+    assertThat(logTemplate(rebasedPatch1, "description")).isEqualTo("patch 1");
+    assertThat(logTemplate(rebasedPatch1, "empty")).isEqualTo("true");
+    assertThat(logTemplate(result.tipCommitId().id(), "empty")).isEqualTo("false");
+  }
+
+  @Test
+  public void rebaseOnto_stackWithMergeCommit_throwsRepoException() throws Exception {
+    repo.init();
+    writeFile(sourceDir, "a.txt", "a\n");
+    CommitId baseline = repo.commitTree(sourceDir, "baseline");
+    writeFile(sourceDir, "b.txt", "b\n");
+    CommitId left = repo.commitTree(sourceDir, "left", baseline);
+    writeFile(sourceDir, "c.txt", "c\n");
+    CommitId right = repo.commitTree(sourceDir, "right", baseline);
+    repo.simpleCommand("new", left.id(), right.id(), "-m", "merge");
+    repo.simpleCommand("new");
+    CommitId merge =
+        new CommitId(
+            repo.simpleCommand("log", "--no-graph", "-r", "@-", "-T", "commit_id")
+                .getStdout()
+                .trim());
+    Path upstreamDir = Files.createTempDirectory("upstream");
+    writeFile(upstreamDir, "a.txt", "imported\n");
+
+    var thrown =
+        assertThrows(
+            RepoException.class, () -> repo.rebaseOnto(upstreamDir, "imported", left, merge));
+
+    assertThat(thrown).hasMessageThat().contains("merge commits");
+  }
+
+  @Test
+  public void rebaseOnto_rootNotAncestorOfTip_throwsRepoException() throws Exception {
+    repo.init();
+    writeFile(sourceDir, "a.txt", "a\n");
+    CommitId baseline = repo.commitTree(sourceDir, "baseline");
+    writeFile(sourceDir, "b.txt", "b\n");
+    CommitId left = repo.commitTree(sourceDir, "left", baseline);
+    writeFile(sourceDir, "c.txt", "c\n");
+    CommitId right = repo.commitTree(sourceDir, "right", baseline);
+    Path upstreamDir = Files.createTempDirectory("upstream");
+    writeFile(upstreamDir, "a.txt", "imported\n");
+
+    var thrown =
+        assertThrows(
+            RepoException.class, () -> repo.rebaseOnto(upstreamDir, "imported", left, right));
+
+    assertThat(thrown).hasMessageThat().contains("not an ancestor");
+  }
+
+  @Test
   public void commitTree_gitignoredFile_isCommitted() throws Exception {
     repo.init();
     writeFile(sourceDir, ".gitignore", "gen/\n");
@@ -249,6 +500,11 @@ public final class JjRepositoryTest {
         Splitter.on('\n')
             .omitEmptyStrings()
             .split(repo.simpleCommand("file", "list", "-r", commit.id()).getStdout()));
+  }
+
+  /** Returns the trimmed output of {@code jj log -r revset -T template}. */
+  private String logTemplate(String revset, String template) throws RepoException {
+    return repo.simpleCommand("log", "--no-graph", "-r", revset, "-T", template).getStdout().trim();
   }
 
   private static void writeFile(Path dir, String relativePath, String content) throws IOException {

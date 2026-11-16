@@ -19,7 +19,10 @@ package com.google.copybara.jj;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableList.toImmutableList;
+import static com.google.common.collect.Iterables.getOnlyElement;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -53,6 +56,18 @@ public class JjRepository {
     }
   }
 
+  /**
+   * Result of a 3-way rebase operation in a Jujutsu (jj) repository.
+   *
+   * @param hasConflicts whether any commit in the rebased stack contains conflicted files
+   * @param tipCommitId the new commit identifier of the tip of the rebased stack
+   */
+  public record RebaseResult(boolean hasConflicts, CommitId tipCommitId) {
+    public RebaseResult {
+      checkNotNull(tipCommitId, "tipCommitId cannot be null");
+    }
+  }
+
   /** Repository metadata directories that are never copied into or cleared from a working tree. */
   private static final ImmutableSet<String> METADATA_DIRS = ImmutableSet.of(".jj", ".git");
 
@@ -60,6 +75,8 @@ public class JjRepository {
       Glob.createGlob(
           ImmutableList.of("**"),
           METADATA_DIRS.stream().map(dir -> dir + "/**").collect(toImmutableList()));
+
+  private static final Splitter LINE_SPLITTER = Splitter.on('\n').omitEmptyStrings().trimResults();
 
   private final Path repoDir;
   private final String jjBin;
@@ -137,12 +154,114 @@ public class JjRepository {
     // snapshot.max-new-file-size, so track every path explicitly.
     executeJj(repoDir, ImmutableList.of("file", "track", "--include-ignored", "."));
     executeJj(repoDir, ImmutableList.of("commit", "-m", message));
-    CommandOutputWithStatus output =
-        executeJj(
-            repoDir,
-            ImmutableList.of(
-                "log", "--no-pager", "--color=never", "--no-graph", "-r", "@-", "-T", "commit_id"));
-    return new CommitId(output.getStdout().trim());
+    return new CommitId(getOnlyElement(logCommitIds("@-")));
+  }
+
+  /**
+   * Rebases the linear commit stack {@code stackRoot::stackTip} onto {@code onto} and inspects all
+   * rebased commits for conflicts.
+   *
+   * @param stackRoot the first commit of the patch stack to rebase
+   * @param stackTip the last commit of the patch stack to rebase
+   * @param onto the target base commit to rebase onto
+   * @return the {@link RebaseResult} containing conflict status and the new tip {@link CommitId}
+   */
+  @VisibleForTesting
+  RebaseResult rebase(CommitId stackRoot, CommitId stackTip, CommitId onto) throws RepoException {
+    checkNotNull(stackRoot);
+    checkNotNull(stackTip);
+    checkNotNull(onto);
+    // Rebasing rewrites every commit in the stack, but change IDs survive the rewrite, so record
+    // the tip's change ID to find the rebased tip afterwards.
+    String tipChangeId = getOnlyElement(runJjLog(stackTip.id(), "change_id ++ \"\\n\""));
+    executeJj(
+        repoDir,
+        ImmutableList.of(
+            "rebase",
+            "-r",
+            String.format("%s::%s", stackRoot.id(), stackTip.id()),
+            "-d",
+            onto.id()));
+
+    // change_id() returns every match (or none) rather than failing on divergent or missing
+    // changes.
+    ImmutableList<String> newTips = logCommitIds(String.format("change_id(%s)", tipChangeId));
+    if (newTips.size() != 1) {
+      throw new RepoException(
+          String.format(
+              "Expected change %s to resolve to exactly one commit after rebasing onto %s,"
+                  + " found %s",
+              tipChangeId, onto.id(), newTips));
+    }
+    CommitId newTip = new CommitId(newTips.get(0));
+    boolean hasConflicts =
+        !logCommitIds(String.format("conflicts() & (%s..%s)", onto.id(), newTip.id())).isEmpty();
+    return new RebaseResult(hasConflicts, newTip);
+  }
+
+  /**
+   * Snapshots {@code dir} as a new base commit, rebases the patch stack {@code stackRoot::stackTip}
+   * onto it, and, if the rebase has no conflicts, writes the resulting tip tree back into {@code
+   * dir}.
+   *
+   * <p>The new base commit is created on top of the original base (the parent of {@code
+   * stackRoot}), so {@code jj diff} on the new base shows only the upstream changes. Each patch is
+   * 3-way merged against its original parent.
+   *
+   * <p>If no rebased commit has conflicts, {@code dir} holds the full tree of the rebased tip on
+   * return. Files that are not in the tip are removed from {@code dir}, and empty directories are
+   * not preserved.
+   *
+   * <p>If any rebased commit has conflicts, {@code dir} is left unchanged: it still holds the new
+   * base and does not contain the patches. Callers must check {@link RebaseResult#hasConflicts()}
+   * before using {@code dir}. The conflicted stack stays in the repository, ending at {@link
+   * RebaseResult#tipCommitId()}.
+   *
+   * @param dir directory holding the new base; overwritten with the rebased tip only if there are
+   *     no conflicts
+   * @param message description of the new base commit
+   * @param stackRoot the first commit of the patch stack to rebase
+   * @param stackTip the last commit of the patch stack to rebase
+   * @return the {@link RebaseResult} with conflict status and the new tip {@link CommitId}
+   * @throws RepoException if {@code stackRoot} is not an ancestor of {@code stackTip}, the stack
+   *     contains a merge commit, or a {@code jj} command fails
+   */
+  public RebaseResult rebaseOnto(Path dir, String message, CommitId stackRoot, CommitId stackTip)
+      throws RepoException, IOException {
+    checkNotNull(dir);
+    checkNotNull(message);
+    checkNotNull(stackRoot);
+    checkNotNull(stackTip);
+
+    String stack = String.format("%s::%s", stackRoot.id(), stackTip.id());
+    // root::tip is empty unless root is an ancestor of (or equal to) tip. Without this check, the
+    // rebase would move nothing and silently return the original tip.
+    if (logCommitIds(stack).isEmpty()) {
+      throw new RepoException(
+          String.format(
+              "Stack root %s is not an ancestor of stack tip %s", stackRoot.id(), stackTip.id()));
+    }
+    ImmutableList<String> merges = logCommitIds(String.format("merges() & (%s)", stack));
+    if (!merges.isEmpty()) {
+      throw new RepoException(
+          String.format("Cannot rebase stack %s: it contains merge commits %s", stack, merges));
+    }
+    ImmutableList<String> parents = logCommitIds(stackRoot.id() + "-");
+    if (parents.size() != 1) {
+      throw new RepoException(
+          String.format(
+              "Expected stack root %s to have exactly one parent, found %s",
+              stackRoot.id(), parents));
+    }
+
+    // Create a new base commit on the parent of the stack root.
+    CommitId newBase = commitTree(dir, message, new CommitId(parents.get(0)));
+    RebaseResult result = rebase(stackRoot, stackTip, newBase);
+
+    if (!result.hasConflicts()) {
+      checkout(result.tipCommitId(), dir);
+    }
+    return result;
   }
 
   /**
@@ -191,6 +310,21 @@ public class JjRepository {
     } catch (CommandException e) {
       throw new RepoException(String.format("Error executing jj: %s", e.getMessage()), e);
     }
+  }
+
+  /** Returns the commit IDs matching {@code revset}, newest first. */
+  private ImmutableList<String> logCommitIds(String revset) throws RepoException {
+    return runJjLog(revset, "commit_id ++ \"\\n\"");
+  }
+
+  /** Returns the non-empty output lines of {@code jj log -r revset -T template}. */
+  private ImmutableList<String> runJjLog(String revset, String template) throws RepoException {
+    CommandOutputWithStatus output =
+        executeJj(
+            repoDir,
+            ImmutableList.of(
+                "log", "--no-pager", "--color=never", "--no-graph", "-r", revset, "-T", template));
+    return ImmutableList.copyOf(LINE_SPLITTER.split(output.getStdout()));
   }
 
   private void createRepoDir() throws RepoException {
