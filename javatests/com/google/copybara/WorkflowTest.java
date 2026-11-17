@@ -6288,5 +6288,129 @@ public class WorkflowTest {
                 + " 'consistency_file' parameter). The two conflicting workflows are"
                 + " 'default' and 'default_service'.");
   }
+
+  @Test
+  public void changeRequestSmartPrune_populatesConfigAndWorkflowLabelsInBaselineTransform()
+      throws Exception {
+    String config =
+        """
+        def _verify_labels(ctx):
+          config_path = ctx.find_label('COPYBARA_CONFIG_PATH')
+          workflow_name = ctx.find_label('COPYBARA_WORKFLOW_NAME')
+          if config_path != 'copy.bara.sky':
+            fail('Expected COPYBARA_CONFIG_PATH=copy.bara.sky, got: ' + str(config_path))
+          if workflow_name != 'smart_prune_wf':
+            fail('Expected COPYBARA_WORKFLOW_NAME=smart_prune_wf, got: ' + str(workflow_name))
+          ctx.run(core.replace(
+              before = 'TOKEN',
+              after = workflow_name,
+              paths = glob(['folder/modified.txt']),
+          ))
+
+        core.workflow(
+            name = 'smart_prune_wf',
+            origin = testing.origin(),
+            destination = testing.destination(),
+            authoring = authoring.pass_thru('Foo <foo@foo.com>'),
+            mode = 'CHANGE_REQUEST',
+            smart_prune = True,
+            reversible_check = False,
+            transformations = [
+                core.dynamic_transform(_verify_labels),
+            ],
+        )
+        """;
+    FileSystem fileSystem = Jimfs.newFileSystem();
+    Path base1 = Files.createTempDirectory(fileSystem.getPath("/"), "base1");
+    writeFile(base1, "folder/unmodified.txt", "unchanged");
+    writeFile(base1, "folder/modified.txt", "TOKEN-v1");
+    origin.addChange(
+        0,
+        base1,
+        String.format("Baseline change\n\n%s=42", destination.getLabelNameWhenOrigin()),
+        /* matchesGlob= */ true);
+
+    Path base2 = Files.createTempDirectory(fileSystem.getPath("/"), "base2");
+    FileUtil.copyFilesRecursively(base1, base2, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
+    writeFile(base2, "folder/modified.txt", "TOKEN-v2");
+    writeFile(base2, "folder/added.txt", "new");
+    origin.addChange(1, base2, "Feature change", /* matchesGlob= */ true);
+
+    Workflow<?, ?> workflow = (Workflow<?, ?>) loadConfig(config).getMigration("smart_prune_wf");
+
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+
+    assertThat(destination.processed).hasSize(1);
+    ProcessedChange processed = destination.processed.get(0);
+    assertThat(processed.getBaseline()).isEqualTo("42");
+    assertThat(processed.getContent("folder/modified.txt")).isEqualTo("smart_prune_wf-v2");
+    ImmutableMap<String, DiffFile> affectedByName =
+        Maps.uniqueIndex(processed.getAffectedFilesForSmartPrune(), DiffFile::getName);
+    assertThat(affectedByName).hasSize(2);
+    assertThat(affectedByName.get("folder/modified.txt").getOperation()).isEqualTo(MODIFIED);
+    assertThat(affectedByName.get("folder/added.txt").getOperation()).isEqualTo(ADD);
+    assertThat(affectedByName).doesNotContainKey("folder/unmodified.txt");
+  }
+
+  @Test
+  public void mergeImport_populatesConfigAndWorkflowLabelsInBaselineTransform() throws Exception {
+    String config =
+        """
+        def _verify_labels(ctx):
+          config_path = ctx.find_label('COPYBARA_CONFIG_PATH')
+          workflow_name = ctx.find_label('COPYBARA_WORKFLOW_NAME')
+          if config_path != 'copy.bara.sky':
+            fail('Expected COPYBARA_CONFIG_PATH=copy.bara.sky, got: ' + str(config_path))
+          if workflow_name != 'merge_import_wf':
+            fail('Expected COPYBARA_WORKFLOW_NAME=merge_import_wf, got: ' + str(workflow_name))
+          ctx.run(core.replace(
+              before = 'TOKEN',
+              after = workflow_name,
+              paths = glob(['dir/foo.txt']),
+          ))
+
+        core.workflow(
+            name = 'merge_import_wf',
+            origin = testing.origin(),
+            destination = testing.destination(),
+            origin_files = glob(['dir/**']),
+            destination_files = glob(['dir/**']),
+            authoring = authoring.pass_thru('Foo <foo@foo.com>'),
+            mode = 'SQUASH',
+            merge_import = core.merge_import_config(
+                package_path = '',
+                use_consistency_file = False,
+            ),
+            transformations = [
+                core.dynamic_transform(_verify_labels),
+            ],
+        )
+        """;
+    Path testDir = Files.createTempDirectory("merge_import_labels");
+    Path base1 = Files.createDirectories(testDir.resolve("base1"));
+    writeFile(base1, "dir/foo.txt", "TOKEN\nline1\nline2\nline3\n");
+    origin.addChange(0, base1, "Initial import", /* matchesGlob= */ true);
+
+    Path destInit = Files.createDirectories(testDir.resolve("destInit"));
+    writeFile(destInit, "dir/foo.txt", "merge_import_wf\nline1\nline2\nline3\ndest_edit\n");
+    WriterContext ctx =
+        new WriterContext("", null, false, new DummyRevision("0"), Glob.ALL_FILES.roots());
+    Writer<Revision> wr = destination.newWriter(ctx);
+    wr.write(TransformResults.of(destInit, new DummyRevision("0")), Glob.ALL_FILES, console());
+
+    Path base2 = Files.createDirectories(testDir.resolve("base2"));
+    writeFile(base2, "dir/foo.txt", "TOKEN\norigin_edit\nline2\nline3\n");
+    origin.addChange(1, base2, "Second import", /* matchesGlob= */ true);
+
+    Workflow<?, ?> workflow = (Workflow<?, ?>) loadConfig(config).getMigration("merge_import_wf");
+
+    workflow.run(workdir, ImmutableList.of("1"));
+
+    assertThat(destination.processed).hasSize(2);
+    assertThat(destination.processed.get(1).getContent("dir/foo.txt"))
+        .isEqualTo("merge_import_wf\norigin_edit\nline2\nline3\ndest_edit\n");
+    assertThatPath(workdir.resolve("baseline"))
+        .containsFile("dir/foo.txt", "merge_import_wf\nline1\nline2\nline3\n");
+  }
 }
 

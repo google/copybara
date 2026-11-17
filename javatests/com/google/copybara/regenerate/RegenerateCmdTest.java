@@ -1900,4 +1900,81 @@ public class RegenerateCmdTest {
     assertThat(consistencyFile).contains("# Workflow: copy.bara.sky:default\n");
     assertThat(consistencyFile).doesNotContain("default_service");
   }
+
+  @Test
+  public void testImportBaseline_populatesConfigAndWorkflowLabelsInTransform() throws Exception {
+    Path root = tempFolder.newFolder("root").toPath();
+    Path configPath = root.resolve("subdir/copy.bara.sky");
+    Files.createDirectories(configPath.getParent());
+
+    String config =
+        """
+        def _verify_labels(ctx):
+          config_path = ctx.find_label('COPYBARA_CONFIG_PATH')
+          workflow_name = ctx.find_label('COPYBARA_WORKFLOW_NAME')
+          if config_path != 'subdir/copy.bara.sky':
+            fail('Expected COPYBARA_CONFIG_PATH=subdir/copy.bara.sky, got: ' + str(config_path))
+          if workflow_name != 'regen_wf':
+            fail('Expected COPYBARA_WORKFLOW_NAME=regen_wf, got: ' + str(workflow_name))
+          ctx.run(core.replace(before = 'TOKEN', after = workflow_name))
+
+        core.workflow(
+            name = 'regen_wf',
+            origin = testing.origin(),
+            origin_files = glob(['**']),
+            destination = testing.destination(),
+            mode = 'SQUASH',
+            authoring = authoring.pass_thru('example <example@example.com>'),
+            merge_import = core.merge_import_config(package_path = ''),
+            autopatch_config = core.autopatch_config(
+                header = '# header',
+                directory_prefix = '',
+                directory = 'AUTOPATCH',
+                suffix = '.patch',
+            ),
+            transformations = [
+                core.dynamic_transform(_verify_labels),
+            ],
+        )
+        """;
+    Files.writeString(configPath, config);
+    ConfigFile configFile = new PathBasedConfigFile(configPath, root, /* identifierPrefix= */ null);
+
+    setupTarget("bar");
+    origin.singleFileChange(0, "foo description", "asdf.txt", "TOKEN\nfoo\n");
+    when(patchRegenerator.inferImportBaseline(any(), any()))
+        .thenReturn(Optional.of(origin.getLatestChange().asString()));
+    writeDestination("bar", "asdf.txt", "regen_wf\nbar\n");
+
+    RegenerateCmd cmd =
+        new RegenerateCmd(
+            (path, sourceRef) ->
+                new ConfigLoader(
+                    skylark.createModuleSet(), configFile, options.general.getStarlarkMode()) {
+                  @Override
+                  protected Config doLoadForRevision(Console console, Revision revision)
+                      throws ValidationException {
+                    try {
+                      return skylark.loadConfig(path);
+                    } catch (IOException e) {
+                      throw new RuntimeException(e);
+                    }
+                  }
+                });
+
+    CommandEnv commandEnv =
+        prepAndGetCommandEnv(ImmutableList.of(configPath.toString(), "regen_wf"), cmd);
+
+    ExitCode exitCode = cmd.run(commandEnv);
+
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
+    ArgumentCaptor<Path> pathArg = ArgumentCaptor.forClass(Path.class);
+    verify(patchRegenerator).updateChange(any(), pathArg.capture(), eq(Glob.ALL_FILES), eq("bar"));
+    Path patchFile = pathArg.getValue().resolve("AUTOPATCH/asdf.txt.patch");
+    assertThat(Files.exists(patchFile)).isTrue();
+    String patchContent = Files.readString(patchFile);
+    assertThat(patchContent).contains("-foo");
+    assertThat(patchContent).contains("+bar");
+    assertThat(patchContent).doesNotContain("TOKEN");
+  }
 }

@@ -1188,6 +1188,11 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               .withCurrentRev(baseline)
               .withDestinationInfo(writer.getDestinationInfo())
               .withJjRepository(jjRepo);
+      baselineTransformWork.addLabel(
+          COPYBARA_CONFIG_PATH_LABEL, getWorkflow().getMainConfigFile().getIdentifier(), "=", true);
+      baselineTransformWork.addLabel(
+          COPYBARA_WORKFLOW_NAME_LABEL, getWorkflow().getName(), "=", true);
+
       try (ProfilerTask ignored = profiler().start("baseline_transforms")) {
         TransformationStatus status = getTransformation().transform(baselineTransformWork);
         if (status.isNoop()
