@@ -1896,7 +1896,9 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             ? defaultGitIntegrate
             : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"),
         maybeChecker,
-        credentialHandler);
+        credentialHandler,
+        mainConfigFile.path(),
+        workflowName);
   }
 
   /**
@@ -2178,7 +2180,9 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             ? defaultGitIntegrate
             : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"),
         checkerObj,
-        credentialHandler);
+        credentialHandler,
+        mainConfigFile.path(),
+        workflowName);
   }
 
   @SuppressWarnings("unused")
@@ -2484,6 +2488,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         convertFromNoneable(body, null),
         ImmutableList.copyOf(assignees),
         mainConfigFile,
+        workflowName,
         apiCheckerObj != null ? apiCheckerObj : checkerObj,
         updateDescription,
         gitHubHost,
@@ -2805,7 +2810,9 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         gerritSubmit,
         primaryBranchMigrationMode,
         checkerObj,
-        credentialHandler);
+        credentialHandler,
+        mainConfigFile.path(),
+        workflowName);
   }
 
   @StarlarkMethod(
@@ -3086,6 +3093,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         .setSourceBranchTemplate(convertToOptional(sourceBranchTemplate))
         .setTargetBranch(targetBranch)
         .setConfigFile(mainConfigFile)
+        .setWorkflowName(workflowName)
         .setAllowEmptyDiff(allowEmptyDiff)
         .setAllowEmptyDiffMergeStatuses(
             ImmutableSet.copyOf(

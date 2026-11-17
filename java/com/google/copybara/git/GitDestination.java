@@ -136,7 +136,9 @@ public class GitDestination implements Destination<GitRevision> {
       @Nullable DestinationInfo destinationInfo,
       Iterable<GitIntegrateChanges> integrates,
       @Nullable Checker checker,
-      @Nullable CredentialFileHandler credentials) {
+      @Nullable CredentialFileHandler credentials,
+      @Nullable String configPath,
+      @Nullable String workflowName) {
     this.repoUrl = checkNotNull(repoUrl);
     this.fetch = checkNotNull(fetch);
     this.push = checkNotNull(push);
@@ -150,7 +152,10 @@ public class GitDestination implements Destination<GitRevision> {
     this.integrates = checkNotNull(integrates);
     this.writerHook = checkNotNull(writerHook);
     this.checker = checker;
-    this.localRepo = memoized(ignored -> destinationOptions.localGitRepo(repoUrl, credentials));
+    this.localRepo =
+        memoized(ignored ->
+            destinationOptions.localGitRepo(
+                repoUrl, credentials, this.partialFetch, configPath, workflowName));
     this.credentials = credentials;
     this.destinationInfo = destinationInfo;
   }

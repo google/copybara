@@ -29,13 +29,16 @@ import static org.mockito.Mockito.when;
 import com.google.api.client.http.HttpStatusCodes;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.copybara.ModuleSet;
 import com.google.copybara.TransformResult;
 import com.google.copybara.WriterContext;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.config.ConfigFile;
+import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.config.PathBasedConfigFile;
 import com.google.copybara.credentials.ConstantCredentialIssuer;
 import com.google.copybara.credentials.CredentialModule.UsernamePasswordIssuer;
@@ -58,6 +61,7 @@ import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
+import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.net.URI;
@@ -409,6 +413,70 @@ destination = git.gitlab_mr_destination(
             "target_branch", "main",
             "allow_empty_diff", "false",
             "partial_fetch", "false");
+  }
+
+  /**
+   * Verifies that, with {@code SET_GIT_DESTINATION_PREFIX_FOR_PARTIAL_FETCH} on, {@code
+   * git.gitlab_mr_destination} passes the config path and workflow name through, so a partial-fetch
+   * destination uses a bare repo keyed by {@code <configPath>:<workflowName><url>}.
+   */
+  @Test
+  public void setGitDestinationPrefixForPartialFetch_flagOn_prefixesPartialFetchCacheDir()
+      throws Exception {
+    String migrationName = "piper_to_gitlab";
+    when(gitLabApi.getProject(anyString())).thenReturn(Optional.of(new Project(1)));
+    optionsBuilder.general.setTemporaryFeaturesForTest(
+        ImmutableMap.of(
+            GitDestinationOptions.SET_GIT_DESTINATION_PREFIX_FOR_PARTIAL_FETCH, "true"));
+    ModuleSet moduleSet = starlarkExecutor.createModuleSet();
+    for (Object module : moduleSet.getModules().values()) {
+      if (module instanceof LabelsAwareModule m) {
+        m.setWorkflowName(migrationName);
+      }
+    }
+    WriterContext writerContext = getWriterContext(false);
+
+    Path fullGitDir =
+        evalGitLabMrDestination(moduleSet, /* partialFetch= */ false)
+            .newWriter(writerContext)
+            .getRepository(console)
+            .getGitDir();
+    Path partialGitDir =
+        evalGitLabMrDestination(moduleSet, /* partialFetch= */ true)
+            .newWriter(writerContext)
+            .getRepository(console)
+            .getGitDir();
+
+    Path repoStorage = optionsBuilder.git.getRepoStorage();
+    // Compare as strings: Path is both Iterable and Comparable, which makes
+    // Truth.assertThat(Path) ambiguous with the Truth version used outside google3.
+    assertThat(fullGitDir.toString())
+        .isEqualTo(FileUtil.resolveDirInCache(repoUrl.toString(), repoStorage).toString());
+    assertThat(partialGitDir.toString())
+        .isEqualTo(
+            FileUtil.resolveDirInCache("copy.bara.sky:" + migrationName + repoUrl, repoStorage)
+                .toString());
+  }
+
+  private GitLabMrDestination evalGitLabMrDestination(ModuleSet moduleSet, boolean partialFetch)
+      throws Exception {
+    return starlarkExecutor.evalWithModuleSet(
+        "destination",
+        String.format(
+            """
+            destination = git.gitlab_mr_destination(
+              url = '%s',
+              credentials = credentials.username_password(
+                credentials.static_value('capybara'),
+                credentials.static_value('project_access_token'),
+              ),
+              source_branch = 'source-branch',
+              target_branch = '%s',
+              partial_fetch = %s,
+            )
+            """,
+            repoUrl, mainBranchName, partialFetch ? "True" : "False"),
+        moduleSet);
   }
 
   private static WriterContext getWriterContext(boolean dryRun) {

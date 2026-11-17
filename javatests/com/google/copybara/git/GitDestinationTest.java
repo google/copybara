@@ -40,11 +40,13 @@ import com.google.copybara.ChangeVisitable.VisitResult;
 import com.google.copybara.Destination.DestinationStatus;
 import com.google.copybara.Destination.Writer;
 import com.google.copybara.DestinationInfo;
+import com.google.copybara.ModuleSet;
 import com.google.copybara.Origin.Baseline;
 import com.google.copybara.TransformResult;
 import com.google.copybara.WriterContext;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.checks.CheckerException;
+import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.effect.DestinationEffect;
 import com.google.copybara.effect.DestinationEffect.Type;
 import com.google.copybara.exception.EmptyChangeException;
@@ -65,6 +67,7 @@ import com.google.copybara.testing.TransformResults;
 import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.CommandOutput;
+import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.SequenceGlob;
 import com.google.copybara.util.console.Message.MessageType;
@@ -2575,5 +2578,108 @@ public class GitDestinationTest {
     DestinationInfo destinationInfo = writer.getDestinationInfo();
 
     assertThat(destinationInfo).isNull();
+  }
+
+  /**
+   * Verifies that, with {@code SET_GIT_DESTINATION_PREFIX_FOR_PARTIAL_FETCH} off, partial-fetch and
+   * full-fetch destinations share the bare repo keyed by the URL.
+   */
+  @Test
+  public void setGitDestinationPrefixForPartialFetch_flagOff_sharesCacheDir() throws Exception {
+    partialClone = "False";
+    GitDestination fullDest = evalDestination();
+    partialClone = "True";
+    GitDestination partialDest = evalDestination();
+
+    String fullGitDir = fullDest.getLocalRepo().load(console).getGitDir().toString();
+    String partialGitDir = partialDest.getLocalRepo().load(console).getGitDir().toString();
+
+    assertThat(partialGitDir).isEqualTo(fullGitDir);
+    assertThat(partialGitDir).isEqualTo(cacheDir(url));
+  }
+
+  /**
+   * Verifies that, with {@code SET_GIT_DESTINATION_PREFIX_FOR_PARTIAL_FETCH} on, a partial-fetch
+   * destination uses a bare repo keyed by {@code <configPath>:<workflowName><url>} and configured
+   * for partial clone, while a full-fetch destination keeps the URL-keyed repo without that config.
+   */
+  @Test
+  public void setGitDestinationPrefixForPartialFetch_flagOn_prefixesPartialFetchCacheDir()
+      throws Exception {
+    String migrationName = "test_name";
+    enablePartialFetchPrefix();
+    ModuleSet moduleSet = moduleSetWithWorkflowName(migrationName);
+
+    GitDestination fullDest =
+        skylark.evalWithModuleSet(
+            "result",
+            String.format("result = git.destination(url = '%s', partial_fetch = False)", url),
+            moduleSet);
+    GitDestination partialDest =
+        skylark.evalWithModuleSet(
+            "result",
+            String.format("result = git.destination(url = '%s', partial_fetch = True)", url),
+            moduleSet);
+    GitRepository fullRepo = fullDest.getLocalRepo().load(console);
+    GitRepository partialRepo = partialDest.getLocalRepo().load(console);
+
+    assertThat(fullRepo.getGitDir().toString()).isEqualTo(cacheDir(url));
+    assertThat(partialRepo.getGitDir().toString())
+        .isEqualTo(cacheDir("copy.bara.sky:" + migrationName + url));
+    assertThat(localConfig(partialRepo)).contains("extensions.partialclone=origin");
+    assertThat(localConfig(fullRepo)).doesNotContain("extensions.partialclone");
+  }
+
+  /**
+   * Verifies that, with {@code SET_GIT_DESTINATION_PREFIX_FOR_PARTIAL_FETCH} on, a partial-fetch
+   * write fetches the baseline into the prefixed bare repo, leaving the URL-keyed repo untouched.
+   */
+  @Test
+  public void setGitDestinationPrefixForPartialFetch_flagOn_partialWriteUsesPrefixedRepo()
+      throws Exception {
+    fetch = primaryBranch;
+    push = primaryBranch;
+    DummyRevision ref = new DummyRevision("origin_ref");
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes(UTF_8));
+    process(firstCommitWriter(), ref);
+    enablePartialFetchPrefix();
+    partialClone = "True";
+    Files.write(workdir.resolve("test.txt"), "new content".getBytes(UTF_8));
+
+    process(newWriter(), ref);
+
+    assertThatCheckout(repo(), primaryBranch)
+        .containsFile("test.txt", "new content")
+        .containsNoMoreFiles();
+    // Without a workflow name (as outside 'copybara migrate'), the key renders it as "null".
+    Path partialGitDir =
+        FileUtil.resolveDirInCache("copy.bara.sky:null" + url, options.git.getRepoStorage());
+    assertThat(localConfig(repoForPath(partialGitDir))).contains("extensions.partialclone=origin");
+  }
+
+  private void enablePartialFetchPrefix() {
+    options.general.setTemporaryFeaturesForTest(
+        ImmutableMap.of(
+            GitDestinationOptions.SET_GIT_DESTINATION_PREFIX_FOR_PARTIAL_FETCH, "true"));
+  }
+
+  private ModuleSet moduleSetWithWorkflowName(String workflowName) {
+    ModuleSet moduleSet = skylark.createModuleSet();
+    for (Object module : moduleSet.getModules().values()) {
+      if (module instanceof LabelsAwareModule m) {
+        m.setWorkflowName(workflowName);
+      }
+    }
+    return moduleSet;
+  }
+
+  private static String localConfig(GitRepository repo) throws RepoException {
+    return Ascii.toLowerCase(repo.simpleCommand("config", "--local", "--list").getStdout());
+  }
+
+  // Compares paths as strings: Path is both Iterable and Comparable, which makes
+  // Truth.assertThat(Path) ambiguous with the Truth version used outside google3.
+  private String cacheDir(String cacheKey) throws IOException {
+    return FileUtil.resolveDirInCache(cacheKey, options.git.getRepoStorage()).toString();
   }
 }

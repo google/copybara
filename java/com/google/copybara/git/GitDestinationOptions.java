@@ -40,6 +40,13 @@ import javax.annotation.Nullable;
 @Parameters(separators = "=")
 public final class GitDestinationOptions implements Option {
 
+  /**
+   * Temporary feature that keys the cached bare repository of a partial-fetch destination by {@code
+   * <configPath>:<workflowName><url>} instead of only the URL, like {@link GitOrigin} does.
+   */
+  public static final String SET_GIT_DESTINATION_PREFIX_FOR_PARTIAL_FETCH =
+      "SET_GIT_DESTINATION_PREFIX_FOR_PARTIAL_FETCH";
+
   private final GeneralOptions generalOptions;
   private final GitOptions gitOptions;
 
@@ -129,15 +136,26 @@ public final class GitDestinationOptions implements Option {
   }
 
   /**
-   * Returns a non-bare repo. Either because it uses a custom worktree or because it is a user
-   * non-bare repo.
+   * Returns a non-bare repo for a destination. Either because it uses a custom worktree or because
+   * it is a user non-bare repo.
    *
-   * <p> The git database (git-dir) might be potentially shared between multiple workflows. This
+   * <p>The git database (git-dir) might be potentially shared between multiple workflows. This
    * means that the users should force fetch and probably create its own local unique references.
+   *
+   * <p>When {@code partialFetch} is true and the {@link
+   * #SET_GIT_DESTINATION_PREFIX_FOR_PARTIAL_FETCH} temporary feature is enabled, the cached bare
+   * repo is keyed by {@code <configPath>:<workflowName><url>} and configured for partial clone, so
+   * that it is not shared with full-fetch workflows. Otherwise it is keyed by {@code url}. Neither
+   * key applies when {@code --git-destination-path} is set.
    */
-  GitRepository localGitRepo(String url, @Nullable CredentialFileHandler creds)
+  GitRepository localGitRepo(
+      String url,
+      @Nullable CredentialFileHandler creds,
+      boolean partialFetch,
+      @Nullable String configPath,
+      @Nullable String workflowName)
       throws RepoException {
-    GitRepository repo = getLocalGitRepository(url);
+    GitRepository repo = getLocalGitRepository(url, partialFetch, configPath, workflowName);
     if (creds != null) {
       try {
         creds.install(repo, gitOptions.getConfigCredsFile(generalOptions));
@@ -148,11 +166,21 @@ public final class GitDestinationOptions implements Option {
     return repo;
   }
 
-  private GitRepository getLocalGitRepository(String url) throws RepoException {
+  private GitRepository getLocalGitRepository(
+      String url, boolean partialFetch, @Nullable String configPath, @Nullable String workflowName)
+      throws RepoException {
     try {
       if (Strings.isNullOrEmpty(localRepoPath)) {
-        return gitOptions.cachedBareRepoForUrl(url)
-            .withWorkTree(generalOptions.getDirFactory().newTempDir("git_dest"));
+        GitRepository bareRepo;
+        if (partialFetch
+            && generalOptions.isTemporaryFeature(
+                SET_GIT_DESTINATION_PREFIX_FOR_PARTIAL_FETCH, false)) {
+          String prefixedRepoUrl = String.format("%s:%s%s", configPath, workflowName, url);
+          bareRepo = gitOptions.cachedBareRepoForUrl(prefixedRepoUrl, url).enablePartialFetch();
+        } else {
+          bareRepo = gitOptions.cachedBareRepoForUrl(url);
+        }
+        return bareRepo.withWorkTree(generalOptions.getDirFactory().newTempDir("git_dest"));
       }
       Path path = Paths.get(localRepoPath);
 

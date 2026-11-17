@@ -42,8 +42,10 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.copybara.Destination.DestinationStatus;
 import com.google.copybara.Destination.Writer;
+import com.google.copybara.ModuleSet;
 import com.google.copybara.WriterContext;
 import com.google.copybara.authoring.Author;
+import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.effect.DestinationEffect;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RedundantChangeException;
@@ -1201,6 +1203,61 @@ public class GitHubPrDestinationTest {
                 url, customHost));
 
     assertThat(d.asHttpsUrl()).isEqualTo(url);
+  }
+
+  /**
+   * Verifies that, with {@code SET_GIT_DESTINATION_PREFIX_FOR_PARTIAL_FETCH} on, {@code
+   * git.github_pr_destination} uses a bare repo keyed by {@code <configPath>:<workflowName><url>}
+   * for partial fetches and the URL-keyed repo for full fetches.
+   */
+  @Test
+  public void setGitDestinationPrefixForPartialFetch_flagOn_prefixesPartialFetchCacheDir()
+      throws Exception {
+    String migrationName = "piper_to_github_pr";
+    String remoteUrl = "https://github.com/foo";
+    GitRepository unused = gitUtil.mockRemoteRepo("github.com/foo");
+    Path plainUrlGitDir = options.git.cachedBareRepoForUrl(remoteUrl).getGitDir();
+    options.general.setTemporaryFeaturesForTest(
+        ImmutableMap.of(
+            GitDestinationOptions.SET_GIT_DESTINATION_PREFIX_FOR_PARTIAL_FETCH, "true"));
+    ModuleSet moduleSet = skylark.createModuleSet();
+    for (Object module : moduleSet.getModules().values()) {
+      if (module instanceof LabelsAwareModule m) {
+        m.setWorkflowName(migrationName);
+      }
+    }
+    WriterContext writerContext =
+        new WriterContext(
+            migrationName,
+            "TEST",
+            false,
+            new DummyRevision("feature", "contextRef"),
+            Glob.ALL_FILES.roots());
+    GitHubPrDestination fullDest =
+        skylark.evalWithModuleSet(
+            "r",
+            "r = git.github_pr_destination(url = 'https://github.com/foo', partial_fetch = False)",
+            moduleSet);
+    GitHubPrDestination partialDest =
+        skylark.evalWithModuleSet(
+            "r",
+            "r = git.github_pr_destination(url = 'https://github.com/foo', partial_fetch = True)",
+            moduleSet);
+
+    Path fullGitDir =
+        ((GitDestination.WriterImpl<?>) fullDest.newWriter(writerContext))
+            .getRepository(console)
+            .getGitDir();
+    Path partialGitDir =
+        ((GitDestination.WriterImpl<?>) partialDest.newWriter(writerContext))
+            .getRepository(console)
+            .getGitDir();
+
+    // Compare as strings: Path is both Iterable and Comparable, which makes
+    // Truth.assertThat(Path) ambiguous with the Truth version used outside google3.
+    assertThat(fullGitDir.toString()).isEqualTo(plainUrlGitDir.toString());
+    assertThat(partialGitDir.getFileName().toString())
+        .isEqualTo("copy%2Ebara%2Esky%3A" + migrationName + "https%3A%2F%2Fgithub%2Ecom%2Ffoo");
   }
 
   private void mockNoPullRequestsGet(String branchName) {

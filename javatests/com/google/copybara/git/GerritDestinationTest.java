@@ -38,6 +38,7 @@ import com.google.api.client.http.LowLevelHttpRequest;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
@@ -47,10 +48,12 @@ import com.google.copybara.Destination.Writer;
 import com.google.copybara.LabelFinder;
 import com.google.copybara.Metadata;
 import com.google.copybara.MigrationInfo;
+import com.google.copybara.ModuleSet;
 import com.google.copybara.TransformWork;
 import com.google.copybara.WriterContext;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.checks.CheckerException;
+import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.effect.DestinationEffect;
 import com.google.copybara.effect.DestinationEffect.Type;
 import com.google.copybara.exception.RedundantChangeException;
@@ -74,6 +77,7 @@ import com.google.copybara.testing.TransformResults;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.testing.git.GitTestUtil.MockRequestAssertion;
 import com.google.copybara.testing.git.GitTestUtil.Validator;
+import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Message;
 import com.google.copybara.util.console.Message.MessageType;
@@ -2319,5 +2323,59 @@ public class GerritDestinationTest {
                 Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths),
                 console);
     assertThat(result).hasSize(1);
+  }
+
+  /**
+   * Verifies that, with {@code SET_GIT_DESTINATION_PREFIX_FOR_PARTIAL_FETCH} on, {@code
+   * git.gerrit_destination} passes the config path and workflow name through, so a partial-fetch
+   * destination uses a bare repo keyed by {@code <configPath>:<workflowName><url>}.
+   */
+  @Test
+  public void setGitDestinationPrefixForPartialFetch_flagOn_prefixesPartialFetchCacheDir()
+      throws Exception {
+    String migrationName = "piper_to_gerrit";
+    fetch = "master";
+    options.general.setTemporaryFeaturesForTest(
+        ImmutableMap.of(
+            GitDestinationOptions.SET_GIT_DESTINATION_PREFIX_FOR_PARTIAL_FETCH, "true"));
+    ModuleSet moduleSet = skylark.createModuleSet();
+    for (Object module : moduleSet.getModules().values()) {
+      if (module instanceof LabelsAwareModule m) {
+        m.setWorkflowName(migrationName);
+      }
+    }
+    WriterContext writerContext =
+        new WriterContext(
+            migrationName, "TEST", false, new DummyRevision("test"), Glob.ALL_FILES.roots());
+
+    String fullGitDir =
+        gerritDestinationGitDir(moduleSet, /* partialFetch= */ false, writerContext);
+    String partialGitDir =
+        gerritDestinationGitDir(moduleSet, /* partialFetch= */ true, writerContext);
+
+    assertThat(fullGitDir)
+        .isEqualTo(FileUtil.resolveDirInCache(url, options.git.getRepoStorage()).toString());
+    assertThat(partialGitDir)
+        .isEqualTo(
+            FileUtil.resolveDirInCache(
+                    "copy.bara.sky:" + migrationName + url, options.git.getRepoStorage())
+                .toString());
+  }
+
+  // Returns a string because Path is both Iterable and Comparable, which makes
+  // Truth.assertThat(Path) ambiguous with the Truth version used outside google3.
+  private String gerritDestinationGitDir(
+      ModuleSet moduleSet, boolean partialFetch, WriterContext writerContext) throws Exception {
+    GerritDestination destination =
+        skylark.evalWithModuleSet(
+            "result",
+            String.format(
+                "result = git.gerrit_destination(url = '%s', fetch = '%s', partial_fetch = %s)",
+                url, fetch, partialFetch ? "True" : "False"),
+            moduleSet);
+    return ((GitDestination.WriterImpl<?>) destination.newWriter(writerContext))
+        .getRepository(console)
+        .getGitDir()
+        .toString();
   }
 }

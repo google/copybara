@@ -689,7 +689,9 @@ public final class GerritDestination implements Destination<GitRevision> {
       boolean gerritSubmit,
       boolean primaryBranchMigrationMode,
       @Nullable Checker checker,
-      @Nullable CredentialFileHandler credentials) {
+      @Nullable CredentialFileHandler credentials,
+      @Nullable String configPath,
+      @Nullable String workflowName) {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     GerritOptions gerritOptions = options.get(GerritOptions.class);
     gerritSubmit =
@@ -730,7 +732,9 @@ public final class GerritDestination implements Destination<GitRevision> {
             destinationInfo,
             integrates,
             checker,
-            credentials),
+            credentials,
+            configPath,
+            workflowName),
         submit);
   }
 

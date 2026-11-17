@@ -111,6 +111,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
       @Nullable String body,
       List<String> assignees,
       ConfigFile mainConfigFile,
+      @Nullable String workflowName,
       @Nullable Checker endpointChecker,
       boolean updateDescription,
       GitHubHost ghHost,
@@ -136,8 +137,11 @@ public class GitHubPrDestination implements Destination<GitRevision> {
     this.updateDescription = updateDescription;
     this.ghHost = Preconditions.checkNotNull(ghHost);
     this.checker = checker;
-    this.localRepo = memoized(ignored -> destinationOptions.localGitRepo(url, credentials));
     this.mainConfigFile = Preconditions.checkNotNull(mainConfigFile);
+    this.localRepo =
+        memoized(ignored ->
+            destinationOptions.localGitRepo(
+                url, credentials, this.partialFetch, mainConfigFile.path(), workflowName));
     this.endpointChecker = endpointChecker;
     this.primaryBranchMigrationMode = primaryBranchMigrationMode;
     this.credentials = credentials;

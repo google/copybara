@@ -84,8 +84,10 @@ all_tests(
     tests = ["GitDestinationTest.java"],
     deps = [
         "//java/com/google/copybara:base",
+        "//java/com/google/copybara:copybara_lib",
         "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/checks",
+        "//java/com/google/copybara/config:base",
         "//java/com/google/copybara/effect",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/git",

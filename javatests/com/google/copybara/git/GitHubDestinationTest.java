@@ -36,10 +36,12 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.Destination.Writer;
+import com.google.copybara.ModuleSet;
 import com.google.copybara.TransformResult;
 import com.google.copybara.WriterContext;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.checks.CheckerException;
+import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.effect.DestinationEffect;
 import com.google.copybara.effect.DestinationEffect.Type;
 import com.google.copybara.exception.RepoException;
@@ -56,6 +58,7 @@ import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.testing.git.GitTestUtil.CompleteRefValidator;
+import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -1033,5 +1036,50 @@ public class GitHubDestinationTest {
             )\
             """,
             url, fetch, push, prBranchToUpdate, deletePrBranch));
+  }
+
+  /**
+   * Verifies that, with {@code SET_GIT_DESTINATION_PREFIX_FOR_PARTIAL_FETCH} on, {@code
+   * git.github_destination} passes the config path and workflow name through, so a partial-fetch
+   * destination uses a bare repo keyed by {@code <configPath>:<workflowName><url>}.
+   */
+  @Test
+  public void setGitDestinationPrefixForPartialFetch_flagOn_prefixesPartialFetchCacheDir()
+      throws Exception {
+    String migrationName = "piper_to_github";
+    options.general.setTemporaryFeaturesForTest(
+        ImmutableMap.of(
+            GitDestinationOptions.SET_GIT_DESTINATION_PREFIX_FOR_PARTIAL_FETCH, "true"));
+    ModuleSet moduleSet = skylark.createModuleSet();
+    for (Object module : moduleSet.getModules().values()) {
+      if (module instanceof LabelsAwareModule m) {
+        m.setWorkflowName(migrationName);
+      }
+    }
+
+    String fullGitDir = gitHubDestinationGitDir(moduleSet, /* partialFetch= */ false);
+    String partialGitDir = gitHubDestinationGitDir(moduleSet, /* partialFetch= */ true);
+
+    assertThat(fullGitDir)
+        .isEqualTo(FileUtil.resolveDirInCache(url, options.git.getRepoStorage()).toString());
+    assertThat(partialGitDir)
+        .isEqualTo(
+            FileUtil.resolveDirInCache(
+                    "copy.bara.sky:" + migrationName + url, options.git.getRepoStorage())
+                .toString());
+  }
+
+  // Returns a string because Path is both Iterable and Comparable, which makes
+  // Truth.assertThat(Path) ambiguous with the Truth version used outside google3.
+  private String gitHubDestinationGitDir(ModuleSet moduleSet, boolean partialFetch)
+      throws Exception {
+    GitDestination destination =
+        skylark.evalWithModuleSet(
+            "result",
+            String.format(
+                "result = git.github_destination(url = '%s', partial_fetch = %s)",
+                url, partialFetch ? "True" : "False"),
+            moduleSet);
+    return destination.getLocalRepo().load(console).getGitDir().toString();
   }
 }
