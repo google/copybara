@@ -134,7 +134,8 @@ public class GitHubOptions implements Option {
     if (storePath == null) {
       storePath = "~/.git-credentials";
     }
-    GitHubApiTransport transport = newTransport(gitHubHostName, repo, storePath, console);
+    GitHubApiTransport transport =
+        newProjectTransport(gitHubHostName, gitHubProject, repo, storePath, console);
     if (checker != null) {
       transport = new GitHubApiTransportWithChecker(transport, new ApiChecker(checker, console));
     }
@@ -160,7 +161,8 @@ public class GitHubOptions implements Option {
     if (storePath == null) {
       storePath = "~/.git-credentials";
     }
-    GitHubApiTransport transport = newTransport(gitHubHostName, repo, storePath, console);
+    GitHubApiTransport transport =
+        newProjectTransport(gitHubHostName, gitHubProject, repo, storePath, console);
     if (checker != null) {
       transport = new GitHubApiTransportWithChecker(transport, new ApiChecker(checker, console));
     }
@@ -201,6 +203,23 @@ public class GitHubOptions implements Option {
       String gitHubHostName, GitRepository repo, String storePath, Console console) {
     return new GitHubApiTransportImpl(
         repo, newHttpTransport(), storePath, gitHubApiBearerAuth, console, gitHubHostName);
+  }
+
+  private GitHubApiTransport newProjectTransport(
+      String host, String project, GitRepository repo, String storePath, Console console)
+      throws RepoException {
+    return new GitHubApiTransportImpl(
+        repo, newHttpTransport(), storePath, gitHubApiBearerAuth, console, host) {
+      @Override
+      protected GitCredential.UserPassword getCredentials()
+          throws RepoException, ValidationException {
+        try {
+          return repo.credentialFill(apiUrl + "/" + project);
+        } catch (ValidationException e) {
+          return repo.credentialFill(webUrl + "/" + project);
+        }
+      }
+    };
   }
 
   protected HttpTransport newHttpTransport() {
