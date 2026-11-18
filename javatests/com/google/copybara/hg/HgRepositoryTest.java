@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Google Inc.
+ * Copyright (C) 2018 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -360,6 +360,33 @@ public class HgRepositoryTest {
     assertThat(Files.exists(newFile3)).isTrue();
   }
 
+  @Test
+  public void testCleanUpdateFailsOnSubrepos() throws Exception {
+    // Stands in for an arbitrary URL chosen by whoever can commit to the remote repository.
+    Path subrepoSource = Files.createTempDirectory("subrepoSource");
+    HgRepository subrepoSourceRepo =
+        new HgRepository(subrepoSource, /* verbose= */ false, CommandRunner.DEFAULT_TIMEOUT);
+    subrepoSourceRepo.init();
+    Files.write(subrepoSource.resolve("sub.txt"), "sub".getBytes(UTF_8));
+    subrepoSourceRepo.hg(subrepoSource, "add", "sub.txt");
+    subrepoSourceRepo.hg(subrepoSource, "commit", "-m", "sub");
+
+    // A remote repository whose tip declares the subrepository in .hgsub.
+    Path remoteDir = Files.createTempDirectory("remotedir");
+    HgRepository remoteRepo =
+        new HgRepository(remoteDir, /* verbose= */ false, CommandRunner.DEFAULT_TIMEOUT);
+    remoteRepo.init();
+    remoteRepo.hg(remoteDir, "clone", subrepoSource.toString(), "sub");
+    Files.write(remoteDir.resolve(".hgsub"), ("sub = " + subrepoSource).getBytes(UTF_8));
+    remoteRepo.hg(remoteDir, "add", ".hgsub");
+    remoteRepo.hg(remoteDir, "commit", "-m", "add subrepo");
+    String revision = remoteRepo.identify("tip").getGlobalId();
+    repository.pullFromRef(remoteDir.toString(), revision);
+
+    RepoException e = assertThrows(RepoException.class, () -> repository.cleanUpdate(revision));
+    assertThat(e).hasMessageThat().contains("subrepos not enabled");
+    assertThatPath(workDir).containsNoFiles("sub");
+  }
 
   @Test
   public void testIdentify() throws Exception {
@@ -389,7 +416,7 @@ public class HgRepositoryTest {
   }
 
   @Test
-  public void testArchiveSubrepos() throws Exception {
+  public void testArchiveExcludesSubrepos() throws Exception {
     Path fooFile = addAndCommitFile("foo");
 
     Path subrepoPath = Files.createTempDirectory(workDir,"subrepo");
@@ -424,7 +451,7 @@ public class HgRepositoryTest {
 
     assertThatPath(archivePath).containsFile(fooFile.toFile().getName(), "");
     assertThatPath(archivePath.resolve(subrepoName))
-        .containsFile(subFile.toFile().getName(), "");
+        .containsNoFiles(subFile.toFile().getName());
     assertThatPath(archivePath.resolve(untrackedName))
         .containsNoFiles(untrackedFile.toFile().getName());
   }

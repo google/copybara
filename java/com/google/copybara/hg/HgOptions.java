@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Google Inc.
+ * Copyright (C) 2018 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package com.google.copybara.hg;
 
 import static com.google.copybara.util.FileUtil.resolveDirInCache;
 
+import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.common.base.Preconditions;
 import com.google.copybara.GeneralOptions;
@@ -33,6 +34,8 @@ import java.nio.file.Path;
 @Parameters(separators = "=")
 public class HgOptions implements Option {
 
+  static final String SUBREPOS_ENABLED_FLAG = "--hg-subrepos-enabled";
+
   private static final String HGDIR_PATH = ".hg";
 
   private final GeneralOptions generalOptions;
@@ -42,6 +45,15 @@ public class HgOptions implements Option {
    * change and at most 2 of its next descendants if they exist.
    */
   int visitChangeDepth = 200;
+
+  @Parameter(
+      names = SUBREPOS_ENABLED_FLAG,
+      description =
+          "Allow Mercurial subrepositories. By default, checking out a revision that declares"
+              + " subrepositories fails, because Mercurial would clone them from the sources"
+              + " listed in the .hgsub file of that revision. Only use this flag with"
+              + " repositories whose content you trust.")
+  boolean subreposEnabled = false;
 
   public HgOptions(GeneralOptions generalOptions) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
@@ -67,7 +79,8 @@ public class HgOptions implements Option {
     Path hgDir = repoPath.resolve(HGDIR_PATH);
 
     HgRepository repo =
-        new HgRepository(hgDir, generalOptions.isVerbose(), generalOptions.repoTimeout);
+        new HgRepository(
+            hgDir, generalOptions.isVerbose(), generalOptions.repoTimeout, subreposEnabled);
     if (Files.notExists(hgDir)) {
       repo.init();
     }

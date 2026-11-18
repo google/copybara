@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Google Inc.
+ * Copyright (C) 2018 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -141,7 +141,20 @@ public class HgOrigin implements Origin<HgRevision> {
       HgRepository repo = getRepository();
       String revId = revision.getGlobalId();
       repo.pullFromRef(repoUrl, revId);
-      repo.cleanUpdate(revId);
+      try {
+        repo.cleanUpdate(revId);
+      } catch (RepoException e) {
+        if (e.getMessage().contains("abort: subrepos not enabled")) {
+          throw new ValidationException(
+              String.format(
+                  "Cannot check out revision %s of %s: it declares Mercurial subrepositories,"
+                      + " which are disabled by default. Use %s to allow them if you trust the"
+                      + " content of the repository.",
+                  revId, repoUrl, HgOptions.SUBREPOS_ENABLED_FLAG),
+              e);
+        }
+        throw e;
+      }
       try {
         FileUtil.deleteRecursively(workDir);
         repo.archive(workDir.toString()); // update the working directory
@@ -152,6 +165,10 @@ public class HgOrigin implements Origin<HgRevision> {
         throw e;
       } catch (IOException e) {
         throw new RepoException("Error checking out " + repoUrl, e);
+      } finally {
+        // Later runs reuse the cached repository. With subrepositories disabled, they cannot
+        // update it away from a revision that declares them, so do not leave one checked out.
+        repo.cleanUpdate("null");
       }
 
       hgOriginOptions.maybeRunCheckoutHook(workDir, generalOptions);

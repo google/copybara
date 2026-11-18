@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Google Inc.
+ * Copyright (C) 2018 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -73,16 +73,37 @@ public class HgRepository {
       Pattern.compile("syntax error in revset '.+'");
 
   /**
+   * Mercurial config override that disables subrepositories of every kind.
+   *
+   * <p>Subrepository sources are listed in the versioned {@code .hgsub} file, so anyone who can
+   * commit to a repository chooses the URLs that Mercurial would clone from. Unless
+   * subrepositories are enabled, Copybara does not follow them: a command run with this override
+   * aborts instead of touching a subrepository.
+   */
+  private static final String DISABLE_SUBREPOS = "subrepos.allowed=false";
+
+  /**
    * The location of the {@code .hg} directory.
    */
   private final Path hgDir;
   private final boolean verbose;
   private final Duration repoTimeout;
+  private final boolean subreposEnabled;
 
   public HgRepository(Path hgDir, boolean verbose, Duration repoTimeout) {
+    this(hgDir, verbose, repoTimeout, /* subreposEnabled= */ false);
+  }
+
+  /**
+   * Creates a repository that checks out and archives Mercurial subrepositories if {@code
+   * subreposEnabled} is true. Mercurial clones them from the sources listed in the versioned
+   * {@code .hgsub} file.
+   */
+  HgRepository(Path hgDir, boolean verbose, Duration repoTimeout, boolean subreposEnabled) {
     this.hgDir = checkNotNull(hgDir);
     this.verbose = verbose;
     this.repoTimeout = checkNotNull(repoTimeout);
+    this.subreposEnabled = subreposEnabled;
   }
 
   /**
@@ -156,9 +177,15 @@ public class HgRepository {
   /**
    * Updates the working directory to the revision given at {@code ref} in the repository
    * and discards local changes.
+   *
+   * <p>Unless subrepositories are enabled, the update fails if {@code ref} or the revision that is
+   * currently checked out declares any.
    */
   CommandOutput cleanUpdate(String ref) throws RepoException {
+    if (subreposEnabled) {
       return hg(hgDir, "update", ref, "--clean");
+    }
+    return hg(hgDir, "--config", DISABLE_SUBREPOS, "update", ref, "--clean");
   }
 
   /**
@@ -192,11 +219,15 @@ public class HgRepository {
   }
 
   /**
-   * Creates an unversioned archive of the current working directory and subrepositories
-   * in the location {@code archivePath}.
+   * Creates an unversioned archive of the current working directory in the location {@code
+   * archivePath}. Subrepositories are archived only if they are enabled.
    */
   void archive(String archivePath) throws RepoException {
-    hg(hgDir, "archive", archivePath, "--type", "files", "--subrepos");
+    if (subreposEnabled) {
+      hg(hgDir, "archive", archivePath, "--type", "files", "--subrepos");
+      return;
+    }
+    hg(hgDir, "--config", DISABLE_SUBREPOS, "archive", archivePath, "--type", "files");
   }
 
   /**

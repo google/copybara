@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Google Inc.
+ * Copyright (C) 2018 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertThrows;
 
+import com.beust.jcommander.JCommander;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -33,6 +34,7 @@ import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
 import com.google.copybara.exception.CannotResolveRevisionException;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.hg.HgRepository.HgLogEntry;
 import com.google.copybara.revision.Change;
@@ -265,6 +267,129 @@ public class HgOriginTest {
   }
 
   @Test
+  public void testCheckoutFailsOnSubrepos() throws Exception {
+    commitSubrepo();
+    HgRevision revision = origin.resolve("tip");
+    Reader<HgRevision> reader = newReader();
+    Path checkoutDir = Files.createTempDirectory("checkout");
+
+    ValidationException e =
+        assertThrows(ValidationException.class, () -> reader.checkout(revision, checkoutDir));
+
+    assertThat(e).hasMessageThat().containsMatch("subrepositories.*--hg-subrepos-enabled");
+    assertThatPath(checkoutDir).containsNoFiles("sub/sub.txt");
+  }
+
+  @Test
+  public void testCheckoutAfterSubrepoRevisionWasRejected() throws Exception {
+    singleFileCommit("Copy Bara <copy@bara.com>", "zero", "foo.txt", "zero");
+    HgRevision revisionWithoutSubrepos = origin.resolve("tip");
+    commitSubrepo();
+    HgRevision revisionWithSubrepos = origin.resolve("tip");
+    Reader<HgRevision> reader = newReader();
+    Path checkoutDir = Files.createTempDirectory("checkout");
+    assertThrows(
+        ValidationException.class, () -> reader.checkout(revisionWithSubrepos, checkoutDir));
+
+    reader.checkout(revisionWithoutSubrepos, checkoutDir);
+
+    assertThatPath(checkoutDir)
+        .containsFile("foo.txt", "zero")
+        .containsFiles(".hg_archival.txt")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testCheckoutWithSubreposEnabled() throws Exception {
+    options.hg.subreposEnabled = true;
+    origin = origin();
+    commitSubrepo();
+    Path checkoutDir = Files.createTempDirectory("checkout");
+
+    newReader().checkout(origin.resolve("tip"), checkoutDir);
+
+    assertThatPath(checkoutDir).containsFile("sub/sub.txt", "sub");
+  }
+
+  @Test
+  public void testRepeatedCheckoutWithSubreposEnabled() throws Exception {
+    options.hg.subreposEnabled = true;
+    origin = origin();
+    commitSubrepo();
+    HgRevision revision = origin.resolve("tip");
+    Reader<HgRevision> reader = newReader();
+    Path checkoutDir = Files.createTempDirectory("checkout");
+    reader.checkout(revision, checkoutDir);
+
+    // The cached repository still has the clone of the subrepository from the first checkout.
+    reader.checkout(revision, checkoutDir);
+
+    assertThatPath(checkoutDir).containsFile("sub/sub.txt", "sub");
+  }
+
+  @Test
+  public void testCheckoutAfterCheckoutWithSubreposEnabled() throws Exception {
+    singleFileCommit("Copy Bara <copy@bara.com>", "zero", "foo.txt", "zero");
+    HgRevision revisionWithoutSubrepos = origin.resolve("tip");
+    commitSubrepo();
+    Path checkoutDir = Files.createTempDirectory("checkout");
+    options.hg.subreposEnabled = true;
+    origin = origin();
+    newReader().checkout(origin.resolve("tip"), checkoutDir);
+
+    // A later run without the flag uses the same cached repository.
+    options.hg.subreposEnabled = false;
+    origin = origin();
+    newReader().checkout(revisionWithoutSubrepos, checkoutDir);
+
+    assertThatPath(checkoutDir)
+        .containsFile("foo.txt", "zero")
+        .containsFiles(".hg_archival.txt")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testCheckoutFailsOnSubreposAfterCheckoutWithSubreposEnabled() throws Exception {
+    commitSubrepo();
+    options.hg.subreposEnabled = true;
+    origin = origin();
+    newReader().checkout(origin.resolve("tip"), Files.createTempDirectory("checkout"));
+
+    // A later run without the flag uses the same cached repository, which still contains the
+    // clone of the subrepository.
+    options.hg.subreposEnabled = false;
+    origin = origin();
+    HgRevision revision = origin.resolve("tip");
+    Reader<HgRevision> reader = newReader();
+    Path checkoutDir = Files.createTempDirectory("checkout");
+
+    ValidationException e =
+        assertThrows(ValidationException.class, () -> reader.checkout(revision, checkoutDir));
+
+    assertThat(e).hasMessageThat().containsMatch("subrepositories.*--hg-subrepos-enabled");
+    assertThatPath(checkoutDir).containsNoFiles("sub/sub.txt");
+  }
+
+  @Test
+  public void testResolveAfterFailedCheckoutWithSubreposEnabled() throws Exception {
+    commitSubrepo();
+    options.hg.subreposEnabled = true;
+    origin = origin();
+    HgRevision revision = origin.resolve("tip");
+    Reader<HgRevision> reader = newReader();
+    // The checkout fails once the cached repository is at the revision, because the checkout
+    // directory is inside of a regular file.
+    Path checkoutDir = Files.createTempFile("file", "").resolve("checkout");
+    assertThrows(RepoException.class, () -> reader.checkout(revision, checkoutDir));
+
+    // A later run without the flag uses the same cached repository.
+    options.hg.subreposEnabled = false;
+    origin = origin();
+
+    assertThat(origin.resolve("tip").getGlobalId()).isEqualTo(revision.getGlobalId());
+  }
+
+  @Test
   public void testChanges() throws Exception {
     ZonedDateTime beforeTime = ZonedDateTime.now(ZoneId.systemDefault()).minusSeconds(1);
     String author = "Copy Bara <copy@bara.com>";
@@ -454,5 +579,24 @@ public class HgOriginTest {
     repository.hg(remotePath, "add", fileName);
     repository.hg(remotePath, "--config", "ui.username=" + author, "commit", "-m", commitMessage);
     return path;
+  }
+
+  /**
+   * Commits a revision to the remote repository that declares a subrepository in .hgsub. The
+   * subrepository source stands in for an arbitrary URL chosen by whoever can commit to the origin.
+   */
+  private void commitSubrepo() throws Exception {
+    Path subrepoSource = Files.createTempDirectory("subrepoSource");
+    HgRepository subrepoSourceRepo =
+        new HgRepository(subrepoSource, /*verbose*/ false, CommandRunner.DEFAULT_TIMEOUT);
+    subrepoSourceRepo.init();
+    Files.write(subrepoSource.resolve("sub.txt"), "sub".getBytes(UTF_8));
+    subrepoSourceRepo.hg(subrepoSource, "add", "sub.txt");
+    subrepoSourceRepo.hg(subrepoSource, "commit", "-m", "sub");
+
+    repository.hg(remotePath, "clone", subrepoSource.toString(), "sub");
+    Files.write(remotePath.resolve(".hgsub"), ("sub = " + subrepoSource).getBytes(UTF_8));
+    repository.hg(remotePath, "add", ".hgsub");
+    repository.hg(remotePath, "commit", "-m", "add subrepo");
   }
 }

@@ -5648,6 +5648,14 @@ Parameter | Description
 
 Set of functions to define Mercurial (Hg) origins and destinations.
 
+
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ---- | -----------
+<span style="white-space: nowrap;">`--hg-subrepos-enabled`</span> | *boolean* | Allow Mercurial subrepositories. By default, checking out a revision that declares subrepositories fails, because Mercurial would clone them from the sources listed in the .hgsub file of that revision. Only use this flag with repositories whose content you trust.
+
 <a id="hg.origin" aria-hidden="true"></a>
 ### hg.origin
 
@@ -9157,6 +9165,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--git-push-option`</span> | *list* | This is a repeatable flag used to set git push level flags to send to git servers. E.g. copybara copy.bara.sky --git-push-option foo --git-push-option bar would make git operations done by copybara under the hood use the --push-option flags: git push -push-option=foo -push-option=bar ...
 <span style="white-space: nowrap;">`--git-ref-format`</span> | *`FILES`<br>or `REFTABLE`* | The reference storage format to use when initializing Git repositories (e.g. 'files', 'reftable'). Defaults to 'files'.
 <span style="white-space: nowrap;">`--git-tag-overwrite`</span> | *boolean* | If set, copybara will force update existing git tag
+<span style="white-space: nowrap;">`--hg-subrepos-enabled`</span> | *boolean* | Allow Mercurial subrepositories. By default, checking out a revision that declares subrepositories fails, because Mercurial would clone them from the sources listed in the .hgsub file of that revision. Only use this flag with repositories whose content you trust.
 <span style="white-space: nowrap;">`--info-include-definition`</span> | *boolean* | When set, the INFO command will include the migrations' definition stack info in the table or list output. In table, leaves out origin, destination and mode.
 <span style="white-space: nowrap;">`--info-list-only`</span> | *boolean* | When set, the INFO command will print a list of workflows defined in the file.
 <span style="white-space: nowrap;">`--labels`</span> | *immutableMap* | Additional flags. Can be accessed in feedback and mirror context objects via the `cli_labels` field. In `core.workflow`, they are accessible as labels, but with names uppercased and prefixed with FLAG_ to avoid name clashes with existing labels. I.e. `--labels=label1:value1` will define a label FLAG_LABEL1. Format: --labels=flag1:value1,flag2:value2 Or: --labels flag1:value1,flag2:value2
