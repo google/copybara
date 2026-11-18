@@ -97,6 +97,55 @@ public class HttpEndpointTest {
   }
 
   @Test
+  public void testStatus_nullReasonPhrase_returnsEmptyString() throws ValidationException {
+    http.mockHttp((method, url, req, resp) -> {
+      assertThat(method).isEqualTo("GET");
+      resp.setStatusCode(200);
+    });
+    String status =
+        starlark.eval(
+            "status",
+            """
+            endpoint = testing.get_endpoint(http.endpoint(host = "foo.com"))
+            resp = endpoint.get(url = "http://foo.com")
+            status = resp.status()
+            """);
+    assertThat(status).isEmpty();
+  }
+
+  @Test
+  public void testStatus_nonNullReasonPhrase_returnsReasonPhrase() throws ValidationException {
+    http.mockHttp((method, url, req, resp) -> {
+      if (url.endsWith("/ok")) {
+        resp.setStatusCode(200);
+        resp.setReasonPhrase("OK");
+      } else {
+        resp.setStatusCode(404);
+        resp.setReasonPhrase("Not Found");
+      }
+    });
+    String okStatus =
+        starlark.eval(
+            "status",
+            """
+            endpoint = testing.get_endpoint(http.endpoint(host = "foo.com"))
+            resp = endpoint.get(url = "http://foo.com/ok")
+            status = resp.status()
+            """);
+    assertThat(okStatus).isEqualTo("OK");
+
+    String notFoundStatus =
+        starlark.eval(
+            "status",
+            """
+            endpoint = testing.get_endpoint(http.endpoint(host = "foo.com"))
+            resp = endpoint.get(url = "http://foo.com/missing")
+            status = resp.status()
+            """);
+    assertThat(notFoundStatus).isEqualTo("Not Found");
+  }
+
+  @Test
   public void testFollowRedirect() throws ValidationException, IOException {
     http.mockHttp(
         (method, url, req, resp) -> {

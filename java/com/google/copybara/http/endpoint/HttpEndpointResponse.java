@@ -16,6 +16,8 @@
 
 package com.google.copybara.http.endpoint;
 
+import static com.google.common.base.Strings.nullToEmpty;
+
 import com.google.api.client.http.HttpResponse;
 import com.google.copybara.CheckoutPath;
 import java.io.IOException;
@@ -42,9 +44,9 @@ public class HttpEndpointResponse implements StarlarkValue {
     return response.getStatusCode();
   }
 
-  @StarlarkMethod(name = "status", doc = "http status message")
+  @StarlarkMethod(name = "status", doc = "http status message, or empty string if unavailable")
   public String getStatusMessage() {
-    return response.getStatusMessage();
+    return nullToEmpty(response.getStatusMessage());
   }
 
   @StarlarkMethod(name = "contents_string", doc = "response contents as string")

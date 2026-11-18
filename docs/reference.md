@@ -6045,7 +6045,7 @@ Parameter | Description
 <a id="http_response.status" aria-hidden="true"></a>
 ### http_response.status
 
-http status message
+http status message, or empty string if unavailable
 
 <code><a href="#string">string</a></code> <code>http_response.status()</code>
 
