@@ -1993,6 +1993,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--read-config-from-change-disable`</span> | *boolean* | --read-config-from-change is a arity 0 flag, this flag overrides it to override it being enabled.
 <span style="white-space: nowrap;">`--same-version`</span> | *boolean* | Re-import the last version imported. This is useful for example to check that a refactor in a copy.bara.sky file doesn't introduce accidental changes.
 <span style="white-space: nowrap;">`--skip-transforms`</span> | *list* | List of transform names that should be skipped.
+<span style="white-space: nowrap;">`--squash-noop-if-excluded`</span> | *boolean* | If true, exit with a NOOP in SQUASH (and CHANGE_REQUEST/CHANGE_REQUEST_FROM_SOT) workflows when the requested revision does not match origin_files, even if earlier unmigrated changes match. Primarily intended for SQUASH workflows that mix submitted and pending revisions.
 <span style="white-space: nowrap;">`--squash-skip-history`</span> | *boolean* | Avoid exposing the history of changes that are being migrated. This is useful when we want to migrate a new repository but we don't want to expose all the change history to metadata.squash_notes.
 <span style="white-space: nowrap;">`--threads`</span> | *int* | Number of threads to use when running transformations that change lot of files
 <span style="white-space: nowrap;">`--threads-for-merge-import`</span> | *int* | Number of threads to use for executing the diff tool for the merge import mode.

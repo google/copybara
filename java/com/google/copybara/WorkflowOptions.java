@@ -130,6 +130,16 @@ public class WorkflowOptions implements Option {
           + " flag disables that behavior and runs for all the changes.")
   public boolean migrateNoopChanges = false;
 
+  @Parameter(
+      names = "--squash-noop-if-excluded",
+      description =
+          "If true, exit with a NOOP in SQUASH (and CHANGE_REQUEST/CHANGE_REQUEST_FROM_SOT)"
+              + " workflows when the requested revision does not match origin_files, even if"
+              + " earlier unmigrated changes match. Primarily intended for SQUASH workflows that"
+              + " mix submitted and pending revisions.",
+      arity = 1)
+  public boolean squashNoopIfExcluded = false;
+
   @Parameter(names = {"--workflow-identity-user"},
       description = "Use a custom string as a user for computing change identity")
   @Nullable
@@ -213,6 +223,7 @@ public class WorkflowOptions implements Option {
     this.ignoreNoop = other.ignoreNoop;
     this.squashSkipHistory = other.squashSkipHistory;
     this.migrateNoopChanges = other.migrateNoopChanges;
+    this.squashNoopIfExcluded = other.squashNoopIfExcluded;
     this.workflowIdentityUser = other.workflowIdentityUser;
     this.checkLastRevState = other.checkLastRevState;
     this.threads = other.threads;

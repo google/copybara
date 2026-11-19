@@ -116,6 +116,16 @@ public enum WorkflowMode {
         manageNoChangesDetectedForSquash(runHelper, current, lastRev, NO_CHANGES);
       }
 
+      if (runHelper.workflowOptions().squashNoopIfExcluded
+          && !helperForChanges.getWorkflow().isMigrateNoopChanges()
+          && !changes.isEmpty()
+          && isHistorySupported(runHelper)
+          && !runHelper.workflowOptions().importSameVersion
+          && current != null
+          && !Iterables.getLast(changes).getRevision().equals(current)) {
+        handleExcludedRequestedChange(runHelper, helperForChanges, current, detectedChanges);
+      }
+
       // Try to use the latest change that affected the origin_files roots instead of the
       // current revision, that could be an unrelated change.
       current = changes.isEmpty()
@@ -398,6 +408,31 @@ public enum WorkflowMode {
     return r.replaceFirst(" .*", "");
   }
 
+  private static <O extends Revision, D extends Revision> void handleExcludedRequestedChange(
+      WorkflowRunHelper<O, D> runHelper,
+      ChangeMigrator<O, D> migrator,
+      O requestedRef,
+      ImmutableList<Change<O>> originChanges)
+      throws EmptyChangeException {
+    String message =
+        String.format(
+            "Requested revision '%s' does not match any origin_files", requestedRef.asString());
+    if (!runHelper.isForce()) {
+      migrator.finishedMigrate(
+          ImmutableList.of(
+              new DestinationEffect(
+                  Type.NOOP, message, originChanges, /* destinationRef= */ null)));
+      throw new EmptyChangeException(
+          String.format(
+              "%s. Use %s if you really want to run the migration anyway (For example if the"
+                  + " copy.bara.sky file has changed).",
+              message, GeneralOptions.FORCE));
+    }
+    runHelper
+        .getConsole()
+        .warnFmt("%s. Migrating anyway because of %s", message, GeneralOptions.FORCE);
+  }
+
   private static <O extends Revision, D extends Revision> void runChangeRequest(
       WorkflowRunHelper<O, D> runHelper,
       Optional<Baseline<O>> baseline,
@@ -415,6 +450,11 @@ public enum WorkflowMode {
     ImmutableList<Change<O>> changes;
     if (baseline.get().getOriginRevision() == null) {
       changes = ImmutableList.of(runHelper.getOriginReader().change(runHelper.getResolvedRef()));
+      if (runHelper.workflowOptions().squashNoopIfExcluded
+          && !migrator.getWorkflow().isMigrateNoopChanges()
+          && migrator.skipChange(changes.get(0))) {
+        handleExcludedRequestedChange(runHelper, migrator, runHelper.getResolvedRef(), changes);
+      }
     } else {
       ChangesResponse<O> changesResponse = runHelper.getOriginReader()
           .changes(baseline.get().getOriginRevision(),
@@ -442,6 +482,12 @@ public enum WorkflowMode {
         throw new EmptyChangeException(
             format("Change '%s' doesn't include any change for origin_files = %s",
                 runHelper.getResolvedRef(), runHelper.getOriginFiles()));
+      }
+      if (runHelper.workflowOptions().squashNoopIfExcluded
+          && !migrator.getWorkflow().isMigrateNoopChanges()
+          && !Iterables.getLast(changes).getRevision().equals(runHelper.getResolvedRef())) {
+        handleExcludedRequestedChange(
+            runHelper, migrator, runHelper.getResolvedRef(), changesResponse.getChanges());
       }
     }
 

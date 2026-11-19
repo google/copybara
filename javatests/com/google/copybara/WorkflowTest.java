@@ -1997,6 +1997,274 @@ public class WorkflowTest {
   }
 
   @Test
+  public void squashNoopIfExcluded_exitsWithNoopWhenExcluded() throws Exception {
+    setupLaggingExcludedSquashOrigin();
+    options.setForce(false);
+    options.setLastRevision("0");
+    options.workflowOptions.squashNoopIfExcluded = true;
+    Workflow<?, ?> workflow = skylarkWorkflow("default", SQUASH);
+
+    EmptyChangeException e =
+        assertThrows(
+            EmptyChangeException.class, () -> workflow.run(workdir, ImmutableList.of(HEAD)));
+    ChangeMigrationFinishedEvent event =
+        Iterables.getOnlyElement(eventMonitor.changeMigrationFinishedEvents);
+    DestinationEffect effect = Iterables.getOnlyElement(event.getDestinationEffects());
+
+    assertThat(e)
+        .hasMessageThat()
+        .contains("Requested revision '2' does not match any origin_files");
+    assertThat(destination.processed).isEmpty();
+    assertThat(effect.getType()).isEqualTo(DestinationEffect.Type.NOOP);
+    assertThat(effect.getDestinationRef()).isNull();
+    assertThat(effect.getOriginRefs().stream().map(r -> r.getRef()).collect(toImmutableList()))
+        .containsExactly("1", "2");
+  }
+
+  @Test
+  public void squashNoopIfExcluded_forceOverrides() throws Exception {
+    setupLaggingExcludedSquashOrigin();
+    options.setForce(true);
+    options.setLastRevision("0");
+    options.workflowOptions.squashNoopIfExcluded = true;
+    Workflow<?, ?> workflow = skylarkWorkflow("default", SQUASH);
+
+    workflow.run(workdir, ImmutableList.of(HEAD));
+
+    assertThat(destination.processed).hasSize(1);
+    assertThat(Iterables.getOnlyElement(destination.processed).getOriginRef().asString())
+        .isEqualTo("1");
+    console()
+        .assertThat()
+        .onceInLog(
+            MessageType.WARNING,
+            "Requested revision '2' does not match any origin_files\\. Migrating anyway because of"
+                + " --force");
+  }
+
+  @Test
+  public void squashNoopIfExcluded_migrateNoopChangesOverrides() throws Exception {
+    setupLaggingExcludedSquashOrigin();
+    options.setForce(false);
+    options.setLastRevision("0");
+    options.workflowOptions.squashNoopIfExcluded = true;
+    options.workflowOptions.migrateNoopChanges = true;
+    Workflow<?, ?> workflow = skylarkWorkflow("default", SQUASH);
+
+    workflow.run(workdir, ImmutableList.of(HEAD));
+
+    assertThat(destination.processed).hasSize(1);
+    assertThat(Iterables.getOnlyElement(destination.processed).getOriginRef().asString())
+        .isEqualTo("2");
+  }
+
+  @Test
+  public void squashNoopIfExcluded_migratesWhenIncluded() throws Exception {
+    originFiles = "glob(['**'], exclude = ['foo', 'copy.bara.sky'])";
+    transformations = ImmutableList.of();
+    origin.singleFileChange(1, "base", "bar", "0");
+    origin.singleFileChange(2, "lagging bar", "bar", "1");
+    origin.singleFileChange(3, "requested bar", "bar", "2");
+    options.setForce(false);
+    options.setLastRevision("0");
+    options.workflowOptions.squashNoopIfExcluded = true;
+    Workflow<?, ?> workflow = skylarkWorkflow("default", SQUASH);
+
+    workflow.run(workdir, ImmutableList.of(HEAD));
+
+    assertThat(destination.processed).hasSize(1);
+    assertThat(Iterables.getOnlyElement(destination.processed).getOriginRef().asString())
+        .isEqualTo("2");
+  }
+
+  @Test
+  public void squashNoopIfExcluded_withSquashSkipHistory() throws Exception {
+    setupLaggingExcludedSquashOrigin();
+    options.setForce(false);
+    options.setLastRevision("0");
+    options.workflowOptions.squashNoopIfExcluded = true;
+    options.workflowOptions.squashSkipHistory = true;
+    Workflow<?, ?> workflow = skylarkWorkflow("default", SQUASH);
+
+    EmptyChangeException e =
+        assertThrows(
+            EmptyChangeException.class, () -> workflow.run(workdir, ImmutableList.of(HEAD)));
+    DestinationEffect effect =
+        Iterables.getOnlyElement(
+            Iterables.getOnlyElement(eventMonitor.changeMigrationFinishedEvents)
+                .getDestinationEffects());
+
+    assertThat(e)
+        .hasMessageThat()
+        .contains("Requested revision '2' does not match any origin_files");
+    assertThat(destination.processed).isEmpty();
+    assertThat(effect.getType()).isEqualTo(DestinationEffect.Type.NOOP);
+  }
+
+  @Test
+  public void squashNoopIfExcluded_migratesWhenConfigFileChanged() throws Exception {
+    originFiles = "glob(['**'], exclude = ['foo', 'copy.bara.sky'])";
+    transformations = ImmutableList.of();
+    origin.singleFileChange(1, "base", "bar", "0");
+    origin.singleFileChange(2, "lagging bar", "bar", "1");
+    origin.singleFileChange(3, "config edit", "copy.bara.sky", "edited");
+    options.setForce(false);
+    options.setLastRevision("0");
+    options.workflowOptions.squashNoopIfExcluded = true;
+    Workflow<?, ?> workflow = skylarkWorkflow("default", SQUASH);
+
+    workflow.run(workdir, ImmutableList.of(HEAD));
+
+    assertThat(destination.processed).hasSize(1);
+    assertThat(Iterables.getOnlyElement(destination.processed).getOriginRef().asString())
+        .isEqualTo("2");
+  }
+
+  @Test
+  public void changeRequestFromSotSquashNoopIfExcluded_exitsWithNoopWhenExcluded()
+      throws Exception {
+    setupChangeRequestFromSotExcludedOrigin();
+    options.setForce(false);
+    options.workflowOptions.squashNoopIfExcluded = true;
+    Workflow<?, ?> workflow = skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST_FROM_SOT);
+
+    EmptyChangeException e =
+        assertThrows(
+            EmptyChangeException.class, () -> workflow.run(workdir, ImmutableList.of("2")));
+    DestinationEffect effect =
+        Iterables.getOnlyElement(
+            Iterables.getOnlyElement(eventMonitor.changeMigrationFinishedEvents)
+                .getDestinationEffects());
+
+    assertThat(e)
+        .hasMessageThat()
+        .contains("Requested revision '2' does not match any origin_files");
+    assertThat(destination.processed).hasSize(1);
+    assertThat(effect.getType()).isEqualTo(DestinationEffect.Type.NOOP);
+    assertThat(effect.getDestinationRef()).isNull();
+  }
+
+  @Test
+  public void changeRequestFromSotSquashNoopIfExcluded_migratesWhenIncluded() throws Exception {
+    setupChangeRequestFromSotExcludedOrigin();
+    origin.singleFileChange(4, "included bar", "bar", "2");
+    options.setForce(false);
+    options.workflowOptions.squashNoopIfExcluded = true;
+    Workflow<?, ?> workflow = skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST_FROM_SOT);
+
+    workflow.run(workdir, ImmutableList.of("3"));
+
+    assertThat(destination.processed).hasSize(2);
+    assertThat(Iterables.getLast(destination.processed).getOriginRef().asString()).isEqualTo("3");
+  }
+
+  @Test
+  public void changeRequestSquashNoopIfExcluded_exitsWithNoopWhenExcluded() throws Exception {
+    setupChangeRequestExcludedOrigin();
+    options.setForce(false);
+    options.workflowOptions.squashNoopIfExcluded = true;
+    Workflow<?, ?> workflow = skylarkWorkflow("default", CHANGE_REQUEST);
+
+    EmptyChangeException e =
+        assertThrows(
+            EmptyChangeException.class, () -> workflow.run(workdir, ImmutableList.of("2")));
+    DestinationEffect effect =
+        Iterables.getOnlyElement(
+            Iterables.getOnlyElement(eventMonitor.changeMigrationFinishedEvents)
+                .getDestinationEffects());
+
+    assertThat(e)
+        .hasMessageThat()
+        .contains("Requested revision '2' does not match any origin_files");
+    assertThat(destination.processed).isEmpty();
+    assertThat(effect.getType()).isEqualTo(DestinationEffect.Type.NOOP);
+    assertThat(effect.getDestinationRef()).isNull();
+  }
+
+  @Test
+  public void changeRequestSquashNoopIfExcluded_withChangeRequestParent_exitsWithNoopWhenExcluded()
+      throws Exception {
+    setupChangeRequestExcludedOrigin();
+    options.setForce(false);
+    options.workflowOptions.squashNoopIfExcluded = true;
+    options.workflowOptions.changeBaseline = "42";
+    Workflow<?, ?> workflow = skylarkWorkflow("default", CHANGE_REQUEST);
+
+    EmptyChangeException e =
+        assertThrows(
+            EmptyChangeException.class, () -> workflow.run(workdir, ImmutableList.of("2")));
+    DestinationEffect effect =
+        Iterables.getOnlyElement(
+            Iterables.getOnlyElement(eventMonitor.changeMigrationFinishedEvents)
+                .getDestinationEffects());
+
+    assertThat(e)
+        .hasMessageThat()
+        .contains("Requested revision '2' does not match any origin_files");
+    assertThat(destination.processed).isEmpty();
+    assertThat(effect.getType()).isEqualTo(DestinationEffect.Type.NOOP);
+    assertThat(effect.getDestinationRef()).isNull();
+  }
+
+  @Test
+  public void changeRequestSquashNoopIfExcluded_migratesWhenIncluded() throws Exception {
+    setupChangeRequestExcludedOrigin();
+    origin.singleFileChange(4, "included bar", "bar", "2");
+    options.setForce(false);
+    options.workflowOptions.squashNoopIfExcluded = true;
+    Workflow<?, ?> workflow = skylarkWorkflow("default", CHANGE_REQUEST);
+
+    workflow.run(workdir, ImmutableList.of("3"));
+
+    assertThat(destination.processed).hasSize(1);
+    assertThat(Iterables.getOnlyElement(destination.processed).getOriginRef().asString())
+        .isEqualTo("3");
+  }
+
+  private void setupChangeRequestFromSotExcludedOrigin() throws Exception {
+    originFiles = "glob(['**'], exclude = ['foo'])";
+    transformations = ImmutableList.of();
+    origin.singleFileChange(1, "base", "bar", "0");
+    skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of("0"));
+    eventMonitor.changeMigrationFinishedEvents.clear();
+    origin.singleFileChange(2, "lagging bar", "bar", "1");
+    origin.singleFileChange(3, "excluded foo", "foo", "a");
+  }
+
+  private void setupChangeRequestExcludedOrigin() throws IOException {
+    originFiles = "glob(['**'], exclude = ['foo'])";
+    transformations = ImmutableList.of();
+    origin.singleFileChange(
+        1,
+        String.format("base\n\n%s=42", destination.getLabelNameWhenOrigin()),
+        "bar",
+        "0");
+    origin.singleFileChange(2, "lagging bar", "bar", "1");
+    origin.singleFileChange(3, "excluded foo", "foo", "a");
+  }
+
+  private void setupLaggingExcludedSquashOrigin() throws Exception {
+    originFiles = "glob(['**'], exclude = ['foo', 'copy.bara.sky'])";
+    transformations = ImmutableList.of();
+    FileSystem fileSystem = Jimfs.newFileSystem();
+    Path one = Files.createDirectories(fileSystem.getPath("one"));
+    Path two = Files.createDirectories(fileSystem.getPath("two"));
+    Path three = Files.createDirectories(fileSystem.getPath("three"));
+
+    touchFile(one, "foo", "");
+    touchFile(one, "bar", "");
+    origin.addChange(1, one, "base", /* matchesGlob= */ true);
+
+    touchFile(two, "foo", "");
+    touchFile(two, "bar", "a");
+    origin.addChange(2, two, "lagging bar", /* matchesGlob= */ true);
+
+    touchFile(three, "foo", "b");
+    touchFile(three, "bar", "a");
+    origin.addChange(3, three, "excluded foo", /* matchesGlob= */ true);
+  }
+
+  @Test
   public void originFilesNothingRemovedNoopNothingInLog() throws Exception {
     originFiles = "glob(['**'], exclude = ['I_dont_exist'])";
     transformations = ImmutableList.of();
