@@ -541,13 +541,16 @@ public class Main {
   }
 
   protected void configureLog(FileSystem fs, String[] args) throws IOException {
-    String baseDir = getBaseExecDir();
-    Files.createDirectories(fs.getPath(baseDir));
     if (System.getProperty("java.util.logging.config.file") == null) {
+      boolean logging = isEnableLogging(args);
+      String baseDir = getBaseExecDir();
+      if (logging) {
+        Files.createDirectories(fs.getPath(baseDir));
+      }
       logger.atInfo().log("Setting up LogManager");
-      String level = isEnableLogging(args) ? "INFO" : "OFF";
+      String level = logging ? "INFO" : "OFF";
       LogManager.getLogManager().readConfiguration(new ByteArrayInputStream((
-          "handlers=java.util.logging.FileHandler\n"
+          "handlers=" + (logging ? "java.util.logging.FileHandler" : "") + "\n"
               + ".level=INFO\n"
               + "java.util.logging.FileHandler.level=" + level + "\n"
               + "java.util.logging.FileHandler.pattern="

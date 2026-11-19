@@ -22,6 +22,7 @@ import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.jimfs.Jimfs;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.exception.CannotResolveLabel;
@@ -40,6 +41,7 @@ import java.io.PrintStream;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.logging.Logger;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -87,6 +89,33 @@ public class MainTest {
         };
     assertThat(main.run(args)).isEqualTo(ExitCode.COMMAND_LINE_ERROR);
     assertThat(called).isTrue();
+  }
+
+  @Test
+  public void testNoLoggingDoesNotAccessFileSystem() throws IOException {
+    FileSystem fs = Jimfs.newFileSystem();
+    fs.close();
+
+    new Main(ImmutableMap.of()).configureLog(fs, new String[]{"--nologging"});
+
+    assertThat(Logger.getLogger("").getHandlers()).isEmpty();
+  }
+
+  @Test
+  public void testExternalLoggingConfigDoesNotAccessFileSystem() throws IOException {
+    FileSystem fs = Jimfs.newFileSystem();
+    fs.close();
+    String previous = System.getProperty("java.util.logging.config.file");
+    System.setProperty("java.util.logging.config.file", "/custom/logging.properties");
+    try {
+      new Main(ImmutableMap.of()).configureLog(fs, args);
+    } finally {
+      if (previous == null) {
+        System.clearProperty("java.util.logging.config.file");
+      } else {
+        System.setProperty("java.util.logging.config.file", previous);
+      }
+    }
   }
 
   @Test
