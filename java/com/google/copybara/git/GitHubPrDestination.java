@@ -88,6 +88,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
   private final LazyResourceLoader<GitRepository> localRepo;
   private final ConfigFile mainConfigFile;
   private final List<String> assignees;
+  private final List<String> labels;
   @Nullable private final Checker endpointChecker;
 
   @Nullable private String resolvedDestinationRef;
@@ -110,6 +111,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
       @Nullable String title,
       @Nullable String body,
       List<String> assignees,
+      List<String> labels,
       ConfigFile mainConfigFile,
       @Nullable String workflowName,
       @Nullable Checker endpointChecker,
@@ -133,6 +135,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
     this.integrates = Preconditions.checkNotNull(integrates);
     this.title = title;
     this.assignees = assignees;
+    this.labels = labels;
     this.body = body;
     this.updateDescription = updateDescription;
     this.ghHost = Preconditions.checkNotNull(ghHost);
@@ -270,6 +273,9 @@ public class GitHubPrDestination implements Destination<GitRevision> {
         ImmutableList<String> assignees =
             LabelFinder.mapLabels(
                 transformResult.getLabelFinder(), GitHubPrDestination.this.assignees);
+        ImmutableList<String> prLabels =
+            LabelFinder.mapLabels(
+                transformResult.getLabelFinder(), GitHubPrDestination.this.labels);
         for (PullRequest pr : pullRequests) {
           if (pr.getHead().getRef().equals(prBranch)) {
             if (!pr.isOpen()) {
@@ -300,6 +306,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
                   pr.getNumber(),
                   new UpdatePullRequest(title, prBody, /* state= */ null));
             }
+            addLabelsToPullRequest(api, console, pr, prLabels);
             result.add(
                 new DestinationEffect(
                     DestinationEffect.Type.UPDATED,
@@ -334,6 +341,8 @@ public class GitHubPrDestination implements Destination<GitRevision> {
           }
         }
 
+        addLabelsToPullRequest(api, console, pr, prLabels);
+
         state.pullRequestNumber = pr.getNumber();
         result.add(
             new DestinationEffect(
@@ -356,6 +365,25 @@ public class GitHubPrDestination implements Destination<GitRevision> {
             credentials);
       }
     };
+  }
+
+  /**
+   * Adds labels to a pull request. GitHub's create-PR endpoint does not accept labels, so this is
+   * a separate call. Adding is idempotent and never removes existing labels. Failure is non-fatal.
+   */
+  private void addLabelsToPullRequest(
+      GitHubApi api, Console console, PullRequest pr, ImmutableList<String> prLabels)
+      throws ValidationException {
+    if (prLabels.isEmpty()) {
+      return;
+    }
+    try {
+      api.addLabels(getProjectName(), pr.getNumber(), prLabels);
+    } catch (RepoException e) {
+      console.warnFmt(
+          "Could not add all labels (%s) to %s/pull/%s with error '%s'",
+          prLabels, asHttpsUrl(), pr.getNumber(), e.getMessage());
+    }
   }
 
   @VisibleForTesting
